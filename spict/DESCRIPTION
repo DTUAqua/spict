@@ -1,9 +1,15 @@
 Package: spict
-Title: What the package does (one line)
+Type: Package
+Title: Suplus Production in Continuous-Time
 Version: 0.1
-Authors@R: "First Last <first.last@example.com> [aut, cre]"
-Description: What the package does (one paragraph)
+Date: 2014-10-23
+Author: Martin W. Pedersen
+Maintainer: Martin W. Pedersen <map@aqua.dtu.dk>
+Description: Fits a surplus production model to fisheries catch and index data.
+License: GPL (>=2)
 Depends:
-    R (>= 3.1.1)
-License: What license is it under?
+    R (>= 3.1.1),
+    TMB
+Suggests:
+    ellipse
 LazyData: true
