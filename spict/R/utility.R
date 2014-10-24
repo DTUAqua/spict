@@ -53,7 +53,8 @@ NULL
 check.inp <- function(inp){
     # -- DATA --
     # Check catches
-    if('obsC' %in% names(inp) & 'timeC' %in% names(inp)){
+    if('obsC' %in% names(inp)){
+        if(!'timeC' %in% names(inp)) inp$timeC <- 1:length(inp$obsC)
         if(length(inp$obsC) != length(inp$timeC)) stop('Time and observation vector do not match in length for catch series')
         neg <- which(inp$obsC<0 | is.na(inp$obsC))
         if(length(neg)>0){
@@ -67,13 +68,20 @@ check.inp <- function(inp){
     }
 
     # Check indices
-    if('obsI' %in% names(inp) & 'timeI' %in% names(inp)){
+    if('obsI' %in% names(inp)){
         if(class(inp$obsI)!='list'){
             tmp <- inp$obsI
             inp$obsI <- list()
             inp$obsI[[1]] <- tmp
         }
+        if(!'timeI' %in% names(inp)){
+            inp$timeI <- list()
+            inp$timeI[[1]] <- 1:length(inp$obsI[[1]])
+        }
         inp$nindex <- length(inp$obsI)
+        if(inp$nindex != length(inp$timeI)){
+            stop('The length(inp$timeI) does not match length(inp$obsI)!')
+        }
         inp$nobsI <- rep(0, inp$nindex)
         for(i in 1:inp$nindex){
             if(length(inp$obsI[[i]]) != length(inp$timeI[[i]])) stop('Time and observation vector do not match in length for index series ',i)
@@ -435,18 +443,20 @@ plotspict <- function(rep){
     legend('topright', legend=c('Binf','Bpred'), lty=c(1,NA), pch=c(NA,21), col=c(3,1), pt.bg=c(NA,'yellow'))
     box()
 
-    # One-step-ahead catch residuals
-    Cscal <- 1
-    Cpred <- rep$osar$logCpred
-    plot(inp$timeC, log(inp$obsC), typ='p', ylim=range(c(Cpred,log(inp$obsC),1.08*c(Cpred,log(inp$obsC)))), main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,3)), ylab=paste('Catch, Cscal:',Cscal), xlim=range(c(inp$timeC,inp$timeC[inp$nobsC]+1)))
-    clr <- 'black'
-    lines(rep$osar$timeC, Cpred, col=clr)
-    points(rep$osar$timeC, Cpred, pch=20, cex=0.7, col=clr)
-    legend('topright', 'One-step pred.', lty=1, col=clr, pch=20, pt.cex=0.7)
+    if('osar' %in% names(rep)){
+        # One-step-ahead catch residuals
+        Cscal <- 1
+        Cpred <- rep$osar$logCpred
+        plot(inp$timeC, log(inp$obsC), typ='p', ylim=range(c(Cpred,log(inp$obsC),1.08*c(Cpred,log(inp$obsC)))), main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,3)), ylab=paste('Catch, Cscal:',Cscal), xlim=range(c(inp$timeC,inp$timeC[inp$nobsC]+1)))
+        clr <- 'black'
+        lines(rep$osar$timeC, Cpred, col=clr)
+        points(rep$osar$timeC, Cpred, pch=20, cex=0.7, col=clr)
+        legend('topright', 'One-step pred.', lty=1, col=clr, pch=20, pt.cex=0.7)
 
-    # OSAR ACF
-    acf(rep$osar$logCpres, main='ACF of OSA residuals')
-
+        # OSAR ACF
+        acf(rep$osar$logCpres, main='ACF of OSA residuals')
+    }
+    
     # F versus B
     qest <- get.par('logq', rep, exp=TRUE, fixed=TRUE)
     rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
