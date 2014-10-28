@@ -577,7 +577,15 @@ plotspict <- function(rep){
 .onLoad <- function(libname, pkgname){
     #path <- paste(libname, pkgname, "TMB", "", sep="/")
     path <- paste0(system.file("TMB", package="spict"),'/')
-    if(!file.exists(TMB::dynlib(paste0(path,"spict"))))
+    if(!file.exists(TMB::dynlib(paste0(path,"spict")))){
+        cat(' - Compiling TMB code, please wait this may take 10-20 seconds...\n')
         TMB::compile(paste0(path,"spict.cpp"))
+    }
+    msg <- try(dyn.load(TMB::dynlib(paste0(path,"spict"))))
+    if(class(msg)=='try-error'){
+        unlink(paste0(path,"spict.so"))
+        cat(' - Compiling TMB code, please wait this may take 10-20 seconds...\n')
+        TMB::compile(paste0(path,"spict.cpp"))
+    }
     dyn.load(TMB::dynlib(paste0(path,"spict")))
 }
