@@ -68,6 +68,10 @@ shinyServer(function(input, output) {
   #    dataInput()
   })
 
+  #output$text2 <- renderText({
+  #    input$radio
+  #})
+
   # input$file1 will be NULL initially. After the user selects
   # and uploads a file, it will be a data frame with 'name',
   # 'size', 'type', and 'datapath' columns. The 'datapath'
