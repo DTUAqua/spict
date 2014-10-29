@@ -1,4 +1,5 @@
 library(shiny)
+library(spict)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
@@ -17,7 +18,9 @@ shinyServer(function(input, output) {
       if (is.null(inFile)){
           return(NULL)
       } else {
-          return(read.csv(inFile$datapath, header=input$inphead, sep=input$inpsep, skip=input$inpskip))
+          sep <- input$inpsep
+          if(sep=='blank') sep <- ' '
+          return(read.csv(inFile$datapath, header=input$inphead, sep=sep, skip=input$inpskip))
       }
   })
 
@@ -47,16 +50,17 @@ shinyServer(function(input, output) {
   spict <- reactive({
       inp <- makeinp()
       if(!is.null(inp)){
-          require(spict)
           return(fit.spict(inp))
       } else {
           return(NULL)
       }
   })
 
-  #output$text2 <- renderText({ 
+  output$text2 <- renderText({
+      input$runspict
+      isolate(input$file$datapath)
   #    dataInput()
-  #})
+  })
 
   # input$file1 will be NULL initially. After the user selects
   # and uploads a file, it will be a data frame with 'name',
@@ -91,12 +95,68 @@ shinyServer(function(input, output) {
       makeinp()
   })
   
-  output$resplot <- renderPlot({
+  output$bplot <- renderPlot({
       # Take dependency on action button
-      input$runspict
-      
-      rep <- spict()
-      if(!is.null(rep)) plotspict(rep)
-  })
+      if(input$runspict == 0) return()
 
+      # Isolate to ensure spict only runs if button is pressed.
+      # For isolate to work it is important to fix the extends of the output such as setting the height and width of a plot.
+      isolate({
+          rep <- spict()
+          if(!is.null(rep)){
+              plotspict.biomass(rep)
+          }
+      })
+  })
+  output$fbplot <- renderPlot({
+      # Take dependency on action button
+      if(input$runspict == 0) return()
+      isolate({
+          rep <- spict()
+          if(!is.null(rep)){
+              plotspict.fb(rep)
+          }
+      })
+  })
+  output$fplot <- renderPlot({
+      # Take dependency on action button
+      if(input$runspict == 0) return()
+      isolate({
+          rep <- spict()
+          if(!is.null(rep)){
+              plotspict.f(rep)
+          }
+      })
+  })
+  output$osarplot <- renderPlot({
+      # Take dependency on action button
+      if(input$runspict == 0) return()
+      isolate({
+          rep <- spict()
+          osar <- calc.osa.resid(rep)
+          if(!is.null(osar)){
+              plotspict.osar(osar)
+          }
+      })
+  })
+  output$catchplot <- renderPlot({
+      # Take dependency on action button
+      if(input$runspict == 0) return()
+      isolate({
+          rep <- spict()
+          if(!is.null(rep)){
+              plotspict.catch(rep)
+          }
+      })
+  })
+  output$prodplot <- renderPlot({
+      # Take dependency on action button
+      if(input$runspict == 0) return()
+      isolate({
+          rep <- spict()
+          if(!is.null(rep)){
+              plotspict.production(rep)
+          }
+      })
+  })
 })

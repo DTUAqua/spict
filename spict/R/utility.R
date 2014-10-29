@@ -444,7 +444,7 @@ plotspict.osar <- function(rep){
     inp <- rep$inp
     Cscal <- 1
     Cpred <- rep$osar$logCpred
-    plot(inp$timeC, log(inp$obsC), typ='p', ylim=range(c(Cpred,log(inp$obsC),1.08*c(Cpred,log(inp$obsC)))), main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,3)), ylab=paste('Catch, Cscal:',Cscal), xlim=range(c(inp$timeC,inp$timeC[inp$nobsC]+1)))
+    plot(inp$timeC, log(inp$obsC), typ='p', ylim=range(c(Cpred,log(inp$obsC),1.08*c(Cpred,log(inp$obsC)))), main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,5)), ylab=paste('Catch, Cscal:',Cscal), xlim=range(c(inp$timeC,inp$timeC[inp$nobsC]+1)), xlab='Time')
     clr <- 'black'
     lines(rep$osar$timeC, Cpred, col=clr)
     points(rep$osar$timeC, Cpred, pch=20, cex=0.7, col=clr)
@@ -510,7 +510,7 @@ plotspict.f <- function(rep){
     Fmsy <- get.par('logFmsy', rep, exp=TRUE)
     rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
     ylim <- range(Fest[,1:3])
-    plot(inp$time, Fest[, 2], typ='n', main=paste('Fmsy:',round(Fmsy[2],3)), ylim=ylim, col='blue', ylab='F', xlim=range(inp$time,tail(inp$time+1,2)))
+    plot(inp$time, Fest[, 2], typ='n', main=paste('Fmsy:',round(Fmsy[2],3)), ylim=ylim, col='blue', ylab='F', xlim=range(inp$time,tail(inp$time+1,2)), xlab='Time')
     axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
     mtext("F/Fmsy", side=4, las=0, line=2)
     polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Fmsy[1],Fmsy[1],Fmsy[3],Fmsy[3]), col=cicol, border=cicol)
@@ -583,7 +583,7 @@ plotspict.production <- function(rep){
     pfun <- function(r, K, B) r*B*(1 - B/K)
     Pst <- pfun(rest[2], Kest[2], Bplot)
     xlim <- range(Bplot/Bmsy[2])
-    plot(Best[-1, 2]/Bmsy[2], Pest[, 2]/inp$dt/Bmsy[2], typ='l', ylim=range(Pest[,2]/inp$dt/Bmsy[2], Pst/Bmsy[2]), xlim=xlim, xlab='B/Bmsy', ylab='Production/Bmsy', col=4)
+    plot(Best[-1, 2]/Bmsy[2], Pest[, 2]/inp$dt/Bmsy[2], typ='l', ylim=range(Pest[,2]/inp$dt/Bmsy[2], Pst/Bmsy[2]), xlim=xlim, xlab='B/Bmsy', ylab='Production/Bmsy', col=4, main='Production curve')
     lines(Bplot/Bmsy[2], Pst/Bmsy[2], col=1)
     #arrow.line(Best[-1, 2]/Bmsy[2], Pest[,2]/inp$dt/Bmsy[2], length=0.05)
     abline(v=1, lty=3)
