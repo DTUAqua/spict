@@ -25,32 +25,37 @@ shinyServer(function(input, output) {
   })
 
   makeinp <- reactive({
-      dat <- dataInput()
-      if(is.null(dat)){
-          return(NULL)
+      if(input$radio==1){
+          dat <- dataInput()
+          if(is.null(dat)){
+              return(NULL)
+          } else {
+              inp <- list()
+              timecol <- as.numeric(input$timecol)
+              if(timecol>0) inp$timeC <- dat[, timecol]
+              inp$obsC <- dat[, as.numeric(input$catchcol)]
+              inp$obsI <- dat[, as.numeric(input$indexcol)]
+              inp$ini <- list()
+              inp$ini$logr <- input$logr
+              inp$ini$logK <- input$logK
+              inp$ini$logq <- input$logq
+              inp$ini$logsdb <- input$logsdb
+              inp$ini$logsdf <- input$logsdf
+              inp$ini$alpha <- input$alpha
+              inp$ini$beta <- input$beta
+          }
       } else {
-          inp <- list()
-          timecol <- as.numeric(input$timecol)
-          if(timecol>0) inp$timeC <- dat[, timecol]
-          inp$obsC <- dat[, as.numeric(input$catchcol)]
-          inp$obsI <- dat[, as.numeric(input$indexcol)]
-          inp$ini <- list()
-          inp$ini$logr <- input$logr
-          inp$ini$logK <- input$logK
-          inp$ini$logq <- input$logq
-          inp$ini$logsdb <- input$logsdb
-          inp$ini$logsdf <- input$logsdf
-          inp$ini$alpha <- input$alpha
-          inp$ini$beta <- input$beta
-          return(inp)
+          data(pol.albacore)
       }
+      return(inp)
   })
 
   
   spict <- reactive({
       inp <- makeinp()
       if(!is.null(inp)){
-          return(fit.spict(inp))
+          rep <- try(fit.spict(inp))
+          return(rep)
       } else {
           return(NULL)
       }
@@ -86,15 +91,38 @@ shinyServer(function(input, output) {
           } else {
               time <- 1:length(inp$obsC)
           }
-          if(input$ycol == 'Catch') plot(time, inp$obsC, typ='l', xlab='Time', ylab='Catch')
-          if(input$ycol == 'Index') plot(time, inp$obsI, typ='l', xlab='Time', ylab='Index')
+          if(input$ycol == 'Catch'){
+              plot(time, inp$obsC, typ='l', xlab='Time', ylab='Catch')
+              points(time, inp$obsC, pch=20, cex=0.7)
+          }
+          if(input$ycol == 'Index'){
+              plot(time, inp$obsI, typ='l', xlab='Time', ylab='Index')
+              points(time, inp$obsI, pch=20, cex=0.7)
+          }
       }
   })
 
   output$inp <- renderPrint({
       makeinp()
   })
-  
+
+  output$summary <- renderPrint({
+      # Take dependency on action button
+      if(input$runspict == 0) return()
+      isolate({
+          sink(file='deleteme.txt')
+          rep <- spict()
+          sink()
+          if(class(rep)=='try-error'){
+              cat(paste('There was an Error fitting the model!', rep, '\n'))
+          } else {
+              if(!is.null(rep)){
+                  summaryspict(rep)
+              }
+          }
+      })
+  })
+
   output$bplot <- renderPlot({
       # Take dependency on action button
       if(input$runspict == 0) return()

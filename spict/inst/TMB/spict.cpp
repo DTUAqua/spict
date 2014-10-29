@@ -300,6 +300,7 @@ Type objective_function<Type>::operator() ()
   logBinf = log(Binf);
   ADREPORT(logBinf);
   ADREPORT(logFp);
+  ADREPORT(Cp);
   // REPORTS (these don't require sdreport to be output)
   REPORT(Cp);
   REPORT(logIp);

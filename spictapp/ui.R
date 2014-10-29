@@ -11,13 +11,17 @@ shinyUI(fluidPage(
     column(4,
             fluidRow(column(8, h3('Inputs')), column(4, actionButton("runspict", 'Run SPiCT', col='green'))),
             tabsetPanel(type = "tabs",
-                        tabPanel("File", wellPanel(fileInput("file", label = h3("File input (csv)"), accept=c('text/csv','text/comma-separated-values,text/plain','.csv')))),
+                        tabPanel("File", wellPanel(
+                            radioButtons("radio", label = NULL,
+        choices = list("Load own data" = 1, "Load demo data" = 2), selected = 1),
+                            fileInput("file", label = h5("File input (csv)"), accept=c('text/csv','text/comma-separated-values,text/plain','.csv')))),
                         tabPanel("Read options", wellPanel(
                                  fluidRow(
                 column(4, checkboxInput("inphead", label = "Header?", value = TRUE)),
-                column(3, numericInput("inpskip", label = "Skip lines", value = 0)),
-                                     column(1, span('')),
-                column(3, selectInput('inpsep', 'Separator', choices=c(',', 'blank', ';')))),
+                column(3, selectInput('inpsep', 'Separator', choices=c(',', 'blank', ';'))),
+                column(1, span('')),
+                column(3, numericInput("inpskip", label = "Skip lines", value = 0))
+                                     ),
                                  fluidRow(
                 column(3, numericInput("timecol", label = "Time col", value = 1)),
                                      column(1, span('')),
@@ -45,10 +49,11 @@ shinyUI(fluidPage(
             #textOutput("parvals"),
             
             tabsetPanel(type = "tabs", 
-                        tabPanel("Plot", selectInput('ycol', 'Plot', c('Catch', 'Index')), plotOutput("dataplot")),
                         tabPanel("Table", tableOutput("contents")),
+                        tabPanel("Data plot", selectInput('ycol', 'Plot', c('Catch', 'Index')), plotOutput("dataplot")),
                         tabPanel("Input list", verbatimTextOutput('inp'))
                         )
+#           wellPanel(verbatimTextOutput('summary'))
             #),
            ),
 
@@ -56,12 +61,15 @@ shinyUI(fluidPage(
         #mainPanel(
         column(9,
                h3('Ouputs'),
+               tabsetPanel(type='tabs',
+                           tabPanel('Plots',
                column(4, plotOutput("bplot")),
                column(4, plotOutput("osarplot")),
                column(4, plotOutput("fbplot")),
                column(4, plotOutput("catchplot")),
                column(4, plotOutput("prodplot")),
-               column(4, plotOutput("fplot"))
-               )
+               column(4, plotOutput("fplot"))),
+                           tabPanel('Summary', verbatimTextOutput('summary'))
+               ))
         #)
     ))
