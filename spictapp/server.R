@@ -25,7 +25,7 @@ shinyServer(function(input, output) {
   })
 
   makeinp <- reactive({
-      if(input$radio==1){
+      if(input$radio == 'own'){
           dat <- dataInput()
           if(is.null(dat)){
               return(NULL)
@@ -44,7 +44,8 @@ shinyServer(function(input, output) {
               inp$ini$alpha <- input$alpha
               inp$ini$beta <- input$beta
           }
-      } else {
+      }
+      if(input$radio == 'demo'){
           data(pol.albacore)
       }
       return(inp)
@@ -110,9 +111,9 @@ shinyServer(function(input, output) {
       # Take dependency on action button
       if(input$runspict == 0) return()
       isolate({
-          sink(file='deleteme.txt')
-          rep <- spict()
-          sink()
+          #sink(file='deleteme.txt')
+          msg.trap <- capture.output(rep <- spict())
+          #sink()
           if(class(rep)=='try-error'){
               cat(paste('There was an Error fitting the model!', rep, '\n'))
           } else {

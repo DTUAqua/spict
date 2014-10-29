@@ -12,8 +12,7 @@ shinyUI(fluidPage(
             fluidRow(column(8, h3('Inputs')), column(4, actionButton("runspict", 'Run SPiCT', col='green'))),
             tabsetPanel(type = "tabs",
                         tabPanel("File", wellPanel(
-                            radioButtons("radio", label = NULL,
-        choices = list("Load own data" = 1, "Load demo data" = 2), selected = 1),
+                            radioButtons("radio", label = NULL, choices = list("Load own data" = 'own', "Load demo data" = 'demo'), selected = 1),
                             fileInput("file", label = h5("File input (csv)"), accept=c('text/csv','text/comma-separated-values,text/plain','.csv')))),
                         tabPanel("Read options", wellPanel(
                                  fluidRow(
