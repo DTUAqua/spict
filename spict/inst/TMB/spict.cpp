@@ -65,7 +65,9 @@ Type objective_function<Type>::operator() ()
 
   DATA_INTEGER(delay);       // Delay
   DATA_VECTOR(dt);       // Time steps
-  DATA_SCALAR(dtpred);       // Time step for prediction
+  DATA_SCALAR(dtpred);        // Time step for prediction
+  DATA_VECTOR(dtpredinds);
+  DATA_INTEGER(dtprednsteps); // Number of sub time step for prediction
   DATA_VECTOR(Cobs);       // Catches
   DATA_VECTOR(ic); // Vector such that B(ii(i)) is the state corresponding to Cobs(i)
   DATA_VECTOR(nc); // nc(i) gives the number of time intervals Cobs(i) spans
@@ -255,6 +257,9 @@ Type objective_function<Type>::operator() ()
   }
 
   // ONE-STEP-AHEAD PREDICTIONS
+  if(dbg>0){
+    std::cout << "--- DEBUG: ONE-STEP-AHEAD PREDICTIONS" << std::endl;
+  }
   Type logFp = predictlogF(phi1, logF(ns-1), phi2, logF(ns-delay));
   Type Fp = exp(logFp);
   Type Bp;
@@ -263,9 +268,31 @@ Type objective_function<Type>::operator() ()
   Binfp = calculateBinf(K, Fp, rvec(ns-1), sdb2, lamperti);
   Bp = predictB(B(ns-1), Binfp, Fp, rvec(ns-1), K, dtpred, sdb2, lamperti, euler);
   Cp = predictC(Fp, K, rvec(ns-1), Bp, Binfp, dtpred, sdb2, lamperti, euler);
-  Type logIp = logq + log(Bp);
+
 
   Type Cinfp = predictC(Fp, K, rvec(ns-1), Binfp, Binfp, dtpred, sdb2, lamperti, euler); // This one doesn't accommodate delays
+
+  // NEW osa predictions
+  if(dbg>0){
+    std::cout << "--- DEBUG: NEW ONE-STEP-AHEAD PREDICTIONS" << std::endl;
+    std::cout << "-- dtprednsteps: " << dtprednsteps << "  dtpredinds.size(): " << dtpredinds.size() <<std::endl;
+  }
+  Type Cp2 = 0.0;
+  for(int i=0; i<dtprednsteps; i++){
+    ind = CppAD::Integer(dtpredinds(i)-1);
+    if(dbg>1){
+      std::cout << "-- dtpredinds(i)-1: " << ind << std::endl;
+    }
+    Cp2 += Cpredsub(ind);
+  }
+  // This is the biomass and F at the beginning of the catch prediction time interval
+  Type Bp2 = B(CppAD::Integer(dtpredinds(0)-1)); 
+  Type logFp2 = logF(CppAD::Integer(dtpredinds(0)-1)); 
+
+  // These lines overwrite the old OSA predictions and replace them with the new ones.
+  Cp = Cp2;
+  Bp = Bp2;
+  Type logIp = logq + log(Bp);
 
   // MSY PREDICTIONS
   Type Bpmsy;
@@ -274,6 +301,7 @@ Type objective_function<Type>::operator() ()
   Binfpmsy = calculateBinf(K, Fmsy, rvec(ns-1), sdb2, lamperti);
   Bpmsy = predictB(B(ns-1), Binfpmsy, Fmsy, rvec(ns-1), K, dtpred, sdb2, lamperti, euler);
   Cpmsy = predictC(Fmsy, K, rvec(ns-1), Bpmsy, Binfpmsy, dtpred, sdb2, lamperti, euler);
+
 
   // ADREPORTS
   ADREPORT(r);
@@ -300,7 +328,13 @@ Type objective_function<Type>::operator() ()
   logBinf = log(Binf);
   ADREPORT(logBinf);
   ADREPORT(logFp);
-  ADREPORT(Cp);
+  Type logCp = log(Cp);
+  ADREPORT(logCp);
+  Type logCp2 = log(Cp2);
+  ADREPORT(logCp2);
+  Type logBp2 = log(Bp2);
+  ADREPORT(logBp2);
+  ADREPORT(logFp2);
   // REPORTS (these don't require sdreport to be output)
   REPORT(Cp);
   REPORT(logIp);
