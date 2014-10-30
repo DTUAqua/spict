@@ -124,13 +124,14 @@ check.inp <- function(inp){
     alltimes <- inp$timeC
     #for(i in 1:inp$nindex) alltimes <- c(alltimes, inp$timeI[[i]])
     for(i in 1:1) alltimes <- c(alltimes, inp$timeI[[i]]) # CHANGE THIS WHEN USING ALL INDICES
-    timerange <- range(alltimes)
+    inp$timerange <- range(alltimes)
     # Add two dtc intervals, one for the final catch observation, and one for the predicted catch
     #mindtc <- min(inp$dtc)
     lastdtc <- tail(inp$dtc,1)
     timepad <- lastdtc + inp$dtpred
-    inp$time <- seq(timerange[1], timerange[2]+timepad, by=inp$timefrac)
+    inp$time <- seq(inp$timerange[1], inp$timerange[2]+timepad, by=inp$timefrac)
     inp$ns <- length(inp$time)
+    inp$indlastobs <- which(inp$time == inp$timerange[2])
     # ic is the indices of inp$time to which catch observations correspond
     inp$ic <- match(inp$timeC, inp$time)
     # nc is number of states to integrate a catch observation over
@@ -141,7 +142,7 @@ check.inp <- function(inp){
     for(i in 1:inp$nindex) inp$ii[[i]] <- match(inp$timeI[[i]], inp$time)
     inp$dt <- diff(inp$time)
     # Add helper variable such that predicted catch can be calculated using small euler steps
-    inp$dtpredinds <- which(inp$time >= (timerange[2]+lastdtc) & inp$time < (timerange[2]+timepad))
+    inp$dtpredinds <- which(inp$time >= (inp$timerange[2]+lastdtc) & inp$time < (inp$timerange[2]+timepad))
     inp$dtprednsteps <- length(inp$dtpredinds)
     #if(tail(inp$ic,1) == inp$ns) inp$dt <- c(inp$dt, tail(inp$dtc,1))
     
@@ -433,14 +434,14 @@ plotspict.biomass <- function(rep){
     abline(h=Bmsy[2]/scal, col='black')
     lines(inp$time, Best[,1]/scal, col=4, lty=2)
     lines(inp$time, Best[,3]/scal, col=4, lty=2)
-    lines(inp$time, Binf[,2]/scal, col=3, lty=1)
+    lines(inp$time, Binf[,2]/scal, col='green', lty=1)
     et <- tail(inp$time,1)
     tp <- et + inp$dtpred
     lines(c(et, tp), c(tail(Best[,2],1), Bp[2])/scal, col='blue', lty=3)
     points(tp, Bp[2], pch=21, bg='yellow')
     lines(c(et, tp), c(tail(Best[,1],1), Bp[1])/scal, col='blue', lty=3)
     lines(c(et, tp), c(tail(Best[,3],1), Bp[3])/scal, col='blue', lty=3)
-    legend('topright', legend=c('Binf','Bpred'), lty=c(1,NA), pch=c(NA,21), col=c(3,1), pt.bg=c(NA,'yellow'))
+    legend('topright', legend=c('Equilibrium',paste(tp,'prediction')), lty=c(1,NA), pch=c(NA,21), col=c('green',1), pt.bg=c(NA,'yellow'))
     box()
 }
 
@@ -455,11 +456,11 @@ plotspict.osar <- function(rep){
     inp <- rep$inp
     Cscal <- 1
     Cpred <- rep$osar$logCpred
-    clr <- 'black'
-    plot(inp$timeC, log(inp$obsC), typ='p', ylim=range(c(Cpred,log(inp$obsC),1.13*c(Cpred,log(inp$obsC)))), main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,5)), ylab=paste('log Catch, Cscal:',Cscal), xlim=range(c(inp$timeC,inp$timeC[inp$nobsC]+1)), xlab='Time', col=clr)
+    plot(inp$timeC, log(inp$obsC), typ='p', ylim=range(c(Cpred,log(inp$obsC),1.13*c(Cpred,log(inp$obsC)))), main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,5)), ylab=paste('log Catch, Cscal:',Cscal), xlim=range(c(inp$timeC,inp$timeC[inp$nobsC]+1)), xlab='Time', col=1)
+    clr <- 'blue'
     lines(rep$osar$timeC, Cpred, col=clr)
     points(rep$osar$timeC, Cpred, pch=20, cex=0.7, col=clr)
-    legend('topright', c('Observations', 'One-step pred.'), lty=c(NA,1), col=clr, pch=c(1,20), pt.cex=c(1,0.7))
+    legend('topright', c('Observations', 'One-step pred.'), lty=c(NA,1), col=c(1,clr), pch=c(1,20), pt.cex=c(1,0.7))
 }
 
 
@@ -499,12 +500,12 @@ plotspict.fb <- function(rep){
     abline(v=Bmsy[2], lty=3)
     #arrow.line(Best[,2]/scal, Fest[,2], length=0.05, col='blue')
     lines(Best[,2]/scal, Fest[,2], col='blue')
-    points(Bmsy[2]/scal, Fmsy[2], pch=24, bg='blue')
+    points(Bmsy[2]/scal, Fmsy[2], pch=24, bg='black')
     lines(c(tail(Best[,2],1), Bp[2])/scal, rep(Fp[2],2), col='blue', lty=3)
     points(Bp[2]/scal, Fp[2], pch=21, bg='yellow')
-    points(tail(Binf[,2],1)/scal, Fp[2], pch=22, bg='orange', cex=2)
+    points(tail(Binf[,2],1)/scal, Fp[2], pch=22, bg='green', cex=2)
     arrow.line(c(Bp[2], tail(Binf[,2],1))/scal, rep(Fp[2],2), col='black', length=0.05)
-    legend('topright', c('Estimated MSY',paste(tail(inp$time,1)+1,'prediction'),'Equilibrium'), pch=c(24,21,22), pt.bg=c('blue','yellow','orange'), bg='white')
+    legend('topright', c('Estimated MSY',paste(tail(inp$time,1)+1,'prediction'),'Equilibrium'), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
 }
 
 
@@ -564,18 +565,14 @@ plotspict.catch <- function(rep){
     polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
     points(inp$timeC, inp$obsC/Cscal)
     points(tail(inp$timeC,1)+inp$dtpred, rep$Cp/Cscal, pch=21, bg='yellow')
-    #points(tail(inp$time,1)+1, Cpmax/Cscal, pch=21, bg='red')
-    points(tail(inp$timeC,1)+1, Cpmsy[2]/Cscal, pch=21, bg='green')
-    points(tail(inp$timeC,1)+1, Cinfp[2]/Cscal, pch=21, bg='orange')
-    #lines(inp$time[-1], Pest[, 2]/Cscal/dt, col=3)
+    #points(tail(inp$timeC,1)+1, Cpmsy[2]/Cscal, pch=21, bg='black')
+    #points(tail(inp$timeC,1)+1, Cinfp[2]/Cscal, pch=21, bg='green')
     abline(h=MSY[2]/Cscal)
-    #lines(inp$time[-ns], Cpredsub[-ns, 2]/Cscal/dt, col=4)
     lines(inp$timeC, Cpredest[, 2]/Cscal, col=4)
     lines(inp$timeC, Cpredest[, 1]/Cscal, col=4, lty=2)
     lines(inp$timeC, Cpredest[, 3]/Cscal, col=4, lty=2)
-    #legend('topleft',c('Pred@Fmax','Pred@Fcur','Pred@Fmsy'),pch=21,pt.bg=c('red','yellow','green'))
-    legend('topleft',c('Pred w Fcur','Pred w Fmsy','Equilibrium'),pch=21,pt.bg=c('yellow','green','orange'), bg='white')
-    #legend('topleft',c('Pred@Fcur','Pred@Fmsy','Equilibrium','Production'),pch=c(21,21,21,NA),pt.bg=c('yellow','green','orange',NA),lty=c(NA,NA,NA,1), col=c(1,1,1,3))
+    #legend('topleft',c(paste(tail(inp$time,1)+inp$dtpred,'prediction'),'Pred w Fmsy','Equilibrium'),pch=21,pt.bg=c('yellow','black','green'), bg='white')
+    legend('topleft',c(paste(tail(inp$time,1)+inp$dtpred,'prediction')), pch=21, pt.bg=c('yellow'), bg='white')
     box()
 }
 
@@ -622,33 +619,30 @@ plotspict.tc <- function(rep){
     Bmsy <- get.par('logBmsy', rep, exp=TRUE)
     ns <- dim(Best)[1]
     p <- 1-exp(-1) # this equals 63.2%, which is the usual definition of the time constant for linear time invariant systems
-    tc <- tc.fun2(Fest[, 2], Kest[2], rest[2], sdbest[2], Best[, 2], p=0.99, lamperti=inp$lamperti)
-    k <- 6
-    pvec <- (0:99)/100
+    pvec <- (1:99)/100
     npvec <- length(pvec)
-    tcfix <- tc.fun2(Fest[k, 2], Kest[2], rest[2], sdbest[2], Best[k, 2], pvec, lamperti=inp$lamperti)
-    Bcur <- Best[ns, 2]
-    B0vec <- round(c(0.5*Bcur, 2*Bcur))
-    nB0vec <- length(B0vec)
-    tcmsy <- matrix(0, nB0vec, npvec)
-    for(i in 1:nB0vec) tcmsy[i, ] <- tc.fun2(Fmsy[2], Kest[2], rest[2], sdbest[2], B0vec[i], pvec, lamperti=inp$lamperti)
-    tccur <- tc.fun2(Fmsy[2], Kest[2], rest[2], sdbest[2], Best[ns, 2], pvec, lamperti=inp$lamperti)
-    #tcmsy <- tc.fun2(Fmsy[2], Kest[2], rest[2], sdbest[2], Bmsy[2], pvec, lamperti=inp$lamperti)
-    plot(tccur[tccur>0], pvec[tccur>0], typ='l', col=4, lwd=1.5, ylab='Proportion of Bmsy', xlab='Years to Bmsy when fished at Fmsy', ylim=range(c(1.3*B0vec/Bmsy[2],0.7*B0vec/Bmsy[2],1)), xlim=c(0, max(tcmsy)))
+    B0cur <- Best[inp$indlastobs, 2]
+    facvec <- c(0, 0.5, 0.75, 1)
+    Fvec <- round(facvec*Fmsy[2], digits=4)
+    nFvec <- length(Fvec)
+    tcmsy <- matrix(0, nFvec, npvec)
+    for(i in 1:nFvec) tcmsy[i, ] <- tc.fun2(Fvec[i], Kest[2], rest[2], sdbest[2], B0cur, pvec, lamperti=inp$lamperti)
+    pp <- pvec[tcmsy[1,]>0]
+    if(B0cur>Bmsy[2]) pp <- 1/pp
+    plot(tcmsy[1,tcmsy[1,]>0], pp, typ='l', col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', ylim=range(c(1.3*B0cur/Bmsy[2],0.7*B0cur/Bmsy[2],1.15,pp)), xlim=c(0, max(tcmsy)))
     abline(h=c(0.95, 1/0.95), lty=1, col='lightgray')
     abline(h=1, lty=3)
-    for(i in 1:nB0vec){
-        if(B0vec[i]>Bmsy[2]){
-            lines(tcmsy[i,tcmsy[i,]>0], 1/pvec[tcmsy[i,]>0], typ='l', col=i+4)
+    for(i in 2:nFvec){
+        if(B0cur>Bmsy[2]){
+            lines(tcmsy[i,tcmsy[i,]>0], 1/pvec[tcmsy[i,]>0], typ='l', col=i+2)
         } else {
-            lines(tcmsy[i,tcmsy[i,]>0], pvec[tcmsy[i,]>0], typ='l', col=i+4)
+            lines(tcmsy[i,tcmsy[i,]>0], pvec[tcmsy[i,]>0], typ='l', col=i+2)
         }
     }
-    abline(v=tcmsy[,which(pvec==0.95)], lty=3, col=c(5,6))
-    abline(v=tccur[which(pvec==0.95)], lty=3, lwd=1.5, col=4)
+    abline(v=tcmsy[,which(pvec==0.95)], lty=2, col=3+(1:nFvec))
     lgnplace <- 'topleft'
-    if(all(B0vec>Bmsy[2])) lgnplace <- 'bottomleft'
-    legend(lgnplace, legend=c(paste('Bcur =',round(Best[ns,2])),paste('B =',B0vec)), lty=1, col=c(4,5,6), lwd=c(1.5,rep(1,nB0vec)), bg='white')
+    if(B0cur > Bmsy[2]) lgnplace <- 'bottomleft'
+    legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=2+(1:nFvec), lwd=rep(1,nFvec), bg='white')
 }
 
 
