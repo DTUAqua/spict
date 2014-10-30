@@ -192,4 +192,14 @@ shinyServer(function(input, output) {
           }
       })
   })
+  output$tcplot <- renderPlot({
+      # Take dependency on action button
+      if(input$runspict == 0) return()
+      isolate({
+          rep <- spict()
+          if(!is.null(rep)){
+              plotspict.tc(rep)
+          }
+      })
+  })
 })

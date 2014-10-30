@@ -66,8 +66,10 @@ shinyUI(fluidPage(
                column(4, plotOutput("osarplot")),
                column(4, plotOutput("fbplot")),
                column(4, plotOutput("catchplot")),
+               column(4, plotOutput("fplot")),
                column(4, plotOutput("prodplot")),
-               column(4, plotOutput("fplot"))),
+               column(4, plotOutput("tcplot"))
+                                    ),
                            tabPanel('Summary', verbatimTextOutput('summary'))
                ))
         #)
