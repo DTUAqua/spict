@@ -639,7 +639,7 @@ plotspict.tc <- function(rep){
             lines(tcmsy[i,tcmsy[i,]>0], pvec[tcmsy[i,]>0], typ='l', col=i+2)
         }
     }
-    abline(v=tcmsy[,which(pvec==0.95)], lty=2, col=3+(1:nFvec))
+    abline(v=tcmsy[,which(pvec==0.95)], lty=2, col=2+(1:nFvec))
     lgnplace <- 'topleft'
     if(B0cur > Bmsy[2]) lgnplace <- 'bottomleft'
     legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=2+(1:nFvec), lwd=rep(1,nFvec), bg='white')
