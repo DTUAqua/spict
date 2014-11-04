@@ -1,6 +1,7 @@
 #!/bin/bash
 cd spict
-echo "library(devtools); library(roxygen2); document()" | R --slave
+#echo "library(devtools); library(roxygen2); document()" | R --slave
+echo "roxygen2::roxygenize('.', roclets=c('rd', 'collate', 'namespace'))" | R --slave
 cd ..
 #rm spict.pdf
 #R CMD Rd2pdf spict

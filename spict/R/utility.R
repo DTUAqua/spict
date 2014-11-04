@@ -6,9 +6,9 @@
 #' @export
 test.spict <- function(){
     # Load data
-    data(pol.albacore)
+    data(pol)
     # Fit model
-    rep <- fit.spict(inp)
+    rep <- fit.spict(inp=pol$albacore)
     # Calculate one-step-ahead residuals
     rep <- calc.osa.resid(rep)
     # Plot results
@@ -20,17 +20,17 @@ test.spict <- function(){
 }
 
 
-#' @name pol.albacore
+#' @name pol
 #' @title Fisheries data for south Atlantic albacore tuna 1967-1989.
 #' @details This data were included in Polacheck et al. (1993).
 #' @docType data
 #' @keywords datasets
-#' @usage data(pol.albacore)
+#' @usage data(pol)
 #' @source Polacheck et al. (1993), Canadian Journal of Fisheries and Aquatic Science, vol 50, pp. 2597-2607.
 #' @examples
-#' data(pol.albacore)
-#' rep <- fit.spict(inp)
-#' @format An inp list containing the data and initial values for estimation.
+#' data(pol)
+#' rep <- fit.spict(inp=pol$albacore)
+#' @format pol$albacore is a list containing the data and initial values for estimation formatted to be used as an input to fit.spict().
 NULL
 
 
