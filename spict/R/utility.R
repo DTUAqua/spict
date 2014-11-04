@@ -843,8 +843,8 @@ read.aspic <- function(filename){
     inp$ini$logq <- log(dat$qini)
     inp$ini$logsdf <- log(1)
     inp$ini$logsdb <- log(1)
-    inp$lamperti <- 0
-    inp$euler <- 0
+    inp$lamperti <- 1
+    inp$euler <- 1
     inp$timefrac <- 1
     return(inp)
 }

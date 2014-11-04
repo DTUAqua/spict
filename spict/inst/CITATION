@@ -1,0 +1,12 @@
+citHeader("To cite SPiCT in publications, please use:")
+citEntry(entry="article",
+         title = "title",
+         author = c(person(given=c("Martin", "W."), family="Pedersen", email="map@aqua.dtu.dk"),
+             person(given=c("Uffe", "H."), family="Thygesen", email="uht@aqua.dtu.dk"),
+             person(given="Anders", family="Nielsen", email="an@aqua.dtu.dk")),
+         note="In press",
+         doi="xxx/xxx",
+         year="2014",
+         journal="Science",
+         textVersion=NULL
+         )
