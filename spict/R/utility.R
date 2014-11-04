@@ -617,32 +617,46 @@ plotspict.tc <- function(rep){
     sdbest <- get.par('logsdb', rep, exp=TRUE, fixed=TRUE)
     Fmsy <- get.par('logFmsy', rep, exp=TRUE)
     Bmsy <- get.par('logBmsy', rep, exp=TRUE)
-    ns <- dim(Best)[1]
-    p <- 1-exp(-1) # this equals 63.2%, which is the usual definition of the time constant for linear time invariant systems
-    pvec <- (1:99)/100
-    npvec <- length(pvec)
     B0cur <- Best[inp$indlastobs, 2]
-    facvec <- c(0, 0.5, 0.75, 1)
+    if(B0cur < Bmsy[2]) facvec <- c(0, 0.75, 0.95, 1)
+    if(B0cur > Bmsy[2]) facvec <- c(2, 1.25, 1.05, 1)
     Fvec <- round(facvec*Fmsy[2], digits=4)
     nFvec <- length(Fvec)
-    tcmsy <- matrix(0, nFvec, npvec)
-    for(i in 1:nFvec) tcmsy[i, ] <- tc.fun2(Fvec[i], Kest[2], rest[2], sdbest[2], B0cur, pvec, lamperti=inp$lamperti)
-    pp <- pvec[tcmsy[1,]>0]
-    if(B0cur>Bmsy[2]) pp <- 1/pp
-    plot(tcmsy[1,tcmsy[1,]>0], pp, typ='l', col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', ylim=range(c(1.3*B0cur/Bmsy[2],0.7*B0cur/Bmsy[2],1.15,pp)), xlim=c(0, max(tcmsy)))
-    abline(h=c(0.95, 1/0.95), lty=1, col='lightgray')
-    abline(h=1, lty=3)
-    for(i in 2:nFvec){
-        if(B0cur>Bmsy[2]){
-            lines(tcmsy[i,tcmsy[i,]>0], 1/pvec[tcmsy[i,]>0], typ='l', col=i+2)
+    g <- function(F, K, r, sdb, B0, dt, lamperti){
+        if(lamperti){
+            return(exp(log(B0) + (r - r/K*B0 - F - 0.5*sdb^2)*dt))
         } else {
-            lines(tcmsy[i,tcmsy[i,]>0], pvec[tcmsy[i,]>0], typ='l', col=i+2)
+            return(B0 + B0*r*(1 - B0/K - F)*dt)
         }
     }
-    abline(v=tcmsy[,which(pvec==0.95)], lty=2, col=2+(1:nFvec))
-    lgnplace <- 'topleft'
-    if(B0cur > Bmsy[2]) lgnplace <- 'bottomleft'
+    simdt <- 0.01
+    nt <- 5000
+    Bsim <- matrix(0, nFvec, nt)
+    time <- matrix(0, nFvec, nt)
+    for(i in 1:nFvec){
+        time[i, ] <- seq(0, simdt*(nt-1), by=simdt)
+        Bsim[i, ] <- rep(0, nt)
+        Bsim[i, 1] <- B0cur
+        for(j in 2:nt){
+            Bsim[i, j] <- g(Fvec[i], Kest[2], rest[2], sdbest[2], Bsim[i, j-1], simdt, inp$lamperti)
+        }
+    }
+    Bsim <- Bsim/Bmsy[2]
+    frac <- 0.95
+    if(B0cur < Bmsy[2]) inds <- which(Bsim[nFvec, ]<0.99)
+    if(B0cur > Bmsy[2]) inds <- which(Bsim[nFvec, ]>(1/0.99))
+    plot(time[1, ], Bsim[1, ], typ='l', xlim=range(time[nFvec, inds]), ylim=range(Bsim[nFvec, ]), col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy')
+    abline(h=c(frac, 1/frac), lty=1, col='lightgray')
+    abline(h=1, lty=3)
+    for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=i+2)
+    vt <- rep(0, nFvec)
+    if(B0cur < Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(Bsim[i, ]<frac))]
+    if(B0cur > Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(1/Bsim[i, ]<frac))]
+    for(i in 1:nFvec) abline(v=vt[i], col=i+2, lty=2)
+    lgnplace <- 'bottomright'
+    if(B0cur > Bmsy[2]) lgnplace <- 'topright'
     legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=2+(1:nFvec), lwd=rep(1,nFvec), bg='white')
+    points(vt, rep(par('usr')[3], nFvec), col=3:(nFvec+2), pch=4)
 }
 
 
