@@ -218,6 +218,7 @@ get.predmap <- function(guess, RE){
 #' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. Will print even more if set to 2.
 #' @return An updated result report, which contains one-step-ahead residuals stored in the $osar variable.
 #' @export
+#' @import TMB
 calc.osa.resid <- function(rep, dbg=0){
     inp <- rep$inp
     predmap <- get.predmap(rep$pl, inp$RE)
@@ -256,6 +257,7 @@ calc.osa.resid <- function(rep, dbg=0){
 #' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. Will print even more if set to 2.
 #' @return A result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
 #' @export
+#' @import TMB
 fit.spict <- function(inp, dbg=0){
     # Check input list
     if(!'checked' %in% names(inp)) inp <- check.inp(inp)
@@ -743,21 +745,116 @@ summaryspict <- function(rep, numdigits=4){
 }
 
 
-#' @import TMB
-.onLoad <- function(libname, pkgname){
-    #path <- paste(libname, pkgname, "TMB", "", sep="/")
-    path <- paste0(system.file("TMB", package="spict"),'/')
-    if(!file.exists(TMB::dynlib(paste0(path,"spict")))){
-        cat(' - Compiling TMB code, please wait this may take 10-20 seconds...\n')
-        TMB::compile(paste0(path,"spict.cpp"))
+#' @name read.aspic
+#' @title Reads ASPIC input file.
+#' @details Reads an input file following the ASPIC 7 format described in the ASPIC manual (found here http://www.mhprager.com/aspic.html).
+#' @param filename Path of the ASPIC input file.
+#' @return A list of input variables that can be used as input to fit.spict().
+#' @export
+read.aspic <- function(filename){
+    rawdat <- readLines(filename)
+    # Read meta data
+    dat <- list()
+    c <- 0
+    i <- 0
+    iq <- 0
+    found <- FALSE
+    while(c<16){
+        i <- i+1
+        found <- !substr(rawdat[i],1,1)=='#'
+        c <- c + found
+        if(c==1 & found) dat$version <- rawdat[i]
+        if(c==2 & found) dat$title <- rawdat[i]
+        # Number of observations
+        if(c==5 & found) dat$nobs <- as.numeric(read.table(filename, skip=i-1, nrows=1)[1])
+        # Number of data series
+        if(c==5 & found){
+            dat$nseries <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
+            dat$qini <- rep(0, dat$nseries)
+        }
+        # Initial parameters
+        if(c==10 & found) dat$B1Kini <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
+        if(c==11 & found) dat$MSYini <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
+        if(c==12 & found) dat$Fmsyini <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
+        if('nseries' %in% names(dat)){
+            if(c==(13+iq) & found & iq<dat$nseries){
+                iq <- iq+1
+                dat$qini[iq] <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
+            }
+        }
+        found <- FALSE
     }
-    msg <- try(dyn.load(TMB::dynlib(paste0(path,"spict"))))
-    if(class(msg)=='try-error'){
-        unlink(paste0(path,"spict.so"))
-        cat(' - Compiling TMB code, please wait this may take 10-20 seconds...\n')
-        TMB::compile(paste0(path,"spict.cpp"))
+    # Read actual observations
+    obsdat <- list()
+    idat <- which(rawdat=='DATA')
+    type <- rep('', dat$nseries)
+    name <- rep('', dat$nseries)
+    for(j in 1:dat$nseries){
+        c <- 0
+        i <- 0
+        while(c<2){
+            i <- i+1
+            c <- c + !substr(rawdat[idat+i],1,1)=='#'
+            if(c==1) name[j] <- rawdat[idat+i]
+            if(c==2) type[j] <- rawdat[idat+i]
+        }
+        datstart <- idat+i
+        obsdat[[j]] <- read.table(filename, skip=datstart, sep='', nrows=dat$nobs)
+        obsdat[[j]][obsdat[[j]]<0] <- NA
+        if(type[j]=='CE'){
+            obsdat[[j]] <- obsdat[[j]][, 1:3]
+            colnames(obsdat[[j]]) <- c('time', 'effort', 'catch')
+            obsdat[[j]] <- cbind(obsdat[[j]], cpue=obsdat[[j]]$catch/obsdat[[j]]$effort)
+        }
+        if(type[j]=='CC'){
+            obsdat[[j]] <- obsdat[[j]][, 1:3]
+            colnames(obsdat[[j]]) <- c('time', 'cpue', 'catch')
+        }
+        # ASPIC differentiates between these index types, but SPiCT does not (yet). See the ASPIC manual for details.
+        if(type[j] %in% c('I0','I1','I2','B0','B1','B2')){ 
+            obsdat[[j]] <- obsdat[[j]][, 1:2]
+            colnames(obsdat[[j]]) <- c('time', 'index')
+        }
+        idat <- datstart + dat$nobs
     }
-    dyn.load(TMB::dynlib(paste0(path,"spict")))
+    # Convert to SPiCT data by storing as an inp list
+    inp <- list()
+    # Insert catches
+    ind <- grep('C', type)
+    inp$timeC <- obsdat[[ind]]$time[!is.na(obsdat[[ind]]$catch)]
+    inp$obsC <- obsdat[[ind]]$catch[!is.na(obsdat[[ind]]$catch)]
+    # Insertindices
+    inp$timeI <- list()
+    inp$obsI <- list()
+    for(j in 1:dat$nseries){
+        if(type[j] %in% c('CC', 'CE')){
+            inp$timeI[[j]] <- obsdat[[j]]$time[!is.na(obsdat[[j]]$cpue)]
+            inp$obsI[[j]] <- obsdat[[j]]$cpue[!is.na(obsdat[[j]]$cpue)]
+        }
+        if(type[j] %in% c('I0','I1','I2','B0','B1','B2')){
+            inp$timeI[[j]] <- obsdat[[j]]$time[!is.na(obsdat[[j]]$index)]
+            inp$obsI[[j]] <- obsdat[[j]]$index[!is.na(obsdat[[j]]$index)]
+        }
+    }
+    # Insert initial values
+    inp$ini <- list()
+    inp$ini$logr <- log(2*dat$Fmsyini)
+    inp$ini$logK <- log(2*dat$MSYini/dat$Fmsyini)
+    inp$ini$logq <- log(dat$qini)
+    inp$ini$logsdf <- log(1)
+    inp$ini$logsdb <- log(1)
+    inp$lamperti <- 0
+    inp$euler <- 0
+    inp$timefrac <- 1
+    return(inp)
 }
 
 
+#' @useDynLib spict
+.onLoad <- function(lib, pkg) {
+  library.dynam("spict", pkg, lib)
+}
+
+.onUnload <- function (lib) {
+  library.dynam.unload("spict", lib)
+}
