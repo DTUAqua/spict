@@ -6,5 +6,5 @@ cd ..
 #R CMD Rd2pdf spict
 #cp spict.pdf spict/
 R CMD build spict
-R CMD check spict_0.1.tar.gz
+#R CMD check spict_0.1.tar.gz
 R CMD INSTALL spict

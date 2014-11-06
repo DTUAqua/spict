@@ -742,6 +742,10 @@ summaryspict <- function(rep, numdigits=4){
     colnames(predout) <- c('prediction', 'cilow', 'ciupp', 'est.in.log')
     rownames(predout) <- c('B', 'F', 'Catch')
     cat(paste(capture.output(predout),' \n'))
+    if('osar' %in% names(rep)){
+        cat('\nOne-step-ahead residuals \n')
+        cat(paste('Ljung-box test for independence of lag 1, p-value:', round(rep$osar$logCpboxtest$p.value, numdigits), '\n'))
+    }
 }
 
 
