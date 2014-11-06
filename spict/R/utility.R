@@ -159,14 +159,16 @@ check.inp <- function(inp){
     if(!"alpha" %in% names(inp$ini)) inp$ini$alpha <- 1
     if(!"beta" %in% names(inp$ini)) inp$ini$beta <- 1
     if(!"loggamma" %in% names(inp$ini)) inp$ini$loggamma <- log(1)
+    if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.3)
     if(!"logF" %in% names(inp$ini)) inp$ini$logF <- log(rep(0.2*exp(inp$ini$logr), inp$ns))
-    if(!"logB" %in% names(inp$ini)) inp$ini$logB <- log(rep(0.3*exp(inp$ini$logK), inp$ns))
+    if(!"logB" %in% names(inp$ini)) inp$ini$logB <- log(rep(exp(inp$ini$logbkfrac)*exp(inp$ini$logK), inp$ns))
     # Reorder parameter list
     inp$ini <- list(phi1=inp$ini$phi1,
                     phi2=inp$ini$phi2,
                     alpha=inp$ini$alpha,
                     beta=inp$ini$beta,
                     loggamma=inp$ini$loggamma,
+                    logbkfrac=inp$ini$logbkfrac,
                     logr=inp$ini$logr,
                     logK=inp$ini$logK,
                     logq=inp$ini$logq,
@@ -265,7 +267,7 @@ fit.spict <- function(inp, dbg=0){
     #require(TMB)
     #scriptname <- 'spict'
     #compile(paste(scriptname,'.cpp',sep=''))
-    #dyn.load(paste(inp$scriptname,'.so',sep=''))
+    #dyn.load(paste(scriptname,'.so',sep=''))
 
     # Currently only able to use one index.
     inp$ini$logq <- inp$ini$logq[1]
@@ -842,6 +844,7 @@ read.aspic <- function(filename){
     }
     # Insert initial values
     inp$ini <- list()
+    inp$ini$logbkfrac <- log(dat$B1Kini)
     inp$ini$logr <- log(2*dat$Fmsyini)
     inp$ini$logK <- log(2*dat$MSYini/dat$Fmsyini)
     inp$ini$logq <- log(dat$qini)
