@@ -46,7 +46,8 @@ shinyServer(function(input, output) {
           }
       }
       if(input$radio == 'demo'){
-          data(pol.albacore)
+          data(pol)
+          inp <- pol$albacore
       }
       return(inp)
   })
