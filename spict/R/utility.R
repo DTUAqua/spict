@@ -114,7 +114,6 @@ check.inp <- function(inp){
     if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
     if(length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
     if(!"timefrac" %in% names(inp)) inp$timefrac <- min(inp$dtc)
-    if(!"map" %in% names(inp)) inp$map <- list(phi1=factor(NA), phi2=factor(NA), alpha=factor(NA), beta=factor(NA), loggamma=factor(NA))
     if(!"delay" %in% names(inp)) inp$delay <- 1
     if(!"dtpred" %in% names(inp)) inp$dtpred <- min(inp$dtc)
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB')
@@ -176,6 +175,29 @@ check.inp <- function(inp){
                     logsdb=inp$ini$logsdb,
                     logF=inp$ini$logF,
                     logB=inp$ini$logB)
+    # Determine phases and fixed parameters
+    fixpars <- c('phi1', 'phi2', 'alpha', 'beta', 'loggamma') # These are fixed unless otherwise specified
+    if(!"phases" %in% names(inp)){
+        inp$phases <- list()
+        for(i in 1:length(fixpars)) inp$phases[[fixpars[i]]] <- -1
+    } else {
+        for(i in 1:length(fixpars)) if(!fixpars[i] %in% names(inp$phases)) inp$phases[[fixpars[i]]] <- -1
+    }
+    nphasepars <- length(inp$phases)
+    inp$map <- list()
+    for(i in 1:nphasepars){
+        parnam <- names(inp$phases)[i]
+        if(parnam %in% names(inp$ini)){
+            phase <- inp$phases[[parnam]]
+            if(phase<0){
+                inp$map[[parnam]] <- factor(NA)
+            } else {
+                cat('WARNING: Phases not yet implemented! will estimate everything in one phase.\n')
+            }
+        } else {
+            cat(paste('WARNING: Phase specified for an invalid parameter:', parnam, '\n'))
+        }
+    }
 
     inp$checked <- TRUE
     return(inp)
