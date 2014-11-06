@@ -79,8 +79,8 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(dbg);       // Debug flag, if == 1 then print stuff.
   PARAMETER(phi1);       // 
   PARAMETER(phi2);       // 
-  PARAMETER(alpha);       // sdi = alpha*sdb
-  PARAMETER(beta);       // sdc = beta*sdf
+  PARAMETER(logalpha);       // sdi = alpha*sdb
+  PARAMETER(logbeta);       // sdc = beta*sdf
   PARAMETER(loggamma);       // rsum = gamma*r, where rsum is r in the summer (Q2+Q3)
   PARAMETER(logbkfrac);    // B0/K fraction
   PARAMETER(logr);         // Intrinsic growth
@@ -98,8 +98,8 @@ Type objective_function<Type>::operator() ()
   Type sdf = exp(logsdf);
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
-  Type sdi = alpha*sdb;
-  Type sdc = beta*sdf;
+  Type sdi = exp(logalpha)*sdb;
+  Type sdc = exp(logbeta)*sdf;
   Type gamma = exp(loggamma);
   int nCobs = Cobs.size();
   int nIobs = I.size();
@@ -189,7 +189,7 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), rvec(i), sdb2, lamperti); 
 
   // BIOMASS PREDICTIONS
-  Type sd = 1e-8;
+  Type sd = 1e-6;
   // Hack to set log(B(0)) equal to the fixed effect log(B0).
   likval = dnorm(logB0, log(B(0)), sd, 1);
   ans-=likval;
