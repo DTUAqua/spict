@@ -139,6 +139,11 @@ check.inp <- function(inp){
     # ii is the indices of inp$time to which index observations correspond
     inp$ii <- list()
     for(i in 1:inp$nindex) inp$ii[[i]] <- match(inp$timeI[[i]], inp$time)
+    # Translate index observations from a list to a vector
+    inp$obsIin <- unlist(inp$obsI)
+    inp$iiin <- unlist(inp$ii)
+    inp$iqin <- rep(1:inp$nindex, times=inp$nobsI)
+    # Calculate time steps
     inp$dt <- diff(inp$time)
     # Add helper variable such that predicted catch can be calculated using small euler steps
     inp$dtpredinds <- which(inp$time >= (inp$timerange[2]+lastdtc) & inp$time < (inp$timerange[2]+timepad))
@@ -150,6 +155,17 @@ check.inp <- function(inp){
     check.ini('logr', inp, min=log(0.3)-3, max=log(0.3)+3)
     check.ini('logK', inp)
     check.ini('logq', inp)
+    if(!'logq' %in% names(inp$ini)){
+        stop('Please specify initial value(s) for logq!')
+    } else {
+        if(length(inp$ini$logq) != inp$nindex){
+            if(length(inp$ini$logq) == 1){
+                inp$ini$logq <- rep(inp$ini$logq, inp$nindex)
+            } else {
+                stop('The length of inp$ini$logq (', length(inp$ini$logq), ') does not fit with the number of index series (', inp$nindex, ')')
+            }
+        }
+    }
     check.ini('logsdb', inp, min=log(0.1), max=log(5))
     check.ini('logsdf', inp, min=log(0.1), max=log(5))
     # Fill in unspecified less important model parameter values
@@ -266,11 +282,13 @@ calc.osa.resid <- function(rep, dbg=0){
         inp2$obsC <- inp$obsC[1:nadj]
         inp2$dtc <- inp$dtc[1:nadj]
         endtime <- inp$timeC[nadj]
-        Iind <- which(inp$timeI[[1]] < endtime)
-        inp2$timeI[[1]] <- inp$timeI[[1]][Iind] 
-        inp2$obsI[[1]] <- inp$obsI[[1]][Iind]
+        for(i in 1:inp$nindex){
+            Iind <- which(inp$timeI[[i]] < endtime)
+            inp2$timeI[[i]] <- inp$timeI[[i]][Iind] 
+            inp2$obsI[[i]] <- inp$obsI[[i]][Iind]
+        }
         inp2 <- check.inp(inp2)
-        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, Cobs=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsI[[1]], ii=inp2$ii[[1]], isum=rep(0,inp2$ns), lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
+        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, Cobs=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, isum=rep(0,inp2$ns), lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         objpred$fn()
@@ -304,8 +322,8 @@ fit.spict <- function(inp, dbg=0){
     #dyn.load(paste(scriptname,'.so',sep=''))
 
     # Currently only able to use one index.
-    inp$ini$logq <- inp$ini$logq[1]
-    datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, Cobs=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsI[[1]], ii=inp$ii[[1]], isum=rep(0,inp$ns), lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
+    #inp$ini$logq <- inp$ini$logq[1]
+    datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, Cobs=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, isum=rep(0,inp$ns), lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
     obj <- TMB::MakeADFun(data=datin, parameters=inp$ini, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, tracemgc=FALSE, map=inp$map)
     config(trace.optimize=0, DLL=inp$scriptname)
     obj$env$tracemgc <- FALSE # Make TMB even more quiet
