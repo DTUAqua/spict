@@ -904,9 +904,6 @@ read.aspic <- function(filename){
 
 
 #' @useDynLib spict
-.onLoad <- function(lib, pkg) {
-  library.dynam("spict", pkg, lib)
-}
 
 .onUnload <- function (lib) {
   library.dynam.unload("spict", lib)
