@@ -11,5 +11,5 @@ To install the package from GitHub use
 
 ```
 library(devtools)
-install_github("spict", "martinwpedersen")
+install_github("martinwpedersen/spict/spict")
 ```
