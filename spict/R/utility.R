@@ -162,12 +162,12 @@ check.inp <- function(inp){
     if(!"logF" %in% names(inp$ini)){
         inp$ini$logF <- log(rep(0.2*exp(inp$ini$logr), inp$ns))
     } else {
-        if(length(inp$ini$logF) != inp$ns) stop('Wrong length of inp$ini$logF:', length(inp$ini$logF), ' Should be equal to inp$ns:', inp$ns, 'remember logF is predicted beyond observations.')
+        if(length(inp$ini$logF) != inp$ns) stop('Wrong length of inp$ini$logF: ', length(inp$ini$logF), ' Should be equal to inp$ns: ', inp$ns, ' remember logF is predicted beyond observations.')
     }
     if(!"logB" %in% names(inp$ini)){
         inp$ini$logB <- log(rep(exp(inp$ini$logbkfrac)*exp(inp$ini$logK), inp$ns))
     } else {
-        if(length(inp$ini$logB) != inp$ns) stop('Wrong length of inp$ini$logB:', length(inp$ini$logB), ' Should be equal to inp$ns:', inp$ns, 'remember logB is predicted beyond observations.')
+        if(length(inp$ini$logB) != inp$ns) stop('Wrong length of inp$ini$logB: ', length(inp$ini$logB), ' Should be equal to inp$ns: ', inp$ns, ' remember logB is predicted beyond observations.')
     }
 
     # Reorder parameter list
@@ -254,6 +254,9 @@ get.predmap <- function(guess, RE){
 #' @import TMB
 calc.osa.resid <- function(rep, dbg=0){
     inp <- rep$inp
+    if("logF" %in% names(inp$ini)) inp$ini$logF <- NULL
+    if("logB" %in% names(inp$ini)) inp$ini$logB <- NULL
+    if("ns" %in% names(inp)) inp$ns <- NULL
     predmap <- get.predmap(rep$pl, inp$RE)
     plnew <- rep$pl
     logCpred <- rep(0, inp$nobsC-1)
@@ -265,7 +268,7 @@ calc.osa.resid <- function(rep, dbg=0){
         endtime <- inp$timeC[nadj]
         Iind <- which(inp$timeI[[1]] < endtime)
         inp2$timeI[[1]] <- inp$timeI[[1]][Iind] 
-        inp2$obsI[[1]] <- inp$obsI[[1]][Iind] 
+        inp2$obsI[[1]] <- inp$obsI[[1]][Iind]
         inp2 <- check.inp(inp2)
         datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, Cobs=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsI[[1]], ii=inp2$ii[[1]], isum=rep(0,inp2$ns), lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]

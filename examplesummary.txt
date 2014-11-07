@@ -1,0 +1,27 @@
+# 07.11.14
+Convergence: 0  MSG: relative convergence (4)
+Negative log likelihood: -6.9591
+
+Model parameter estimates 
+       estimate   cilow    ciupp est.in.log  
+ bkfrac   0.9963  0.6718   1.4775    -0.0037  
+ r        0.4345  0.1631   1.1578    -0.8335  
+ K      196.0809 86.6625 443.6491     5.2785  
+ q        0.3311  0.1193   0.9188    -1.1052  
+ sdf      0.1913  0.1413   0.2590    -1.6540  
+ sdb      0.0891  0.0661   0.1201    -2.4180  
+
+Derived estimates 
+     estimate   cilow    ciupp est.in.log  
+ Bmsy  98.0405 43.3312 221.8246     4.5854  
+ Fmsy   0.2133  0.0786   0.5785    -1.5450  
+ MSY   20.9125 15.0815  26.7434     3.0403  
+
+Predictions 
+      prediction   cilow    ciupp est.in.log  
+ B        58.0905 18.1011 186.4256     4.0620  
+ F         0.3872  0.1278   1.1725    -0.9489  
+ Catch    22.4898 13.8604  36.4919     3.1131  
+
+One-step-ahead residuals 
+Ljung-box test for independence of lag 1, p-value: 0.1818 
