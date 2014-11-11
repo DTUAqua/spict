@@ -942,3 +942,155 @@ read.aspic <- function(filename){
 .onUnload <- function (lib) {
   library.dynam.unload("spict", lib)
 }
+
+
+# Simulate data for given parameter list p
+sim.spict <- function(input, nobs=100, samplerate=1, iniyear=1945){
+    # Check if input is a inp (initial values) or rep (results).
+    if('par.fixed' %in% names(input)){
+        cat('Detected input as a SPiCT result, proceeding...\n')
+        rep <- input
+        inp <- rep$inp
+        p <- rep$pl
+    } else {
+        if('ini' %in% names(input)){
+            cat('Detected input as a SPiCT inp, proceeding...\n')
+            inp <- input
+            inp <- check.inp(inp)
+            p <- inp$ini
+        } else {
+            stop('Invalid input! use either an inp list or a fit.spict() result.')
+        }
+    }
+    time <- inp$time
+    samplerate <- inp$timefrac
+    euler <- inp$euler
+
+    # Calculate derived variables
+    dt <- 1/samplerate
+    nt <- length(time)
+    B0 <- exp(p$logbkfrac)*exp(p$logK)
+    F0 <- exp(p$logF0)
+    r <- exp(p$logr)
+    K <- exp(p$logK)
+    q <- exp(p$logq)
+    sdb <- exp(p$logsdb)
+    sdf <- exp(p$logsdf)
+
+
+
+    timeobs <- seq(iniyear, iniyear+nobs-1, length=nobs)
+    time <- seq(iniyear, iniyear+nobs, by=1/samplerate)
+    time <- time[-length(time)]
+
+
+    # - Fishing mortality -
+    flag <- TRUE
+    while(flag){
+        F <- c(F0, exp(log(F0) + cumsum(rnorm(nt-1, 0, sdf*sqrt(dt))))) # Fishing mortality
+        flag <- any(F >= r) # Do this to avoid crazy F values
+    }
+
+    # - Simulate -
+    P <- rep(0,nt)
+    B <- rep(0,nt)
+    subC <- rep(0,nt)
+    Z <- rep(0,nt)
+    Binf <- rep(0,nt)
+    Zinf <- rep(0,nt)
+    B[1] <- B0
+    Z[1] <- log(B0)
+    if(euler){
+        subC[1] <- F[1] * B[1] * dt
+        P[1] <- r*B[1] * (1-B[1]/K) * dt
+    } else {
+        C[1] <- get.catch(Z[1], F[1], dt=dt, exp(p$logr), exp(p$logK), sdb=exp(p$logsdb), lamperti=inp$lamperti)
+    }
+    Binf[1] <- p$K*(1 - F[1]/p$r)
+    Zinf[1] <- log(p$K*(1 - F[1]/p$r - 0.5*p$sdb^2/p$r))
+    Iobs <- rep(0,nobs)
+    Cobs <- rep(0,nobs)
+
+    # - Biomass -
+    if(euler){
+        for(t in 2:nt){
+            e <- exp(rnorm(1, 0, sdb*sqrt(dt)))
+            subC[t] <- F[t] * B[t] * dt
+            P[t] <- r*B[t] * (1-B[t]/K) * dt
+            B[t] <- (B[t-1] + P[t-1] - subC[t-1])*e
+        }
+    }
+
+    
+    # B[t] is biomass at the beginning of the time interval starting at time t
+    # Z[t] is log-biomass at the beginning of the time interval starting at time t (used in Lamperti)
+    # I[t] is an index of abundance (e.g. CPUE) at the beginning of the time interval starting at time t
+    # P[t] is the accumulated biomass production over the interval starting at time t
+    # F[t] is the constant fishing mortality during the interval starting at time t
+    # C[t] is the catch removed during the interval starting at time t. In the numerical approximation (not analytical) this is implemented as an instantaneous catch at the end of the interval.
+    # Cobs[j] is the catch removed over the interval starting at time j, this will typically be the accumulated catch over the year.
+
+    ## PROCESS EQUATION ##
+    for(t in 2:nt){
+        # Error in biomass
+        e <- exp(rnorm(1,0,p$sdb*sqrt(dt)))
+        if(lamperti){
+            # - Lamperti - #
+            if(euler){
+                #print('Lamperti numerical approximation not yet implemented, use analytical')
+                # Numerical approximation
+                P[t-1] <- g(exp(Z[t-1]), p$r, p$K, model)*dt
+                Z[t] <- Z[t-1] + (p$r - p$r/p$K*exp(Z[t-1]) - F[t-1] - 0.5*p$sdb^2)*dt + log(e)
+                C[t] <- get.catch(exp(Z[t]), F[t], dt=dt)
+            } else {
+                # Analytical
+                A <- p$r - F[t-1] - 0.5*p$sdb^2
+                newZ <- -log(1/exp(Zinf[t-1]) + (1/exp(Z[t-1]) - 1/exp(Zinf[t-1]))*exp(-A*dt))
+                P[t-1] <- exp(newZ) - exp(Z[t-1]) + C[t-1]
+                Z[t] <- newZ + log(e)
+                C[t] <- get.catch(Z[t], F[t], dt=dt, p$r, p$K, sdb=p$sdb, lamperti=TRUE)
+            }
+            Zinf[t] <- log(p$K*(1 - F[t]/p$r - 0.5*p$sdb^2/p$r))
+        } else {
+            if(euler){
+                # Numerical approximation
+                P[t-1] <- g(B[t-1], p$r, p$K, model)*dt
+                B[t] <- (B[t-1] + P[t-1] - C[t-1]) * e
+                C[t] <- get.catch(B[t], F[t], dt=dt)
+            } else {
+                # Analytical
+                newB <- Bpred(B[t-1], dt, Binf[t-1], F[t-1], p$r)
+                P[t-1] <- newB - B[t-1] + C[t-1]
+                B[t] <- newB * e
+                C[t] <- get.catch(B[t], F[t], dt=dt, p$r, p$K)
+            }
+            Binf[t] <- p$K*(1 - F[t]/p$r)
+        }
+    }
+
+    if(lamperti){
+        B <- exp(Z)
+        Binf <- exp(Zinf)
+    } else {
+        Z <- log(B)
+        Zinf <- log(Binf)
+    }
+
+    ## OBSERVATION EQUATION ##
+    Bind <- rep(0, nobs)
+    for(j in 1:nobs){
+        intv <- which(floor(time-timeobs[j])==0)
+        e <- exp(rnorm(1, 0, p$sdi))
+        ec <- exp(rnorm(1, 0, p$sdc))
+        # Index
+        Bind[j] <- intv[1]
+        Iobs[j] <- p$q*B[intv[1]] * e
+        # Catch
+        Cobs[j] <- sum(C[intv]) * ec
+    }
+
+    st <- data.frame(time=time, F=F, B=B, P=P, C=C, Z=Z, Binf=Binf, Zinf=Zinf)
+    obs <- data.frame(timeobs=timeobs, Iobs=Iobs, Cobs=Cobs, Bind=Bind)
+    dat <- list(st=st, obs=obs)
+    return(dat)
+}
