@@ -177,8 +177,9 @@ check.inp <- function(inp){
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
     if(!"loggamma" %in% names(inp$ini)) inp$ini$loggamma <- log(1)
     if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.3)
+    if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr))
     if(!"logF" %in% names(inp$ini)){
-        inp$ini$logF <- log(rep(0.2*exp(inp$ini$logr), inp$ns))
+        inp$ini$logF <- rep(inp$ini$logF0, inp$ns)
     } else {
         if(length(inp$ini$logF) != inp$ns) stop('Wrong length of inp$ini$logF: ', length(inp$ini$logF), ' Should be equal to inp$ns: ', inp$ns, ' remember logF is predicted beyond observations.')
     }
@@ -195,6 +196,7 @@ check.inp <- function(inp){
                     logbeta=inp$ini$logbeta,
                     loggamma=inp$ini$loggamma,
                     logbkfrac=inp$ini$logbkfrac,
+                    logF0=inp$ini$logF0,
                     logr=inp$ini$logr,
                     logK=inp$ini$logK,
                     logq=inp$ini$logq,

@@ -84,6 +84,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logbeta);       // sdc = beta*sdf
   PARAMETER(loggamma);       // rsum = gamma*r, where rsum is r in the summer (Q2+Q3)
   PARAMETER(logbkfrac);    // B0/K fraction
+  PARAMETER(logF0);    // F at time 0
   PARAMETER(logr);         // Intrinsic growth
   PARAMETER(logK);         // Carrying capacity
   PARAMETER_VECTOR(logq);         // Catchability
@@ -93,6 +94,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logB);  // Random effects vector
 
   Type bkfrac = exp(logbkfrac);
+  Type F0 = exp(logF0);
   Type r = exp(logr);
   Type K = exp(logK);
   int nq = logq.size();
@@ -136,6 +138,7 @@ Type objective_function<Type>::operator() ()
     std::cout << "--- DEBUG: script start ---" << std::endl;
     //for(int i=0; i<ns; i++) std::cout << "F(i): " << F(i) << std::endl;
     std::cout << "INPUT: logbkfrac: " << logbkfrac << std::endl;
+    std::cout << "INPUT: logF0: " << logF0 << std::endl;
     std::cout << "INPUT: logr: " << logr << std::endl;
     std::cout << "INPUT: logK: " << logK << std::endl;
     for(int i=0; i<nq; i++){ std::cout << "INPUT: logq(i): " << logq(i) << " -- i: " << i << std::endl; }
@@ -172,12 +175,16 @@ Type objective_function<Type>::operator() ()
   /*
   --- PROCESS EQUATIONS ---
   */
+  Type sd = 1e-6; // This one is used in the hack to fix B0 and F0.
 
 
   // FISHING MORTALITY
   if(dbg>0){
     std::cout << "--- DEBUG: F loop start" << std::endl;
   }
+  // Hack to set log(B(0)) equal to the fixed effect log(B0).
+  likval = dnorm(logF0, logF(0), sd, 1);
+  ans-=likval;
   for(int i=delay; i<ns; i++){
     Type logFpred = predictlogF(phi1, logF(i-1), phi2, logF(i-delay));
     likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf, 1);
@@ -192,7 +199,6 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), rvec(i), sdb2, lamperti); 
 
   // BIOMASS PREDICTIONS
-  Type sd = 1e-6;
   // Hack to set log(B(0)) equal to the fixed effect log(B0).
   likval = dnorm(logB0, log(B(0)), sd, 1);
   ans-=likval;
