@@ -379,10 +379,14 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
             ul <- est + 1.96*sd
         }
     }
-    if(exp){
-        cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd)
+    if(length(est)==0){
+        cat(paste('WARNING: could not extract', parname, '\n'))
     } else {
-        cbind(ll, est, ul, sd)
+        if(exp){
+            cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd)
+        } else {
+            cbind(ll, est, ul, sd)
+        }
     }
 }
 
@@ -479,8 +483,9 @@ plotspict.biomass <- function(rep, logax=''){
     Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
     Bmsy <- get.par('logBmsy', rep, exp=TRUE)
     Binf <- get.par('logBinf', rep, exp=TRUE)
+    qest <- get.par('logq', rep, fixed=TRUE, exp=TRUE)
     inds <- which(is.na(Binf) | Binf<0)
-    Binf[inds] <- 0
+    Binf[inds] <- 1e-12
     Bp <- get.par('logBp', rep, exp=TRUE)
     scal <- 1
     cicol <- 'lightgray'
@@ -490,6 +495,7 @@ plotspict.biomass <- function(rep, logax=''){
     axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
     mtext("B/Bmsy", side=4, las=0, line=2)
     polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1],Bmsy[1],Bmsy[3],Bmsy[3]), col=cicol, border=cicol)
+    for(i in 1:inp$nindex) points(inp$timeI[[i]], inp$obsI[[i]]/qest[i, 2], pch=i, cex=0.7)
     lines(inp$time, Best[,2]/scal, col='blue')
     abline(h=Bmsy[2]/scal, col='black')
     lines(inp$time, Best[,1]/scal, col=4, lty=2)
@@ -501,7 +507,7 @@ plotspict.biomass <- function(rep, logax=''){
     points(tp, Bp[2], pch=21, bg='yellow')
     lines(c(et, tp), c(tail(Best[,1],1), Bp[1])/scal, col='blue', lty=3)
     lines(c(et, tp), c(tail(Best[,3],1), Bp[3])/scal, col='blue', lty=3)
-    legend('topright', legend=c('Equilibrium',paste(tp,'prediction')), lty=c(1,NA), pch=c(NA,21), col=c('green',1), pt.bg=c(NA,'yellow'))
+    legend('topright', legend=c('Equilibrium',paste(tp,'pred.')), lty=c(1,NA), pch=c(NA,21), col=c('green',1), pt.bg=c(NA,'yellow'), bg='white')
     box()
 }
 
