@@ -73,6 +73,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(nc); // nc(i) gives the number of time intervals Cobs(i) spans
   DATA_VECTOR(I);       // Index
   DATA_VECTOR(ii); // A vector such that B(ii(i)) is the state corresponding to I(i)
+  DATA_VECTOR(iq); // A vector such that iq(i) is the index number corresponding to I_iq(i)
   DATA_VECTOR(isum); // A vector indicating indices of summer
   DATA_INTEGER(lamperti);       // Lamperti flag.
   DATA_INTEGER(euler);       // Euler flag.
@@ -85,7 +86,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logbkfrac);    // B0/K fraction
   PARAMETER(logr);         // Intrinsic growth
   PARAMETER(logK);         // Carrying capacity
-  PARAMETER(logq);         // Catchability
+  PARAMETER_VECTOR(logq);         // Catchability
   PARAMETER(logsdf);   // Standard deviation for F
   PARAMETER(logsdb);   // Standard deviation for Index
   PARAMETER_VECTOR(logF);  // Random effects vector
@@ -94,7 +95,9 @@ Type objective_function<Type>::operator() ()
   Type bkfrac = exp(logbkfrac);
   Type r = exp(logr);
   Type K = exp(logK);
-  Type q = exp(logq);
+  int nq = logq.size();
+  vector<Type> q(nq);
+  for(int i=0; i<nq; i++){ q(i) = exp(logq(i)); }
   Type sdf = exp(logsdf);
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
@@ -135,10 +138,10 @@ Type objective_function<Type>::operator() ()
     std::cout << "INPUT: logbkfrac: " << logbkfrac << std::endl;
     std::cout << "INPUT: logr: " << logr << std::endl;
     std::cout << "INPUT: logK: " << logK << std::endl;
-    std::cout << "INPUT: logq: " << logq << std::endl;
+    for(int i=0; i<nq; i++){ std::cout << "INPUT: logq(i): " << logq(i) << " -- i: " << i << std::endl; }
     std::cout << "INPUT: logsdf: " << logsdf << std::endl;
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
-    std::cout << "Cobs.size(): " << Cobs.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  F.size(): " << F.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  rvec.size(): " << rvec.size() << std::endl;
+    std::cout << "Cobs.size(): " << Cobs.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  F.size(): " << F.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  rvec.size(): " << rvec.size() << "  iq.size(): " << iq.size() << std::endl;
   }
   for(int i=0; i<ns; i++){
     if(F(i)==r) std::cout << "Warning: F(i)-r: " << F(i)-r << std::endl;
@@ -242,19 +245,22 @@ Type objective_function<Type>::operator() ()
     }
   }
 
-  // ABUNDANCE INDEX
+  // BIOMASS INDEX
   if(dbg>0){
     std::cout << "--- DEBUG: Ipred loop start" << std::endl;
+    std::cout << " I.size(): " << I.size() << "  iq.size(): " << iq.size() << "  ii.size(): " << ii.size() << "  logq.size(): " << logq.size() << std::endl;
   }
+  int indq;
   for(int i=0; i<nIobs; i++){
     if(I(i)>0){
       ind = CppAD::Integer(ii(i)-1);
-      logIpred(i) = logq+log(B(ind));
+      indq = CppAD::Integer(iq(i)-1);
+      logIpred(i) = logq(indq) + log(B(ind));
       likval = dnorm(log(I(i)), logIpred(i), sdi, 1);
       ans-=likval;
       // DEBUGGING
       if(dbg>1){
-	std::cout << "-- i: " << i << " -  ind: " << ind << " -   log(I(i)): " << log(I(i)) << "  logIpred(i): " << logIpred(i) << "  sdi: " << sdi << "  likval: " << likval << std::endl;
+	std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -   log(I(i)): " << log(I(i)) << "  logIpred(i): " << logIpred(i) << "  sdi: " << sdi << "  likval: " << likval << std::endl;
       }
     }
   }
@@ -295,7 +301,7 @@ Type objective_function<Type>::operator() ()
   // These lines overwrite the old OSA predictions and replace them with the new ones.
   Cp = Cp2;
   Bp = Bp2;
-  Type logIp = logq + log(Bp);
+  Type logIp = logq(0) + log(Bp);
 
   // MSY PREDICTIONS
   Type Bpmsy;
