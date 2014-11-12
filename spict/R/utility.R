@@ -822,7 +822,7 @@ summary.spictcls <- function(object, numdigits=4){
         trueder <- c(rep$inp$true$Bmsy, rep$inp$true$Fmsy, rep$inp$true$MSY)
         cider <- rep(0, 3)
         for(i in 1:3) cider[i] <- as.numeric(trueder[i] > derout[i, 2] & trueder[i] < derout[i, 3])
-        derout <- cbind(estimate=derout[, 1], true=trueder, derout[, 2:3], true.in.ci=cider, est.in.log=derout[, 4])
+        derout <- cbind(estimate=derout[, 1], true=round(trueder,numdigits), derout[, 2:3], true.in.ci=cider, est.in.log=derout[, 4])
     }
     cat(paste(capture.output(derout),' \n'))
     cat('\nPredictions \n')
