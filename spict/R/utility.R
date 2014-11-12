@@ -440,7 +440,6 @@ arrow.line <- function(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"
 #' @param lamperti Return the stochastic (TRUE) or deterministic (FALSE) estimate.
 #' @return The calculated time to reach the given proportion of B_infinity.
 tc.fun2 <- function(F, K, r, sdb, B0, p, lamperti){
-    #Binf <- calc.Binf(K, r, sdb, F, lamperti)
     Binf <- calc.binf(K, F, r, sdb, lamperti)
     if(lamperti){
         rate <- F + 0.5*sdb^2 - r
@@ -1152,6 +1151,13 @@ sim.spict <- function(input, nobs=100){
     sim$timefrac <- inp$timefrac
     sim$euler <- inp$euler
     sim$lamperti <- inp$lamperti
-    sim$true <- list(logr=log(r), logK=log(K), logq=log(q), logsdf=log(sdf), logsdb=log(sdb), B=B, F=F, Bmsy=K/2, Fmsy=r/2, MSY=K*r/4)
+    sim$true <- inp$ini
+    sim$true$B <- B
+    sim$true$F <- F
+    sim$true$Bmsy <- K/2
+    sim$true$Fmsy <- r/2
+    sim$true$MSY <- K*r/4
+    sim$true$logB <- NULL
+    sim$true$logF <- NULL
     return(sim)
 }
