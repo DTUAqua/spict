@@ -168,8 +168,8 @@ check.inp <- function(inp){
             }
         }
     }
-    check.ini('logsdb', inp, min=log(0.1), max=log(5))
-    check.ini('logsdf', inp, min=log(0.1), max=log(5))
+    check.ini('logsdb', inp, min=log(0.03), max=log(5))
+    check.ini('logsdf', inp, min=log(0.03), max=log(5))
     # Fill in unspecified less important model parameter values
     if(!"phi1" %in% names(inp$ini)) inp$ini$phi1 <- 1
     if(!"phi2" %in% names(inp$ini)) inp$ini$phi2 <- 0
@@ -788,15 +788,25 @@ summary.spictcls <- function(object, numdigits=4){
     cat(paste('Negative log likelihood: ', round(rep$opt$objective, numdigits), '\n', sep=''))
     cat('\nModel parameter estimates \n')
     sd <- sqrt(diag(rep$cov.fixed))
-    loginds <- grep('log', names(rep$par.fixed))
+    nms <- names(rep$par.fixed)
+    loginds <- grep('log', nms)
     est <- rep$par.fixed
     est[loginds] <- exp(est[loginds])
     cilow <- rep$par.fixed-1.96*sd
     cilow[loginds] <- exp(cilow[loginds])
     ciupp <- rep$par.fixed+1.96*sd
     ciupp[loginds] <- exp(ciupp[loginds])
-    resout <- cbind(estimate=round(est,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), est.in.log=round(rep$par.fixed,numdigits))
-    nms <- names(rep$par.fixed)
+    if('true' %in% names(rep$inp)){
+        npar <- length(nms)
+        truepar <- rep(0, npar)
+        for(i in 1:npar) truepar[i] <- rep$inp$true[[nms[i]]]
+        truepar[loginds] <- exp(truepar[loginds])
+        ci <- rep(0, npar)
+        for(i in 1:npar) ci[i] <- as.numeric(truepar[i] > cilow[i] & truepar[i] < ciupp[i])
+        resout <- cbind(estimate=round(est,numdigits), true=round(truepar,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), true.in.ci=ci, est.in.log=round(rep$par.fixed,numdigits))
+    } else {
+        resout <- cbind(estimate=round(est,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), est.in.log=round(rep$par.fixed,numdigits))
+    }
     nms[loginds] <- substr(names(rep$par.fixed[loginds]),4,60)
     rownames(resout) <- nms
     cat(paste(capture.output(resout),' \n'))
@@ -808,6 +818,12 @@ summary.spictcls <- function(object, numdigits=4){
     derout <- round(derout, numdigits)
     colnames(derout) <- c('estimate', 'cilow', 'ciupp', 'est.in.log')
     rownames(derout) <- c('Bmsy', 'Fmsy', 'MSY')
+    if('true' %in% names(rep$inp)){
+        trueder <- c(rep$inp$true$Bmsy, rep$inp$true$Fmsy, rep$inp$true$MSY)
+        cider <- rep(0, 3)
+        for(i in 1:3) cider[i] <- as.numeric(trueder[i] > derout[i, 2] & trueder[i] < derout[i, 3])
+        derout <- cbind(estimate=derout[, 1], true=trueder, derout[, 2:3], true.in.ci=cider, est.in.log=derout[, 4])
+    }
     cat(paste(capture.output(derout),' \n'))
     cat('\nPredictions \n')
     predout <- rbind(
@@ -1151,12 +1167,12 @@ sim.spict <- function(input, nobs=100){
     sim$timefrac <- inp$timefrac
     sim$euler <- inp$euler
     sim$lamperti <- inp$lamperti
-    sim$true <- inp$ini
+    sim$true <- p
     sim$true$B <- B
     sim$true$F <- F
     sim$true$Bmsy <- K/2
-    sim$true$Fmsy <- r/2
-    sim$true$MSY <- K*r/4
+    sim$true$Fmsy <- ifelse(inp$lamperti, r/2 - sdb^2/2, r/2)
+    sim$true$MSY <- sim$true$Bmsy * sim$true$Fmsy
     sim$true$logB <- NULL
     sim$true$logF <- NULL
     return(sim)
