@@ -943,6 +943,34 @@ read.aspic <- function(filename){
   library.dynam.unload("spict", lib)
 }
 
+calc.rate <- function(r, F, sdb=0) r - F - 0.5*sdb^2
+calculateBinf <- function(K, F, r, sdb=0, lamperti=FALSE){
+    if(!lamperti) sdb <- 0
+    rate <- calc.rate(r, F, sdb)
+    return(K/r*rate)
+}
+
+predictB <- function(B0, Binf, F, r, K, dt, sdb=0, lamperti=FALSE, euler=FALSE){
+    if(euler) lamperti <- 1
+    if(!lamperti) sdb <- 0
+    rate <- calc.rate(r, F, sdb)
+    if(euler){
+        return(exp( log(B0) + (rate - r/K*B0)*dt )) # Euler
+    } else {
+        return(1 / ( 1/Binf + (1/B0 - 1/Binf) * exp(-rate*dt) )) # Approximative analytical
+    }
+}
+
+predictC <- function(F, K, r, B0, Binf, dt, sdb=0, lamperti=FALSE, euler=FALSE){
+    if(euler) lamperti <- 1
+    if(!lamperti) sdb <- 0
+    rate <- calc.rate(r, F, sdb)
+    if(euler){
+        return(F*B0*dt)
+    } else {
+        return(K/r*F * log( 1 - B0/Binf * (1 - exp(rate*dt))))
+    }
+}
 
 # Simulate data for given parameter list p
 sim.spict <- function(input, nobs=100, samplerate=1, iniyear=1945){
@@ -992,35 +1020,54 @@ sim.spict <- function(input, nobs=100, samplerate=1, iniyear=1945){
     }
 
     # - Simulate -
-    P <- rep(0,nt)
-    B <- rep(0,nt)
-    subC <- rep(0,nt)
-    Z <- rep(0,nt)
-    Binf <- rep(0,nt)
-    Zinf <- rep(0,nt)
-    B[1] <- B0
-    Z[1] <- log(B0)
+
+
+
     if(euler){
-        subC[1] <- F[1] * B[1] * dt
-        P[1] <- r*B[1] * (1-B[1]/K) * dt
+        Csub[1] <- F[1] * B[1] * dt
     } else {
         C[1] <- get.catch(Z[1], F[1], dt=dt, exp(p$logr), exp(p$logK), sdb=exp(p$logsdb), lamperti=inp$lamperti)
     }
     Binf[1] <- p$K*(1 - F[1]/p$r)
     Zinf[1] <- log(p$K*(1 - F[1]/p$r - 0.5*p$sdb^2/p$r))
     Iobs <- rep(0,nobs)
-    Cobs <- rep(0,nobs)
+    
 
+
+
+    # - B_infinity
+    Binf <- rep(0,nt)
+    for(t in 1:nt) Binf[t] <- calculateBinf(K, F[t], r, sdb, lamperti)
+    
     # - Biomass -
-    if(euler){
-        for(t in 2:nt){
-            e <- exp(rnorm(1, 0, sdb*sqrt(dt)))
-            subC[t] <- F[t] * B[t] * dt
-            P[t] <- r*B[t] * (1-B[t]/K) * dt
-            B[t] <- (B[t-1] + P[t-1] - subC[t-1])*e
+    B <- rep(0,nt)
+    B[1] <- B0
+    e <- exp(rnorm(nt-1, 0, sdb*sqrt(dt)))
+    for(t in 2:nt) B[t] <- predictB(B[t-1], Binf[t-1], F[t-1], r, K, dt, sdb, lamperti, euler) * e[t-1]
+
+    # - Catch -
+    Csub <- rep(0,nt)
+    for(t in 1:nt) Csub[t] <- predictC(F[t], K, r, B[t], Binf[t], dt, sdb, lamperti, euler)
+
+    # - Production -
+    Psub <- rep(0,nt)
+    for(t in 2:nt) Psub[t-1] <- B[t] - B[t-1] + Csub[t-1]
+    
+    # - Catch observations -
+    Cobs <- rep(0, inp$nobsC)
+    for(i in 1:inp$nobsC){
+        for(j in 1:inp$nc[i]){
+            ind <- inp$ic[i] + j-1
+            Cobs[i] <- Cobs[i] + Csub[ind];
         }
     }
 
+    # - Index observations -
+    Iobs <- list()
+    for(I in 1:inp$nindex){
+        Iobs[[I]] <- rep(0, inp$nobsI[I])
+        for(i in 1:inp$nobsI[I]) Iobs[[I]][i] <- q[I] * B[inp$ii[i]]
+    }
     
     # B[t] is biomass at the beginning of the time interval starting at time t
     # Z[t] is log-biomass at the beginning of the time interval starting at time t (used in Lamperti)

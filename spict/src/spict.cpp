@@ -39,7 +39,7 @@ inline Type predictB(const Type &B0, const Type &Binf, const Type &F, const Type
   }
 }
 
-/* Calculate  */
+/* Predict  catch*/
 template<class Type>
 inline Type predictC(const Type &F, const Type &K, const Type &r, const Type &B0, const Type &Binf, const Type &dt, const Type &sdb2=0, int lamperti=0, int euler=0)
 {
