@@ -165,7 +165,7 @@ Type objective_function<Type>::operator() ()
   dt[i] is the length of the time interval between t_i and t_i+1
   B[t] is biomass at the beginning of the time interval starting at time t
   Binf[t] is equilibrium biomass with the parameters given at the beginning of the time interval starting at time t
-  I[t] is an index of abundance (e.g. CPUE) at the beginning of the time interval starting at time t
+  I[t] is an index of biomass (e.g. CPUE) at the beginning of the time interval starting at time t
   P[t] is the accumulated biomass production over the interval starting at time t
   F[t] is the constant fishing mortality during the interval starting at time t
   rvec[t] is the constant intrinsic growth rate during the interval starting at time t
