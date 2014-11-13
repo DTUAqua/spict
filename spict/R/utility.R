@@ -473,6 +473,23 @@ tc.fun2 <- function(F, K, r, sdb, B0, p, lamperti){
     return( 1/(rate) * log( (1-p) / (p*(Brat-1))) )
 }
 
+#' @name annual
+#' @title Convert from quarterly (or other sub-annual) data to annual means.
+#' @param inp An inp list.
+#' @param vec The vector of values to convert to annual means
+#' @return A list containing the annual means and a corresponding time vector.
+annual <- function(inp, vec){
+    anntime <- inp$time[which(inp$time %% 1 ==0)]
+    nanntime <- length(anntime)
+    annvec <- rep(0, nanntime)
+    floortime <- floor(inp$time)
+    for(i in 1:nanntime){
+        inds <- which(anntime[i]==floortime)
+        annvec[i] <- mean(vec[inds])
+    }
+    return(list(anntime=anntime, annvec=annvec))
+}
+
 
 #' @name plotspict.biomass
 #' @title Plot estimated biomass.
@@ -493,6 +510,9 @@ plotspict.biomass <- function(rep, logax=FALSE){
     qest <- get.par('logq', rep, fixed=TRUE, exp=TRUE)
     inds <- which(is.na(Binf) | Binf<0)
     Binf[inds] <- 1e-12
+    annlist <- annual(inp, Binf[, 2])
+    Binftime <- annlist$anntime
+    Binfs <- annlist$annvec
     Bp <- get.par('logBp', rep, exp=TRUE)
     scal <- 1
     cicol <- 'lightgray'
@@ -511,7 +531,7 @@ plotspict.biomass <- function(rep, logax=FALSE){
     abline(h=Bmsy[2]/scal, col='black')
     lines(inp$time, Best[,1]/scal, col=4, lty=2)
     lines(inp$time, Best[,3]/scal, col=4, lty=2)
-    lines(inp$time, Binf[,2]/scal, col='green', lty=1)
+    lines(Binftime, Binfs/scal, col='green', lty=1)
     et <- tail(inp$time,1)
     tp <- et + inp$dtpred
     lines(c(et, tp), c(tail(Best[,2],1), Bp[2])/scal, col='blue', lty=3)
@@ -617,15 +637,25 @@ plotspict.f <- function(rep, logax=FALSE){
         lines(inp$time, inp$true$F, col='orange') # Plot true
         abline(h=inp$true$Fmsy, col='orange', lty=2)
     }
-    lines(inp$time, Fest[, 2], col='blue')
+    maincol <- 'blue'
+    if(min(inp$dtc) < 1){
+        al1 <- annual(inp, Fest[, 1])
+        al2 <- annual(inp, Fest[, 2])
+        al3 <- annual(inp, Fest[, 3])
+        lines(al1$anntime, al1$annvec, col=maincol, lwd=2, lty=2)
+        lines(al2$anntime, al2$annvec, col=maincol, lwd=2)
+        lines(al3$anntime, al3$annvec, col=maincol, lwd=2, lty=2)
+        maincol <- 'cyan'
+    }
+    lines(inp$time, Fest[, 2], col=maincol)
     #points(inp$time, C/Best/Fmsy)
     abline(h=Fmsy[2], col='black')
     abline(h=rest[2], col='red')
     #abline(h=Fmsyci, col=3, lty=2)
     #lines(inp$time, Festul/Fmsy, col='forestgreen', lty=2)
     #lines(inp$time, Festll/Fmsy, col='forestgreen', lty=2)
-    lines(inp$time, Fest[, 1], col='blue', lty=2)
-    lines(inp$time, Fest[, 3], col='blue', lty=2)
+    lines(inp$time, Fest[, 1], col=maincol, lty=2)
+    lines(inp$time, Fest[, 3], col=maincol, lty=2)
     box()
 }
 

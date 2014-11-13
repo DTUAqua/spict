@@ -123,16 +123,16 @@ Type objective_function<Type>::operator() ()
   vector<Type> Cpredsub(ns);
   vector<Type> logIpred(nIobs);
   vector<Type> logCpred(nCobs);
-  Type Bmsy = K/2;
+  Type Bmsy = K/2.0;
   //vector<Type> Fmsy(nr);
   Type Fmsy;
+  Type rmean = 0.0;
   if(lamperti){
-    //for(int i=0; i<nr; i++){ Fmsy(i) = r(i)/2 - 0.5*sdb2; }
-    Fmsy = r(0)/2 - 0.5*sdb2;
+    for(int i=0; i<nr; i++){ rmean += (r(i) - sdb2)/nr; }
   } else {
-    //for(int i=0; i<nr; i++){ Fmsy(i) = r(i)/2; }
-    Fmsy = r(0)/2;
+    for(int i=0; i<nr; i++){ rmean += r(i)/nr; }
   }
+  Fmsy = rmean/2.0;
   Type MSY = Bmsy * Fmsy;
   Type logBmsy = log(Bmsy);
   Type logFmsy = log(Fmsy);
