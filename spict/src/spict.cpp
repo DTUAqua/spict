@@ -74,7 +74,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(I);       // Index
   DATA_VECTOR(ii); // A vector such that B(ii(i)) is the state corresponding to I(i)
   DATA_VECTOR(iq); // A vector such that iq(i) is the index number corresponding to I_iq(i)
-  DATA_VECTOR(isum); // A vector indicating indices of summer
+  DATA_VECTOR(ir); // A vector indicating when the different rs should be used
   DATA_INTEGER(lamperti);       // Lamperti flag.
   DATA_INTEGER(euler);       // Euler flag.
   DATA_SCALAR(dbg);       // Debug flag, if == 1 then print stuff.
@@ -82,10 +82,9 @@ Type objective_function<Type>::operator() ()
   PARAMETER(phi2);       // 
   PARAMETER(logalpha);       // sdi = alpha*sdb
   PARAMETER(logbeta);       // sdc = beta*sdf
-  PARAMETER(loggamma);       // rsum = gamma*r, where rsum is r in the summer (Q2+Q3)
   PARAMETER(logbkfrac);    // B0/K fraction
   PARAMETER(logF0);    // F at time 0
-  PARAMETER(logr);         // Intrinsic growth
+  PARAMETER_VECTOR(logr);         // Intrinsic growth
   PARAMETER(logK);         // Carrying capacity
   PARAMETER_VECTOR(logq);         // Catchability
   PARAMETER(logsdf);   // Standard deviation for F
@@ -95,7 +94,10 @@ Type objective_function<Type>::operator() ()
 
   Type bkfrac = exp(logbkfrac);
   Type F0 = exp(logF0);
-  Type r = exp(logr);
+  int nr = logr.size();
+  vector<Type> r(nr);
+  for(int i=0; i<nr; i++){ r(i) = exp(logr(i)); }
+  //Type r = exp(logr);
   Type K = exp(logK);
   int nq = logq.size();
   vector<Type> q(nq);
@@ -105,7 +107,6 @@ Type objective_function<Type>::operator() ()
   Type sdb2 = sdb*sdb;
   Type sdi = exp(logalpha)*sdb;
   Type sdc = exp(logbeta)*sdf;
-  Type gamma = exp(loggamma);
   int nCobs = Cobs.size();
   int nIobs = I.size();
   int ns = logF.size();
@@ -123,11 +124,14 @@ Type objective_function<Type>::operator() ()
   vector<Type> logIpred(nIobs);
   vector<Type> logCpred(nCobs);
   Type Bmsy = K/2;
+  //vector<Type> Fmsy(nr);
   Type Fmsy;
   if(lamperti){
-    Fmsy = r/2 - 0.5*sdb2;
+    //for(int i=0; i<nr; i++){ Fmsy(i) = r(i)/2 - 0.5*sdb2; }
+    Fmsy = r(0)/2 - 0.5*sdb2;
   } else {
-    Fmsy = r/2;
+    //for(int i=0; i<nr; i++){ Fmsy(i) = r(i)/2; }
+    Fmsy = r(0)/2;
   }
   Type MSY = Bmsy * Fmsy;
   Type logBmsy = log(Bmsy);
@@ -139,26 +143,25 @@ Type objective_function<Type>::operator() ()
     //for(int i=0; i<ns; i++) std::cout << "F(i): " << F(i) << std::endl;
     std::cout << "INPUT: logbkfrac: " << logbkfrac << std::endl;
     std::cout << "INPUT: logF0: " << logF0 << std::endl;
-    std::cout << "INPUT: logr: " << logr << std::endl;
+    for(int i=0; i<nr; i++){ std::cout << "INPUT: logr(i): " << logr(i) << " -- i: " << i << std::endl; }
+    //std::cout << "INPUT: logr: " << logr << std::endl;
     std::cout << "INPUT: logK: " << logK << std::endl;
     for(int i=0; i<nq; i++){ std::cout << "INPUT: logq(i): " << logq(i) << " -- i: " << i << std::endl; }
     std::cout << "INPUT: logsdf: " << logsdf << std::endl;
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
     std::cout << "Cobs.size(): " << Cobs.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  F.size(): " << F.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  rvec.size(): " << rvec.size() << "  iq.size(): " << iq.size() << std::endl;
   }
-  for(int i=0; i<ns; i++){
-    if(F(i)==r) std::cout << "Warning: F(i)-r: " << F(i)-r << std::endl;
-  }
   // Calculate rvec
+  int ind;
   for(int i=0; i<ns; i++){
-    if(isum(i)==1){
-      rvec(i) = gamma*r;
-    } else {
-      rvec(i) = r;
-    }
+    ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
+    rvec(i) = r(ind);
     if(dbg>1){
-      std::cout << "-- i: " << i << " -   rvec(i): " << rvec(i) << std::endl;
+      std::cout << "-- i: " << i << "-- ind: " << ind << " -   rvec(i): " << rvec(i) << std::endl;
     }
+  }
+  for(int i=0; i<ns; i++){
+    if(F(i)==rvec(i)) std::cout << "Warning: F(i)-rvec(i): " << F(i)-rvec(i) << std::endl;
   }
 
   /*
@@ -235,7 +238,6 @@ Type objective_function<Type>::operator() ()
   if(dbg>0){
     std::cout << "--- DEBUG: Cpred loop start" << std::endl;
   }
-  int ind;
   for(int i=0; i<nCobs; i++){
     // Sum catch contributions from each sub interval
     for(int j=0; j<nc(i); j++){

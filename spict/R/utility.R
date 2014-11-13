@@ -115,7 +115,7 @@ check.inp <- function(inp){
     }
     if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
     if(length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
-    if(!"timefrac" %in% names(inp)) inp$timefrac <- min(inp$dtc)
+    if(!"dteuler" %in% names(inp)) inp$dteuler <- min(inp$dtc)
     if(!"delay" %in% names(inp)) inp$delay <- 1
     if(!"dtpred" %in% names(inp)) inp$dtpred <- min(inp$dtc)
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB')
@@ -130,7 +130,7 @@ check.inp <- function(inp){
     #mindtc <- min(inp$dtc)
     lastdtc <- tail(inp$dtc,1)
     timepad <- lastdtc + inp$dtpred
-    inp$time <- seq(inp$timerange[1], inp$timerange[2]+timepad, by=inp$timefrac)
+    inp$time <- seq(inp$timerange[1], inp$timerange[2]+timepad, by=inp$dteuler)
     inp$ns <- length(inp$time)
     inp$indlastobs <- which(inp$time == inp$timerange[2])
     # ic is the indices of inp$time to which catch observations correspond
@@ -154,7 +154,25 @@ check.inp <- function(inp){
     
     # -- MODEL PARAMETERS --
     # Check that required initial values are specified
-    check.ini('logr', inp, min=log(0.3)-3, max=log(0.3)+3)
+    if(!'logr' %in% names(inp$ini)){
+        stop('Please specify initial value(s) for logr!')
+    } else {
+        nr <- length(inp$ini$logr)
+        if(!nr %in% c(1, 2, 4)){
+            stop('logr must be a vector of length either 1, 2 or 4.')
+        }
+        min <- log(0.3)-3
+        max <- log(0.3)+3
+        for(i in 1:nr) if(inp$ini$logr[i] < min | inp$ini$logr[i] > max) stop('Please specify a value for logr(', i, ') in the interval: [', min, ';', max, ']')
+        # ir is the mapping from time to the r vector
+        inp$ir <- rep(0, inp$ns)
+        for(i in 1:nr){
+            frac <- 1/nr
+            modtime <- inp$time %% 1
+            inds <- which(modtime>=((i-1)*frac) & modtime<(i*frac))
+            inp$ir[inds] <- i
+        }
+    }
     check.ini('logK', inp)
     check.ini('logq', inp)
     if(!'logq' %in% names(inp$ini)){
@@ -175,9 +193,9 @@ check.inp <- function(inp){
     if(!"phi2" %in% names(inp$ini)) inp$ini$phi2 <- 0
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
-    if(!"loggamma" %in% names(inp$ini)) inp$ini$loggamma <- log(1)
+    #if(!"loggamma" %in% names(inp$ini)) inp$ini$loggamma <- log(1)
     if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.3)
-    if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr))
+    if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr[1]))
     if(!"logF" %in% names(inp$ini)){
         inp$ini$logF <- rep(inp$ini$logF0, inp$ns)
     } else {
@@ -194,7 +212,7 @@ check.inp <- function(inp){
                     phi2=inp$ini$phi2,
                     logalpha=inp$ini$logalpha,
                     logbeta=inp$ini$logbeta,
-                    loggamma=inp$ini$loggamma,
+                    #loggamma=inp$ini$loggamma,
                     logbkfrac=inp$ini$logbkfrac,
                     logF0=inp$ini$logF0,
                     logr=inp$ini$logr,
@@ -206,9 +224,9 @@ check.inp <- function(inp){
                     logB=inp$ini$logB)
     # Determine phases and fixed parameters
     if(inp$delay==1){
-        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta', 'loggamma') # These are fixed unless specified
+        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta') # These are fixed unless specified
     } else {
-        fixpars <- c('logalpha', 'logbeta', 'loggamma') # These are fixed unless otherwise specified
+        fixpars <- c('logalpha', 'logbeta') # These are fixed unless otherwise specified
     }
     if(!"phases" %in% names(inp)){
         inp$phases <- list()
@@ -296,7 +314,7 @@ calc.osa.resid <- function(rep, dbg=0){
             inp2$obsI[[i]] <- inp$obsI[[i]][Iind]
         }
         inp2 <- check.inp(inp2)
-        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, Cobs=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, isum=rep(0,inp2$ns), lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
+        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, Cobs=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         objpred$fn()
@@ -331,7 +349,7 @@ fit.spict <- function(inp, dbg=0){
 
     # Currently only able to use one index.
     #inp$ini$logq <- inp$ini$logq[1]
-    datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, Cobs=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, isum=rep(0,inp$ns), lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
+    datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, Cobs=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
     obj <- TMB::MakeADFun(data=datin, parameters=inp$ini, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, tracemgc=FALSE, map=inp$map)
     config(trace.optimize=0, DLL=inp$scriptname)
     obj$env$tracemgc <- FALSE # Make TMB even more quiet
@@ -948,7 +966,7 @@ read.aspic <- function(filename){
     inp$ini$logsdb <- log(1)
     inp$lamperti <- 1
     inp$euler <- 1
-    inp$timefrac <- 1
+    inp$dteuler <- 1
     return(inp)
 }
 
@@ -1100,7 +1118,7 @@ sim.spict <- function(input, nobs=100){
     lamperti <- inp$lamperti
 
     # Calculate derived variables
-    dt <- 1/inp$timefrac
+    dt <- inp$dteuler
     nt <- length(time)
     B0 <- exp(p$logbkfrac)*exp(p$logK)
     F0 <- exp(p$logF0)
@@ -1164,7 +1182,7 @@ sim.spict <- function(input, nobs=100){
     sim$obsI <- obsI
     sim$timeI <- inp$timeI
     sim$ini <- list(logr=log(r), logK=log(K), logq=log(q), logsdf=log(sdf), logsdb=log(sdb))
-    sim$timefrac <- inp$timefrac
+    sim$dteuler <- inp$dteuler
     sim$euler <- inp$euler
     sim$lamperti <- inp$lamperti
     sim$true <- p
