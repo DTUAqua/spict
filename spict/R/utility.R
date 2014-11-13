@@ -110,8 +110,8 @@ check.inp <- function(inp){
     if(!"lamperti" %in% names(inp)) inp$lamperti <- 1
     if(!"euler" %in% names(inp)) inp$euler <- 1
     if(!"dtc" %in% names(inp)){
-        inp$dtc <- 1
-        cat('Annual catch observations assumed\n')
+        inp$dtc <- min(diff(inp$timeC))
+        cat(paste('Catch interval (dtc) not specified. Assuming an interval of:', inp$dtc, 'year.\n'))
     }
     if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
     if(length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
@@ -205,7 +205,11 @@ check.inp <- function(inp){
                     logF=inp$ini$logF,
                     logB=inp$ini$logB)
     # Determine phases and fixed parameters
-    fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta', 'loggamma') # These are fixed unless otherwise specified
+    if(inp$delay==1){
+        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta', 'loggamma') # These are fixed unless specified
+    } else {
+        fixpars <- c('logalpha', 'logbeta', 'loggamma') # These are fixed unless otherwise specified
+    }
     if(!"phases" %in% names(inp)){
         inp$phases <- list()
         for(i in 1:length(fixpars)) inp$phases[[fixpars[i]]] <- -1
