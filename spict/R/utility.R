@@ -119,7 +119,7 @@ check.inp <- function(inp){
     if(!"delay" %in% names(inp)) inp$delay <- 1
     if(!"dtpred" %in% names(inp)) inp$dtpred <- min(inp$dtc)
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB')
-    if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
+    if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spicttest'
 
     # -- DERIVED VARIABLES --
     alltimes <- inp$timeC
@@ -953,14 +953,10 @@ read.aspic <- function(filename){
 }
 
 
-#' @useDynLib spict
-.onLoad <- function(lib, pkg) {
-    library.dynam("spict", pkg, lib)
-}
-
+#' @useDynLib spicttest
 
 .onUnload <- function (lib) {
-  library.dynam.unload("spict", lib)
+  library.dynam.unload("spicttest", lib)
 }
 
 
