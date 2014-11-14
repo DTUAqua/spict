@@ -119,7 +119,7 @@ check.inp <- function(inp){
     if(!"delay" %in% names(inp)) inp$delay <- 1
     if(!"dtpred" %in% names(inp)) inp$dtpred <- min(inp$dtc)
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB')
-    if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spicttest'
+    if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
 
     # -- DERIVED VARIABLES --
     alltimes <- inp$timeC
@@ -350,9 +350,12 @@ fit.spict <- function(inp, dbg=0){
     # Currently only able to use one index.
     #inp$ini$logq <- inp$ini$logq[1]
     datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, Cobs=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
-    obj <- TMB::MakeADFun(data=datin, parameters=inp$ini, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, tracemgc=FALSE, map=inp$map)
+    obj <- TMB::MakeADFun(data=datin, parameters=inp$ini, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map)
     config(trace.optimize=0, DLL=inp$scriptname)
-    obj$env$tracemgc <- FALSE # Make TMB even more quiet
+    verbose <- FALSE
+    obj$env$tracemgc <- verbose
+    obj$env$inner.control$trace <- verbose
+    obj$env$silent <- ! verbose
     obj$fn(obj$par)
     rep <- NULL
     if(dbg==0){
@@ -1001,10 +1004,10 @@ read.aspic <- function(filename){
 }
 
 
-#' @useDynLib spicttest
+#' @useDynLib spict
 
 .onUnload <- function (lib) {
-  library.dynam.unload("spicttest", lib)
+  library.dynam.unload("spict", lib)
 }
 
 
@@ -1215,6 +1218,7 @@ sim.spict <- function(input, nobs=100){
     sim$dteuler <- inp$dteuler
     sim$euler <- inp$euler
     sim$lamperti <- inp$lamperti
+    sim$phases <- inp$phases
     sim$true <- p
     sim$true$B <- B
     sim$true$F <- F
@@ -1224,4 +1228,73 @@ sim.spict <- function(input, nobs=100){
     sim$true$logB <- NULL
     sim$true$logF <- NULL
     return(sim)
+}
+
+
+#' @name validate.spict
+#' @title Simulate data and reestimate parameters
+#' @details Given input parameters simulate a number of data sets. Then estimate the parameters from the simulated data and compare with the true values. Specifically, the one-step-ahead residuals are checked for autocorrelation and the confidence intervals of the estimated Fmsy and Bmsy are checked for consistency.
+#'
+#' WARNING: One should simulate at least 50 data sets and preferably more than 100 to obtain reliable results. This will take some time (potentially hours).
+#' @param inp An inp list with an ini key (see ?check.inp). If you want to use estimated parameters for the simulation create the inp$ini from the pl key of a result of fit.spict().
+#' @param nsim Number of simulated data sets in each batch.
+#' @param nobsvec Vector containing the number of simulated observations of each data set in each batch.
+#' @param backup Since this procedure can be slow a filename can be specified in backup where the most recent results will be available.
+#' @return A list containing the results of the validation with the following keys:
+#' \itemize{
+#'  \item{"osarpvals"}{ P-values of the Ljun-Box test for uncorrelated one-step-ahead residuals.}
+#'  \item{"*msyci"}{Logical. TRUE if the true value of B/Fmsy was inside the 95\% confidence interval for the estimate, otherwise FALSE}
+#'  \item{"*msyciw"}{ Width of the 95\% confidence interval of the estimate of B/Fmsy.}
+#' }
+#' @examples
+#' data(pol)
+#' rep0 <- fit.spict(pol$albacore)
+#' inp <- list()
+#' inp$ini <- rep0$pl
+#' set.seed(1234)
+#' validate.spict(inp, nsim=10, nobsvec=c(30, 60), backup='validate.RData')
+#' @export
+validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), backup=NULL){
+    nnobsvec <- length(nobsvec)
+    if('logF' %in% names(inp$ini)) inp$ini$logF <- NULL
+    if('logB' %in% names(inp$ini)) inp$ini$logB <- NULL
+    Fmsytrue <- exp(inp$ini$logr)/2 - exp(inp$ini$logsdb)^2/2
+    Bmsytrue <- exp(inp$ini$logK)/2
+    matstan <- matrix(0, nsim, nnobsvec)
+    colnames(matstan) <- nobsvec
+    conv <- matrix(NA, nsim, nnobsvec)
+    colnames(conv) <- nobsvec
+    osarpvals <- matstan
+    Fmsyci <- matstan
+    Fmsyciw <- matstan
+    Bmsyci <- matstan
+    Bmsyciw <- matstan
+    sim <- list()
+    rep <- list()
+
+    for(i in 1:nnobsvec){
+        sim[[i]] <- list()
+        rep[[i]] <- list()
+        for(j in 1:nsim){
+            sim[[i]][[j]] <- sim.spict(inp, nobs=nobsvec[i])
+            fit <- try(fit.spict(sim[[i]][[j]]))
+            if(class(fit)=='try-error'){
+                rep[[i]][[j]] <- NA
+            } else {
+                rep[[i]][[j]] <- fit
+                rep[[i]][[j]] <- calc.osa.resid(rep[[i]][[j]])
+                conv[j, i] <- rep[[i]][[j]]$opt$convergence
+                osarpvals[j, i] <- rep[[i]][[j]]$osar$logCpboxtest$p.value
+                Fmsy <- get.par('logFmsy', rep[[i]][[j]], exp=TRUE)
+                Fmsyci[j, i] <- Fmsytrue > Fmsy[1] & Fmsytrue < Fmsy[3]
+                Fmsyciw[j, i] <- Fmsy[3] - Fmsy[1]
+                Bmsy <- get.par('logBmsy', rep[[i]][[j]], exp=TRUE)
+                Bmsyci[j, i] <- Bmsytrue > Bmsy[1] & Bmsytrue < Bmsy[3]
+                Bmsyciw[j, i] <- Bmsy[3] - Bmsy[1]
+            }
+            cat(paste(Sys.time(), '- validating:  i:', i, 'j:', j, '\n'))
+            if(!is.null(backup)) save(Fmsyci, Fmsyciw, Bmsyci, Bmsyciw, osarpvals, conv, file=backup)
+        }
+    }
+    return(list(osarpvals=osarpvals, Fmsyci=Fmsyci, Fmsyciw=Fmsyciw, Bmsyci=Bmsyci, Bmsyciw=Bmsyciw, conv=conv))
 }
