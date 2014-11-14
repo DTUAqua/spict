@@ -317,6 +317,10 @@ calc.osa.resid <- function(rep, dbg=0){
         datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, Cobs=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
+        verbose <- FALSE
+        objpred$env$tracemgc <- verbose
+        objpred$env$inner.control$trace <- verbose
+        objpred$env$silent <- ! verbose
         objpred$fn()
         logCpred[nadj] <- log(objpred$report()$Cp)
     }
