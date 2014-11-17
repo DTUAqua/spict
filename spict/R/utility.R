@@ -5,6 +5,8 @@ setClass("spictcls")
 #' @title Example of a spict analysis.
 #' @details Loads a data set, fits the model, calculates one-step-ahead residuals, plots the results.
 #' @return A result report as given by fit.spict().
+#' @examples
+#' rep <- test.spict()
 #' @export
 test.spict <- function(){
     # Load data
@@ -57,6 +59,9 @@ NULL
 #' }
 #' @param inp List of input variables, see details for required variables.
 #' @return An updated list of input variables checked for consistency and with defaults added.
+#' @examples
+#' data(pol)
+#' (inp <- check.inp(pol$albacore))
 #' @export
 check.inp <- function(inp){
     # -- DATA --
@@ -286,6 +291,82 @@ get.predmap <- function(guess, RE){
 }
 
 
+#' @name fit.spict
+#' @title Fit a continuous-time surplus production model to data.
+#' @details Fits the model using the TMB package and returns a result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
+#'
+#' Fixed effects:
+#' \itemize{
+#'   \item{"logbkfrac"}{ Log of B0/K.}
+#'   \item{"logF0"}{ Log of initial value (F0) of the fishing mortality process.}
+#'   \item{"logr"}{ Log of intrinsic growth rate.}
+#'   \item{"logK"}{ Log of carrying capacity.}
+#'   \item{"logq"}{ Log of catchability vector.}
+#'   \item{"logsdf"}{ Log of standard deviation of fishing mortality process noise.}
+#'   \item{"logsdb"}{ Log of standard deviation of biomass process noise.}
+#' }
+#'
+#' Optional fixed effects (which are normally not estimated):
+#' \itemize{
+#'   \item{"phi1"}{ Used in the delayed F-process: F_i = phi1*F_i-1 + phi2*F_i-delay. (normally set to phi1=1)}
+#'   \item{"phi2"}{ Used in the delayed F-process: F_i = phi1*F_i-1 + phi2*F_i-delay. (normally set to phi2=1)}
+#'   \item{"logalpha"}{ Proportionality factor for the observation noise of the indices and the biomass process noise: sdi = exp(logalpha)*sdb. (normally set to logalpha=0)}
+#'   \item{"logbeta"}{ Proportionality factor for the observation noise of the catches and the fishing mortality process noise: sdc = exp(logbeta)*sdf. (this is often difficult to estimate and can result in divergence of the optimisation. Normally set to logbeta=0)}
+#' }
+#'
+#' Random effects:
+#' \itemize{
+#'   \item{"logB"}{ Log of the biomass process given by the continuous-time stochastic Schaefer equation: dB_t = r*B_t*(1-B_t/K)*dt + sdb*dW_t, where dW_t is Brownian motion.}
+#'   \item{"logF"}{ Log of the fishing mortality process given by: dF_t = sdf*dV, where dV is Brownian motion.}
+#' }
+#'
+#' Derived parameters:
+#' \itemize{
+#'   \item{"logBmsy"}{ Log of the equilibrium biomass (Bmsy) when fished at Fmsy.}
+#'   \item{"logFmsy"}{ Log of the fishing mortality (Fmsy) leading to the maximum sustainable yield.}
+#'   \item{"MSY"}{ The yield when the biomass is at Bmsy and the fishing mortality is at Fmsy, i.e. the maximum sustainable yield.}
+#' }
+#'
+#' The above parameter values can be extracted from the fit.spict() results using get.par().
+#' @param inp List of input variables as output by check.inp.
+#' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. Will print even more if set to 2.
+#' @return A result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
+#' @export
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' summary(rep)
+#' plot(rep)
+#' @import TMB
+fit.spict <- function(inp, dbg=0){
+    # Check input list
+    if(!'checked' %in% names(inp)) inp <- check.inp(inp)
+    if(!inp$checked) inp <- check.inp(inp)
+    # Currently only able to use one index.
+    datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
+    obj <- TMB::MakeADFun(data=datin, parameters=inp$ini, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map)
+    config(trace.optimize=0, DLL=inp$scriptname)
+    verbose <- FALSE
+    obj$env$tracemgc <- verbose
+    obj$env$inner.control$trace <- verbose
+    obj$env$silent <- ! verbose
+    obj$fn(obj$par)
+    rep <- NULL
+    if(dbg==0){
+        opt <- nlminb(obj$par, obj$fn, obj$gr)
+        # Results
+        rep <- TMB::sdreport(obj)
+        rep$pl <- obj$env$parList(opt$par)
+        obj$fn()
+        rep$Cp <- obj$report()$Cp
+        rep$inp <- inp
+        rep$opt <- opt
+    }
+    class(rep) <- "spictcls"
+    return(rep)
+}
+
+
 #' @name calc.osa.resid
 #' @title Calculate one-step-ahead residuals.
 #' @details In TMB one-step-ahead residuals are calculated by sequentially including one data point at a time while keeping the model parameters fixed at their ML estimates. The calculated residuals are tested for independence in lag 1 using the Ljung-Box test (see Box.test).
@@ -293,6 +374,11 @@ get.predmap <- function(guess, RE){
 #' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. Will print even more if set to 2.
 #' @return An updated result report, which contains one-step-ahead residuals stored in the $osar variable.
 #' @export
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' rep <- calc.osa.resid(rep)
+#' plotspict.osar(rep)
 #' @import TMB
 calc.osa.resid <- function(rep, dbg=0){
     inp <- rep$inp
@@ -314,7 +400,7 @@ calc.osa.resid <- function(rep, dbg=0){
             inp2$obsI[[i]] <- inp$obsI[[i]][Iind]
         }
         inp2 <- check.inp(inp2)
-        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, Cobs=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
+        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         verbose <- FALSE
@@ -334,50 +420,6 @@ calc.osa.resid <- function(rep, dbg=0){
 }
 
 
-#' @name fit.spict
-#' @title Fit a continuous-time surplus production model to data.
-#' @details Fits the model using the TMB package and returns a result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
-#' @param inp List of input variables as output by check.inp.
-#' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. Will print even more if set to 2.
-#' @return A result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
-#' @export
-#' @import TMB
-fit.spict <- function(inp, dbg=0){
-    # Check input list
-    if(!'checked' %in% names(inp)) inp <- check.inp(inp)
-    if(!inp$checked) inp <- check.inp(inp)
-    #require(TMB)
-    #scriptname <- 'spict'
-    #compile(paste(scriptname,'.cpp',sep=''))
-    #dyn.load(paste(scriptname,'.so',sep=''))
-
-    # Currently only able to use one index.
-    #inp$ini$logq <- inp$ini$logq[1]
-    datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, Cobs=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
-    obj <- TMB::MakeADFun(data=datin, parameters=inp$ini, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map)
-    config(trace.optimize=0, DLL=inp$scriptname)
-    verbose <- FALSE
-    obj$env$tracemgc <- verbose
-    obj$env$inner.control$trace <- verbose
-    obj$env$silent <- ! verbose
-    obj$fn(obj$par)
-    rep <- NULL
-    if(dbg==0){
-        opt <- nlminb(obj$par, obj$fn, obj$gr)
-        # Results
-        rep <- TMB::sdreport(obj)
-        rep$pl <- obj$env$parList(opt$par)
-        obj$fn()
-        rep$Cp <- obj$report()$Cp
-        rep$inp <- inp
-        rep$opt <- opt
-        #osap <- one.step.ahead.pred(pl, RE, time, Cobs, timeC, I, timeI, dtpred, delay, scriptname, lamperti=lamperti, euler=euler)
-    }
-    class(rep) <- "spictcls"
-    return(rep)
-}
-
-
 #' @name get.par
 #' @title Extract parameters from a result report as generated by fit.spict.
 #' @details Helper function for extracting the value and uncertainty of a specific model parameter, random effect or derived quantity.
@@ -388,6 +430,12 @@ fit.spict <- function(inp, dbg=0){
 #' @param fixed Is the variable a fixed effect? TRUE/FALSE.
 #' @return A matrix with four columns containing respectively: 1) the lower 95% confidence limit; 2) the parameter estimate; 3) the upper 95% confidence limit; 4) the parameter standard deviation in the domain it was estimated (log or non-log).
 #' @export
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' Bmsy <- get.par('logBmsy', rep, exp=TRUE)
+#' Best <- get.par('logB', rep, exp=TRUE, random=TRUE)
+#' K <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
 get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
     if(random){
         ind <- which(names(rep$par.random)==parname)
@@ -428,7 +476,6 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
 #' @param inds Indices of the two reported model parameters.
 #' @param rep A result report as generated by running fit.spict.
 #' @return A matrix with two columns containing the x and y coordinates of the ellipsis.
-#' @export
 make.ellipse <- function(inds, rep){
     require(ellipse)
     covBF <- rep$cov[inds,inds]

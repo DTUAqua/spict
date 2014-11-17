@@ -68,9 +68,9 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(dtpred);        // Time step for prediction
   DATA_VECTOR(dtpredinds);
   DATA_INTEGER(dtprednsteps); // Number of sub time step for prediction
-  DATA_VECTOR(Cobs);       // Catches
-  DATA_VECTOR(ic); // Vector such that B(ii(i)) is the state corresponding to Cobs(i)
-  DATA_VECTOR(nc); // nc(i) gives the number of time intervals Cobs(i) spans
+  DATA_VECTOR(obsC);       // Catches
+  DATA_VECTOR(ic); // Vector such that B(ii(i)) is the state corresponding to obsC(i)
+  DATA_VECTOR(nc); // nc(i) gives the number of time intervals obsC(i) spans
   DATA_VECTOR(I);       // Index
   DATA_VECTOR(ii); // A vector such that B(ii(i)) is the state corresponding to I(i)
   DATA_VECTOR(iq); // A vector such that iq(i) is the index number corresponding to I_iq(i)
@@ -107,7 +107,7 @@ Type objective_function<Type>::operator() ()
   Type sdb2 = sdb*sdb;
   Type sdi = exp(logalpha)*sdb;
   Type sdc = exp(logbeta)*sdf;
-  int nCobs = Cobs.size();
+  int nobsC = obsC.size();
   int nIobs = I.size();
   int ns = logF.size();
   vector<Type> F = exp(logF);
@@ -118,11 +118,11 @@ Type objective_function<Type>::operator() ()
   Type logB0 = logbkfrac + logK;
   vector<Type> Bpred(ns);
   vector<Type> rvec(ns);
-  vector<Type> Cpred(nCobs);
-  for(int i=0; i<nCobs; i++){ Cpred(i) = 0; }
+  vector<Type> Cpred(nobsC);
+  for(int i=0; i<nobsC; i++){ Cpred(i) = 0; }
   vector<Type> Cpredsub(ns);
   vector<Type> logIpred(nIobs);
-  vector<Type> logCpred(nCobs);
+  vector<Type> logCpred(nobsC);
   Type Bmsy = K/2.0;
   //vector<Type> Fmsy(nr);
   Type Fmsy;
@@ -149,7 +149,7 @@ Type objective_function<Type>::operator() ()
     for(int i=0; i<nq; i++){ std::cout << "INPUT: logq(i): " << logq(i) << " -- i: " << i << std::endl; }
     std::cout << "INPUT: logsdf: " << logsdf << std::endl;
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
-    std::cout << "Cobs.size(): " << Cobs.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  F.size(): " << F.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  rvec.size(): " << rvec.size() << "  iq.size(): " << iq.size() << std::endl;
+    std::cout << "obsC.size(): " << obsC.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  F.size(): " << F.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  rvec.size(): " << rvec.size() << "  iq.size(): " << iq.size() << std::endl;
   }
   // Calculate rvec
   int ind;
@@ -238,18 +238,18 @@ Type objective_function<Type>::operator() ()
   if(dbg>0){
     std::cout << "--- DEBUG: Cpred loop start" << std::endl;
   }
-  for(int i=0; i<nCobs; i++){
+  for(int i=0; i<nobsC; i++){
     // Sum catch contributions from each sub interval
     for(int j=0; j<nc(i); j++){
       ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
       Cpred(i) += Cpredsub(ind);
     }
     logCpred(i) = log(Cpred(i));
-    likval = dnorm(log(Cpred(i)), log(Cobs(i)), sdc, 1);
+    likval = dnorm(log(Cpred(i)), log(obsC(i)), sdc, 1);
     ans-=likval;
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -  ind: " << ind << " -   logCobs(i): " << log(Cobs(i))<< "  log(Cpred(i)): " << log(Cpred(i)) << "  sdc: " << sdc << "  likval: " << likval << std::endl;
+      std::cout << "-- i: " << i << " -  ind: " << ind << " -   logobsC(i): " << log(obsC(i))<< "  log(Cpred(i)): " << log(Cpred(i)) << "  sdc: " << sdc << "  likval: " << likval << std::endl;
     }
   }
 
