@@ -1290,6 +1290,7 @@ sim.spict <- function(input, nobs=100){
 #' @param inp An inp list with an ini key (see ?check.inp). If you want to use estimated parameters for the simulation create the inp$ini from the pl key of a result of fit.spict().
 #' @param nsim Number of simulated data sets in each batch.
 #' @param nobsvec Vector containing the number of simulated observations of each data set in each batch.
+#' @param estinp The estimation uses the true parameters as starting guess. Other initial values to be used for estimation can be specified in estinp$ini.
 #' @param backup Since this procedure can be slow a filename can be specified in backup where the most recent results will be available.
 #' @return A list containing the results of the validation with the following keys:
 #' \itemize{
@@ -1305,7 +1306,7 @@ sim.spict <- function(input, nobs=100){
 #' set.seed(1234)
 #' validate.spict(inp, nsim=10, nobsvec=c(30, 60), backup='validate.RData')
 #' @export
-validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), backup=NULL){
+validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, backup=NULL){
     nnobsvec <- length(nobsvec)
     if('logF' %in% names(inp$ini)) inp$ini$logF <- NULL
     if('logB' %in% names(inp$ini)) inp$ini$logB <- NULL
@@ -1328,6 +1329,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), backup=NULL){
         rep[[i]] <- list()
         for(j in 1:nsim){
             sim[[i]][[j]] <- sim.spict(inp, nobs=nobsvec[i])
+            if(!is.null(estinp)) sim[[i]][[j]]$ini <- estinp$ini
             fit <- try(fit.spict(sim[[i]][[j]]))
             if(class(fit)=='try-error'){
                 rep[[i]][[j]] <- NA
