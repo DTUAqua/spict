@@ -140,10 +140,10 @@ check.inp <- function(inp){
     if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
 
     # -- DERIVED VARIABLES --
-    alltimes <- inp$timeC
-    alltimes <- c(alltimes, inp$timeC + inp$dtc)
-    for(i in 1:inp$nindex) alltimes <- c(alltimes, inp$timeI[[i]])
-    inp$timerange <- range(alltimes)
+    timeobs <- inp$timeC
+    timeobs <- c(timeobs, inp$timeC + inp$dtc)
+    for(i in 1:inp$nindex) timeobs <- c(timeobs, inp$timeI[[i]])
+    inp$timerange <- range(timeobs)
     # Add two dtc intervals, one for the final catch observation, and one for the predicted catch
     #mindtc <- min(inp$dtc)
     #lastdtc <- tail(inp$dtc,1)
@@ -151,9 +151,11 @@ check.inp <- function(inp){
     #time <- seq(inp$timerange[1], inp$timerange[2]+timepad, by=inp$dteuler)
     time <- seq(inp$timerange[1], inp$timerange[2]+inp$dtpred, by=inp$dteuler)
     # Remove duplicate time points and store time in inp list
-    inp$time <- sort(unique(c(alltimes, time)))
+    inp$time <- sort(unique(c(timeobs, time)))
     inp$ns <- length(inp$time)
     inp$indlastobs <- which(inp$time == inp$timerange[2])
+    inp$indest <- which(inp$time <= inp$timerange[2])
+    inp$indpred <- which(inp$time >= inp$timerange[2])
     # ic is the indices of inp$time to which catch observations correspond
     inp$ic <- match(inp$timeC, inp$time)
     # nc is number of states to integrate a catch observation over
@@ -601,17 +603,16 @@ plotspict.biomass <- function(rep, logax=FALSE){
         lines(inp$time, inp$true$B/scal, col='orange') # Plot true
         abline(h=inp$true$Bmsy, col='orange', lty=2)
     }
-    lines(inp$time, Best[,2]/scal, col='blue')
+    lines(inp$time[inp$indest], Best[inp$indest,2]/scal, col='blue', lwd=1.5)
+    lines(inp$time[inp$indpred], Best[inp$indpred,2]/scal, col='blue', lty=3)
     abline(h=Bmsy[2]/scal, col='black')
-    lines(inp$time, Best[,1]/scal, col=4, lty=2)
-    lines(inp$time, Best[,3]/scal, col=4, lty=2)
+    lines(inp$time[inp$indest], Best[inp$indest,1]/scal, col=4, lty=2, lwd=1.5)
+    lines(inp$time[inp$indest], Best[inp$indest,3]/scal, col=4, lty=2, lwd=1.5)
+    lines(inp$time[inp$indpred], Best[inp$indpred,1]/scal, col=4, lty=2)
+    lines(inp$time[inp$indpred], Best[inp$indpred,3]/scal, col=4, lty=2)
     lines(Binftime, Binfs/scal, col='green', lty=1)
-    et <- tail(inp$time,1)
-    tp <- et + inp$dtpred
-    lines(c(et, tp), c(tail(Best[,2],1), Bp[2])/scal, col='blue', lty=3)
-    points(tp, Bp[2], pch=21, bg='yellow')
-    lines(c(et, tp), c(tail(Best[,1],1), Bp[1])/scal, col='blue', lty=3)
-    lines(c(et, tp), c(tail(Best[,3],1), Bp[3])/scal, col='blue', lty=3)
+    tp <- tail(inp$time,1)
+    points(tp, tail(Best[,2],1)/scal, pch=21, bg='yellow')
     legend('topright', legend=c('Equilibrium',paste(tp,'pred.')), lty=c(1,NA), pch=c(NA,21), col=c('green',1), pt.bg=c(NA,'yellow'), bg='white')
     box()
 }
@@ -685,13 +686,15 @@ plotspict.fb <- function(rep, logax=FALSE){
         lines(inp$true$B/scal, inp$true$F, col='orange') # Plot true
         points(inp$true$Bmsy, inp$true$Fmsy, pch=24, bg='orange')
     }
-    lines(Best[,2]/scal, Fest[,2], col='blue')
+    lines(Best[inp$indest,2]/scal, Fest[inp$indest,2], col='blue', lwd=1.5)
     points(Bmsy[2]/scal, Fmsy[2], pch=24, bg='black')
-    lines(c(tail(Best[,2],1), Bp[2])/scal, rep(Fp[2],2), col='blue', lty=3)
+    lines(Best[inp$indpred,2]/scal, Fest[inp$indpred,2], col='blue', lty=3)
+    lines(tail(Best[,2],1)/scal, tail(Fest[,2],1), col='blue', lty=3)
+    #lines(c(tail(Best[,2],1), Bp[2])/scal, rep(Fp[2],2), col='blue', lty=3)
     points(Bp[2]/scal, Fp[2], pch=21, bg='yellow')
     points(tail(Binf[,2],1)/scal, Fp[2], pch=22, bg='green', cex=2)
     arrow.line(c(Bp[2], tail(Binf[,2],1))/scal, rep(Fp[2],2), col='black', length=0.05)
-    legend('topright', c('Estimated MSY',paste(tail(inp$time,1)+1,'prediction'),'Equilibrium'), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
+    legend('topright', c('Estimated MSY',paste(tail(inp$time,1),'prediction'),'Equilibrium'), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
 }
 
 
@@ -734,15 +737,20 @@ plotspict.f <- function(rep, logax=FALSE){
         lines(al3$anntime, al3$annvec, col=maincol, lwd=2, lty=2)
         maincol <- 'cyan'
     }
-    lines(inp$time, Fest[, 2], col=maincol)
+    lines(inp$time[inp$indest], Fest[inp$indest, 2], col=maincol, lwd=1.5)
+    lines(inp$time[inp$indpred], Fest[inp$indpred, 2], col=maincol, lty=3)
+    points(tail(inp$time,1), tail(Fest[, 2],1), pch=21, bg='yellow')
     #points(inp$time, C/Best/Fmsy)
     abline(h=Fmsy[2], col='black')
     abline(h=rest[2], col='red')
     #abline(h=Fmsyci, col=3, lty=2)
     #lines(inp$time, Festul/Fmsy, col='forestgreen', lty=2)
     #lines(inp$time, Festll/Fmsy, col='forestgreen', lty=2)
-    lines(inp$time, Fest[, 1], col=maincol, lty=2)
-    lines(inp$time, Fest[, 3], col=maincol, lty=2)
+    lines(inp$time[inp$indest], Fest[inp$indest, 1], col=maincol, lty=2, lwd=1.5)
+    lines(inp$time[inp$indest], Fest[inp$indest, 3], col=maincol, lty=2, lwd=1.5)
+    lines(inp$time[inp$indpred], Fest[inp$indpred, 1], col=maincol, lty=2)
+    lines(inp$time[inp$indpred], Fest[inp$indpred, 3], col=maincol, lty=2)
+    legend('topleft',c(paste(tail(inp$time,1),'prediction')), pch=21, pt.bg=c('yellow'), bg='white')
     box()
 }
 
@@ -771,19 +779,19 @@ plotspict.catch <- function(rep){
     Cpredest <- get.par('logCpred', rep, exp=TRUE)
     Cpredest[Cpredest<0] <- 0
     rep$Cp[rep$Cp<0] <- 0
-    plot(inp$timeC, inp$obsC/Cscal, typ='n', main=paste('MSY:',round(MSY[2]/Cscal)), xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1)+inp$dtpred)), ylim=range(c(1.3*inp$obsC, Cpredest[,1:3], 0.8*inp$obsC, Cinfp[2], Cpmsy[2], rep$Cp))/Cscal)
+    plot(inp$timeC, inp$obsC/Cscal, typ='n', main=paste('MSY:',round(MSY[2]/Cscal)), xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1))), ylim=range(c(1.3*inp$obsC, Cpredest[,1:3], 0.8*inp$obsC, Cinfp[2], Cpmsy[2], rep$Cp))/Cscal)
     polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
     points(inp$timeC, inp$obsC/Cscal)
-    points(tail(inp$time,1)+inp$dtpred, rep$Cp/Cscal, pch=21, bg='yellow')
+    points(tail(inp$time,1)-inp$dtpred, rep$Cp/Cscal, pch=21, bg='yellow')
     #points(tail(inp$timeC,1)+1, Cpmsy[2]/Cscal, pch=21, bg='black')
     #points(tail(inp$timeC,1)+1, Cinfp[2]/Cscal, pch=21, bg='green')
     if('true' %in% names(inp)) abline(h=inp$true$MSY, col='orange', lty=2)
     abline(h=MSY[2]/Cscal)
-    lines(inp$timeC, Cpredest[, 2]/Cscal, col=4)
-    lines(inp$timeC, Cpredest[, 1]/Cscal, col=4, lty=2)
-    lines(inp$timeC, Cpredest[, 3]/Cscal, col=4, lty=2)
+    lines(inp$timeC, Cpredest[, 2]/Cscal, col=4, lwd=1.5)
+    lines(inp$timeC, Cpredest[, 1]/Cscal, col=4, lty=2, lwd=1.5)
+    lines(inp$timeC, Cpredest[, 3]/Cscal, col=4, lty=2, lwd=1.5)
     #legend('topleft',c(paste(tail(inp$time,1)+inp$dtpred,'prediction'),'Pred w Fmsy','Equilibrium'),pch=21,pt.bg=c('yellow','black','green'), bg='white')
-    legend('topleft',c(paste(tail(inp$time,1)+inp$dtpred,'prediction')), pch=21, pt.bg=c('yellow'), bg='white')
+    legend('topleft',c(paste(tail(inp$time-inp$dtpred,1),'prediction')), pch=21, pt.bg=c('yellow'), bg='white')
     box()
 }
 
@@ -814,6 +822,32 @@ plotspict.production <- function(rep){
     lines(Bplot/Bmsy[2], Pst/Bmsy[2], col=1)
     #arrow.line(Best[-1, 2]/Bmsy[2], Pest[,2]/inp$dt/Bmsy[2], length=0.05)
     abline(v=1, lty=3)
+}
+
+
+#' @name plotspict.growthrate
+#' @title Plot intrinsic growth rate as a function of biomass.
+#' @param rep A result report as generated by running fit.spict.
+#' @return Nothing.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' plotspict.growthrate(rep)
+#' @export
+plotspict.growthrate <- function(rep){
+    inp <- rep$inp
+    Best <- get.par('logB', rep, exp=TRUE, random=TRUE)
+    Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
+    rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
+    Pest <- get.par('P', rep)
+    B <- Best[-1,2]
+    r <- rest[2]
+    K <- Kest[2]
+    gr <- r*(1-B/K)
+    plot(B, Pest[, 2]/inp$dt/B, typ='p', xlab='B', ylab='Intrinsic growth rate', col='blue')
+    lines(B, gr)
+    abline(h=0, lty=3)
+    legend('topright', legend=c('Observed growth', 'r*(1-B/K)'), col=c(4,1), pch=c(1,NA), lty=c(NA,1))
 }
 
 
@@ -890,7 +924,8 @@ plotspict.tc <- function(rep){
 #'  \item{5. Estimated fishing mortality using plotspict.f().}
 #'  \item{6. Observed versus predicted catches using plotspict.catch().}
 #'  \item{7. Observed versus theoretical production using plotspict.production().}
-#'  \item{8. Calculated time-constant using plotspict.tc().}
+#'  \item{8. Observed versus theoretical growth rate using plotspict.growthrate().}
+#'  \item{9. Calculated time-constant using plotspict.tc().}
 #' }
 #' @param rep A result report as generated by running fit.spict.
 #' @param logax Take log of relevant axes? default: FALSE
@@ -924,8 +959,13 @@ plot.spictcls <- function(rep, logax=FALSE){
     plotspict.catch(rep)
     # Production curve
     plotspict.production(rep)
+    if('osar' %in% names(rep)){
+        # Intrinsic growth rate
+        plotspict.growthrate(rep)
+    }
     # Time constant
     plotspict.tc(rep)
+    
 }
 
 
@@ -992,7 +1032,8 @@ summary.spictcls <- function(object, numdigits=4){
     predout[, 4] <- log(predout[, 4])
     predout <- round(predout, numdigits)
     colnames(predout) <- c('prediction', 'cilow', 'ciupp', 'est.in.log')
-    rownames(predout) <- c('B', 'F', 'Catch')
+    et <- tail(inp$time,1)
+    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('Catch_',et-inp$dtpred))
     cat(paste(capture.output(predout),' \n'))
     if('osar' %in% names(rep)){
         cat('\nOne-step-ahead residuals \n')
