@@ -633,11 +633,12 @@ plotspict.osar <- function(rep){
     inp <- rep$inp
     Cscal <- 1
     Cpred <- rep$osar$logCpred
-    plot(inp$timeC, log(inp$obsC), typ='p', ylim=range(c(Cpred,log(inp$obsC),1.13*c(Cpred,log(inp$obsC)))), main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,5)), ylab=paste('log Catch, Cscal:',Cscal), xlim=range(c(inp$timeC,inp$timeC[inp$nobsC]+1)), xlab='Time', col=1)
-    clr <- 'blue'
-    lines(rep$osar$timeC, Cpred, col=clr)
-    points(rep$osar$timeC, Cpred, pch=20, cex=0.7, col=clr)
-    legend('topright', c('Observations', 'OSA pred.'), lty=c(NA,1), col=c(1,clr), pch=c(1,20), pt.cex=c(1,0.7))
+    plot(rep$osar$logCpres, main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,5)), xlab='Time', ylab='OSA catch res.')
+    #plot(inp$timeC, log(inp$obsC), typ='p', ylim=range(c(Cpred,log(inp$obsC),1.13*c(Cpred,log(inp$obsC)))), main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,5)), ylab=paste('log Catch, Cscal:',Cscal), xlim=range(c(inp$timeC,inp$timeC[inp$nobsC]+1)), xlab='Time', col=1)
+    #clr <- 'blue'
+    #lines(rep$osar$timeC, Cpred, col=clr)
+    #points(rep$osar$timeC, Cpred, pch=20, cex=0.7, col=clr)
+    #legend('topright', c('Observations', 'OSA pred.'), lty=c(NA,1), col=c(1,clr), pch=c(1,20), pt.cex=c(1,0.7))
 }
 
 
