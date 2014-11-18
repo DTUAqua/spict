@@ -44,18 +44,31 @@ NULL
 #' Required inputs:
 #' \itemize{
 #'  \item{"inp$obsC"}{ Vector of catch observations.}
-#'  \item{"inp$timeC"}{ Vector of catch times.}
 #'  \item{"inp$obsI"}{ List containing vectors of index observations.}
-#'  \item{"inp$timeI"}{ List containing vectors of index times.}
-#'  \item{"inp$logr"}{ Initial value for logr (log intrinsic growth rate).}
-#'  \item{"inp$logK"}{ Initial value for logK (log carrying capacity).}
-#'  \item{"inp$logq"}{ Initial value for logq (log catchability of index).}
-#'  \item{"inp$logsdb"}{ Initial value for logsdb (log standard deviation of log biomass).}
-#'  \item{"inp$logsdf"}{ Initial value for logsdf (log standard deviation of log fishing mortality).}
+#'  \item{"inp$ini$logr"}{ Initial value for logr (log intrinsic growth rate).}
+#'  \item{"inp$ini$logK"}{ Initial value for logK (log carrying capacity).}
+#'  \item{"inp$ini$logq"}{ Initial value for logq (log catchability of index).}
+#'  \item{"inp$ini$logsdb"}{ Initial value for logsdb (log standard deviation of log biomass).}
+#'  \item{"inp$ini$logsdf"}{ Initial value for logsdf (log standard deviation of log fishing mortality).}
 #' }
 #' Optional inputs:
 #' \itemize{
-#' \item{"FILL IN"}{}
+#'  \item{"inp$timeC"}{ Vector of catch times. Default: even time steps starting at 1.}
+#'  \item{"inp$timeI"}{ List containing vectors of index times. Default: even time steps starting at 1.}
+#'  \item{"inp$ini$logbkfrac"}{ Default: log(0.3).}
+#'  \item{"inp$ini$logF0"}{ Default: log(0.2*r).}
+#'  \item{"inp$ini$phi1"}{ Default: 1.}
+#'  \item{"inp$ini$phi2"}{ Default: 0.}
+#'  \item{"inp$ini$logalpha"}{ Default: 0.}
+#'  \item{"inp$ini$logbeta"}{ Default: 0.}
+#'  \item{"inp$ini$logF"}{ Default: logF0.}
+#'  \item{"inp$ini$logB"}{ Default: bkfrac*K.}
+#'  \item{"inp$lamperti"}{ Logical indicating whether to use Lamperti transformed equations (recommended). Default: TRUE.}
+#'  \item{"inp$euler"}{ Logical indicating whether to use Euler time discretisation (recommended). Default: TRUE.}
+#'  \item{"inp$dtc"}{ Time interval for catches, e.g. for annual catches inp$dtc=1, for quarterly catches inp$dtc=0.25. Can be given as a scalar, which is then used for all catch observations. Can also be given as a vector specifying the catch interval of each catch observation. Default: min(diff(inp$timeC)). }
+#'  \item{"inp$dteuler"}{ Length of Euler time step in years. Default: min(inp$dtc).}
+#'  \item{"inp$delay"}{ Include a delayed effect in the the F-process: F_i = phi1*F_i-1 + phi2*F_i-delay. Note the delay is counted in the number of Euler time steps (dteuler). So if dteuler is refined delay also needs to change. Default: 1.}
+#'  \item{"inp$phases"}{ Phases can be used to fix/free parameters. To fix e.g. logr at inp$ini$logr set inp$phases$logr <- -1. To free logalpha set inp$phases$logalpha <- 0. Later, phases as in ADMB will be implemented.}
 #' }
 #' @param inp List of input variables, see details for required variables.
 #' @return An updated list of input variables checked for consistency and with defaults added.
@@ -128,14 +141,17 @@ check.inp <- function(inp){
 
     # -- DERIVED VARIABLES --
     alltimes <- inp$timeC
+    alltimes <- c(alltimes, inp$timeC + inp$dtc)
     for(i in 1:inp$nindex) alltimes <- c(alltimes, inp$timeI[[i]])
-    #for(i in 1:1) alltimes <- c(alltimes, inp$timeI[[i]]) # CHANGE THIS WHEN USING ALL INDICES
     inp$timerange <- range(alltimes)
     # Add two dtc intervals, one for the final catch observation, and one for the predicted catch
     #mindtc <- min(inp$dtc)
-    lastdtc <- tail(inp$dtc,1)
-    timepad <- lastdtc + inp$dtpred
-    inp$time <- seq(inp$timerange[1], inp$timerange[2]+timepad, by=inp$dteuler)
+    #lastdtc <- tail(inp$dtc,1)
+    #timepad <- lastdtc + inp$dtpred
+    #time <- seq(inp$timerange[1], inp$timerange[2]+timepad, by=inp$dteuler)
+    time <- seq(inp$timerange[1], inp$timerange[2]+inp$dtpred, by=inp$dteuler)
+    # Remove duplicate time points and store time in inp list
+    inp$time <- sort(unique(c(alltimes, time)))
     inp$ns <- length(inp$time)
     inp$indlastobs <- which(inp$time == inp$timerange[2])
     # ic is the indices of inp$time to which catch observations correspond
@@ -153,7 +169,8 @@ check.inp <- function(inp){
     # Calculate time steps
     inp$dt <- diff(inp$time)
     # Add helper variable such that predicted catch can be calculated using small euler steps
-    inp$dtpredinds <- which(inp$time >= (inp$timerange[2]+lastdtc) & inp$time < (inp$timerange[2]+timepad))
+    #inp$dtpredinds <- which(inp$time >= (inp$timerange[2]+lastdtc) & inp$time < (inp$timerange[2]+timepad))
+    inp$dtpredinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpred))
     inp$dtprednsteps <- length(inp$dtpredinds)
     #if(tail(inp$ic,1) == inp$ns) inp$dt <- c(inp$dt, tail(inp$dtc,1))
     
@@ -198,7 +215,6 @@ check.inp <- function(inp){
     if(!"phi2" %in% names(inp$ini)) inp$ini$phi2 <- 0
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
-    #if(!"loggamma" %in% names(inp$ini)) inp$ini$loggamma <- log(1)
     if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.3)
     if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr[1]))
     if(!"logF" %in% names(inp$ini)){
@@ -551,6 +567,10 @@ annual <- function(inp, vec){
 #' @param rep A result report as generated by running fit.spict.
 #' @param logax Take log of y-axis? default: FALSE
 #' @return Nothing.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' plotspict.biomass(rep)
 #' @export
 plotspict.biomass <- function(rep, logax=FALSE){
     log <- ifelse(logax, 'y', '')
@@ -602,6 +622,11 @@ plotspict.biomass <- function(rep, logax=FALSE){
 #' @details Plots observed versus predicted catches.
 #' @param rep A result report as generated by running fit.spict.
 #' @return Nothing.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' rep <- calc.osa.resid(rep)
+#' plotspict.osar(rep)
 #' @export
 plotspict.osar <- function(rep){
     inp <- rep$inp
@@ -621,6 +646,10 @@ plotspict.osar <- function(rep){
 #' @param rep A result report as generated by running fit.spict.
 #' @param logax Take log of x and y-axes? default: FALSE
 #' @return Nothing.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' plotspict.fb(rep)
 #' @export
 plotspict.fb <- function(rep, logax=FALSE){
     log <- ifelse(logax, 'xy', '')
@@ -672,6 +701,10 @@ plotspict.fb <- function(rep, logax=FALSE){
 #' @param rep A result report as generated by running fit.spict.
 #' @param logax Take log of y-axis? default: FALSE
 #' @return Nothing.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' plotspict.f(rep)
 #' @export
 plotspict.f <- function(rep, logax=FALSE){
     log <- ifelse(logax, 'y', '')
@@ -719,6 +752,10 @@ plotspict.f <- function(rep, logax=FALSE){
 #' @details Plots observed catch and predictions using the current F and Fmsy. The plot also contains the equilibrium catch if the current F is maintained.
 #' @param rep A result report as generated by running fit.spict.
 #' @return Nothing.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' plotspict.catch(rep)
 #' @export
 plotspict.catch <- function(rep){
     inp <- rep$inp
@@ -734,10 +771,10 @@ plotspict.catch <- function(rep){
     Cpredest <- get.par('logCpred', rep, exp=TRUE)
     Cpredest[Cpredest<0] <- 0
     rep$Cp[rep$Cp<0] <- 0
-    plot(inp$timeC, inp$obsC/Cscal, typ='n', main=paste('MSY:',round(MSY[2]/Cscal)), xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1)+1)), ylim=range(c(1.3*inp$obsC, Cpredest[,1:3], 0.8*inp$obsC, Cinfp[2], Cpmsy[2], rep$Cp))/Cscal)
+    plot(inp$timeC, inp$obsC/Cscal, typ='n', main=paste('MSY:',round(MSY[2]/Cscal)), xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1)+inp$dtpred)), ylim=range(c(1.3*inp$obsC, Cpredest[,1:3], 0.8*inp$obsC, Cinfp[2], Cpmsy[2], rep$Cp))/Cscal)
     polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
     points(inp$timeC, inp$obsC/Cscal)
-    points(tail(inp$timeC,1)+inp$dtpred, rep$Cp/Cscal, pch=21, bg='yellow')
+    points(tail(inp$time,1)+inp$dtpred, rep$Cp/Cscal, pch=21, bg='yellow')
     #points(tail(inp$timeC,1)+1, Cpmsy[2]/Cscal, pch=21, bg='black')
     #points(tail(inp$timeC,1)+1, Cinfp[2]/Cscal, pch=21, bg='green')
     if('true' %in% names(inp)) abline(h=inp$true$MSY, col='orange', lty=2)
@@ -756,6 +793,10 @@ plotspict.catch <- function(rep){
 #' @details Plots the theoretical production curve (production as a function of biomass) as calculated from the estimated model parameters. Overlaid is the estimated production/biomass trajectory.
 #' @param rep A result report as generated by running fit.spict.
 #' @return Nothing.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' plotspict.production(rep)
 #' @export
 plotspict.production <- function(rep){
     inp <- rep$inp
@@ -781,6 +822,10 @@ plotspict.production <- function(rep){
 #' @details Plots the time required for the biomass to reach a certain proportion of Bmsy. The time required to reach 95% of Bmsy is highlighted.
 #' @param rep A result report as generated by running fit.spict.
 #' @return Nothing.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' plotspict.tc(rep)
 #' @export
 plotspict.tc <- function(rep){
     inp <- rep$inp
@@ -838,18 +883,22 @@ plotspict.tc <- function(rep){
 #' @title 3x3 plot illustrating spict results.
 #' @details Create a 3x3 plot containing the following:
 #' \itemize{
-#'  \item{1. Biomass.}
-#'  \item{2. One-step-ahead residuals (only if calculated).}
+#'  \item{1. Biomass using plotspict.biomass().}
+#'  \item{2. One-step-ahead residuals, only if calculated, using plotspict.osar().}
 #'  \item{3. One-step-ahead auto-correlation function (only if calculated).}
-#'  \item{4. Estimated F versus estimated B.}
-#'  \item{5. Estimated fishing mortality.}
-#'  \item{6. Observed versus predicted catches.}
-#'  \item{7. Observed versus theoretical production.}
-#'  \item{8. Calculated time-constant.}
+#'  \item{4. Estimated F versus estimated B using plotspict.fb().}
+#'  \item{5. Estimated fishing mortality using plotspict.f().}
+#'  \item{6. Observed versus predicted catches using plotspict.catch().}
+#'  \item{7. Observed versus theoretical production using plotspict.production().}
+#'  \item{8. Calculated time-constant using plotspict.tc().}
 #' }
 #' @param rep A result report as generated by running fit.spict.
 #' @param logax Take log of relevant axes? default: FALSE
 #' @return Nothing.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' plot(rep)
 #' @export
 plot.spictcls <- function(rep, logax=FALSE){
     inp <- rep$inp
@@ -886,6 +935,10 @@ plot.spictcls <- function(rep, logax=FALSE){
 #' @param object A result report as generated by running fit.spict.
 #' @param numdigits Present values with this number of digits after the dot.
 #' @return Nothing.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' summary(rep)
 #' @export
 summary.spictcls <- function(object, numdigits=4){
     rep <- object
@@ -954,6 +1007,14 @@ summary.spictcls <- function(object, numdigits=4){
 #' @details Reads an input file following the ASPIC 7 format described in the ASPIC manual (found here http://www.mhprager.com/aspic.html).
 #' @param filename Path of the ASPIC input file.
 #' @return A list of input variables that can be used as input to fit.spict().
+#' @examples
+#' \dontrun{
+#' filename <- 'YFT-SSE.a7inp' # or some other ASPIC 7 input file
+#' inp <- read.aspic(filename)
+#' rep <- fit.spict(inp)
+#' summary(rep)
+#' plot(rep)
+#' }
 #' @export
 read.aspic <- function(filename){
     rawdat <- readLines(filename)
@@ -1139,7 +1200,7 @@ predict.c <- function(F, K, r, B0, Binf, dt, sdb=0, lamperti=FALSE, euler=FALSE)
 #' @details Simulates data using either manually specified parameters values or parameters estimated by fit.spict().
 #'
 #' Manual specification:
-#' To specify parameters manually use the inp$ini format similar to when specifying initial values for running fit.spict(). Observations can be simulated at specific times using inp$timeC and inp$timeI. If these are not specified then nobs observations will be simulated evenly distributed in time.
+#' To specify parameters manually use the inp$ini format similar to when specifying initial values for running fit.spict(). Observations can be simulated at specific times using inp$timeC and inp$timeI. If these are not specified then the length of inp$obsC or inp$obsI is used to determine the number of observations of catches and indices respectively. If none of these are specified then nobs observations of catch and index will be simulated evenly distributed in time.
 #'
 #' Estimated parameters:
 #' Simply take the output from a fit.spict() run and use as input to sim.spict().
@@ -1147,6 +1208,17 @@ predict.c <- function(F, K, r, B0, Binf, dt, sdb=0, lamperti=FALSE, euler=FALSE)
 #' @param input Either an inp list with an ini key (see ?check.inp) or a rep list where rep is the output of running fit.spict().
 #' @param nobs Optional specification of the number of simulated observations.
 #' @return A list containing the simulated data.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' sim <- sim.spict(rep)
+#' repsim <- fit.spict(sim)
+#' summary(repsim) # Note true values are listed in the summary
+#'
+#' inp <- pol$albacore
+#' inp$obsC <- NULL
+#' inp$obsI <- NULL
+#' sim2 <- sim.spict(inp, nobs=150)
 #' @export
 sim.spict <- function(input, nobs=100){
     # Check if input is a inp (initial values) or rep (results).
@@ -1177,6 +1249,11 @@ sim.spict <- function(input, nobs=100){
                 if(!'obsI' %in% nm){
                     inp$nobsI <- nobs
                 } else {
+                    if(class(inp$obsI)!='list'){
+                        tmp <- inp$obsI
+                        inp$obsI <- list()
+                        inp$obsI[[1]] <- tmp
+                    }
                     inp$nobsI <- rep(0, inp$nindex)
                     for(i in 1:inp$nindex) inp$nobsI[i] <- length(inp$obsI[[i]])
                 }
@@ -1192,7 +1269,6 @@ sim.spict <- function(input, nobs=100){
             }
             inp <- check.inp(inp)
             p <- inp$ini
-            
         } else {
             stop('Invalid input! use either an inp list or a fit.spict() result.')
         }
