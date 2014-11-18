@@ -772,19 +772,16 @@ plotspict.catch <- function(rep){
     MSY <- get.par('MSY', rep, exp=FALSE)
     Cpmsy <- get.par('Cpmsy', rep)
     Cpmsy[Cpmsy<0] <- 0
-    Cinfp <- get.par('Cinfp', rep)
-    Cinfp[Cinfp<0] <- 0
     Cpredsub <- get.par('Cpredsub', rep)
     Pest <- get.par('P', rep)
     Cpredest <- get.par('logCpred', rep, exp=TRUE)
     Cpredest[Cpredest<0] <- 0
     rep$Cp[rep$Cp<0] <- 0
-    plot(inp$timeC, inp$obsC/Cscal, typ='n', main=paste('MSY:',round(MSY[2]/Cscal)), xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1))), ylim=range(c(1.3*inp$obsC, Cpredest[,1:3], 0.8*inp$obsC, Cinfp[2], Cpmsy[2], rep$Cp))/Cscal)
+    plot(inp$timeC, inp$obsC/Cscal, typ='n', main=paste('MSY:',round(MSY[2]/Cscal)), xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1))), ylim=range(c(1.3*inp$obsC, Cpredest[,1:3], 0.8*inp$obsC, Cpmsy[2], rep$Cp))/Cscal)
     polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
     points(inp$timeC, inp$obsC/Cscal)
     points(tail(inp$time,1)-inp$dtpred, rep$Cp/Cscal, pch=21, bg='yellow')
     #points(tail(inp$timeC,1)+1, Cpmsy[2]/Cscal, pch=21, bg='black')
-    #points(tail(inp$timeC,1)+1, Cinfp[2]/Cscal, pch=21, bg='green')
     if('true' %in% names(inp)) abline(h=inp$true$MSY, col='orange', lty=2)
     abline(h=MSY[2]/Cscal)
     lines(inp$timeC, Cpredest[, 2]/Cscal, col=4, lwd=1.5)
@@ -1026,9 +1023,9 @@ summary.spictcls <- function(object, numdigits=4){
     cat(paste(capture.output(derout),' \n'))
     cat('\nPredictions \n')
     predout <- rbind(
-        get.par(parname='logBp2', rep, exp=TRUE)[c(2,1,3,2)],
-        get.par(parname='logFp2', rep, exp=TRUE)[c(2,1,3,2)],
-        get.par(parname='logCp2', rep, exp=TRUE)[c(2,1,3,2)])
+        get.par(parname='logBp', rep, exp=TRUE)[c(2,1,3,2)],
+        get.par(parname='logFp', rep, exp=TRUE)[c(2,1,3,2)],
+        get.par(parname='logCp', rep, exp=TRUE)[c(2,1,3,2)])
     predout[, 4] <- log(predout[, 4])
     predout <- round(predout, numdigits)
     colnames(predout) <- c('prediction', 'cilow', 'ciupp', 'est.in.log')

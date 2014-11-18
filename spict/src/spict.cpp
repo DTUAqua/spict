@@ -276,39 +276,21 @@ Type objective_function<Type>::operator() ()
   // ONE-STEP-AHEAD PREDICTIONS
   if(dbg>0){
     std::cout << "--- DEBUG: ONE-STEP-AHEAD PREDICTIONS" << std::endl;
-  }
-  Type logFp = predictlogF(phi1, logF(ns-1), phi2, logF(ns-delay));
-  Type Fp = exp(logFp);
-  Type Bp;
-  Type Binfp;
-  Type Cp;
-  Binfp = calculateBinf(K, Fp, rvec(ns-1), sdb2, lamperti);
-  Bp = predictB(B(ns-1), Binfp, Fp, rvec(ns-1), K, dtpred, sdb2, lamperti, euler);
-  Cp = predictC(Fp, K, rvec(ns-1), Bp, Binfp, dtpred, sdb2, lamperti, euler);
-
-
-  Type Cinfp = predictC(Fp, K, rvec(ns-1), Binfp, Binfp, dtpred, sdb2, lamperti, euler); // This one doesn't accommodate delays
-
-  // NEW osa predictions
-  if(dbg>0){
-    std::cout << "--- DEBUG: NEW ONE-STEP-AHEAD PREDICTIONS" << std::endl;
     std::cout << "-- dtprednsteps: " << dtprednsteps << "  dtpredinds.size(): " << dtpredinds.size() <<std::endl;
   }
-  Type Cp2 = 0.0;
+  Type Cp = 0.0;
   for(int i=0; i<dtprednsteps; i++){
     ind = CppAD::Integer(dtpredinds(i)-1);
     if(dbg>1){
       std::cout << "-- dtpredinds(i)-1: " << ind << std::endl;
     }
-    Cp2 += Cpredsub(ind);
+    Cp += Cpredsub(ind);
   }
   // This is the biomass and F at the beginning of the catch prediction time interval
-  Type Bp2 = B(CppAD::Integer(dtpredinds(0)-1)); 
-  Type logFp2 = logF(CppAD::Integer(dtpredinds(0)-1)); 
+  Type Bp = B(CppAD::Integer(dtpredinds(0)-1)); 
+  Type logFp = logF(CppAD::Integer(dtpredinds(0)-1)); 
 
   // These lines overwrite the old OSA predictions and replace them with the new ones.
-  Cp = Cp2;
-  Bp = Bp2;
   Type logIp = logq(0) + log(Bp);
 
   // MSY PREDICTIONS
@@ -337,7 +319,6 @@ Type objective_function<Type>::operator() ()
   Type logBpmsy = log(Bpmsy);
   ADREPORT(logBpmsy);
   ADREPORT(Cpmsy);
-  ADREPORT(Cinfp);
   ADREPORT(Cpredsub);
   ADREPORT(logIpred);
   ADREPORT(logCpred);
@@ -347,11 +328,6 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logFp);
   Type logCp = log(Cp);
   ADREPORT(logCp);
-  Type logCp2 = log(Cp2);
-  ADREPORT(logCp2);
-  Type logBp2 = log(Bp2);
-  ADREPORT(logBp2);
-  ADREPORT(logFp2);
   ADREPORT(logB0);
   // REPORTS (these don't require sdreport to be output)
   REPORT(Cp);
