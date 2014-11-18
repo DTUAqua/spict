@@ -1029,8 +1029,8 @@ summary.spictcls <- function(object, numdigits=4){
     predout[, 4] <- log(predout[, 4])
     predout <- round(predout, numdigits)
     colnames(predout) <- c('prediction', 'cilow', 'ciupp', 'est.in.log')
-    et <- tail(inp$time,1)
-    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('Catch_',et-inp$dtpred))
+    et <- tail(rep$inp$time,1)
+    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('Catch_',et-rep$inp$dtpred))
     cat(paste(capture.output(predout),' \n'))
     if('osar' %in% names(rep)){
         cat('\nOne-step-ahead residuals \n')
