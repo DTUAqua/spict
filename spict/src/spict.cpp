@@ -224,6 +224,18 @@ Type objective_function<Type>::operator() ()
     // For Cpredsub(i) use dt(i) because Cpredsub(i) is integrated over t_i to t_i+1
     Cpredsub(i) =  predictC(F(i), K, rvec(i), B(i), Binf(i), dt(i), sdb2, lamperti, euler);
   }
+  for(int i=0; i<nobsC; i++){
+    // Sum catch contributions from each sub interval
+    for(int j=0; j<nc(i); j++){
+      ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
+      Cpred(i) += Cpredsub(ind);
+    }
+    // DEBUGGING
+    if(dbg>1){
+      std::cout << "-- i: " << i << " -  ind: " << ind << "  log(Cpred(i)): " << log(Cpred(i)) << std::endl;
+    }
+  }
+
 
   // CALCULATE PRODUCTION
   //if(lamperti){
@@ -239,17 +251,12 @@ Type objective_function<Type>::operator() ()
     std::cout << "--- DEBUG: Cpred loop start" << std::endl;
   }
   for(int i=0; i<nobsC; i++){
-    // Sum catch contributions from each sub interval
-    for(int j=0; j<nc(i); j++){
-      ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
-      Cpred(i) += Cpredsub(ind);
-    }
     logCpred(i) = log(Cpred(i));
-    likval = dnorm(log(Cpred(i)), log(obsC(i)), sdc, 1);
+    likval = dnorm(logCpred(i), log(obsC(i)), sdc, 1);
     ans-=likval;
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -  ind: " << ind << " -   logobsC(i): " << log(obsC(i))<< "  log(Cpred(i)): " << log(Cpred(i)) << "  sdc: " << sdc << "  likval: " << likval << std::endl;
+      std::cout << "-- i: " << i << " -   logobsC(i): " << log(obsC(i))<< "  log(Cpred(i)): " << logCpred(i) << "  sdc: " << sdc << "  likval: " << likval << std::endl;
     }
   }
 

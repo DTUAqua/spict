@@ -598,6 +598,7 @@ plotspict.biomass <- function(rep, logax=FALSE){
     axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
     mtext("B/Bmsy", side=4, las=0, line=2)
     polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1],Bmsy[1],Bmsy[3],Bmsy[3]), col=cicol, border=cicol)
+    abline(v=tail(inp$time[inp$indest],1), col='gray')
     for(i in 1:inp$nindex) points(inp$timeI[[i]], inp$obsI[[i]]/qest[i, 2], pch=i, cex=0.7)
     if('true' %in% names(inp)){
         lines(inp$time, inp$true$B/scal, col='orange') # Plot true
@@ -692,7 +693,8 @@ plotspict.fb <- function(rep, logax=FALSE){
     lines(Best[inp$indpred,2]/scal, Fest[inp$indpred,2], col='blue', lty=3)
     lines(tail(Best[,2],1)/scal, tail(Fest[,2],1), col='blue', lty=3)
     #lines(c(tail(Best[,2],1), Bp[2])/scal, rep(Fp[2],2), col='blue', lty=3)
-    points(Bp[2]/scal, Fp[2], pch=21, bg='yellow')
+    points(tail(Best[,2],1)/scal, tail(Fest[,2],1), pch=21, bg='yellow')
+    #points(Bp[2]/scal, Fp[2], pch=21, bg='yellow')
     points(tail(Binf[,2],1)/scal, Fp[2], pch=22, bg='green', cex=2)
     arrow.line(c(Bp[2], tail(Binf[,2],1))/scal, rep(Fp[2],2), col='black', length=0.05)
     legend('topright', c('Estimated MSY',paste(tail(inp$time,1),'prediction'),'Equilibrium'), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
@@ -722,6 +724,7 @@ plotspict.f <- function(rep, logax=FALSE){
     axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
     mtext("F/Fmsy", side=4, las=0, line=2)
     polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Fmsy[1],Fmsy[1],Fmsy[3],Fmsy[3]), col=cicol, border=cicol)
+    abline(v=tail(inp$time[inp$indest],1), col='gray')
     #abline(h=Fmax/Fmsy, col='red')
     #lines(inp$time, Fest/Fmsy, col='black')
     if('true' %in% names(inp)){
@@ -780,6 +783,7 @@ plotspict.catch <- function(rep){
     rep$Cp[rep$Cp<0] <- 0
     plot(inp$timeC, inp$obsC/Cscal, typ='n', main=paste('MSY:',round(MSY[2]/Cscal)), xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1))), ylim=range(c(1.3*inp$obsC, Cpredest[,1:3], 0.8*inp$obsC, Cpmsy[2], rep$Cp))/Cscal)
     polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
+    abline(v=tail(inp$time[inp$indest],1), col='gray')
     points(inp$timeC, inp$obsC/Cscal)
     points(tail(inp$time,1)-inp$dtpred, rep$Cp/Cscal, pch=21, bg='yellow')
     #points(tail(inp$timeC,1)+1, Cpmsy[2]/Cscal, pch=21, bg='black')
