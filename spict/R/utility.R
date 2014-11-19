@@ -11,8 +11,11 @@ setClass("spictcls")
 test.spict <- function(){
     # Load data
     data(pol)
+    inp <- pol$albacore
+    inp$dtpred <- 6
+    inp$ffac <- 0.9
     # Fit model
-    rep <- fit.spict(inp=pol$albacore)
+    rep <- fit.spict(inp)
     # Calculate one-step-ahead residuals
     rep <- calc.osa.resid(rep)
     # Plot results
@@ -63,6 +66,7 @@ NULL
 #'  \item{"inp$ini$logbeta"}{ Default: 0.}
 #'  \item{"inp$ini$logF"}{ Default: logF0.}
 #'  \item{"inp$ini$logB"}{ Default: bkfrac*K.}
+#'  \item{"inp$ffac"}{ Management scenario represented by a factor to multiply F with when calculating the F of the next time step. ffac=0.8 means a 20\% reduction in F for the next time step. The factor is only used when predicting beyond the data set. Default: 1.}
 #'  \item{"inp$lamperti"}{ Logical indicating whether to use Lamperti transformed equations (recommended). Default: TRUE.}
 #'  \item{"inp$euler"}{ Logical indicating whether to use Euler time discretisation (recommended). Default: TRUE.}
 #'  \item{"inp$dtc"}{ Time interval for catches, e.g. for annual catches inp$dtc=1, for quarterly catches inp$dtc=0.25. Can be given as a scalar, which is then used for all catch observations. Can also be given as a vector specifying the catch interval of each catch observation. Default: min(diff(inp$timeC)). }
@@ -125,6 +129,7 @@ check.inp <- function(inp){
     }
 
     # -- MODEL OPTIONS --
+    if(!"ffac" %in% names(inp)) inp$ffac <- 1
     if(!"lamperti" %in% names(inp)) inp$lamperti <- 1
     if(!"euler" %in% names(inp)) inp$euler <- 1
     if(!"dtc" %in% names(inp)){
@@ -365,7 +370,7 @@ fit.spict <- function(inp, dbg=0){
     if(!'checked' %in% names(inp)) inp <- check.inp(inp)
     if(!inp$checked) inp <- check.inp(inp)
     # Currently only able to use one index.
-    datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
+    datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp$indpred, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
     obj <- TMB::MakeADFun(data=datin, parameters=inp$ini, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map)
     config(trace.optimize=0, DLL=inp$scriptname)
     verbose <- FALSE
@@ -423,7 +428,7 @@ calc.osa.resid <- function(rep, dbg=0){
             inp2$obsI[[i]] <- inp$obsI[[i]][Iind]
         }
         inp2 <- check.inp(inp2)
-        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
+        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp2$indpred, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         verbose <- FALSE
@@ -640,6 +645,7 @@ plotspict.osar <- function(rep){
     Cscal <- 1
     Cpred <- rep$osar$logCpred
     plot(rep$osar$logCpres, main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,5)), xlab='Time', ylab='OSA catch res.')
+    abline(h=0, lty=3)
     #plot(inp$timeC, log(inp$obsC), typ='p', ylim=range(c(Cpred,log(inp$obsC),1.13*c(Cpred,log(inp$obsC)))), main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,5)), ylab=paste('log Catch, Cscal:',Cscal), xlim=range(c(inp$timeC,inp$timeC[inp$nobsC]+1)), xlab='Time', col=1)
     #clr <- 'blue'
     #lines(rep$osar$timeC, Cpred, col=clr)
@@ -701,7 +707,7 @@ plotspict.fb <- function(rep, logax=FALSE){
     points(tail(Best[,2],1)/scal, tail(Fest[,2],1), pch=21, bg='yellow')
     #points(Bp[2]/scal, Fp[2], pch=21, bg='yellow')
     points(tail(Binf[,2],1)/scal, Fp[2], pch=22, bg='green', cex=2)
-    arrow.line(c(Bp[2], tail(Binf[,2],1))/scal, rep(Fp[2],2), col='black', length=0.05)
+    arrow.line(c(tail(Best[,2],1), tail(Binf[,2],1))/scal, rep(Fp[2],2), col='black', length=0.05)
     legend('topright', c('Estimated MSY',paste(tail(inp$time,1),'prediction'),'Equilibrium'), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
 }
 
@@ -725,7 +731,7 @@ plotspict.f <- function(rep, logax=FALSE){
     Fmsy <- get.par('logFmsy', rep, exp=TRUE)
     rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
     ylim <- range(Fest[,1:3])
-    plot(inp$time, Fest[, 2], typ='n', main=paste('Fmsy:',round(Fmsy[2],3)), ylim=ylim, col='blue', ylab='F', xlim=range(inp$time,tail(inp$time+1,2)), xlab='Time', log=log)
+    plot(inp$time, Fest[, 2], typ='n', main=paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac), ylim=ylim, col='blue', ylab='F', xlim=range(inp$time,tail(inp$time+1,2)), xlab='Time', log=log)
     axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
     mtext("F/Fmsy", side=4, las=0, line=2)
     polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Fmsy[1],Fmsy[1],Fmsy[3],Fmsy[3]), col=cicol, border=cicol)
@@ -830,7 +836,12 @@ plotspict.production <- function(rep){
     pfun <- function(r, K, B) r*B*(1 - B/K)
     Pst <- pfun(rest[2], Kest[2], Bplot)
     xlim <- range(Bplot/Bmsy[2])
-    plot(Best[-1, 2]/Bmsy[2], Pest[, 2]/inp$dt/Bmsy[2], typ='l', ylim=range(Pest[,2]/inp$dt/Bmsy[2], Pst/Bmsy[2]), xlim=xlim, xlab='B/Bmsy', ylab='Production/Bmsy', col=4, main='Production curve')
+    Bvec <- Best[-1, 2]
+    dt <- inp$dt[-1]
+    inde <- inp$indest[-length(inp$indest)]
+    indp <- inp$indpred[-1]-1
+    plot(Bvec[inde]/Bmsy[2], Pest[inde, 2]/dt[inde]/Bmsy[2], typ='l', ylim=range(Pest[,2]/inp$dt/Bmsy[2], Pst/Bmsy[2]), xlim=xlim, xlab='B/Bmsy', ylab='Production/Bmsy', col=4, main='Production curve')
+    lines(Bvec[indp]/Bmsy[2], Pest[indp, 2]/dt[indp]/Bmsy[2], col=4, lty=3)
     lines(Bplot/Bmsy[2], Pst/Bmsy[2], col=1)
     #arrow.line(Best[-1, 2]/Bmsy[2], Pest[,2]/inp$dt/Bmsy[2], length=0.05)
     abline(v=1, lty=3)

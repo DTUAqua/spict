@@ -75,6 +75,8 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(ii); // A vector such that B(ii(i)) is the state corresponding to I(i)
   DATA_VECTOR(iq); // A vector such that iq(i) is the index number corresponding to I_iq(i)
   DATA_VECTOR(ir); // A vector indicating when the different rs should be used
+  DATA_SCALAR(ffac);       // Management factor each year multiply the predicted F with ffac
+  DATA_VECTOR(indpred); // A vector indicating when the management factor should be applied
   DATA_INTEGER(lamperti);       // Lamperti flag.
   DATA_INTEGER(euler);       // Euler flag.
   DATA_SCALAR(dbg);       // Debug flag, if == 1 then print stuff.
@@ -119,8 +121,10 @@ Type objective_function<Type>::operator() ()
   Type logB0 = logbkfrac + logK;
   vector<Type> Bpred(ns);
   vector<Type> rvec(ns);
+  vector<Type> ffacvec(ns);
+  for(int i=0; i<ns; i++){ ffacvec(i) = 1.0; }
   vector<Type> Cpred(nobsCp);
-  for(int i=0; i<nobsCp; i++){ Cpred(i) = 0; }
+  for(int i=0; i<nobsCp; i++){ Cpred(i) = 0.0; }
   vector<Type> Cpredsub(ns);
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
@@ -161,6 +165,13 @@ Type objective_function<Type>::operator() ()
       std::cout << "-- i: " << i << "-- ind: " << ind << " -   rvec(i): " << rvec(i) << std::endl;
     }
   }
+  for(int i=0; i<indpred.size(); i++){
+    ind = CppAD::Integer(indpred(i)-1); // minus 1 because R starts at 1 and c++ at 0
+    ffacvec(ind) = ffac;
+    if(dbg>1){
+      std::cout << "-- i: " << i << "-- ind: " << ind << " -   ffacvec(i): " << ffacvec(i) << std::endl;
+    }
+  }
   for(int i=0; i<ns; i++){
     if(F(i)==rvec(i)) std::cout << "Warning: F(i)-rvec(i): " << F(i)-rvec(i) << std::endl;
   }
@@ -174,6 +185,7 @@ Type objective_function<Type>::operator() ()
   F[t] is the constant fishing mortality during the interval starting at time t
   rvec[t] is the constant intrinsic growth rate during the interval starting at time t
   C[t] is the catch removed during the interval starting at time t.
+  ffacvec[t] is the factor to multiply F[t-1] when calculating F[t] such that management is imposed at time t.
   */
 
   /*
@@ -190,12 +202,12 @@ Type objective_function<Type>::operator() ()
   likval = dnorm(logF0, logF(0), sd, 1);
   ans-=likval;
   for(int i=delay; i<ns; i++){
-    Type logFpred = predictlogF(phi1, logF(i-1), phi2, logF(i-delay));
+    Type logFpred = log(ffacvec(i)) + predictlogF(phi1, logF(i-1), phi2, logF(i-delay));
     likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf, 1);
     ans-=likval;
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -   logF(i-1): " << logF(i-1) << "  logF(i): " << logF(i) << "  sdf: " << sdf << "  likval: " << likval << std::endl;
+      std::cout << "-- i: " << i << " -   logF(i-1): " << logF(i-1) << "  logF(i): " << logF(i) << "  ffacvec(i): " << ffacvec(i) << "  sdf: " << sdf << "  likval: " << likval << std::endl;
     }
   }
 
