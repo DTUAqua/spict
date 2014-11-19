@@ -157,10 +157,14 @@ check.inp <- function(inp){
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
     # ic is the indices of inp$time to which catch observations correspond
-    inp$ic <- match(inp$timeC, inp$time)
+    dtcpred <- min(inp$dtc)
+    inp$timeCp <- unique(c(inp$timeC, (tail(inp$timeC,1) + seq(0, inp$dtpred, by=dtcpred))))
+    inp$nobsCp <- length(inp$timeCp)
+    inp$dtcp <- c(inp$dtc, rep(dtcpred, inp$nobsCp-inp$nobsC))
+    inp$ic <- match(inp$timeCp, inp$time)
     # nc is number of states to integrate a catch observation over
-    inp$nc <- rep(0, inp$nobsC)
-    for(i in 1:inp$nobsC) inp$nc[i] <- sum(inp$time >= inp$timeC[i] & inp$time < (inp$timeC[i]+inp$dtc[i]))
+    inp$nc <- rep(0, inp$nobsCp)
+    for(i in 1:inp$nobsCp) inp$nc[i] <- sum(inp$time >= inp$timeCp[i] & inp$time < (inp$timeCp[i]+inp$dtcp[i]))
     # ii is the indices of inp$time to which index observations correspond
     inp$ii <- list()
     for(i in 1:inp$nindex) inp$ii[[i]] <- match(inp$timeI[[i]], inp$time)
@@ -411,6 +415,7 @@ calc.osa.resid <- function(rep, dbg=0){
         inp2$timeC <- inp$timeC[1:nadj]
         inp2$obsC <- inp$obsC[1:nadj]
         inp2$dtc <- inp$dtc[1:nadj]
+        inp2$dtpred <- inp$dtc[nadj+1]
         endtime <- inp$timeC[nadj]
         for(i in 1:inp$nindex){
             Iind <- which(inp$timeI[[i]] < endtime)
@@ -781,19 +786,24 @@ plotspict.catch <- function(rep){
     Cpredest <- get.par('logCpred', rep, exp=TRUE)
     Cpredest[Cpredest<0] <- 0
     rep$Cp[rep$Cp<0] <- 0
-    plot(inp$timeC, inp$obsC/Cscal, typ='n', main=paste('MSY:',round(MSY[2]/Cscal)), xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1))), ylim=range(c(1.3*inp$obsC, Cpredest[,1:3], 0.8*inp$obsC, Cpmsy[2], rep$Cp))/Cscal)
+    plot(inp$timeC, inp$obsC/Cscal, typ='n', main=paste('MSY:',round(MSY[2]/Cscal)), xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1))), ylim=range(c(1.3*inp$obsC, Cpredest[,1:3], 0.8*inp$obsC))/Cscal)
     polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
-    abline(v=tail(inp$time[inp$indest],1), col='gray')
+    abline(v=tail(inp$timeC,1), col='gray')
     points(inp$timeC, inp$obsC/Cscal)
-    points(tail(inp$time,1)-inp$dtpred, rep$Cp/Cscal, pch=21, bg='yellow')
     #points(tail(inp$timeC,1)+1, Cpmsy[2]/Cscal, pch=21, bg='black')
     if('true' %in% names(inp)) abline(h=inp$true$MSY, col='orange', lty=2)
     abline(h=MSY[2]/Cscal)
-    lines(inp$timeC, Cpredest[, 2]/Cscal, col=4, lwd=1.5)
-    lines(inp$timeC, Cpredest[, 1]/Cscal, col=4, lty=2, lwd=1.5)
-    lines(inp$timeC, Cpredest[, 3]/Cscal, col=4, lty=2, lwd=1.5)
+    indest <- which(inp$timeCp <= tail(inp$timeC,1))
+    indpred <- which(inp$timeCp >= tail(inp$timeC,1))
+    lines(inp$timeCp[indest], Cpredest[indest, 2]/Cscal, col=4, lwd=1.5)
+    lines(inp$timeCp[indest], Cpredest[indest, 1]/Cscal, col=4, lty=2, lwd=1.5)
+    lines(inp$timeCp[indest], Cpredest[indest, 3]/Cscal, col=4, lty=2, lwd=1.5)
+    lines(inp$timeCp[indpred], Cpredest[indpred, 2]/Cscal, col=4, lty=3)
+    lines(inp$timeCp[indpred], Cpredest[indpred, 1]/Cscal, col=4, lty=2)
+    lines(inp$timeCp[indpred], Cpredest[indpred, 3]/Cscal, col=4, lty=2)
+    points(tail(inp$timeCp,1), tail(Cpredest[,2],1)/Cscal, pch=21, bg='yellow')
     #legend('topleft',c(paste(tail(inp$time,1)+inp$dtpred,'prediction'),'Pred w Fmsy','Equilibrium'),pch=21,pt.bg=c('yellow','black','green'), bg='white')
-    legend('topleft',c(paste(tail(inp$time-inp$dtpred,1),'prediction')), pch=21, pt.bg=c('yellow'), bg='white')
+    legend('topleft',c(paste(tail(inp$timeCp,1),'prediction')), pch=21, pt.bg=c('yellow'), bg='white')
     box()
 }
 
