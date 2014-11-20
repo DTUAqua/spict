@@ -409,6 +409,7 @@ fit.spict <- function(inp, dbg=0){
 #' @import TMB
 calc.osa.resid <- function(rep, dbg=0){
     inp <- rep$inp
+    inp$ffac <- 1
     if("logF" %in% names(inp$ini)) inp$ini$logF <- NULL
     if("logB" %in% names(inp$ini)) inp$ini$logB <- NULL
     if("ns" %in% names(inp)) inp$ns <- NULL
@@ -1008,7 +1009,7 @@ summary.spictcls <- function(object, numdigits=4){
     cat(paste('Convergence: ', rep$opt$convergence, '  MSG: ', rep$opt$message, '\n', sep=''))
     if(rep$opt$convergence>0) cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and should not be used.\n')
     cat(paste('Negative log likelihood: ', round(rep$opt$objective, numdigits), '\n', sep=''))
-    cat('\nModel parameter estimates \n')
+    cat('\nModel parameter estimates w 95% CI \n')
     sd <- sqrt(diag(rep$cov.fixed))
     nms <- names(rep$par.fixed)
     loginds <- grep('log', nms)
@@ -1032,7 +1033,7 @@ summary.spictcls <- function(object, numdigits=4){
     nms[loginds] <- substr(names(rep$par.fixed[loginds]),4,60)
     rownames(resout) <- nms
     cat(paste(capture.output(resout),' \n'))
-    cat('\nDerived estimates \n')
+    cat('\nDerived estimates w 95% CI\n')
     derout <- rbind(get.par(parname='logBmsy', rep, exp=TRUE)[c(2,1,3,2)],
                     get.par(parname='logFmsy', rep, exp=TRUE)[c(2,1,3,2)],
                     get.par(parname='MSY', rep)[c(2,1,3,2)])
@@ -1047,16 +1048,17 @@ summary.spictcls <- function(object, numdigits=4){
         derout <- cbind(estimate=derout[, 1], true=round(trueder,numdigits), derout[, 2:3], true.in.ci=cider, est.in.log=derout[, 4])
     }
     cat(paste(capture.output(derout),' \n'))
-    cat('\nPredictions \n')
+    cat('\nPredictions w 95% CI \n')
     predout <- rbind(
         get.par(parname='logBp', rep, exp=TRUE)[c(2,1,3,2)],
         get.par(parname='logFp', rep, exp=TRUE)[c(2,1,3,2)],
-        get.par(parname='logCp', rep, exp=TRUE)[c(2,1,3,2)])
+        tail(get.par(parname='logCpred', rep, exp=TRUE),1)[c(2,1,3,2)])
+#        get.par(parname='logCp', rep, exp=TRUE)[c(2,1,3,2)])
     predout[, 4] <- log(predout[, 4])
     predout <- round(predout, numdigits)
     colnames(predout) <- c('prediction', 'cilow', 'ciupp', 'est.in.log')
     et <- tail(rep$inp$time,1)
-    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('Catch_',et-rep$inp$dtpred))
+    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('Catch_',tail(rep$inp$timeCp,1)))
     cat(paste(capture.output(predout),' \n'))
     if('osar' %in% names(rep)){
         cat('\nOne-step-ahead residuals \n')
