@@ -123,7 +123,7 @@ shinyServer(function(input, output) {
               cat(paste('There was an Error fitting the model!', rep, '\n'))
           } else {
               if(!is.null(rep)){
-                  summaryspict(rep)
+                  summary(rep)
               }
           }
       })
