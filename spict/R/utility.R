@@ -272,22 +272,35 @@ check.inp <- function(inp){
     } else {
         for(i in 1:length(fixpars)) if(!fixpars[i] %in% names(inp$phases)) inp$phases[[fixpars[i]]] <- -1
     }
-    nphasepars <- length(inp$phases)
-    inp$map <- list()
-    for(i in 1:nphasepars){
-        parnam <- names(inp$phases)[i]
-        if(parnam %in% names(inp$ini)){
-            phase <- inp$phases[[parnam]]
-            if(phase<0){
-                inp$map[[parnam]] <- factor(rep(NA, length(inp$ini[[parnam]])))
-            } else {
-                cat('WARNING: Phases not yet implemented! will estimate everything in one phase.\n')
-            }
-        } else {
-            cat(paste('WARNING: Phase specified for an invalid parameter:', parnam, '\n'))
+    # Assign phase 1 to parameters without a phase
+    nms <- names(inp$ini)
+    nnms <- length(nms)
+    for(i in 1:nnms){
+        if(!nms[i] %in% names(inp$phases)){
+            inp$phases[[nms[i]]] <- 1
         }
     }
-
+    nphasepars <- length(inp$phases)
+    phasevec <- unlist(inp$phases)
+    phases <- unique(unname(phasevec))
+    phases <- phases[phases>0] # Don't include phase -1 (fixed value)
+    inp$nphases <- length(phases)
+    inp$map <- list()
+    for(j in 1:inp$nphases){
+        inp$map[[j]] <- list() # Map for phase j
+        inds <- which(phasevec > j | phasevec == -1)
+        for(i in inds){
+            parnam <- names(phasevec)[i]
+            if(parnam %in% names(inp$ini)){
+                phase <- inp$phases[[parnam]]
+                inp$map[[j]][[parnam]] <- factor(rep(NA, length(inp$ini[[parnam]])))
+                #cat('WARNING: Phases not yet implemented! will estimate everything in one phase.\n')
+            } else {
+                cat(paste('WARNING: Phase specified for an invalid parameter:', parnam, '\n'))
+            }
+        }
+    }
+        
     inp$checked <- TRUE
     return(inp)
 }
@@ -375,15 +388,22 @@ fit.spict <- function(inp, dbg=0){
     # Check input list
     if(!'checked' %in% names(inp)) inp <- check.inp(inp)
     if(!inp$checked) inp <- check.inp(inp)
-    # Currently only able to use one index.
     datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp$indpred, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
-    obj <- TMB::MakeADFun(data=datin, parameters=inp$ini, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map)
-    config(trace.optimize=0, DLL=inp$scriptname)
-    verbose <- FALSE
-    obj$env$tracemgc <- verbose
-    obj$env$inner.control$trace <- verbose
-    obj$env$silent <- ! verbose
-    obj$fn(obj$par)
+    pl <- inp$ini
+    for(i in 1:inp$nphases){
+        if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
+        obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map[[i]])
+        config(trace.optimize=0, DLL=inp$scriptname)
+        verbose <- FALSE
+        obj$env$tracemgc <- verbose
+        obj$env$inner.control$trace <- verbose
+        obj$env$silent <- ! verbose
+        obj$fn(obj$par)
+        if(dbg==0){
+            opt <- try(nlminb(obj$par, obj$fn, obj$gr))
+            pl <- obj$env$parList(opt$par)
+        }
+    }
     rep <- NULL
     if(dbg==0){
         opt <- try(nlminb(obj$par, obj$fn, obj$gr))
