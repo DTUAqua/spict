@@ -213,6 +213,7 @@ Type objective_function<Type>::operator() ()
 
   // CALCULATE B_infinity
   for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), rvec(i), sdb2, lamperti); 
+  logBinf = log(Binf);
 
   // BIOMASS PREDICTIONS
   // Hack to set log(B(0)) equal to the fixed effect log(B0).
@@ -306,9 +307,14 @@ Type objective_function<Type>::operator() ()
     }
     Cp += Cpredsub(ind);
   }
+  Type logCp = log(Cp);
+
   // This is the biomass and F at the beginning of the catch prediction time interval
   Type Bp = B(CppAD::Integer(dtpredinds(0)-1)); 
+  Type logBp = log(Bp);
+  Type logBpBmsy = logBp - logBmsy;
   Type logFp = logF(CppAD::Integer(dtpredinds(0)-1)); 
+  Type logFpFmsy = logFp - logFmsy;
 
   // These lines overwrite the old OSA predictions and replace them with the new ones.
   Type logIp = logq(0) + log(Bp);
@@ -320,7 +326,21 @@ Type objective_function<Type>::operator() ()
   Binfpmsy = calculateBinf(K, Fmsy, rvec(ns-1), sdb2, lamperti);
   Bpmsy = predictB(B(ns-1), Binfpmsy, Fmsy, rvec(ns-1), K, dtpred, sdb2, lamperti, euler);
   Cpmsy = predictC(Fmsy, K, rvec(ns-1), Bpmsy, Binfpmsy, dtpred, sdb2, lamperti, euler);
+  Type logBpmsy = log(Bpmsy);
 
+  // Biomass and fishing mortality at last time point
+  Type logBl = logB(CppAD::Integer(dtpredinds(0)-2)); 
+  Type logBlBmsy = logBl - logBmsy;
+  Type logFl = logF(CppAD::Integer(dtpredinds(0)-2)); 
+  Type logFlFmsy = logFl - logFmsy;
+
+  // Biomass and fishing mortality over msy levels
+  vector<Type> logBBmsy(ns);
+  vector<Type> logFFmsy(ns);
+  for(int i=0; i<ns; i++){ 
+    logBBmsy(i) = logB(i) - logBmsy; 
+    logFFmsy(i) = logF(i) - logFmsy; 
+  }
 
   // ADREPORTS
   ADREPORT(r);
@@ -329,26 +349,34 @@ Type objective_function<Type>::operator() ()
   ADREPORT(sdf);
   ADREPORT(sdc);
   ADREPORT(sdi);
-  ADREPORT(Bmsy);
   ADREPORT(MSY);
-  ADREPORT(Fmsy);
+  // B
+  ADREPORT(Bmsy);
   ADREPORT(logBmsy);
-  ADREPORT(logFmsy);
-  Type logBp = log(Bp);
   ADREPORT(logBp);
-  Type logBpmsy = log(Bpmsy);
   ADREPORT(logBpmsy);
+  ADREPORT(logBpBmsy);
+  ADREPORT(logBinf);
+  ADREPORT(logB0);
+  ADREPORT(logBl);
+  ADREPORT(logBlBmsy);
+  ADREPORT(logBBmsy);
+  // F
+  ADREPORT(Fmsy);
+  ADREPORT(logFmsy);
+  ADREPORT(logFp);
+  ADREPORT(logFpFmsy);
+  ADREPORT(logFl);
+  ADREPORT(logFlFmsy);
+  ADREPORT(logFFmsy);
+  // C
   ADREPORT(Cpmsy);
   ADREPORT(Cpredsub);
-  ADREPORT(logIpred);
   ADREPORT(logCpred);
-  ADREPORT(P);
-  logBinf = log(Binf);
-  ADREPORT(logBinf);
-  ADREPORT(logFp);
-  Type logCp = log(Cp);
   ADREPORT(logCp);
-  ADREPORT(logB0);
+  // Other
+  ADREPORT(logIpred);
+  ADREPORT(P);
   // REPORTS (these don't require sdreport to be output)
   REPORT(Cp);
   REPORT(logIp);
