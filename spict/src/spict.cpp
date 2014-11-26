@@ -316,8 +316,10 @@ Type objective_function<Type>::operator() ()
   Type logFp = logF(CppAD::Integer(dtpredinds(0)-1)); 
   Type logFpFmsy = logFp - logFmsy;
 
-  // These lines overwrite the old OSA predictions and replace them with the new ones.
-  Type logIp = logq(0) + log(Bp);
+  vector<Type> logIp(nq);
+  for(int i=0; i<nq; i++){
+    logIp(i) = logq(i) + log(Bp);
+  }
 
   // MSY PREDICTIONS
   Type Bpmsy;
@@ -348,6 +350,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(q);
   ADREPORT(sdf);
   ADREPORT(sdc);
+  ADREPORT(sdb);
   ADREPORT(sdi);
   ADREPORT(MSY);
   // B

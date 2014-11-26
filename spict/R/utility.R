@@ -460,6 +460,8 @@ calc.osa.resid <- function(rep, dbg=0){
     predmap <- get.predmap(rep$pl, inp$RE)
     plnew <- rep$pl
     logCpred <- rep(0, inp$nobsC-1)
+    logIpred <- list()
+    for(i in 1:inp$nindex) logIpred[[i]] <- rep(0, inp$nobsI[i]-1)
     for(nadj in inp$delay:(inp$nobsC-1)){
         inp2 <- inp
         inp2$timeC <- inp$timeC[1:nadj]
@@ -482,13 +484,21 @@ calc.osa.resid <- function(rep, dbg=0){
         objpred$env$silent <- ! verbose
         objpred$fn()
         logCpred[nadj] <- log(objpred$report()$Cp)
+        for(i in 1:inp$nindex) logIpred[[i]][nadj] <- objpred$report()$logIp[i]
     }
+    # Catches
     if(inp$delay>1) logCpred <- logCpred[-(1:(inp$delay-1))]
     timeC <- inp$timeC[-(1:inp$delay)]
     logCpres <- log(inp$obsC[-(1:inp$delay)]) - logCpred
-    # Test for independence of residuals (one-step-ahead predictions versus observations)
     logCpboxtest <- Box.test(logCpres, lag=1, type='Ljung-Box')
-    rep$osar <- list(logCpres=logCpres, logCpred=logCpred, timeC=timeC, logCpboxtest=logCpboxtest)
+    # Indices
+    logIpres <- list()
+    logIpboxtest <- list()
+    for(i in 1:inp$nindex){
+        logIpres[[i]] <- log(inp$obsI[[i]][-1]) - logIpred[[i]]
+        logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=1, type='Ljung-Box')
+    }
+    rep$osar <- list(logCpres=logCpres, logCpred=logCpred, timeC=timeC, logCpboxtest=logCpboxtest, logIpres=logIpres, logIpred=logIpred, logIpboxtest=logIpboxtest)
     return(rep)
 }
 
@@ -674,14 +684,17 @@ plotspict.biomass <- function(rep, logax=FALSE){
         lines(inp$time[inp$indest], Best[inp$indest,2]/scal, col='blue', lwd=1.5)
         lines(inp$time[inp$indpred], Best[inp$indpred,2]/scal, col='blue', lty=3)
         abline(h=Bmsy[2]/scal, col='black')
+        # B CI
         lines(inp$time[inp$indest], Best[inp$indest,1]/scal, col=4, lty=2, lwd=1.5)
         lines(inp$time[inp$indest], Best[inp$indest,3]/scal, col=4, lty=2, lwd=1.5)
-        lines(inp$time[inp$indest], BB[inp$indest,1]/scal*Bmsy[2], col=4, lty=3, lwd=1)
-        lines(inp$time[inp$indest], BB[inp$indest,3]/scal*Bmsy[2], col=4, lty=3, lwd=1)
         lines(inp$time[inp$indpred], Best[inp$indpred,1]/scal, col=4, lty=2)
         lines(inp$time[inp$indpred], Best[inp$indpred,3]/scal, col=4, lty=2)
-        lines(inp$time[inp$indpred], BB[inp$indpred,1]/scal*Bmsy[2], col=4, lty=3, lwd=1)
-        lines(inp$time[inp$indpred], BB[inp$indpred,3]/scal*Bmsy[2], col=4, lty=3, lwd=1)
+        # B/Bmsy CI
+        cicol3 <- rgb(0, 0, 1, 0.2)
+        lines(inp$time[inp$indest], BB[inp$indest,1]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
+        lines(inp$time[inp$indest], BB[inp$indest,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
+        lines(inp$time[inp$indpred], BB[inp$indpred,1]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
+        lines(inp$time[inp$indpred], BB[inp$indpred,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
         lines(Binftime, Binfs/scal, col='green', lty=1)
         tp <- tail(inp$time,1)
         points(tp, tail(Best[,2],1)/scal, pch=21, bg='yellow')
@@ -723,7 +736,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE){
         cicol <- 'lightgray'
         par(mar=c(5,4,4,4))
         ylim <- range(BB[, 1:3])
-        plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=paste('B/Bmsy'), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log)
+        plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=paste('B/Bmsy'), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main='Relative biomass')
         #axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
         #mtext("B/Bmsy", side=4, las=0, line=2)
         #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1],Bmsy[1],Bmsy[3],Bmsy[3]), col=cicol, border=cicol)
@@ -738,10 +751,12 @@ plotspict.bbmsy <- function(rep, logax=FALSE){
         lines(inp$time[inp$indest], BB[inp$indest,2], col='blue', lwd=1.5)
         lines(inp$time[inp$indpred], BB[inp$indpred,2], col='blue', lty=3)
         #abline(h=Bmsy[2]/scal, col='black')
-        lines(inp$time[inp$indest], BB[inp$indest,1], col=4, lty=3, lwd=1)
-        lines(inp$time[inp$indest], BB[inp$indest,3], col=4, lty=3, lwd=1)
-        lines(inp$time[inp$indpred], BB[inp$indpred,1], col=4, lty=3, lwd=1)
-        lines(inp$time[inp$indpred], BB[inp$indpred,3], col=4, lty=3, lwd=1)
+        cicol3 <- rgb(0, 0, 1, 0.2)
+        lines(inp$time[inp$indest], BB[inp$indest,1], col=cicol3, lty=1, lwd=1)
+        lines(inp$time[inp$indest], BB[inp$indest,3], col=cicol3, lty=1, lwd=1)
+        lines(inp$time[inp$indpred], BB[inp$indpred,1], col=cicol3, lty=1, lwd=1)
+        lines(inp$time[inp$indpred], BB[inp$indpred,3], col=cicol3, lty=1, lwd=1)
+        abline(h=1)
         #lines(Binftime, Binfs/scal, col='green', lty=1)
         #tp <- tail(inp$time,1)
         #points(tp, tail(Best[,2],1)/scal, pch=21, bg='yellow')
@@ -766,7 +781,7 @@ plotspict.osar <- function(rep){
     inp <- rep$inp
     Cscal <- 1
     Cpred <- rep$osar$logCpred
-    plot(rep$osar$logCpres, main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,5)), xlab='Time', ylab='OSA catch res.')
+    plot(rep$osar$logCpres, main=paste('Catch LB p-val:',round(rep$osar$logCpboxtest$p.value,4)), xlab='Time', ylab='OSA catch res.')
     abline(h=0, lty=3)
     #plot(inp$timeC, log(inp$obsC), typ='p', ylim=range(c(Cpred,log(inp$obsC),1.13*c(Cpred,log(inp$obsC)))), main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,5)), ylab=paste('log Catch, Cscal:',Cscal), xlim=range(c(inp$timeC,inp$timeC[inp$nobsC]+1)), xlab='Time', col=1)
     #clr <- 'blue'
@@ -819,7 +834,8 @@ plotspict.fb <- function(rep, logax=FALSE){
         polygon(c(Bmsy[2], Bmsy[2], 0, 0), c(Fmsy[2], 0, 0, Fmsy[2]), col=rgb(1,1,0,alpha), border=NA)
         polygon(c(Bmsy[2], Bmsy[2], xlim[2], xlim[2]), c(Fmsy[2], ylim[2], ylim[2], Fmsy[2]), col=rgb(1,1,0,alpha), border=NA)
         polygon(c(Bmsy[2], Bmsy[2], 0, 0), c(Fmsy[2], ylim[2], ylim[2], Fmsy[2]), col=rgb(0.6,0,0,alpha), border=NA)
-        polygon(exp(cl[,1])/scal, exp(cl[,2]), col=cicol, border=cicol)
+        cicol2 <- 'gray'
+        polygon(exp(cl[,1])/scal, exp(cl[,2]), col=cicol, border=cicol2)
         abline(h=Fmsy[2], lty=3)
         abline(v=Bmsy[2], lty=3)
         #arrow.line(Best[,2]/scal, Fest[,2], length=0.05, col='blue')
@@ -893,14 +909,17 @@ plotspict.f <- function(rep, logax=FALSE){
         #abline(h=Fmsyci, col=3, lty=2)
         #lines(inp$time, Festul/Fmsy, col='forestgreen', lty=2)
         #lines(inp$time, Festll/Fmsy, col='forestgreen', lty=2)
+        # CI F
         lines(inp$time[inp$indest], Fest[inp$indest, 1], col=maincol, lty=2, lwd=1.5)
         lines(inp$time[inp$indest], Fest[inp$indest, 3], col=maincol, lty=2, lwd=1.5)
-        lines(inp$time[inp$indest], FF[inp$indest, 1]*Fmsy[2], col=maincol, lty=3, lwd=1)
-        lines(inp$time[inp$indest], FF[inp$indest, 3]*Fmsy[2], col=maincol, lty=3, lwd=1)
         lines(inp$time[inp$indpred], Fest[inp$indpred, 1], col=maincol, lty=2)
         lines(inp$time[inp$indpred], Fest[inp$indpred, 3], col=maincol, lty=2)
-        lines(inp$time[inp$indpred], FF[inp$indpred, 1]*Fmsy[2], col=maincol, lty=3, lwd=1)
-        lines(inp$time[inp$indpred], FF[inp$indpred, 3]*Fmsy[2], col=maincol, lty=3, lwd=1)
+        # CI F/Fmsy
+        cicol3 <- rgb(0, 0, 1, 0.2)
+        lines(inp$time[inp$indest], FF[inp$indest, 1]*Fmsy[2], col=cicol3, lty=1, lwd=1)
+        lines(inp$time[inp$indest], FF[inp$indest, 3]*Fmsy[2], col=cicol3, lty=1, lwd=1)
+        lines(inp$time[inp$indpred], FF[inp$indpred, 1]*Fmsy[2], col=cicol3, lty=1, lwd=1)
+        lines(inp$time[inp$indpred], FF[inp$indpred, 3]*Fmsy[2], col=cicol3, lty=1, lwd=1)
         legend('topleft',c(paste(tail(inp$time,1),'prediction')), pch=21, pt.bg=c('yellow'), bg='white')
         box()
     }
@@ -1065,7 +1084,7 @@ plotspict.tc <- function(rep){
         frac <- 0.95
         if(B0cur < Bmsy[2]) inds <- which(Bsim[nFvec, ]<0.99)
         if(B0cur > Bmsy[2]) inds <- which(Bsim[nFvec, ]>(1/0.99))
-        plot(time[1, ], Bsim[1, ], typ='l', xlim=range(time[nFvec, inds]), ylim=range(Bsim[nFvec, ]), col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy')
+        plot(time[1, ], Bsim[1, ], typ='l', xlim=range(time[nFvec, inds]), ylim=range(Bsim[nFvec, ]), col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy')
         abline(h=c(frac, 1/frac), lty=1, col='lightgray')
         abline(h=1, lty=3)
         for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=i+2)
@@ -1123,6 +1142,8 @@ plot.spictcls <- function(rep, logax=FALSE){
     plotspict.catch(rep)
     # Production curve
     plotspict.production(rep)
+    # Time constant
+    plotspict.tc(rep)
     if('osar' %in% names(rep)){
         # Intrinsic growth rate
         #plotspict.growthrate(rep)
@@ -1131,10 +1152,8 @@ plot.spictcls <- function(rep, logax=FALSE){
         # One-step-ahead catch residuals
         plotspict.osar(rep)
         # OSAR ACF
-        acf(rep$osar$logCpres, main='ACF of OSA residuals')
+        acf(rep$osar$logCpres, main='ACF of catch OSAR')
     }
-    # Time constant
-    plotspict.tc(rep)
     
 }
 
@@ -1227,8 +1246,9 @@ summary.spictcls <- function(object, numdigits=4){
         cat(paste(capture.output(predout),' \n'))
     }
     if('osar' %in% names(rep)){
-        cat('\nOne-step-ahead residuals \n')
-        cat(paste('Ljung-box test for independence of lag 1, p-value:', round(rep$osar$logCpboxtest$p.value, numdigits), '\n'))
+        cat('\nOne-step-ahead residuals - Ljung-box test for independence of lag 1\n')
+        cat(paste(' Catches p-value:', round(rep$osar$logCpboxtest$p.value, numdigits), '\n'))
+        for(i in 1:rep$inp$nindex) cat(paste(' Index', i, 'p-value:', round(rep$osar$logIpboxtest[[i]]$p.value, numdigits), '\n'))
     }
 }
 
