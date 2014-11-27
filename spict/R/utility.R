@@ -240,6 +240,7 @@ check.inp <- function(inp){
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
     if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.3)
+    if(!"logp" %in% names(inp$ini)) inp$ini$logp <- log(1.0)
     if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr[1]))
     if(!"logF" %in% names(inp$ini)){
         inp$ini$logF <- rep(inp$ini$logF0, inp$ns)
@@ -263,15 +264,16 @@ check.inp <- function(inp){
                     logr=inp$ini$logr,
                     logK=inp$ini$logK,
                     logq=inp$ini$logq,
+                    logp=inp$ini$logp,
                     logsdf=inp$ini$logsdf,
                     logsdb=inp$ini$logsdb,
                     logF=inp$ini$logF,
                     logB=inp$ini$logB)
     # Determine phases and fixed parameters
     if(inp$delay==1){
-        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta') # These are fixed unless specified
+        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta', 'logp') # These are fixed unless specified
     } else {
-        fixpars <- c('logalpha', 'logbeta') # These are fixed unless otherwise specified
+        fixpars <- c('logalpha', 'logbeta', 'logp') # These are fixed unless otherwise specified
     }
     if(!"phases" %in% names(inp)){
         inp$phases <- list()
@@ -308,7 +310,7 @@ check.inp <- function(inp){
         }
     }
         
-    inp$checked <- TRUE
+    #inp$checked <- TRUE
     return(inp)
 }
 
@@ -393,8 +395,9 @@ get.predmap <- function(guess, RE){
 #' @import TMB
 fit.spict <- function(inp, dbg=0){
     # Check input list
-    if(!'checked' %in% names(inp)) inp <- check.inp(inp)
-    if(!inp$checked) inp <- check.inp(inp)
+    #if(!'checked' %in% names(inp)) inp <- check.inp(inp)
+    #if(!inp$checked)
+    inp <- check.inp(inp)
     datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp$indpred, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
     pl <- inp$ini
     for(i in 1:inp$nphases){
@@ -1204,11 +1207,14 @@ summary.spictcls <- function(object, numdigits=4){
         cat('\nDerived estimates w 95% CI\n')
         derout <- rbind(get.par(parname='logBmsy', rep, exp=TRUE)[c(2,1,3,2)],
                         get.par(parname='logFmsy', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='MSY', rep)[c(2,1,3,2)])
+                        get.par(parname='MSY', rep)[c(2,1,3,2)],
+                        get.par(parname='logBmsys', rep, exp=TRUE)[c(2,1,3,2)],
+                        get.par(parname='logFmsys', rep, exp=TRUE)[c(2,1,3,2)],
+                        get.par(parname='MSYs', rep)[c(2,1,3,2)])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- c('estimate', 'cilow', 'ciupp', 'est.in.log')
-        rownames(derout) <- c('Bmsy', 'Fmsy', 'MSY')
+        rownames(derout) <- c('Bmsy', 'Fmsy', 'MSY', 'Bmsys', 'Fmsys', 'MSYs')
         if('true' %in% names(rep$inp)){
             trueder <- c(rep$inp$true$Bmsy, rep$inp$true$Fmsy, rep$inp$true$MSY)
             cider <- rep(0, 3)

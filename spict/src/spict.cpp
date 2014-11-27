@@ -23,7 +23,7 @@ inline Type calculateBinf(const Type &K, const Type &F, const Type &r, const Typ
 
 /* Predict biomass */
 template<class Type>
-inline Type predictB(const Type &B0, const Type &Binf, const Type &F, const Type &r, const Type &K, const Type &dt, const Type &sdb2=0, int lamperti=0, int euler=0)
+inline Type predictB(const Type &B0, const Type &Binf, const Type &F, const Type &r, const Type &K, const Type &dt, const Type &p, const Type &sdb2=0, int lamperti=0, int euler=0)
 {
   if(euler) lamperti = 1;
   Type rate;
@@ -33,9 +33,11 @@ inline Type predictB(const Type &B0, const Type &Binf, const Type &F, const Type
     rate = r - F;    
   }
   if(euler){
-    return exp( log(B0) + (rate - r/K*B0)*dt ); // Euler
+    // Pella-Tomlinson
+    return exp( log(B0) + (rate - r*pow(B0/K, p))*dt ); // Euler
   } else {
-    return 1 / ( 1/Binf + (1/B0 - 1/Binf) * exp(-rate*dt) ); // Approximative analytical
+    // Schaefer only
+    return 1 / ( 1/Binf + (1/B0 - 1/Binf) * exp(-rate*dt) ); // Approximative analytical, p=1
   }
 }
 
@@ -63,34 +65,35 @@ Type objective_function<Type>::operator() ()
 {
   Type ans=0;
 
-  DATA_INTEGER(delay);       // Delay
-  DATA_VECTOR(dt);       // Time steps
-  DATA_SCALAR(dtpred);        // Time step for prediction
+  DATA_INTEGER(delay);     // Delay
+  DATA_VECTOR(dt);         // Time steps
+  DATA_SCALAR(dtpred);     // Time step for prediction
   DATA_VECTOR(dtpredinds);
   DATA_INTEGER(dtprednsteps); // Number of sub time step for prediction
   DATA_VECTOR(obsC);       // Catches
-  DATA_VECTOR(ic); // Vector such that B(ii(i)) is the state corresponding to obsC(i)
-  DATA_VECTOR(nc); // nc(i) gives the number of time intervals obsC(i) spans
-  DATA_VECTOR(I);       // Index
-  DATA_VECTOR(ii); // A vector such that B(ii(i)) is the state corresponding to I(i)
-  DATA_VECTOR(iq); // A vector such that iq(i) is the index number corresponding to I_iq(i)
-  DATA_VECTOR(ir); // A vector indicating when the different rs should be used
+  DATA_VECTOR(ic);         // Vector such that B(ii(i)) is the state corresponding to obsC(i)
+  DATA_VECTOR(nc);         // nc(i) gives the number of time intervals obsC(i) spans
+  DATA_VECTOR(I);          // Index
+  DATA_VECTOR(ii);         // A vector such that B(ii(i)) is the state corresponding to I(i)
+  DATA_VECTOR(iq);         // A vector such that iq(i) is the index number corresponding to I_iq(i)
+  DATA_VECTOR(ir);         // A vector indicating when the different rs should be used
   DATA_SCALAR(ffac);       // Management factor each year multiply the predicted F with ffac
-  DATA_VECTOR(indpred); // A vector indicating when the management factor should be applied
-  DATA_INTEGER(lamperti);       // Lamperti flag.
-  DATA_INTEGER(euler);       // Euler flag.
-  DATA_SCALAR(dbg);       // Debug flag, if == 1 then print stuff.
-  PARAMETER(phi1);       // 
-  PARAMETER(phi2);       // 
-  PARAMETER(logalpha);       // sdi = alpha*sdb
-  PARAMETER(logbeta);       // sdc = beta*sdf
+  DATA_VECTOR(indpred);    // A vector indicating when the management factor should be applied
+  DATA_INTEGER(lamperti);  // Lamperti flag.
+  DATA_INTEGER(euler);     // Euler flag.
+  DATA_SCALAR(dbg);        // Debug flag, if == 1 then print stuff.
+  PARAMETER(phi1);         // 
+  PARAMETER(phi2);         // 
+  PARAMETER(logalpha);     // sdi = alpha*sdb
+  PARAMETER(logbeta);      // sdc = beta*sdf
   PARAMETER(logbkfrac);    // B0/K fraction
-  PARAMETER(logF0);    // F at time 0
-  PARAMETER_VECTOR(logr);         // Intrinsic growth
+  PARAMETER(logF0);        // F at time 0
+  PARAMETER_VECTOR(logr);  // Intrinsic growth
   PARAMETER(logK);         // Carrying capacity
-  PARAMETER_VECTOR(logq);         // Catchability
-  PARAMETER(logsdf);   // Standard deviation for F
-  PARAMETER(logsdb);   // Standard deviation for Index
+  PARAMETER_VECTOR(logq);  // Catchability
+  PARAMETER(logp);         // Pella-Tomlinson exponent
+  PARAMETER(logsdf);       // Standard deviation for F
+  PARAMETER(logsdb);       // Standard deviation for Index
   PARAMETER_VECTOR(logF);  // Random effects vector
   PARAMETER_VECTOR(logB);  // Random effects vector
 
@@ -99,11 +102,11 @@ Type objective_function<Type>::operator() ()
   int nr = logr.size();
   vector<Type> r(nr);
   for(int i=0; i<nr; i++){ r(i) = exp(logr(i)); }
-  //Type r = exp(logr);
   Type K = exp(logK);
   int nq = logq.size();
   vector<Type> q(nq);
   for(int i=0; i<nq; i++){ q(i) = exp(logq(i)); }
+  Type p = exp(logp);
   Type sdf = exp(logsdf);
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
@@ -128,19 +131,32 @@ Type objective_function<Type>::operator() ()
   vector<Type> Cpredsub(ns);
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
-  Type Bmsy = K/2.0;
-  //vector<Type> Fmsy(nr);
-  Type Fmsy;
-  Type rmean = 0.0;
+  vector<Type> R(nr);
+  for(int i=0; i<nr; i++){ R(i) = r(i)*p/(p+1.0); }
+  Type Rmean = 0.0;
+  for(int i=0; i<nr; i++){ Rmean += R(i)/nr; }
+  // Deterministic reference points
+  Type Bmsy = K/pow(p+1.0, 1.0/p);
+  Type Fmsy = Rmean;
+  /*
   if(lamperti){
-    for(int i=0; i<nr; i++){ rmean += (r(i) - sdb2)/nr; }
+    for(int i=0; i<nr; i++){ Fmsy += (r(i) - sdb2)/nr; }
   } else {
-    for(int i=0; i<nr; i++){ rmean += r(i)/nr; }
+    for(int i=0; i<nr; i++){ Fmsy += R(i)/nr; }
   }
-  Fmsy = rmean/2.0;
+  */
+  //Fmsy = rmean/2.0;
   Type MSY = Bmsy * Fmsy;
   Type logBmsy = log(Bmsy);
   Type logFmsy = log(Fmsy);
+
+  // Stochastic reference points
+  Type Bmsys = Bmsy * (1.0 - (1.0 + Rmean*(p-1.0)/2.0)/(Rmean*pow(2.0-Rmean, 2.0)));
+  Type Fmsys = Fmsy - p*(1.0-Rmean) / pow(2.0-Rmean, 2.0) * sdb2;
+  Type MSYs = MSY * (1.0 - (p+1)/2.0 / (1.0 - pow(1.0-Rmean, 2.0)));
+  Type logBmsys = log(Bmsys);
+  Type logFmsys = log(Fmsys);
+
   Type likval;
 
   if(dbg>0){
@@ -152,6 +168,7 @@ Type objective_function<Type>::operator() ()
     //std::cout << "INPUT: logr: " << logr << std::endl;
     std::cout << "INPUT: logK: " << logK << std::endl;
     for(int i=0; i<nq; i++){ std::cout << "INPUT: logq(i): " << logq(i) << " -- i: " << i << std::endl; }
+    std::cout << "INPUT: logp: " << logp << std::endl;
     std::cout << "INPUT: logsdf: " << logsdf << std::endl;
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
     std::cout << "obsC.size(): " << obsC.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  F.size(): " << F.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  rvec.size(): " << rvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << std::endl;
@@ -224,7 +241,7 @@ Type objective_function<Type>::operator() ()
   }
   for(int i=0; i<(ns-1); i++){
     // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
-    Bpred(i+1) = predictB(B(i), Binf(i), F(i), rvec(i), K, dt(i), sdb2, lamperti, euler);
+    Bpred(i+1) = predictB(B(i), Binf(i), F(i), rvec(i), K, dt(i), p, sdb2, lamperti, euler);
     likval = dnorm(log(Bpred(i+1)), logB(i+1), sqrt(dt(i))*sdb, 1);
     ans-=likval;
     // DEBUGGING
@@ -326,7 +343,7 @@ Type objective_function<Type>::operator() ()
   Type Binfpmsy;
   Type Cpmsy;
   Binfpmsy = calculateBinf(K, Fmsy, rvec(ns-1), sdb2, lamperti);
-  Bpmsy = predictB(B(ns-1), Binfpmsy, Fmsy, rvec(ns-1), K, dtpred, sdb2, lamperti, euler);
+  Bpmsy = predictB(B(ns-1), Binfpmsy, Fmsy, rvec(ns-1), K, dtpred, p, sdb2, lamperti, euler);
   Cpmsy = predictC(Fmsy, K, rvec(ns-1), Bpmsy, Binfpmsy, dtpred, sdb2, lamperti, euler);
   Type logBpmsy = log(Bpmsy);
 
@@ -353,9 +370,12 @@ Type objective_function<Type>::operator() ()
   ADREPORT(sdb);
   ADREPORT(sdi);
   ADREPORT(MSY);
+  ADREPORT(MSYs);
   // B
   ADREPORT(Bmsy);
   ADREPORT(logBmsy);
+  ADREPORT(Bmsys);
+  ADREPORT(logBmsys);
   ADREPORT(logBp);
   ADREPORT(logBpmsy);
   ADREPORT(logBpBmsy);
@@ -367,6 +387,8 @@ Type objective_function<Type>::operator() ()
   // F
   ADREPORT(Fmsy);
   ADREPORT(logFmsy);
+  ADREPORT(Fmsys);
+  ADREPORT(logFmsys);
   ADREPORT(logFp);
   ADREPORT(logFpFmsy);
   ADREPORT(logFl);
