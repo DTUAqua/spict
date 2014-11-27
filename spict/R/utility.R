@@ -137,7 +137,9 @@ check.inp <- function(inp){
     # -- MODEL OPTIONS --
     if(!"ffac" %in% names(inp)) inp$ffac <- 1
     if(!"lamperti" %in% names(inp)) inp$lamperti <- 1
+    inp$lamperti <- 1 # Since Pella-Tomlinson form was implemented only Lamperti is allowed
     if(!"euler" %in% names(inp)) inp$euler <- 1
+    inp$euler <- 1 # Since Pella-Tomlinson form was implemented only Euler is allowed
     if(!"dtc" %in% names(inp)){
         inp$dtc <- min(diff(inp$timeC))
         cat(paste('Catch interval (dtc) not specified. Assuming an interval of:', inp$dtc, 'year.\n'))
@@ -598,29 +600,6 @@ arrow.line <- function(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"
 }
 
 
-#' @name tc.fun2
-#' @title Calculate time constant (proportion of B_infinity reached).
-#' @details Calculate the time required to reach a certain proportion of the equilibrium biomass (B_infinity) from a given starting point.
-#' @param F Fishing mortality.
-#' @param K Carrying capacity.
-#' @param r Intrinsic growth rate.
-#' @param sdb Standard deviation of the log biomass.
-#' @param B0 Starting biomass.
-#' @param p Proportion of B_infinity.
-#' @param lamperti Return the stochastic (TRUE) or deterministic (FALSE) estimate.
-#' @return The calculated time to reach the given proportion of B_infinity.
-tc.fun2 <- function(F, K, r, sdb, B0, p, lamperti){
-    Binf <- calc.binf(K, F, r, sdb, lamperti)
-    if(lamperti){
-        rate <- F + 0.5*sdb^2 - r
-    } else {
-        rate <- F - r
-    }
-    Brat <- Binf/B0
-    Brat[Brat<1] <- 1/Brat[Brat<1] # Invert if B0 > Binf
-    return( 1/(rate) * log( (1-p) / (p*(Brat-1))) )
-}
-
 #' @name annual
 #' @title Convert from quarterly (or other sub-annual) data to annual means.
 #' @param inp An inp list.
@@ -991,12 +970,13 @@ plotspict.production <- function(rep){
         Best <- get.par('logB', rep, exp=TRUE, random=TRUE)
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
         rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
+        p <- get.par('logp', rep, exp=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
         Pest <- get.par('P', rep)
         nBplot <- 200
         Bplot <- seq(0.5*min(Best[, 2]), 1*max(Best[, 2]), length=nBplot)
-        pfun <- function(r, K, B) r*B*(1 - B/K)
-        Pst <- pfun(rest[2], Kest[2], Bplot)
+        pfun <- function(r, K, p, B) r*B*(1 - (B/K)^p)
+        Pst <- pfun(rest[2], Kest[2], p[2], Bplot)
         xlim <- range(Bplot/Bmsy[2])
         Bvec <- Best[-1, 2]
         dt <- inp$dt[-1]
@@ -1056,6 +1036,7 @@ plotspict.tc <- function(rep){
         Fest <- get.par('logF', rep, exp=TRUE, random=TRUE)
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
         rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
+        p <- get.par('logp', rep, exp=TRUE)
         sdbest <- get.par('logsdb', rep, exp=TRUE, fixed=TRUE)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
@@ -1064,11 +1045,11 @@ plotspict.tc <- function(rep){
         if(B0cur > Bmsy[2]) facvec <- c(2, 1.25, 1.05, 1)
         Fvec <- round(facvec*Fmsy[2], digits=4)
         nFvec <- length(Fvec)
-        g <- function(F, K, r, sdb, B0, dt, lamperti){
+        g <- function(F, K, r, p, sdb, B0, dt, lamperti){
             if(lamperti){
-                return(exp(log(B0) + (r - r/K*B0 - F - 0.5*sdb^2)*dt))
+                return(exp(log(B0) + (r - r*(B0/K)^p - F - 0.5*sdb^2)*dt))
             } else {
-                return(B0 + B0*r*(1 - B0/K - F)*dt)
+                return(B0 + B0*r*(1 - (B0/K)^p - F)*dt)
             }
         }
         simdt <- 0.01
@@ -1080,7 +1061,7 @@ plotspict.tc <- function(rep){
             Bsim[i, ] <- rep(0, nt)
             Bsim[i, 1] <- B0cur
             for(j in 2:nt){
-                Bsim[i, j] <- g(Fvec[i], Kest[2], rest[2], sdbest[2], Bsim[i, j-1], simdt, inp$lamperti)
+                Bsim[i, j] <- g(Fvec[i], Kest[2], rest[2], p[2], sdbest[2], Bsim[i, j-1], simdt, inp$lamperti)
             }
         }
         Bsim <- Bsim/Bmsy[2]
@@ -1205,16 +1186,30 @@ summary.spictcls <- function(object, numdigits=4){
     if(!'sderr' %in% names(rep)){
         # Derived estimates
         cat('\nDerived estimates w 95% CI\n')
-        derout <- rbind(get.par(parname='logBmsy', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='logFmsy', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='MSY', rep)[c(2,1,3,2)],
-                        get.par(parname='logBmsys', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='logFmsys', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='MSYs', rep)[c(2,1,3,2)])
+        cat(' Deterministic\n')
+        derout <- rbind(get.par(parname='logBmsyd', rep, exp=TRUE)[c(2,1,3,2)],
+                        get.par(parname='logFmsyd', rep, exp=TRUE)[c(2,1,3,2)],
+                        get.par(parname='MSYd', rep)[c(2,1,3,2)])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- c('estimate', 'cilow', 'ciupp', 'est.in.log')
-        rownames(derout) <- c('Bmsy', 'Fmsy', 'MSY', 'Bmsys', 'Fmsys', 'MSYs')
+        rownames(derout) <- c('Bmsyd', 'Fmsyd', 'MSYd')
+        if('true' %in% names(rep$inp)){
+            trueder <- c(rep$inp$true$Bmsyd, rep$inp$true$Fmsyd, rep$inp$true$MSYd)
+            cider <- rep(0, 3)
+            for(i in 1:3) cider[i] <- as.numeric(trueder[i] > derout[i, 2] & trueder[i] < derout[i, 3])
+            derout <- cbind(estimate=derout[, 1], true=round(trueder,numdigits), derout[, 2:3], true.in.ci=cider, est.in.log=derout[, 4])
+        }
+        cat(paste(capture.output(derout),' \n'))
+        # Stochastic derived estimates
+        cat(' Stochastic\n')
+        derout <- rbind(get.par(parname='logBmsy', rep, exp=TRUE)[c(2,1,3,2)],
+                        get.par(parname='logFmsy', rep, exp=TRUE)[c(2,1,3,2)],
+                        get.par(parname='MSY', rep)[c(2,1,3,2)])
+        derout[, 4] <- log(derout[, 4])
+        derout <- round(derout, numdigits)
+        colnames(derout) <- c('estimate', 'cilow', 'ciupp', 'est.in.log')
+        rownames(derout) <- c('Bmsy', 'Fmsy', 'MSY')
         if('true' %in% names(rep$inp)){
             trueder <- c(rep$inp$true$Bmsy, rep$inp$true$Fmsy, rep$inp$true$MSY)
             cider <- rep(0, 3)
@@ -1398,10 +1393,10 @@ calc.rate <- function(r, F, sdb=0) r - F - 0.5*sdb^2
 #' @param sdb Standard deviation of biomass process.
 #' @param lamperti Optional logical, use lamperti transformation?
 #' @return B_infinity.
-calc.binf <- function(K, F, r, sdb=0, lamperti=FALSE){
+calc.binf <- function(K, F, r, p, sdb=0, lamperti=FALSE){
     if(!lamperti) sdb <- 0
-    rate <- calc.rate(r, F, sdb)
-    return(K/r*rate)
+    Binf <- K * (1 - F/r)^(1/p) * (1 - (p+1)/2 / (1-(1.0-p*r+p*F)^2) * sdb^2);
+    return(Binf)
 }
 
 
@@ -1484,7 +1479,7 @@ sim.spict <- function(input, nobs=100){
         cat('Detected input as a SPiCT result, proceeding...\n')
         rep <- input
         inp <- rep$inp
-        p <- rep$pl
+        pl <- rep$pl
     } else {
         if('ini' %in% names(input)){
             cat('Detected input as a SPiCT inp, proceeding...\n')
@@ -1526,7 +1521,7 @@ sim.spict <- function(input, nobs=100){
                 for(i in 1:inp$nindex) inp$obsI[[i]] <- rep(10, inp$nobsI[i]) # Insert dummy
             }
             inp <- check.inp(inp)
-            p <- inp$ini
+            pl <- inp$ini
         } else {
             stop('Invalid input! use either an inp list or a fit.spict() result.')
         }
@@ -1538,15 +1533,17 @@ sim.spict <- function(input, nobs=100){
     # Calculate derived variables
     dt <- inp$dteuler
     nt <- length(time)
-    B0 <- exp(p$logbkfrac)*exp(p$logK)
-    F0 <- exp(p$logF0)
-    r <- exp(p$logr)
-    K <- exp(p$logK)
-    q <- exp(p$logq)
-    sdb <- exp(p$logsdb)
-    sdf <- exp(p$logsdf)
-    alpha <- exp(p$logalpha)
-    beta <- exp(p$logbeta)
+    B0 <- exp(pl$logbkfrac)*exp(pl$logK)
+    F0 <- exp(pl$logF0)
+    r <- exp(pl$logr)
+    K <- exp(pl$logK)
+    q <- exp(pl$logq)
+    p <- exp(pl$logp)
+    R <- r*p/(p+1)
+    sdb <- exp(pl$logsdb)
+    sdf <- exp(pl$logsdf)
+    alpha <- exp(pl$logalpha)
+    beta <- exp(pl$logbeta)
     sdi <- alpha * sdb
     sdc <- beta * sdf
 
@@ -1565,7 +1562,7 @@ sim.spict <- function(input, nobs=100){
     }
     # - B_infinity
     Binf <- rep(0,nt)
-    for(t in 1:nt) Binf[t] <- calc.binf(K, F[t], r, sdb, lamperti)
+    for(t in 1:nt) Binf[t] <- calc.binf(K, F[t], r, p, sdb, lamperti)
     # - Biomass -
     B <- rep(0,nt)
     B[1] <- B0
@@ -1610,12 +1607,17 @@ sim.spict <- function(input, nobs=100){
     sim$euler <- inp$euler
     sim$lamperti <- inp$lamperti
     sim$phases <- inp$phases
-    sim$true <- p
+    sim$true <- pl
     sim$true$B <- B
     sim$true$F <- F
-    sim$true$Bmsy <- K/2
-    sim$true$Fmsy <- ifelse(inp$lamperti, r/2 - sdb^2/2, r/2)
-    sim$true$MSY <- sim$true$Bmsy * sim$true$Fmsy
+    sim$true$R <- R
+    sim$true$Bmsyd <- K/((p+1)^(1/p))
+    sim$true$Fmsyd <- R
+    sim$true$MSYd <- sim$true$Bmsy * sim$true$Fmsy
+    # From Bordet & Rivest (2014)
+    sim$true$Bmsy <- K/(p+1)^(1/p) * (1- (1+R*(p-1)/2)/(R*(2-R)^2)*sdb^2)
+    sim$true$Fmsy <- R - p*(1-R)*sdb^2/((2-R)^2)
+    sim$true$MSY <- K*R/((p+1)^(1/p)) * (1 - (p+1)/2*sdb^2/(1-(1-R)^2))
     sim$true$errI <- errI
     sim$true$logB <- NULL
     sim$true$logF <- NULL
@@ -1769,7 +1771,7 @@ write.aspic <- function(input, filename='spictout.a7inp'){
     MSY <- exp(inp$ini$logK + inp$ini$logr)/4
     cat(sprintf('MSY   %3.2E  1  %3.2E  %3.2E\n', MSY, 0.03*MSY, 5000*MSY), file=filename, append=TRUE)
     Fmsy <- exp(inp$ini$logr)/2
-    cat(sprintf('Fmsy  %3.2E  1  %3.2E  %3.2E\n', Fmsy, 0.05*Fmsy, 10*Fmsy), file=filename, append=TRUE)
+    cat(sprintf('Fmsy  %3.2E  1  %3.2E  %3.2E\n', Fmsy, 0.01*Fmsy, 100*Fmsy), file=filename, append=TRUE)
     for(i in 1:inp$nindex) cat(sprintf('q     %3.2E  1  %3.2E  %3.2E  %3.2E\n', exp(inp$ini$logq[i]), 1, 0.001*exp(inp$ini$logq[i]), 100*exp(inp$ini$logq[i])), file=filename, append=TRUE)
     cat('DATA\n', file=filename, append=TRUE)
     cat('"Combined-Fleet Index, Total Landings"\n', file=filename, append=TRUE)

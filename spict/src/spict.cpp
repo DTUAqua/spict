@@ -12,12 +12,13 @@ inline Type predictlogF(const Type &phi1, const Type &logF1, const Type &phi2, c
 
 /* Calculate B_infinity */
 template<class Type>
-inline Type calculateBinf(const Type &K, const Type &F, const Type &r, const Type &sdb2=0, int lamperti=0)
+inline Type calculateBinf(const Type &K, const Type &F, const Type &r, const Type &p, const Type &sdb2=0, int lamperti=0)
 {
   if(lamperti){
-    return K * (1 - F/r - 0.5*sdb2/r);
+    // From Bordet & Rivest (2014)
+    return K * pow(1.0 - F/r, 1.0/p) * (1.0 - (p+1.0)/2.0 / (1.0-pow(1.0-p*r+p*F, 2.0)) * sdb2);
   } else {
-    return K * (1 - F/r);
+    return K * pow(1.0 - F/r, 1.0/p);
   }
 }
 
@@ -136,26 +137,18 @@ Type objective_function<Type>::operator() ()
   Type Rmean = 0.0;
   for(int i=0; i<nr; i++){ Rmean += R(i)/nr; }
   // Deterministic reference points
-  Type Bmsy = K/pow(p+1.0, 1.0/p);
-  Type Fmsy = Rmean;
-  /*
-  if(lamperti){
-    for(int i=0; i<nr; i++){ Fmsy += (r(i) - sdb2)/nr; }
-  } else {
-    for(int i=0; i<nr; i++){ Fmsy += R(i)/nr; }
-  }
-  */
-  //Fmsy = rmean/2.0;
-  Type MSY = Bmsy * Fmsy;
-  Type logBmsy = log(Bmsy);
-  Type logFmsy = log(Fmsy);
+  Type Bmsyd = K/pow(p+1.0, 1.0/p);
+  Type Fmsyd = Rmean;
+  Type MSYd = Bmsyd * Fmsyd;
+  Type logBmsyd = log(Bmsyd);
+  Type logFmsyd = log(Fmsyd);
 
   // Stochastic reference points
-  Type Bmsys = Bmsy * (1.0 - (1.0 + Rmean*(p-1.0)/2.0)/(Rmean*pow(2.0-Rmean, 2.0)));
-  Type Fmsys = Fmsy - p*(1.0-Rmean) / pow(2.0-Rmean, 2.0) * sdb2;
-  Type MSYs = MSY * (1.0 - (p+1)/2.0 / (1.0 - pow(1.0-Rmean, 2.0)));
-  Type logBmsys = log(Bmsys);
-  Type logFmsys = log(Fmsys);
+  Type Bmsy = Bmsyd * (1.0 - (1.0 + Rmean*(p-1.0)/2.0) / (Rmean*pow(2.0-Rmean, 2.0)) * sdb2);
+  Type Fmsy = Fmsyd - p*(1.0-Rmean) / pow(2.0-Rmean, 2.0) * sdb2;
+  Type MSY = MSYd * (1.0 - (p+1)/2.0 / (1.0 - pow(1.0-Rmean, 2.0)) * sdb2);
+  Type logBmsy = log(Bmsy);
+  Type logFmsy = log(Fmsy);
 
   Type likval;
 
@@ -229,7 +222,7 @@ Type objective_function<Type>::operator() ()
   }
 
   // CALCULATE B_infinity
-  for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), rvec(i), sdb2, lamperti); 
+  for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), rvec(i), p, sdb2, lamperti); 
   logBinf = log(Binf);
 
   // BIOMASS PREDICTIONS
@@ -342,7 +335,7 @@ Type objective_function<Type>::operator() ()
   Type Bpmsy;
   Type Binfpmsy;
   Type Cpmsy;
-  Binfpmsy = calculateBinf(K, Fmsy, rvec(ns-1), sdb2, lamperti);
+  Binfpmsy = calculateBinf(K, Fmsy, rvec(ns-1), p, sdb2, lamperti);
   Bpmsy = predictB(B(ns-1), Binfpmsy, Fmsy, rvec(ns-1), K, dtpred, p, sdb2, lamperti, euler);
   Cpmsy = predictC(Fmsy, K, rvec(ns-1), Bpmsy, Binfpmsy, dtpred, sdb2, lamperti, euler);
   Type logBpmsy = log(Bpmsy);
@@ -365,17 +358,18 @@ Type objective_function<Type>::operator() ()
   ADREPORT(r);
   ADREPORT(K);
   ADREPORT(q);
+  ADREPORT(logp);
   ADREPORT(sdf);
   ADREPORT(sdc);
   ADREPORT(sdb);
   ADREPORT(sdi);
   ADREPORT(MSY);
-  ADREPORT(MSYs);
+  ADREPORT(MSYd);
   // B
   ADREPORT(Bmsy);
   ADREPORT(logBmsy);
-  ADREPORT(Bmsys);
-  ADREPORT(logBmsys);
+  ADREPORT(Bmsyd);
+  ADREPORT(logBmsyd);
   ADREPORT(logBp);
   ADREPORT(logBpmsy);
   ADREPORT(logBpBmsy);
@@ -387,8 +381,8 @@ Type objective_function<Type>::operator() ()
   // F
   ADREPORT(Fmsy);
   ADREPORT(logFmsy);
-  ADREPORT(Fmsys);
-  ADREPORT(logFmsys);
+  ADREPORT(Fmsyd);
+  ADREPORT(logFmsyd);
   ADREPORT(logFp);
   ADREPORT(logFpFmsy);
   ADREPORT(logFl);
