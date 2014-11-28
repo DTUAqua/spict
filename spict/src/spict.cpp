@@ -175,7 +175,7 @@ Type objective_function<Type>::operator() ()
       std::cout << "-- i: " << i << "-- ind: " << ind << " -   rvec(i): " << rvec(i) << std::endl;
     }
   }
-  for(int i=0; i<indpred.size(); i++){
+  for(int i=1; i<indpred.size(); i++){ // don't use i=0 because this is only for plotting
     ind = CppAD::Integer(indpred(i)-1); // minus 1 because R starts at 1 and c++ at 0
     ffacvec(ind) = ffac;
     if(dbg>1){
