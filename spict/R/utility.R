@@ -8,12 +8,14 @@ setClass("spictcls")
 #' @examples
 #' rep <- test.spict()
 #' @export
-test.spict <- function(){
+test.spict <- function(dataset='albacore'){
     # Load data
     data(pol)
-    inp <- pol$albacore
-    inp$dtpred <- 6
-    inp$ffac <- 0.9
+    inp <- pol[[dataset]]
+    if(dataset=='albacore'){
+        inp$dtpred <- 6
+        inp$ffac <- 0.9
+    }
     # Fit model
     rep <- fit.spict(inp)
     # Calculate one-step-ahead residuals
@@ -48,7 +50,7 @@ NULL
 #' \itemize{
 #'  \item{"inp$obsC"}{ Vector of catch observations.}
 #'  \item{"inp$obsI"}{ List containing vectors of index observations.}
-#'  \item{"inp$ini$logr"}{ Initial value for logr (log intrinsic growth rate).}
+#'  \item{"inp$ini$logr"}{ Initial value(s) for logr (log intrinsic growth rate). Can be specified as a scalar, or a vector of length 2 or 4. If length(logr)=2 different r values are estimated for first and second half of the year, if length(logr)=4 different r values are estimated for the four quarters of the year.}
 #'  \item{"inp$ini$logK"}{ Initial value for logK (log carrying capacity).}
 #'  \item{"inp$ini$logq"}{ Initial value for logq (log catchability of index).}
 #'  \item{"inp$ini$logsdb"}{ Initial value for logsdb (log standard deviation of log biomass).}
@@ -66,7 +68,7 @@ NULL
 #'  \item{"inp$ini$logbeta"}{ Default: 0.}
 #'  \item{"inp$ini$logF"}{ Default: logF0.}
 #'  \item{"inp$ini$logB"}{ Default: bkfrac*K.}
-#'  \item{"inp$ffac"}{ Management scenario represented by a factor to multiply F with when calculating the F of the next time step. ffac=0.8 means a 20\% reduction in F for the next time step. The factor is only used when predicting beyond the data set. Default: 1.}
+#'  \item{"inp$ffac"}{ Management scenario represented by a factor to multiply F with when calculating the F of the next time step. ffac=0.8 means a 20\% reduction in F over the next year. The factor is only used when predicting beyond the data set. Default: 1 (0\% reduction).}
 #'  \item{"inp$lamperti"}{ Logical indicating whether to use Lamperti transformed equations (recommended). Default: TRUE.}
 #'  \item{"inp$euler"}{ Logical indicating whether to use Euler time discretisation (recommended). Default: TRUE.}
 #'  \item{"inp$dtc"}{ Time interval for catches, e.g. for annual catches inp$dtc=1, for quarterly catches inp$dtc=0.25. Can be given as a scalar, which is then used for all catch observations. Can also be given as a vector specifying the catch interval of each catch observation. Default: min(diff(inp$timeC)). }
@@ -147,8 +149,23 @@ check.inp <- function(inp){
     if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
     if(length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
     if(!"dteuler" %in% names(inp)) inp$dteuler <- min(inp$dtc)
+    inp$ffaceuler <- inp$ffac^inp$dteuler
     if(!"delay" %in% names(inp)) inp$delay <- 1
-    if(!"dtpred" %in% names(inp)) inp$dtpred <- min(inp$dtc)
+    if(!"dtpredc" %in% names(inp)){
+        if("dtpred" %in% names(inp)){
+            inp$dtpredc <- inp$dtpred
+        } else {
+            inp$dtpredc <- min(inp$dtc)
+        }
+    }
+    if(!"dtpredi" %in% names(inp)){
+        if("dtpred" %in% names(inp)){
+            inp$dtpredi <- inp$dtpred
+        } else {
+            inp$dtpredi <- min(inp$dtc)
+        }
+    }
+    dtpredmax <- max(c(inp$dtpredc, inp$dtpredi))
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB')
     if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
 
@@ -164,12 +181,7 @@ check.inp <- function(inp){
     timeobs <- c(timeobs, inp$timeC + inp$dtc)
     for(i in 1:inp$nindex) timeobs <- c(timeobs, inp$timeI[[i]])
     inp$timerange <- range(timeobs)
-    # Add two dtc intervals, one for the final catch observation, and one for the predicted catch
-    #mindtc <- min(inp$dtc)
-    #lastdtc <- tail(inp$dtc,1)
-    #timepad <- lastdtc + inp$dtpred
-    #time <- seq(inp$timerange[1], inp$timerange[2]+timepad, by=inp$dteuler)
-    time <- seq(inp$timerange[1], inp$timerange[2]+inp$dtpred, by=inp$dteuler)
+    time <- seq(inp$timerange[1], inp$timerange[2]+dtpredmax, by=inp$dteuler)
     # Remove duplicate time points and store time in inp list
     inp$time <- sort(unique(c(timeobs, time)))
     inp$ns <- length(inp$time)
@@ -178,7 +190,7 @@ check.inp <- function(inp){
     inp$indpred <- which(inp$time >= inp$timerange[2])
     # ic is the indices of inp$time to which catch observations correspond
     dtcpred <- min(inp$dtc)
-    inp$timeCp <- unique(c(inp$timeC, (tail(inp$timeC,1) + seq(0, inp$dtpred, by=dtcpred))))
+    inp$timeCp <- unique(c(inp$timeC, (tail(inp$timeC,1) + seq(0, inp$dtpredc, by=dtcpred))))
     inp$nobsCp <- length(inp$timeCp)
     inp$dtcp <- c(inp$dtc, rep(dtcpred, inp$nobsCp-inp$nobsC))
     inp$ic <- match(inp$timeCp, inp$time)
@@ -195,10 +207,11 @@ check.inp <- function(inp){
     # Calculate time steps
     inp$dt <- diff(inp$time)
     # Add helper variable such that predicted catch can be calculated using small euler steps
-    #inp$dtpredinds <- which(inp$time >= (inp$timerange[2]+lastdtc) & inp$time < (inp$timerange[2]+timepad))
-    inp$dtpredinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpred))
-    inp$dtprednsteps <- length(inp$dtpredinds)
-    #if(tail(inp$ic,1) == inp$ns) inp$dt <- c(inp$dt, tail(inp$dtc,1))
+    # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
+    # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
+    inp$dtpredcinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpredc))
+    inp$dtpredcnsteps <- length(inp$dtpredcinds)
+    inp$dtprediind <- which(inp$time == (inp$timerange[2]+inp$dtpredi))
     
     # -- MODEL PARAMETERS --
     # Check that required initial values are specified
@@ -400,7 +413,7 @@ fit.spict <- function(inp, dbg=0){
     #if(!'checked' %in% names(inp)) inp <- check.inp(inp)
     #if(!inp$checked)
     inp <- check.inp(inp)
-    datin <- list(delay=inp$delay, dt=inp$dt, dtpred=inp$dtpred, dtpredinds=inp$dtpredinds, dtprednsteps=inp$dtprednsteps, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp$indpred, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
+    datin <- list(delay=inp$delay, dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, ffac=inp$ffaceuler, indpred=inp$indpred, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
     pl <- inp$ini
     for(i in 1:inp$nphases){
         if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
@@ -438,73 +451,7 @@ fit.spict <- function(inp, dbg=0){
             stop('Could not fit model, try changing the initial parameter guess in inp$ini. Error msg:', opt)
         }
     }
-    class(rep) <- "spictcls"
-    return(rep)
-}
-
-
-#' @name calc.osa.resid.old
-#' @title Calculate one-step-ahead residuals.
-#' @details In TMB one-step-ahead residuals are calculated by sequentially including one data point at a time while keeping the model parameters fixed at their ML estimates. The calculated residuals are tested for independence in lag 1 using the Ljung-Box test (see Box.test).
-#' @param rep A result report as generated by running fit.spict.
-#' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. Will print even more if set to 2.
-#' @return An updated result report, which contains one-step-ahead residuals stored in the $osar variable.
-#' @export
-#' @examples
-#' data(pol)
-#' rep <- fit.spict(pol$albacore)
-#' rep <- calc.osa.resid(rep)
-#' plotspict.osar(rep)
-#' @import TMB
-calc.osa.resid.old <- function(rep, dbg=0){
-    inp <- rep$inp
-    inp$ffac <- 1
-    if("logF" %in% names(inp$ini)) inp$ini$logF <- NULL
-    if("logB" %in% names(inp$ini)) inp$ini$logB <- NULL
-    if("ns" %in% names(inp)) inp$ns <- NULL
-    predmap <- get.predmap(rep$pl, inp$RE)
-    plnew <- rep$pl
-    logCpred <- rep(0, inp$nobsC-1)
-    logIpred <- list()
-    for(i in 1:inp$nindex) logIpred[[i]] <- rep(0, inp$nobsI[i]-1)
-    for(nadj in inp$delay:(inp$nobsC-1)){
-        inp2 <- inp
-        inp2$timeC <- inp$timeC[1:nadj]
-        inp2$obsC <- inp$obsC[1:nadj]
-        inp2$dtc <- inp$dtc[1:nadj]
-        inp2$dtpred <- inp$dtc[nadj+1]
-        endtime <- inp$timeC[nadj]
-        for(i in 1:inp$nindex){
-            Iind <- which(inp$timeI[[i]] <= endtime)
-            inp2$timeI[[i]] <- inp$timeI[[i]][Iind] 
-            inp2$obsI[[i]] <- inp$obsI[[i]][Iind]
-        }
-        inp2 <- check.inp(inp2)
-        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp2$indpred, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
-        for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
-        objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
-        verbose <- FALSE
-        objpred$env$tracemgc <- verbose
-        objpred$env$inner.control$trace <- verbose
-        objpred$env$silent <- ! verbose
-        objpred$fn()
-        logCpred[nadj] <- log(objpred$report()$Cp)
-        for(i in 1:inp$nindex) logIpred[[i]][nadj] <- objpred$report()$logIp[i]
-    }
-    # Catches
-    if(inp$delay>1) logCpred <- logCpred[-(1:(inp$delay-1))]
-    timeC <- inp$timeC[-(1:inp$delay)]
-    logCpres <- log(inp$obsC[-(1:inp$delay)]) - logCpred
-    logCpboxtest <- Box.test(logCpres, lag=1, type='Ljung-Box')
-    # Indices
-    logIpres <- list()
-    logIpboxtest <- list()
-    for(i in 1:inp$nindex){
-        #logIpres[[i]] <- log(inp$obsI[[i]][-1]) - logIpred[[i]][inp$ii[[i]][-1]] # WRONG
-        logIpres[[i]] <- rep(0, inp$nobsI[i])
-        logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=1, type='Ljung-Box')
-    }
-    rep$osar <- list(logCpres=logCpres, logCpred=logCpred, timeC=timeC, logCpboxtest=logCpboxtest, logIpres=logIpres, logIpred=logIpred, logIpboxtest=logIpboxtest)
+    if(!is.null(rep)) class(rep) <- "spictcls"
     return(rep)
 }
 
@@ -579,10 +526,11 @@ calc.osa.resid <- function(rep, dbg=0){
             iindm <- which(inp$timeI[[i]] == timepred[j])
             if(length(iindm)==1) obsmat[j, i+1] <- inp$obsI[[i]][iindm]
         }
-        inp2$dtpred <- timepred[j] - max(endtimes)
-        if(haveobs[j, 1] == 1) if(inp2$dtpred < inp$dtc[which(inp$timeC == timepred[j])]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
+        inp2$dtpredc <- timepred[j] - max(endtimes)
+        inp2$dtpredi <- timepred[j] - max(endtimes)
+        if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[which(inp$timeC == timepred[j])]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
         inp2 <- check.inp(inp2)
-        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpred=inp2$dtpred, dtpredinds=inp2$dtpredinds, dtprednsteps=inp2$dtprednsteps, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp2$indpred, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
+        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp2$indpred, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         verbose <- FALSE
@@ -716,8 +664,14 @@ arrow.line <- function(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"
 annual <- function(intime, vec){
     anntime <- intime[which(intime %% 1 ==0)]
     nanntime <- length(anntime)
-    annvec <- rep(0, nanntime)
+    nstepvec <- rep(0, nanntime)
     floortime <- floor(intime)
+    for(i in 1:nanntime) nstepvec[i] <- sum(anntime[i]==floortime)
+    nsteps <- max(nstepvec)
+    # Remove years that are not full
+    anntime <- anntime[which(nstepvec==max(nstepvec))]
+    nanntime <- length(anntime)
+    annvec <- rep(0, nanntime)
     for(i in 1:nanntime){
         inds <- which(anntime[i]==floortime)
         annvec[i] <- mean(vec[inds])
@@ -902,26 +856,24 @@ plotspict.f <- function(rep, logax=FALSE){
         FF <- get.par('logFFmsy', rep, exp=TRUE)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
         rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
+        rest <- apply(rest, 2, mean)
 
         if(min(inp$dtc) < 1){
         #if(TRUE){
             # Annual    
-            al1 <- annual(inp$time[inp$indest], Fest[inp$indest, 1])
-            al2 <- annual(inp$time[inp$indest], Fest[inp$indest, 2])
-            al3 <- annual(inp$time[inp$indest], Fest[inp$indest, 3])
-            inds <- which(!is.na(al1$annvec))
+            al1 <- annual(inp$time, Fest[, 1])
+            al2 <- annual(inp$time, Fest[, 2])
+            al3 <- annual(inp$time, Fest[, 3])
+            inds <- which(!is.na(al1$annvec) & al2$anntime<=tail(inp$time[inp$indest],1))
             time <- al1$anntime[inds]
             cl <- al1$annvec[inds]
             F <- al2$annvec[inds]
             cu <- al3$annvec[inds]
-            al1p <- annual(inp$time[inp$indpred], Fest[inp$indpred, 1])
-            al2p <- annual(inp$time[inp$indpred], Fest[inp$indpred, 2])
-            al3p <- annual(inp$time[inp$indpred], Fest[inp$indpred, 3])
-            inds <- which(!is.na(al1p$annvec))
-            timep <- al1p$anntime[inds]
-            clp <- al1p$annvec[inds]
-            Fp <- al2p$annvec[inds]
-            cup <- al3p$annvec[inds]
+            inds <- which(!is.na(al1$annvec) & al2$anntime>=tail(inp$time[inp$indest],1))
+            timep <- al1$anntime[inds]
+            clp <- al1$annvec[inds]
+            Fp <- al2$annvec[inds]
+            cup <- al3$annvec[inds]
             al1f <- annual(inp$time, FF[, 1])
             al2f <- annual(inp$time, FF[, 2])
             al3f <- annual(inp$time, FF[, 3])
@@ -1002,6 +954,7 @@ plotspict.fb <- function(rep, logax=FALSE){
         ns <- dim(Best)[1]
         qest <- get.par('logq', rep, exp=TRUE, fixed=TRUE)
         rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
+        rest <- apply(rest, 2, mean)
         Fest <- get.par('logF', rep, exp=TRUE, random=TRUE)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
         Fp <- Fest[ns,]
@@ -1068,8 +1021,6 @@ plotspict.catch <- function(rep){
         Cscal <- 1
         cicol <- 'lightgray'
         MSY <- get.par('MSY', rep, exp=FALSE)
-        Cpmsy <- get.par('Cpmsy', rep)
-        Cpmsy[Cpmsy<0] <- 0
         Cpredsub <- get.par('Cpredsub', rep)
         Pest <- get.par('P', rep)
         Cpredest <- get.par('logCpred', rep, exp=TRUE)
@@ -1145,6 +1096,7 @@ plotspict.production <- function(rep){
         Best <- get.par('logB', rep, exp=TRUE, random=TRUE)
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
         rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
+        rest <- apply(rest, 2, mean)
         p <- get.par('logp', rep, exp=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
         Pest <- get.par('P', rep)
@@ -1216,48 +1168,51 @@ plotspict.tc <- function(rep){
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
         B0cur <- Best[inp$indlastobs, 2]
-        if(B0cur < Bmsy[2]) facvec <- c(0, 0.75, 0.95, 1)
-        if(B0cur > Bmsy[2]) facvec <- c(2, 1.25, 1.05, 1)
-        Fvec <- round(facvec*Fmsy[2], digits=4)
-        nFvec <- length(Fvec)
-        g <- function(F, K, r, p, sdb, B0, dt, lamperti){
-            if(lamperti){
-                return(exp(log(B0) + (r - r*(B0/K)^p - F - 0.5*sdb^2)*dt))
-            } else {
-                return(B0 + B0*r*(1 - (B0/K)^p - F)*dt)
+        if(B0cur < Bmsy[2]) do.flag <- ifelse(B0cur/Bmsy[2]>0.95, FALSE, TRUE)
+        if(B0cur > Bmsy[2]) do.flag <- ifelse(Bmsy[2]/B0cur>0.95, FALSE, TRUE)
+        if(do.flag){
+            if(B0cur < Bmsy[2]) facvec <- c(0, 0.75, 0.95, 1)
+            if(B0cur > Bmsy[2]) facvec <- c(2, 1.25, 1.05, 1)
+            Fvec <- round(facvec*Fmsy[2], digits=4)
+            nFvec <- length(Fvec)
+            g <- function(F, K, r, p, sdb, B0, dt, lamperti){
+                if(lamperti){
+                    return(exp(log(B0) + (r - r*(B0/K)^p - F - 0.5*sdb^2)*dt))
+                } else {
+                    return(B0 + B0*r*(1 - (B0/K)^p - F)*dt)
+                }
             }
-        }
-        simdt <- 0.01
-        nt <- 5000
-        Bsim <- matrix(0, nFvec, nt)
-        time <- matrix(0, nFvec, nt)
-        for(i in 1:nFvec){
-            time[i, ] <- seq(0, simdt*(nt-1), by=simdt)
-            Bsim[i, ] <- rep(0, nt)
-            Bsim[i, 1] <- B0cur
-            for(j in 2:nt){
-                Bsim[i, j] <- g(Fvec[i], Kest[2], rest[2], p[2], sdbest[2], Bsim[i, j-1], simdt, inp$lamperti)
+            simdt <- 0.01
+            nt <- 5000
+            Bsim <- matrix(0, nFvec, nt)
+            time <- matrix(0, nFvec, nt)
+            for(i in 1:nFvec){
+                time[i, ] <- seq(0, simdt*(nt-1), by=simdt)
+                Bsim[i, ] <- rep(0, nt)
+                Bsim[i, 1] <- B0cur
+                for(j in 2:nt){
+                    Bsim[i, j] <- g(Fvec[i], Kest[2], rest[2], p[2], sdbest[2], Bsim[i, j-1], simdt, inp$lamperti)
+                }
             }
+            Bsim <- Bsim/Bmsy[2]
+            frac <- 0.95
+            if(B0cur < Bmsy[2]) inds <- which(Bsim[nFvec, ]<0.99)
+            if(B0cur > Bmsy[2]) inds <- which(Bsim[nFvec, ]>(1/0.99))
+            plot(time[1, ], Bsim[1, ], typ='l', xlim=range(time[nFvec, inds]), ylim=range(Bsim[nFvec, ]), col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy')
+            abline(h=c(frac, 1/frac), lty=1, col='lightgray')
+            abline(h=1, lty=3)
+            for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=i+2)
+            vt <- rep(0, nFvec)
+            if(B0cur < Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(Bsim[i, ]<frac))]
+            if(B0cur > Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(1/Bsim[i, ]<frac))]
+            for(i in 1:nFvec) abline(v=vt[i], col=i+2, lty=2)
+            lgnplace <- 'bottomright'
+            if(B0cur > Bmsy[2]) lgnplace <- 'topright'
+            legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=2+(1:nFvec), lwd=rep(1,nFvec), bg='white')
+            points(vt, rep(par('usr')[3], nFvec), col=3:(nFvec+2), pch=4)
         }
-        Bsim <- Bsim/Bmsy[2]
-        frac <- 0.95
-        if(B0cur < Bmsy[2]) inds <- which(Bsim[nFvec, ]<0.99)
-        if(B0cur > Bmsy[2]) inds <- which(Bsim[nFvec, ]>(1/0.99))
-        plot(time[1, ], Bsim[1, ], typ='l', xlim=range(time[nFvec, inds]), ylim=range(Bsim[nFvec, ]), col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy')
-        abline(h=c(frac, 1/frac), lty=1, col='lightgray')
-        abline(h=1, lty=3)
-        for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=i+2)
-        vt <- rep(0, nFvec)
-        if(B0cur < Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(Bsim[i, ]<frac))]
-        if(B0cur > Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(1/Bsim[i, ]<frac))]
-        for(i in 1:nFvec) abline(v=vt[i], col=i+2, lty=2)
-        lgnplace <- 'bottomright'
-        if(B0cur > Bmsy[2]) lgnplace <- 'topright'
-        legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=2+(1:nFvec), lwd=rep(1,nFvec), bg='white')
-        points(vt, rep(par('usr')[3], nFvec), col=3:(nFvec+2), pch=4)
     }
 }
-
 
 #' @name plot.spictcls
 #' @title 3x3 plot illustrating spict results.
@@ -1328,7 +1283,9 @@ plot.spictcls <- function(rep, logax=FALSE){
 #' rep <- fit.spict(pol$albacore)
 #' summary(rep)
 #' @export
-summary.spictcls <- function(object, numdigits=4){
+summary.spictcls <- function(object, numdigits=8){
+    #options("scipen"=-100, "digits"=numdigits)
+    options("scipen"=-3)
     rep <- object
     cat(paste('Convergence: ', rep$opt$convergence, '  MSG: ', rep$opt$message, '\n', sep=''))
     if(rep$opt$convergence>0) cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and should not be used.\n')

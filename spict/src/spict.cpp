@@ -68,9 +68,11 @@ Type objective_function<Type>::operator() ()
 
   DATA_INTEGER(delay);     // Delay
   DATA_VECTOR(dt);         // Time steps
-  DATA_SCALAR(dtpred);     // Time step for prediction
-  DATA_VECTOR(dtpredinds);
-  DATA_INTEGER(dtprednsteps); // Number of sub time step for prediction
+  //DATA_SCALAR(dtpredc);     // Time step for prediction
+  DATA_VECTOR(dtpredcinds);
+  DATA_INTEGER(dtpredcnsteps); // Number of sub time step for prediction
+  //DATA_SCALAR(dtpredi);     // Time step for predictions of indices
+  DATA_SCALAR(dtprediind);
   DATA_VECTOR(obsC);       // Catches
   DATA_VECTOR(ic);         // Vector such that B(ii(i)) is the state corresponding to obsC(i)
   DATA_VECTOR(nc);         // nc(i) gives the number of time intervals obsC(i) spans
@@ -307,23 +309,23 @@ Type objective_function<Type>::operator() ()
   // ONE-STEP-AHEAD PREDICTIONS
   if(dbg>0){
     std::cout << "--- DEBUG: ONE-STEP-AHEAD PREDICTIONS" << std::endl;
-    std::cout << "-- dtprednsteps: " << dtprednsteps << "  dtpredinds.size(): " << dtpredinds.size() <<std::endl;
+    std::cout << "-- dtpredcnsteps: " << dtpredcnsteps << "  dtpredcinds.size(): " << dtpredcinds.size() <<std::endl;
   }
   Type Cp = 0.0;
-  for(int i=0; i<dtprednsteps; i++){
-    ind = CppAD::Integer(dtpredinds(i)-1);
+  for(int i=0; i<dtpredcnsteps; i++){
+    ind = CppAD::Integer(dtpredcinds(i)-1);
     if(dbg>1){
-      std::cout << "-- dtpredinds(i)-1: " << ind << std::endl;
+      std::cout << "-- i: " << i << " -  dtpredcinds(i)-1: " << ind << std::endl;
     }
     Cp += Cpredsub(ind);
   }
   Type logCp = log(Cp);
 
-  // This is the biomass and F at the beginning of the catch prediction time interval
-  Type Bp = B(CppAD::Integer(dtpredinds(0)-1)); 
+  // Biomass and F at the end of the prediction time interval
+  Type Bp = B(CppAD::Integer(dtprediind-1)); 
   Type logBp = log(Bp);
   Type logBpBmsy = logBp - logBmsy;
-  Type logFp = logF(CppAD::Integer(dtpredinds(0)-1)); 
+  Type logFp = logF(CppAD::Integer(dtprediind-1)); 
   Type logFpFmsy = logFp - logFmsy;
 
   vector<Type> logIp(nq);
@@ -332,6 +334,7 @@ Type objective_function<Type>::operator() ()
   }
 
   // MSY PREDICTIONS
+  /*
   Type Bpmsy;
   Type Binfpmsy;
   Type Cpmsy;
@@ -339,11 +342,13 @@ Type objective_function<Type>::operator() ()
   Bpmsy = predictB(B(ns-1), Binfpmsy, Fmsy, rvec(ns-1), K, dtpred, p, sdb2, lamperti, euler);
   Cpmsy = predictC(Fmsy, K, rvec(ns-1), Bpmsy, Binfpmsy, dtpred, sdb2, lamperti, euler);
   Type logBpmsy = log(Bpmsy);
+  */
 
   // Biomass and fishing mortality at last time point
-  Type logBl = logB(CppAD::Integer(dtpredinds(0)-2)); 
+  // dtpredcinds(0) is the index of B and F corresponding to the time of the last observation.
+  Type logBl = logB(CppAD::Integer(dtpredcinds(0)-1)); 
   Type logBlBmsy = logBl - logBmsy;
-  Type logFl = logF(CppAD::Integer(dtpredinds(0)-2)); 
+  Type logFl = logF(CppAD::Integer(dtpredcinds(0)-1)); 
   Type logFlFmsy = logFl - logFmsy;
 
   // Biomass and fishing mortality over msy levels
@@ -371,7 +376,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(Bmsyd);
   ADREPORT(logBmsyd);
   ADREPORT(logBp);
-  ADREPORT(logBpmsy);
+  //ADREPORT(logBpmsy);
   ADREPORT(logBpBmsy);
   ADREPORT(logBinf);
   ADREPORT(logB0);
@@ -389,7 +394,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logFlFmsy);
   ADREPORT(logFFmsy);
   // C
-  ADREPORT(Cpmsy);
+  //ADREPORT(Cpmsy);
   ADREPORT(Cpredsub);
   ADREPORT(logCpred);
   ADREPORT(logCp);
