@@ -222,9 +222,9 @@ check.inp <- function(inp){
         if(!nr %in% c(1, 2, 4)){
             stop('logr must be a vector of length either 1, 2 or 4.')
         }
-        min <- log(0.3)-3
-        max <- log(0.3)+3
-        for(i in 1:nr) if(inp$ini$logr[i] < min | inp$ini$logr[i] > max) stop('Please specify a value for logr(', i, ') in the interval: [', min, ';', max, ']')
+        #min <- log(0.3)-3
+        #max <- log(0.3)+3
+        #for(i in 1:nr) if(inp$ini$logr[i] < min | inp$ini$logr[i] > max) stop('Please specify a value for logr(', i, ') in the interval: [', min, ';', max, ']')
         # ir is the mapping from time to the r vector
         inp$ir <- rep(0, inp$ns)
         for(i in 1:nr){
@@ -340,9 +340,9 @@ check.inp <- function(inp){
 #' @return If the check passes nothing is returned, otherwise an error is returned.
 check.ini <- function(parname, inp, min=NULL, max=NULL){
     if(!parname %in% names(inp$ini)) stop('Please specify an initial value for ', parname, '!')
-    if(!is.null(min) & !is.null(max)){
-        if(inp$ini[[parname]] < min | inp$ini[[parname]] > max) stop('Please specify a value for ', parname, ' in the interval: [', min, ';', max, ']')
-    }
+    #if(!is.null(min) & !is.null(max)){
+    #    if(inp$ini[[parname]] < min | inp$ini[[parname]] > max) stop('Please specify a value for ', parname, ' in the interval: [', min, ';', max, ']')
+    #}
 }
 
 
@@ -960,7 +960,7 @@ plotspict.fb <- function(rep, logax=FALSE){
         Fp <- Fest[ns,]
         inds <- c(which(names(rep$value)=='logBmsy'), which(names(rep$value)=='logFmsy'))
         cl <- make.ellipse(inds, rep)
-        xlim <- range(c(exp(cl[,1]),Best[,2])/scal)
+        xlim <- range(c(tail(Binf[,2],1),exp(cl[,1]),Best[,2])/scal)
         ylim <- range(c(exp(cl[,2]),Fest[,2]))
         main <- paste('logalpha:',rep$pl$logalpha,'r:',round(rest[2],3),'q:',round(qest[2],3))
         par(mar=c(5,4,4,4))
@@ -1104,16 +1104,19 @@ plotspict.production <- function(rep){
         Bplot <- seq(0.5*min(Best[, 2]), 1*max(Best[, 2]), length=nBplot)
         pfun <- function(r, K, p, B) r*B*(1 - (B/K)^p)
         Pst <- pfun(rest[2], Kest[2], p[2], Bplot)
-        xlim <- range(Bplot/Bmsy[2])
+        xlim <- range(Bplot/Kest[2])
         Bvec <- Best[-1, 2]
         dt <- inp$dt[-1]
         inde <- inp$indest[-length(inp$indest)]
         indp <- inp$indpred[-1]-1
-        plot(Bvec[inde]/Bmsy[2], Pest[inde, 2]/dt[inde]/Bmsy[2], typ='l', ylim=range(Pest[,2]/inp$dt/Bmsy[2], Pst/Bmsy[2]), xlim=xlim, xlab='B/Bmsy', ylab='Production/Bmsy', col=4, main='Production curve')
-        lines(Bvec[indp]/Bmsy[2], Pest[indp, 2]/dt[indp]/Bmsy[2], col=4, lty=3)
-        lines(Bplot/Bmsy[2], Pst/Bmsy[2], col=1)
+        plot(Bvec[inde]/Kest[2], Pest[inde, 2]/dt[inde]/Bmsy[2], typ='l', ylim=range(Pest[,2]/inp$dt/Bmsy[2], Pst/Bmsy[2]), xlim=xlim, xlab='B/K', ylab='Production/Bmsy', col=4, main='Production curve')
+        lines(Bvec[indp]/Kest[2], Pest[indp, 2]/dt[indp]/Bmsy[2], col=4, lty=3)
+        lines(Bplot/Kest[2], Pst/Bmsy[2], col=1)
         #arrow.line(Best[-1, 2]/Bmsy[2], Pest[,2]/inp$dt/Bmsy[2], length=0.05)
-        abline(v=1, lty=3)
+        m <- p[2]+1
+        mx <- (1/m)^(1/(m-1))
+        abline(v=mx, lty=3)
+        abline(h=0, lty=3)
     }
 }
 
@@ -1582,7 +1585,7 @@ predict.c <- function(F, K, r, B0, Binf, dt, sdb=0, lamperti=FALSE, euler=FALSE)
 
 
 #' @name sim.spict
-#' @title Simulate data from Schaefer model
+#' @title Simulate data from Pella-Tomlinson model
 #' @details Simulates data using either manually specified parameters values or parameters estimated by fit.spict().
 #'
 #' Manual specification:
@@ -1672,7 +1675,7 @@ sim.spict <- function(input, nobs=100){
     K <- exp(pl$logK)
     q <- exp(pl$logq)
     p <- exp(pl$logp)
-    R <- r*p/(p+1)
+    R <- mean(r*p/(p+1)) # Take mean in the case r is a vector
     sdb <- exp(pl$logsdb)
     sdf <- exp(pl$logsdf)
     alpha <- exp(pl$logalpha)
@@ -1691,19 +1694,19 @@ sim.spict <- function(input, nobs=100){
     flag <- TRUE
     while(flag){
         F <- c(F0, exp(log(F0) + cumsum(rnorm(nt-1, 0, sdf*sqrt(dt))))) # Fishing mortality
-        flag <- any(F >= 1.5*r) # Do this to avoid crazy F values
+        flag <- any(F >= 1.5*max(r)) # Do this to avoid crazy F values
     }
     # - B_infinity
     Binf <- rep(0,nt)
-    for(t in 1:nt) Binf[t] <- calc.binf(K, F[t], r, p, sdb, lamperti)
+    for(t in 1:nt) Binf[t] <- calc.binf(K, F[t], r[inp$ir[t]], p, sdb, lamperti)
     # - Biomass -
     B <- rep(0,nt)
     B[1] <- B0
     e <- exp(rnorm(nt-1, 0, sdb*sqrt(dt)))
-    for(t in 2:nt) B[t] <- predict.b(B[t-1], Binf[t-1], F[t-1], r, K, dt, sdb, lamperti, euler) * e[t-1]
+    for(t in 2:nt) B[t] <- predict.b(B[t-1], Binf[t-1], F[t-1], r[inp$ir[t]], K, dt, sdb, lamperti, euler) * e[t-1]
     # - Catch -
     Csub <- rep(0,nt)
-    for(t in 1:nt) Csub[t] <- predict.c(F[t], K, r, B[t], Binf[t], dt, sdb, lamperti, euler)
+    for(t in 1:nt) Csub[t] <- predict.c(F[t], K, r[inp$ir[t]], B[t], Binf[t], dt, sdb, lamperti, euler)
     # - Production -
     Psub <- rep(0,nt)
     for(t in 2:nt) Psub[t-1] <- B[t] - B[t-1] + Csub[t-1]
