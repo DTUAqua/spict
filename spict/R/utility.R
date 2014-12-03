@@ -137,6 +137,8 @@ check.inp <- function(inp){
     }
 
     # -- MODEL OPTIONS --
+    if(!"tdfc" %in% names(inp)) inp$tdfc <- 100
+    if(!"tdfi" %in% names(inp)) inp$tdfi <- 100
     if(!"ffac" %in% names(inp)) inp$ffac <- 1
     if(!"lamperti" %in% names(inp)) inp$lamperti <- 1
     inp$lamperti <- 1 # Since Pella-Tomlinson form was implemented only Lamperti is allowed
@@ -413,7 +415,7 @@ fit.spict <- function(inp, dbg=0){
     #if(!'checked' %in% names(inp)) inp <- check.inp(inp)
     #if(!inp$checked)
     inp <- check.inp(inp)
-    datin <- list(delay=inp$delay, dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, ffac=inp$ffaceuler, indpred=inp$indpred, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
+    datin <- list(delay=inp$delay, dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, ffac=inp$ffaceuler, indpred=inp$indpred, tdfc=inp$tdfc, tdfi=inp$tdfi, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
     pl <- inp$ini
     for(i in 1:inp$nphases){
         if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
@@ -530,7 +532,7 @@ calc.osa.resid <- function(rep, dbg=0){
         inp2$dtpredi <- timepred[j] - max(endtimes)
         if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[which(inp$timeC == timepred[j])]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
         inp2 <- check.inp(inp2)
-        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp2$indpred, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
+        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp2$indpred, tdfc=inp2$tdfc, tdfi=inp2$tdfi, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         verbose <- FALSE

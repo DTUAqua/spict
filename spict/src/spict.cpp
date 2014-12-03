@@ -2,17 +2,25 @@
 // 14.10.2014
 #include <TMB.hpp>
 
+/* t-distribution */
+template<class Type>
+Type ltdistr(const Type &x, const Type &df)
+{
+  Type p = 1.0;
+  Type h = 0.5;
+  return -(-lgamma(h*(df+p)) + h*log(df*M_PI) + lgamma(h*df) + h*(df+p)*log(Type(1.0)+x*x/df));
+}
 
 /* Predict log F */
 template<class Type>
-inline Type predictlogF(const Type &phi1, const Type &logF1, const Type &phi2, const Type &logF2)
+Type predictlogF(const Type &phi1, const Type &logF1, const Type &phi2, const Type &logF2)
 {
   return phi1*logF1 + phi2*logF2;
 }
 
 /* Calculate B_infinity */
 template<class Type>
-inline Type calculateBinf(const Type &K, const Type &F, const Type &r, const Type &p, const Type &sdb2=0, int lamperti=0)
+Type calculateBinf(const Type &K, const Type &F, const Type &r, const Type &p, const Type &sdb2=0, int lamperti=0)
 {
   if(lamperti){
     // From Bordet & Rivest (2014)
@@ -24,7 +32,7 @@ inline Type calculateBinf(const Type &K, const Type &F, const Type &r, const Typ
 
 /* Predict biomass */
 template<class Type>
-inline Type predictB(const Type &B0, const Type &Binf, const Type &F, const Type &r, const Type &K, const Type &dt, const Type &p, const Type &sdb2=0, int lamperti=0, int euler=0)
+Type predictB(const Type &B0, const Type &Binf, const Type &F, const Type &r, const Type &K, const Type &dt, const Type &p, const Type &sdb2=0, int lamperti=0, int euler=0)
 {
   if(euler) lamperti = 1;
   Type rate;
@@ -44,7 +52,7 @@ inline Type predictB(const Type &B0, const Type &Binf, const Type &F, const Type
 
 /* Predict  catch*/
 template<class Type>
-inline Type predictC(const Type &F, const Type &K, const Type &r, const Type &B0, const Type &Binf, const Type &dt, const Type &sdb2=0, int lamperti=0, int euler=0)
+Type predictC(const Type &F, const Type &K, const Type &r, const Type &B0, const Type &Binf, const Type &dt, const Type &sdb2=0, int lamperti=0, int euler=0)
 {
   if(euler) lamperti = 1;
   Type rate;
@@ -82,6 +90,8 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(ir);         // A vector indicating when the different rs should be used
   DATA_SCALAR(ffac);       // Management factor each year multiply the predicted F with ffac
   DATA_VECTOR(indpred);    // A vector indicating when the management factor should be applied
+  DATA_SCALAR(tdfc);        // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
+  DATA_SCALAR(tdfi);        // Index Degrees of freedom of t-distribution (only used if tdf < 25)
   DATA_INTEGER(lamperti);  // Lamperti flag.
   DATA_INTEGER(euler);     // Euler flag.
   DATA_SCALAR(dbg);        // Debug flag, if == 1 then print stuff.
@@ -278,7 +288,13 @@ Type objective_function<Type>::operator() ()
     std::cout << "--- DEBUG: Cpred loop start" << std::endl;
   }
   for(int i=0; i<nobsC; i++){
-    likval = dnorm(logCpred(i), log(obsC(i)), sdc, 1);
+    if(tdfc < 25.0){
+      Type z = (logCpred(i)-log(obsC(i)))/sdc;
+    //likval = -log(sdc) + dnorm(z, Type(0.0), Type(1.0), 1);
+      likval = -log(sdc) + ltdistr(z, Type(100.0));
+    } else {
+      likval = dnorm(logCpred(i), log(obsC(i)), sdc, 1);
+    }
     ans-=likval;
     // DEBUGGING
     if(dbg>1){
@@ -297,7 +313,14 @@ Type objective_function<Type>::operator() ()
       ind = CppAD::Integer(ii(i)-1);
       indq = CppAD::Integer(iq(i)-1);
       logIpred(i) = logq(indq) + log(B(ind));
-      likval = dnorm(log(I(i)), logIpred(i), sdi, 1);
+      if(tdfi < 25.0){
+	Type z = (log(I(i)) - logIpred(i))/sdi;
+      //likval = dnorm(log(I(i)), logIpred(i), sdi, 1);
+      //likval = -log(sdi) + dnorm(z, Type(0.0), Type(1.0), 1);
+	likval = -log(sdi) + ltdistr(z, Type(100.0));
+      } else {
+	likval = dnorm(log(I(i)), logIpred(i), sdi, 1);
+      }
       ans-=likval;
       // DEBUGGING
       if(dbg>1){
@@ -332,7 +355,7 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<nq; i++){
     logIp(i) = logq(i) + log(Bp);
   }
-
+  
   // MSY PREDICTIONS
   /*
   Type Bpmsy;
