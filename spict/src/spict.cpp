@@ -287,11 +287,15 @@ Type objective_function<Type>::operator() ()
   if(dbg>0){
     std::cout << "--- DEBUG: Cpred loop start" << std::endl;
   }
+  // fac and pp are used for the outlier robust Gaussian mixture.
+  Type fac = 10.0;
+  Type pp = 0.95;
   for(int i=0; i<nobsC; i++){
     if(tdfc < 25.0){
-      Type z = (logCpred(i)-log(obsC(i)))/sdc;
-    //likval = -log(sdc) + dnorm(z, Type(0.0), Type(1.0), 1);
-      likval = -log(sdc) + ltdistr(z, Type(100.0));
+      //Type z = (logCpred(i)-log(obsC(i)))/sdc;
+      //likval = -log(sdc) + dnorm(z, Type(0.0), Type(1.0), 1);
+      //likval = -log(sdc) + ltdistr(z, Type(100.0));
+      likval = pp*dnorm(logCpred(i), log(obsC(i)), sdc, 1) + (1.0-pp)*dnorm(logCpred(i), log(obsC(i)), fac*sdc, 1);
     } else {
       likval = dnorm(logCpred(i), log(obsC(i)), sdc, 1);
     }
@@ -314,10 +318,10 @@ Type objective_function<Type>::operator() ()
       indq = CppAD::Integer(iq(i)-1);
       logIpred(i) = logq(indq) + log(B(ind));
       if(tdfi < 25.0){
-	Type z = (log(I(i)) - logIpred(i))/sdi;
-      //likval = dnorm(log(I(i)), logIpred(i), sdi, 1);
-      //likval = -log(sdi) + dnorm(z, Type(0.0), Type(1.0), 1);
-	likval = -log(sdi) + ltdistr(z, Type(100.0));
+	//Type z = (log(I(i)) - logIpred(i))/sdi;
+	//likval = -log(sdi) + dnorm(z, Type(0.0), Type(1.0), 1);
+	//likval = -log(sdi) + ltdistr(z, Type(100.0));
+	likval = pp*dnorm(log(I(i)), logIpred(i), sdi, 1) + (1.0-pp)*dnorm(log(I(i)), logIpred(i), fac*sdi, 1);
       } else {
 	likval = dnorm(log(I(i)), logIpred(i), sdi, 1);
       }
