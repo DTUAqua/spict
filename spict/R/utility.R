@@ -145,26 +145,48 @@ check.inp <- function(inp){
     if(!"euler" %in% names(inp)) inp$euler <- 1
     inp$euler <- 1 # Since Pella-Tomlinson form was implemented only Euler is allowed
     if(!"dtc" %in% names(inp)){
-        inp$dtc <- min(diff(inp$timeC))
-        cat(paste('Catch interval (dtc) not specified. Assuming an interval of:', inp$dtc, 'year.\n'))
+        dtc <- diff(inp$timeC)
+        if(length(dtc)>0){
+            inp$dtc <- min(dtc)
+            cat(paste('Catch interval (dtc) not specified. Assuming an interval of:', inp$dtc, 'year.\n'))
+        } else {
+            inp$dtc <- 1
+            cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 1. Assuming an interval of 1 year.\n'))
+        }
     }
     if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
     if(length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
-    if(!"dteuler" %in% names(inp)) inp$dteuler <- min(inp$dtc)
+    if(!"dteuler" %in% names(inp)){
+        if(length(inp$dtc)>0){
+            inp$dteuler <- min(inp$dtc)
+        } else {
+            inp$dteuler <- diff(inp$timeI[[1]])
+        }
+    }
     inp$ffaceuler <- inp$ffac^inp$dteuler
     if(!"delay" %in% names(inp)) inp$delay <- 1
     if(!"dtpredc" %in% names(inp)){
         if("dtpred" %in% names(inp)){
             inp$dtpredc <- inp$dtpred
         } else {
-            inp$dtpredc <- min(inp$dtc)
+            if(length(inp$dtc)>0){
+                inp$dtpredc <- min(inp$dtc)
+            } else {
+                inp$dtpredc <- 1
+                cat('Assuming a 1 year prediction interval for catch.\n')
+            }
         }
     }
     if(!"dtpredi" %in% names(inp)){
         if("dtpred" %in% names(inp)){
             inp$dtpredi <- inp$dtpred
         } else {
-            inp$dtpredi <- min(inp$dtc)
+            if(length(inp$dtc)>0){
+                inp$dtpredi <- min(inp$dtc)
+            } else {
+                inp$dtpredi <- 1
+                cat('Assuming a 1 year prediction interval for index.\n')
+            }
         }
     }
     dtpredmax <- max(c(inp$dtpredc, inp$dtpredi))
@@ -191,7 +213,11 @@ check.inp <- function(inp){
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
     # ic is the indices of inp$time to which catch observations correspond
-    dtcpred <- min(inp$dtc)
+    if(length(inp$dtc)>0){
+        dtcpred <- min(inp$dtc)
+    } else {
+        dtcpred <- 1
+    }
     inp$timeCp <- unique(c(inp$timeC, (tail(inp$timeC,1) + seq(0, inp$dtpredc, by=dtcpred))))
     inp$nobsCp <- length(inp$timeCp)
     inp$dtcp <- c(inp$dtc, rep(dtcpred, inp$nobsCp-inp$nobsC))
@@ -262,12 +288,18 @@ check.inp <- function(inp){
     if(!"logF" %in% names(inp$ini)){
         inp$ini$logF <- rep(inp$ini$logF0, inp$ns)
     } else {
-        if(length(inp$ini$logF) != inp$ns) stop('Wrong length of inp$ini$logF: ', length(inp$ini$logF), ' Should be equal to inp$ns: ', inp$ns, ' remember logF is predicted beyond observations.')
+        if(length(inp$ini$logF) != inp$ns){
+            cat('Wrong length of inp$ini$logF: ', length(inp$ini$logF), ' Should be equal to inp$ns: ', inp$ns, '. Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
+            inp$ini$logF <- inp$ini$logF[1:inp$ns]
+        }
     }
     if(!"logB" %in% names(inp$ini)){
         inp$ini$logB <- log(rep(exp(inp$ini$logbkfrac)*exp(inp$ini$logK), inp$ns))
     } else {
-        if(length(inp$ini$logB) != inp$ns) stop('Wrong length of inp$ini$logB: ', length(inp$ini$logB), ' Should be equal to inp$ns: ', inp$ns, ' remember logB is predicted beyond observations.')
+        if(length(inp$ini$logB) != inp$ns){
+            cat('Wrong length of inp$ini$logB: ', length(inp$ini$logB), ' Should be equal to inp$ns: ', inp$ns, '. Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
+            inp$ini$logB <- inp$ini$logB[1:inp$ns]
+        }
     }
 
     # Reorder parameter list
@@ -514,7 +546,7 @@ calc.osa.resid <- function(rep, dbg=0){
         # Catch
         cind <- which(inp$timeC < timepred[j])
         inp2$timeC <- inp$timeC[cind]
-        endtimes[1] <- tail(inp2$timeC,1)
+        if(length(cind)>0) endtimes[1] <- tail(inp2$timeC,1)
         inp2$obsC <- inp$obsC[cind]
         inp2$dtc <- inp$dtc[cind]
         cindm <- which(inp$timeC == timepred[j])
@@ -723,6 +755,19 @@ plotspict.biomass <- function(rep, logax=FALSE){
         polygon(c(inp$time, rev(inp$time)), c(BB[,1], rev(BB[,3]))/scal*Bmsy[2], col=cicol2, border=cicol2)
         abline(v=tail(inp$time[inp$indest],1), col='gray')
         for(i in 1:inp$nindex) points(inp$timeI[[i]], inp$obsI[[i]]/qest[i, 2], pch=i, cex=0.7)
+        # Highlight influential index observations
+        if('infl' %in% names(rep)){
+            infl <- rep$infl$infl
+            indslast <- inp$nobsC # Start after catch observations
+            for(i in 1:inp$nindex){
+                iinds <- indslast + 1:inp$nobsI[i]
+                infl2 <- infl[iinds, ]
+                cols <- apply(!is.na(infl2), 1, sum)
+                ncols <- length(unique(cols))
+                inds <- which(cols>0)
+                points(inp$timeI[[i]][inds], inp$obsI[[i]][inds]/qest[i, 2], pch=21, cex=0.9, bg=cols[inds])
+            }
+        }
         if('true' %in% names(inp)){
             lines(inp$time, inp$true$B/scal, col='orange') # Plot true
             abline(h=inp$true$Bmsy, col='orange', lty=2)
@@ -773,40 +818,38 @@ plotspict.bbmsy <- function(rep, logax=FALSE){
         BB <- get.par('logBBmsy', rep, exp=TRUE)
         ns <- dim(BB)[1]
         inds <- which(is.na(Binf) | Binf<0)
-        #Binf[inds] <- 1e-12
-        #annlist <- annual(inp, Binf[, 2])
-        #Binftime <- annlist$anntime
-        #Binfs <- annlist$annvec
-        #Bp <- get.par('logBp', rep, exp=TRUE)
-        #scal <- 1
         cicol <- 'lightgray'
         par(mar=c(5,4,4,4))
         ylim <- range(BB[, 1:3])
         plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=paste('B/Bmsy'), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main='Relative biomass')
-        #axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
-        #mtext("B/Bmsy", side=4, las=0, line=2)
-        #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1],Bmsy[1],Bmsy[3],Bmsy[3]), col=cicol, border=cicol)
-        #cicol2 <- 'aliceblue'
         cicol2 <- rgb(0, 0, 1, 0.1)
         polygon(c(inp$time, rev(inp$time)), c(BB[,1], rev(BB[,3])), col=cicol2, border=cicol2)
         abline(v=tail(inp$time[inp$indest],1), col='gray')
         for(i in 1:inp$nindex) points(inp$timeI[[i]], inp$obsI[[i]]/qest[i, 2]/Bmsy[2], pch=i, cex=0.7)
+        # Highlight influential index observations
+        if('infl' %in% names(rep)){
+            infl <- rep$infl$infl
+            indslast <- inp$nobsC # Start after catch observations
+            for(i in 1:inp$nindex){
+                iinds <- indslast + 1:inp$nobsI[i]
+                infl2 <- infl[iinds, ]
+                cols <- apply(!is.na(infl2), 1, sum)
+                ncols <- length(unique(cols))
+                inds <- which(cols>0)
+                points(inp$timeI[[i]][inds], inp$obsI[[i]][inds]/qest[i, 2]/Bmsy[2], pch=21, cex=0.9, bg=cols[inds])
+            }
+        }
         if('true' %in% names(inp)){
             lines(inp$time, inp$true$B/inp$true$Bmsy, col='orange') # Plot true
         }
         lines(inp$time[inp$indest], BB[inp$indest,2], col='blue', lwd=1.5)
         lines(inp$time[inp$indpred], BB[inp$indpred,2], col='blue', lty=3)
-        #abline(h=Bmsy[2]/scal, col='black')
         cicol3 <- rgb(0, 0, 1, 0.2)
         lines(inp$time[inp$indest], BB[inp$indest,1], col=cicol3, lty=1, lwd=1)
         lines(inp$time[inp$indest], BB[inp$indest,3], col=cicol3, lty=1, lwd=1)
         lines(inp$time[inp$indpred], BB[inp$indpred,1], col=cicol3, lty=1, lwd=1)
         lines(inp$time[inp$indpred], BB[inp$indpred,3], col=cicol3, lty=1, lwd=1)
         abline(h=1)
-        #lines(Binftime, Binfs/scal, col='green', lty=1)
-        #tp <- tail(inp$time,1)
-        #points(tp, tail(Best[,2],1)/scal, pch=21, bg='yellow')
-        #legend('topright', legend=c('Equilibrium',paste(tp,'pred.')), lty=c(1,NA), pch=c(NA,21), col=c('green',1), pt.bg=c(NA,'yellow'), bg='white')
         box()
     }
 }
@@ -1071,6 +1114,14 @@ plotspict.catch <- function(rep){
 
         abline(v=tail(inp$timeC,1), col='gray')
         points(timeo, obs/Cscal)
+        # Highlight influential index observations
+        if('infl' %in% names(rep) & min(inp$dtc) == 1){
+            infl <- rep$infl$infl[1:inp$nobsC, ]
+            cols <- apply(!is.na(infl), 1, sum)
+            ncols <- length(unique(cols))
+            inds <- which(cols>0)
+            points(inp$timeC[inds], inp$obsC[inds]/Cscal, pch=21, cex=0.9, bg=cols[inds])
+        }
         if('true' %in% names(inp)) abline(h=inp$true$MSY, col='orange', lty=2)
         abline(h=MSY[2]/Cscal)
         lines(time, c, col=4, lwd=1.5)
@@ -1219,6 +1270,8 @@ plotspict.tc <- function(rep){
     }
 }
 
+
+
 #' @name plot.spictcls
 #' @title 3x3 plot illustrating spict results.
 #' @details Create a 3x3 plot containing the following:
@@ -1270,10 +1323,16 @@ plot.spictcls <- function(rep, logax=FALSE){
     if('osar' %in% names(rep)){
         # One-step-ahead catch residuals
         plotspict.osar(rep)
-        # OSAR ACF
-        acf(rep$osar$logCpres, main='ACF of catch OSAR')
     }
-    
+    if('infl' %in% names(rep)){
+        # Plot influence summary
+        plotspict.inflsum(rep)
+    } else {
+        if('osar' %in% names(rep)){
+            # OSAR ACF
+            acf(rep$osar$logCpres, main='ACF of catch OSAR')
+        }
+    }
 }
 
 
@@ -1862,6 +1921,7 @@ extract.simstats <- function(rep){
     }
 }
 
+
 #' @name write.aspic
 #' @title Takes a SPiCT input list and writes it as an Aspic input file.
 #' @details TBA
@@ -1960,4 +2020,247 @@ read.aspic.res <- function(filename){
     colnames(out$states) <- c('obs', 'time', 'Fest', 'B0est', 'Best', 'Catch', 'Cest', 'Pest', 'FFmsy', 'BBmsy')
     out$pars <- c(r=r, K=K, q=q, Fmsy=Fmsy, Bmsy=Bmsy, MSY=MSY)
     return(out)
+}
+
+
+#' @name get.osar.pvals
+#' @title Gets the p-values of one-step-ahead residuals for all data series.
+#' @details TBA
+#' @param rep A valid result from fit.spict().
+#' @return A vector containing the p-values.
+get.osar.pvals <- function(rep){
+    osarI <- unlist(rep$osar$logIpboxtest)
+    inds <- which(names(osarI)=='p.value')
+    return(c(rep$osar$logCpboxtest$p.value, as.numeric(osarI[inds])))
+}
+
+
+#' @name calc.influence
+#' @title Calculates influence statistics of observations.
+#' @details TBA
+#' @param rep A valid result from fit.spict().
+#' @return A list equal to the input with the added key "infl" containing influence statistics.
+#' @export
+calc.influence <- function(rep){
+    #parnams <- c('logFmsy', 'MSY', 'logCp', 'logBlBmsy')
+    inp <- rep$inp
+    parnams <- c('logFmsy', 'MSY')
+    parnamsnolog <- sub('log', '', parnams)
+    doexp <- c(1, 0, 1, 1)
+    np <- length(parnams)
+    parmat <- matrix(0, np, 4)
+    rownames(parmat) <- parnamsnolog
+    for(k in 1:np) parmat[k, ] <- get.par(parnams[k], rep)
+    detcov <- unlist(determinant(rep$cov.fixed, log=TRUE))[1]
+    likval <- rep$opt$objective
+    osarpvals <- get.osar.pvals(rep)
+    rwnms <- paste0('C_', inp$timeC)
+    for(i in 1:inp$nindex) rwnms <- c(rwnms, paste0('I', i, '_', inp$timeI[[i]]))
+    nser <- inp$nindex+1
+    nobs <- inp$nobsC + sum(inp$nobsI)
+    pararr <- array(0, dim=c(np, nobs, 4))
+    ddetcov <- rep(0, nobs)
+    names(ddetcov) <- rwnms
+    dosarpvals <- matrix(0, nobs, length(osarpvals))
+    rownames(dosarpvals) <- rwnms
+    sernames <- c('C', paste0('I', 1:inp$nindex))
+    colnames(dosarpvals) <- sernames
+    cat('Calculating influence statistics for', nobs, '\n')
+    inflfun <- function(c, inp, parnams){
+        cat(c, '.. ')
+        inp2 <- inp
+        if(c <= inp$nobsC){
+            # Loop over catches
+            inp2$obsC <- inp$obsC[-c]
+            inp2$timeC <- inp$timeC[-c]
+            inp2$dtc <- inp$dtc[-c]
+        } else {
+            # Loop over indices
+            breaks <- inp$nobsC + cumsum(c(0, inp$nobsI[-inp$nindex]))
+            j <- sum(c > breaks)
+            i <- c - breaks[j]
+            if(class(inp$obsI)=='numeric'){
+                inp2$obsI <- inp$obsI[-i]
+                inp2$timeI <- inp$timeI[-i]
+            } else {
+                inp2$obsI[[j]] <- inp$obsI[[j]][-i]
+                inp2$timeI[[j]] <- inp$timeI[[j]][-i]
+            }
+        }
+        rep2 <- fit.spict(inp2)
+        rep2 <- calc.osa.resid(rep2)
+        # Calculate diagnostics
+        np <- length(parnams)
+        parmat <- matrix(0, np, 4)
+        for(k in 1:np) parmat[k, ] <- get.par(parnams[k], rep2)
+        detcov <- unlist(determinant(rep2$cov.fixed, log=TRUE))[1]
+        dosarpvals <- get.osar.pvals(rep2)
+        return(list(parmat=parmat, detcov=detcov, dosarpvals=dosarpvals))
+    }
+    # Calculate influence
+    partry <- try(library(parallel))
+    if(class(partry)=='try-error'){
+        res <- lapply(1:nobs, inflfun, inp, parnams)
+    } else {
+        res <- mclapply(1:nobs, inflfun, inp, parnams, mc.cores=4)
+    }
+    cat('\n')
+    # Gather results
+    for(i in 1:nobs){
+        ddetcov[i] <- detcov - res[[i]]$detcov
+        dosarpvals[i, ] <- res[[i]]$dosarpvals
+        for(k in 1:np) pararr[k, i, ] <- res[[i]]$parmat[k, ]
+    }
+    dfbeta <- matrix(0, nobs, np)
+    colnames(dfbeta) <- parnamsnolog
+    rownames(dfbeta) <- rwnms
+    dpar <- dfbeta
+    for(k in 1:np){
+        if(doexp[k]==0){
+            dpar[, k] <- parmat[k, 2]-pararr[k, , 2]
+        } else {
+            dpar[, k] <- exp(parmat[k, 2])-exp(pararr[k, , 2])
+        }
+        dfbeta[, k] <- (parmat[k, 2]-pararr[k, , 2])/pararr[k, , 4]
+    }
+    # - Calculate influence matrix -
+    infl <- matrix(NA, nobs, 1+nser+np)
+    rownames(infl) <- rwnms
+    tnames <- c('CR', paste0('p', sernames), paste0('dfb', parnamsnolog))
+    colnames(infl) <- tnames
+    # COVRATIO
+    dl <- 3*length(rep$par.fixed)/nobs
+    covratio <- exp(ddetcov)
+    ac <- abs(covratio-1)
+    inds <- which(ac > dl)
+    infl[inds, 1] <- 1
+    # OSAR
+    osarpvals <- get.osar.pvals(rep)
+    alpha <- 0.05
+    orgres <- osarpvals < alpha
+    newres <- dosarpvals < alpha
+    chgmat <- matrix(0, nobs, nser)
+    for(i in 1:nser) chgmat[, i] <- newres[, i]-orgres[i]
+    tmp <- matrix(NA, nobs, nser)
+    inds <- which(chgmat!=0)
+    tmp[inds] <- 1
+    infl[, 2:(1+nser)] <- tmp
+    # DFBETA
+    tmp <- matrix(NA, nobs, np)
+    adfbeta <- abs(dfbeta)
+    al <- 2/sqrt(nobs)
+    inds <- which(adfbeta>al)
+    tmp[inds] <- 1
+    infl[, (2+nser):(1+nser+np)] <- tmp
+    # Compile influence
+    ninfl <- dim(infl)[2]
+    for(i in 1:ninfl){
+        inds <- which(infl[, i]==1)
+        infl[inds, i] <- i
+    }
+    rep$infl <- list(dfbeta=dfbeta, dpar=dpar, ddetcov=ddetcov, dosarpvals=dosarpvals, infl=infl)
+    return(rep)
+}
+
+#' @name put.ax
+#' @title Adds the x-axis to influence plots
+#' @details TBA
+#' @param rep A valid result from calc.influence().
+#' @return Nothing.
+put.xax <- function(rep){
+    inp <- rep$inp
+    sernames <- colnames(rep$infl$dosarpvals)
+    xs <- c(inp$nobsC, inp$nobsI)
+    xat <- cumsum(xs[-length(xs)]+0.5)
+    xmid <- c(0, xat) + xs/2
+    axis(1, at=xat, labels='')
+    axis(1, at=xmid, labels=sernames, tick=FALSE)
+    abline(v=xat, lty=2, col='gray')
+}
+
+
+#' @name plotspict.infl
+#' @title Plots influence statistics of observations.
+#' @details TBA
+#' @param rep A valid result from calc.influence().
+#' @return Nothing.
+#' @export
+plotspict.infl <- function(rep){
+    inp <- rep$inp
+    #sernames <- c('C', paste0('I', 1:inp$nindex))
+    dfbeta <- rep$infl$dfbeta
+    dpar <- rep$infl$dpar
+    ddetcov <- rep$infl$ddetcov
+    dosarpvals <- rep$infl$dosarpvals
+    sernames <- colnames(dosarpvals)
+    nser <- inp$nindex+1
+    nobs <- inp$nobsC + sum(inp$nobsI)
+    parnams <- colnames(dfbeta)
+    np <- length(parnams)
+    rwnms <- rownames(dfbeta)
+    infl <- rep$infl$infl
+    par(mfrow=c(2,2))
+    # Plot covratio
+    dl <- 3*length(rep$par.fixed)/nobs
+    covratio <- exp(ddetcov)
+    ac <- abs(covratio-1)
+    inds <- which(ac > dl)
+    plot(ac, ylab='abs(covratio-1)', ylim=c(0, 1.05*max(ac)), xlab='', xaxt='n', main='COVRATIO')
+    abline(h=dl)
+    text(inds, ac[inds], rwnms[inds], pos=3, cex=0.7)
+    put.xax(rep)
+    # Plot OSAR p-values
+    osarpvals <- get.osar.pvals(rep)
+    alpha <- 0.05
+    orgres <- osarpvals < alpha
+    newres <- dosarpvals < alpha
+    chgmat <- matrix(0, nobs, nser)
+    for(i in 1:nser) chgmat[, i] <- newres[, i]-orgres[i]
+    inds <- which(chgmat!=0)
+    rc <- arrayInd(inds, dim(dosarpvals))
+    nms <- rwnms[rc[, 1]]
+    plot(dosarpvals[, 1], ylab='p-value', ylim=0:1, xlab='', xaxt='n', main='OSAR p-values')
+    for(i in 2:nser) points(dosarpvals[, i], col=i)
+    abline(h=osarpvals, col=1:nser)
+    for(i in 1:length(inds)){
+        text(rc[i, 1], dosarpvals[rc[i, 1], rc[i, 2]], nms[i], pos=3, cex=0.7, col=rc[i, 2])
+    }
+    abline(h=0.05, lwd=2, lty=3)
+    legend('topleft', legend=sernames, pch=1, col=1:nser)
+    put.xax(rep)
+    # Plot dfbeta
+    adfbeta <- abs(dfbeta)
+    al <- 2/sqrt(nobs)
+    inds <- which(adfbeta>al)
+    rc <- arrayInd(inds, dim(adfbeta))
+    nms <- rwnms[rc[, 1]]
+    plot(adfbeta[, 1], ylim=c(0, 1.05*max(adfbeta)), ylab='abs dfbeta', xlab='', xaxt='n', main='DFBETA')
+    for(i in 2:np) points(adfbeta[, i], col=i)
+    abline(h=al, lwd=2, lty=3)
+    for(i in 1:length(inds)){
+        text(rc[i, 1], adfbeta[rc[i, 1], rc[i, 2]], nms[i], pos=3, cex=0.7, col=rc[i, 2])
+        text(rc[i, 1], adfbeta[rc[i, 1], rc[i, 2]], round(dpar[rc[i, 1], rc[i, 2]], 3), pos=1, cex=0.7, col=rc[i, 2])
+    }
+    legend('topleft', legend=parnams, pch=1, col=1:np)
+    put.xax(rep)
+    # Plot of influence
+    plotspict.inflsum(rep)
+}
+
+
+#' @name plotspict.inflsum
+#' @title Plots summary of influence statistics of observations.
+#' @details TBA
+#' @param rep A valid result from calc.influence().
+#' @return Nothing.
+#' @export
+plotspict.inflsum <- function(rep){
+    infl <- rep$infl$infl
+    nobs <- dim(infl)[1]
+    ninfl <- dim(infl)[2]
+    matplot(infl, pch=1, col=1, yaxt='n', ylab='', xlab='', xaxt='n', main='Overall influence')
+    axis(2, at=1:ninfl, labels=colnames(infl))
+    cols <- apply(!is.na(infl), 1, sum)
+    for(i in 1:nobs) abline(v=i, col=cols[i], lwd=(1+cols[i]/5))
+    put.xax(rep)
 }
