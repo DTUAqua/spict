@@ -1005,7 +1005,7 @@ plotspict.fb <- function(rep, logax=FALSE){
         Fp <- Fest[ns,]
         inds <- c(which(names(rep$value)=='logBmsy'), which(names(rep$value)=='logFmsy'))
         cl <- make.ellipse(inds, rep)
-        xlim <- range(c(tail(Binf[,2],1),exp(cl[,1]),Best[,2])/scal)
+        xlim <- range(c(tail(Binf[!is.na(Binf[,2]),2],1),exp(cl[,1]),Best[,2])/scal)
         ylim <- range(c(exp(cl[,2]),Fest[,2]))
         main <- paste('logalpha:',rep$pl$logalpha,'r:',round(rest[2],3),'q:',round(qest[2],3))
         par(mar=c(5,4,4,4))
@@ -2065,7 +2065,7 @@ calc.influence <- function(rep){
     rownames(dosarpvals) <- rwnms
     sernames <- c('C', paste0('I', 1:inp$nindex))
     colnames(dosarpvals) <- sernames
-    cat('Calculating influence statistics for', nobs, '\n')
+    cat('Calculating influence statistics for', nobs, 'observations:\n')
     inflfun <- function(c, inp, parnams){
         cat(c, '.. ')
         inp2 <- inp
@@ -2263,4 +2263,43 @@ plotspict.inflsum <- function(rep){
     cols <- apply(!is.na(infl), 1, sum)
     for(i in 1:nobs) abline(v=i, col=cols[i], lwd=(1+cols[i]/5))
     put.xax(rep)
+}
+
+#' @name lprof.spict
+#' @title Create profile likelihood
+#' @details TBA
+#' @param rep A valid result from fit.spict().
+#' @return Nothing.
+#' @export
+lprof.spict <- function(){
+    # Make likelihood profile
+    asd <- pol$albacore
+    #rep <- fit.spict(asd)
+    nogridpoints <- 10
+    parrange <- log(matrix(c(0.1, 1.3, 70, 500), 2, 2, byrow=TRUE))
+    pars <- c('logr', 'logK')
+    np <- 2
+    parvals <- matrix(0, np, nogridpoints)
+    for(i in 1:np) parvals[i, ] <- seq(parrange[i, 1], parrange[i, 2], length=nogridpoints)
+
+    pv <- expand.grid(parvals[1, ], parvals[2, ])
+    ngrid <- dim(pv)[1]
+    liksurf <- rep(0, ngrid)
+    
+    do.grid <- function(i){
+        asd2 <- asd
+        asd2$ini[[pars[1]]] <- pv[i, 1]
+        asd2$ini[[pars[2]]] <- pv[i, 2]
+        asd2$phases <- list()
+        asd2$phases[[pars[1]]] <- -1
+        asd2$phases[[pars[2]]] <- -1
+        rep2 <- fit.spict(asd2)
+        rep2$opt$objective
+    }
+
+    library(parallel)
+    liksurf <- mclapply(1:ngrid, do.grid, mc.cores=4)
+
+    ls <- matrix(unlist(liksurf), nogridpoints, nogridpoints)
+    image(exp(parvals[1, ]), exp(parvals[2, ]), ls, xlab=pars[1], ylab=pars[2])
 }
