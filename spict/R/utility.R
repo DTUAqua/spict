@@ -148,7 +148,7 @@ check.inp <- function(inp){
         dtc <- diff(inp$timeC)
         if(length(dtc)>0){
             inp$dtc <- min(dtc)
-            cat(paste('Catch interval (dtc) not specified. Assuming an interval of:', inp$dtc, 'year.\n'))
+            #cat(paste('Catch interval (dtc) not specified. Assuming an interval of:', inp$dtc, 'year.\n'))
         } else {
             inp$dtc <- 1
             cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 1. Assuming an interval of 1 year.\n'))
@@ -2267,39 +2267,122 @@ plotspict.inflsum <- function(rep){
 
 #' @name lprof.spict
 #' @title Create profile likelihood
-#' @details TBA
-#' @param rep A valid result from fit.spict().
+#' @details The "lprof" list must containg the following keys:
+#' \itemize{
+#'   \item{"pars"}{ A character vector of length equal 1 or 2 containing the name(s) of the parameters to calculate the profile likelihood for.}
+#'   \item{"parrange"}{ A vector containing the parameter range(s) to profile over: parrange = c(min(par1), max(par1), min(par2), max(par2)).}
+#' }
+#' Optional:
+#' \itemize{
+#'   \item{"nogridpoints"}{ Number of grid points to evaluate the profile likelihood for each parameter. Default: 9. Note: with two parameters the calculation time increases quadratically when increasing the number of gridpoints.}
+#' }
+#' @param input A list containing observations and initial values for non profiled parameters (essentially an inp list) with the additional key "lprof" (see details for required keys). A valid result from fit.spict() containing an "inp" key with the described properties is also accepted.
 #' @return Nothing.
 #' @export
-lprof.spict <- function(){
-    # Make likelihood profile
-    asd <- pol$albacore
-    #rep <- fit.spict(asd)
-    nogridpoints <- 10
-    parrange <- log(matrix(c(0.1, 1.3, 70, 500), 2, 2, byrow=TRUE))
-    pars <- c('logr', 'logK')
-    np <- 2
-    parvals <- matrix(0, np, nogridpoints)
-    for(i in 1:np) parvals[i, ] <- seq(parrange[i, 1], parrange[i, 2], length=nogridpoints)
-
-    pv <- expand.grid(parvals[1, ], parvals[2, ])
+lprof.spict <- function(input){
+    if('par.fixed' %in% names(input)){
+        cat('Detected input as a SPiCT result, proceeding...\n')
+        rep <- input
+        inp <- rep$inp
+        pl <- rep$pl
+        repflag <- TRUE
+    } else {
+        cat('Assuming input is a SPiCT inp, checking for validity...\n')
+        inp <- input
+        inp <- check.inp(inp)
+        repflag <- FALSE
+    }
+    lprof <- inp$lprof
+    # Check lprof input
+    if(!'pars' %in% names(lprof)) stop('"pars" key of lprof is unspecified!')
+    np <- length(lprof$pars)
+    if(!np %in% 1:2) stop('Length of pars vector is ', np, ' but should be 1 or 2!')
+    if(!'parrange' %in% names(lprof)) stop('No "parrange" key specified in lprof!')
+    npp <- length(lprof$parrange)
+    if(npp != (2*np)) stop('Length of "parrange" is ', npp, ' but should be ', 2*np)
+    if(lprof$parrange[2] <= lprof$parrange[1]) stop('Upper parameter bound is small than lower bound!')
+    if(np==2) if(lprof$parrange[4] <= lprof$parrange[3]) stop('Upper parameter bound is small than lower bound!')
+    prange <- matrix(lprof$parrange, np, 2, byrow=TRUE)
+    if(!'nogridpoints' %in% names(lprof)) lprof$nogridpoints <- 9
+    if(!'phases' %in% names(inp)) inp$phases <- list()
+    # Determine good initial values for other parameters
+    if(!repflag){
+        inpp <- inp
+        inpp$phases <- list()
+        pp <- rep(0, np)
+        for(i in 1:np){
+            pp[i] <- mean(prange[i, ])
+            inpp$ini[[inp$lprof$pars[i]]] <- pp[i]
+            inpp$phases[[inp$lprof$pars[i]]] <- -1
+        }
+        repp <- fit.spict(inpp)
+        pl <- repp$pl
+    }
+    parvals <- matrix(0, lprof$nogridpoints, np)
+    for(i in 1:np) parvals[, i] <- seq(prange[i, 1], prange[i, 2], length=lprof$nogridpoints)
+    if(np==1){
+        pv <- parvals[, 1, drop=FALSE]
+    } else {
+        pv <- expand.grid(parvals[, 1], parvals[, 2])
+    }
     ngrid <- dim(pv)[1]
-    liksurf <- rep(0, ngrid)
-    
     do.grid <- function(i){
-        asd2 <- asd
-        asd2$ini[[pars[1]]] <- pv[i, 1]
-        asd2$ini[[pars[2]]] <- pv[i, 2]
-        asd2$phases <- list()
-        asd2$phases[[pars[1]]] <- -1
-        asd2$phases[[pars[2]]] <- -1
+        asd2 <- inp
+        asd2$ini <- pl
+        for(j in 1:np){
+            asd2$ini[[lprof$pars[j]]] <- pv[i, j]
+            asd2$phases[[lprof$pars[j]]] <- -1
+        }
         rep2 <- fit.spict(asd2)
-        rep2$opt$objective
+        #cat(i, '..')
+        return(rep2$opt$objective)
+    }
+    single.do.grid <- function(i, ngrid){
+        lv <- do.grid(i)
+        cat(sprintf("Profiling: %.2f%%\r", i/ngrid * 100))
+        return(lv)
+    }
+    multi.do.grid <- function(i, ngrid, progfile){
+        lv <- do.grid(i)
+        ## Send progress update
+        if(class(progfile)[1]=='fifo') writeBin(1/ngrid, progfile)
+        return(lv)
     }
 
-    library(parallel)
-    liksurf <- mclapply(1:ngrid, do.grid, mc.cores=4)
-
-    ls <- matrix(unlist(liksurf), nogridpoints, nogridpoints)
-    image(exp(parvals[1, ]), exp(parvals[2, ]), ls, xlab=pars[1], ylab=pars[2])
+    partry <- try(library(multicore))
+    #partry <- try(library(parallel))
+    cat('Profiling pars:', paste(lprof$pars, collapse=' and '), 'with', ngrid, 'trials.\n')
+    if(class(partry)=='try-error'){
+    #if(TRUE){
+        likvals <- lapply(1:ngrid, single.do.grid, ngrid)
+    } else {
+        ## Open fifo progress file
+        progfile <- fifo(tempfile(), open="w+b", blocking=T)
+        if(inherits(fork(), "masterProcess")) {
+            ## Child
+            progress <- 0.0
+            while (progress < 1 && !isIncomplete(progfile)) {
+                msg <- readBin(progfile, "double")
+                progress <- progress + as.numeric(msg)
+                cat(sprintf("Multicore profiling: %.2f%%\r", progress * 100))
+            } 
+            exit()
+        }
+        likvals <- mclapply(1:ngrid, multi.do.grid, ngrid, progfile, mc.cores=4)
+        ## Close progress file
+        close(progfile)
+    }
+    if(np==1){
+        lprof$likvals <- unlist(likvals)
+    } else {
+        lprof$likvals <- matrix(unlist(likvals), lprof$nogridpoints, lprof$nogridpoints)
+    }
+    lprof$parvals <- parvals
+    if(repflag){
+        rep$inp$lprof <- lprof
+        return(rep)
+    } else {
+        inp$lprof <- lprof
+        return(inp)
+    }
 }
