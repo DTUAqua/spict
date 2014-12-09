@@ -2348,7 +2348,6 @@ lprof.spict <- function(input){
         if(class(progfile)[1]=='fifo') writeBin(1/ngrid, progfile)
         return(lv)
     }
-
     partry <- try(library(multicore))
     #partry <- try(library(parallel))
     cat('Profiling pars:', paste(lprof$pars, collapse=' and '), 'with', ngrid, 'trials.\n')
@@ -2384,5 +2383,46 @@ lprof.spict <- function(input){
     } else {
         inp$lprof <- lprof
         return(inp)
+    }
+}
+
+
+#' @name plotspict.lprof
+#' @title Plots result of likelihood profiling.
+#' @details TBA
+#' @param input Result of running lprof.spict().
+#' @param logpar If TRUE log of parameters are shown.
+#' @return Nothing but shows a plot.
+#' @export
+plotspict.lprof <- function(input, logpar=FALSE){
+    repflag <- 'par.fixed' %in% names(input)
+    if(repflag){
+        rep <- input
+        inp <- rep$inp
+        nll <- rep$opt$objective
+    } else {
+        inp <- input
+        nll <- min(inp$lprof$likvals)
+    }
+    lprof <- inp$lprof
+    np <- length(lprof$pars)
+    pv <- lprof$parvals
+    pars <- lprof$pars
+    loginds <- grep('log', pars)
+    expinds <- setdiff(1:np, loginds)
+    if(!logpar){
+        pv[, loginds] <- exp(pv[, loginds])
+        pars[loginds] <- gsub('log', '', pars[loginds])
+    } else {
+        pv[, expinds] <- log(pv[, expinds])
+        pars[expinds] <- paste0('log', pars[expinds])
+    }
+    if(np==1){
+        plot(pv[, 1], lprof$likvals, typ='l', xlab=pars[1], ylab='negative log lik')
+        lrlim <- 0.5*qchisq(0.95, 1) + nll
+        abline(h=lrlim, lty=2)
+    } else {
+        pvals <- pchisq(2*(lprof$likvals - nll), np)
+        contour(pv[, 1], pv[, 2], pvals, xlab=pars[1], ylab=pars[2], levels=c(0.5, 0.8, 0.95))
     }
 }
