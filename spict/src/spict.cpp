@@ -90,13 +90,15 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(ir);         // A vector indicating when the different rs should be used
   DATA_SCALAR(ffac);       // Management factor each year multiply the predicted F with ffac
   DATA_VECTOR(indpred);    // A vector indicating when the management factor should be applied
-  DATA_SCALAR(tdfc);        // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
-  DATA_SCALAR(tdfi);        // Index Degrees of freedom of t-distribution (only used if tdf < 25)
+  DATA_SCALAR(robflagc);        // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
+  DATA_SCALAR(robflagi);        // Index Degrees of freedom of t-distribution (only used if tdf < 25)
   DATA_INTEGER(lamperti);  // Lamperti flag.
   DATA_INTEGER(euler);     // Euler flag.
   DATA_SCALAR(dbg);        // Debug flag, if == 1 then print stuff.
   PARAMETER(phi1);         // 
   PARAMETER(phi2);         // 
+  PARAMETER(logitpp);      // 
+  PARAMETER(logp1robfac);  // 
   PARAMETER(logalpha);     // sdi = alpha*sdb
   PARAMETER(logbeta);      // sdc = beta*sdf
   PARAMETER(logbkfrac);    // B0/K fraction
@@ -110,6 +112,8 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logF);  // Random effects vector
   PARAMETER_VECTOR(logB);  // Random effects vector
 
+  Type pp = 1.0/(1.0 + exp(-logitpp));
+  Type robfac = 1.0 + exp(logp1robfac);
   Type bkfrac = exp(logbkfrac);
   Type F0 = exp(logF0);
   int nr = logr.size();
@@ -215,7 +219,6 @@ Type objective_function<Type>::operator() ()
   */
   Type sd = 1e-6; // This one is used in the hack to fix B0 and F0.
 
-
   // FISHING MORTALITY
   if(dbg>0){
     std::cout << "--- DEBUG: F loop start" << std::endl;
@@ -273,11 +276,9 @@ Type objective_function<Type>::operator() ()
     }
   }
 
-
   // CALCULATE PRODUCTION
   //if(lamperti){
   for(int i=0; i<(ns-1); i++) P(i) = B(i+1) - B(i) + Cpredsub(i);
-
 
   /*
   --- OBSERVATION EQUATIONS ---
@@ -288,14 +289,14 @@ Type objective_function<Type>::operator() ()
     std::cout << "--- DEBUG: Cpred loop start" << std::endl;
   }
   // fac and pp are used for the outlier robust Gaussian mixture.
-  Type fac = 10.0;
-  Type pp = 0.95;
+  //Type robfac = 20.0;
+  //Type pp = 0.95;
   for(int i=0; i<nobsC; i++){
-    if(tdfc < 25.0){
+    if(robflagc==1.0){
       //Type z = (logCpred(i)-log(obsC(i)))/sdc;
       //likval = -log(sdc) + dnorm(z, Type(0.0), Type(1.0), 1);
       //likval = -log(sdc) + ltdistr(z, Type(100.0));
-      likval = pp*dnorm(logCpred(i), log(obsC(i)), sdc, 1) + (1.0-pp)*dnorm(logCpred(i), log(obsC(i)), fac*sdc, 1);
+      likval = log(pp*dnorm(logCpred(i), log(obsC(i)), sdc, 0) + (1.0-pp)*dnorm(logCpred(i), log(obsC(i)), robfac*sdc, 0));
     } else {
       likval = dnorm(logCpred(i), log(obsC(i)), sdc, 1);
     }
@@ -317,11 +318,11 @@ Type objective_function<Type>::operator() ()
       ind = CppAD::Integer(ii(i)-1);
       indq = CppAD::Integer(iq(i)-1);
       logIpred(i) = logq(indq) + log(B(ind));
-      if(tdfi < 25.0){
+      if(robflagi==1.0){
 	//Type z = (log(I(i)) - logIpred(i))/sdi;
 	//likval = -log(sdi) + dnorm(z, Type(0.0), Type(1.0), 1);
 	//likval = -log(sdi) + ltdistr(z, Type(100.0));
-	likval = pp*dnorm(log(I(i)), logIpred(i), sdi, 1) + (1.0-pp)*dnorm(log(I(i)), logIpred(i), fac*sdi, 1);
+	likval = log(pp*dnorm(log(I(i)), logIpred(i), sdi, 0) + (1.0-pp)*dnorm(log(I(i)), logIpred(i), robfac*sdi, 0));
       } else {
 	likval = dnorm(log(I(i)), logIpred(i), sdi, 1);
       }

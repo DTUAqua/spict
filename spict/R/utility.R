@@ -68,6 +68,8 @@ NULL
 #'  \item{"inp$ini$logbeta"}{ Default: 0.}
 #'  \item{"inp$ini$logF"}{ Default: logF0.}
 #'  \item{"inp$ini$logB"}{ Default: bkfrac*K.}
+#'  \item{"inp$ini$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
+#'  \item{"inp$ini$robflagi"}{ Flag indicating whether robust estimation should be used for indices (either 0 or 1). Default: 0.}
 #'  \item{"inp$ffac"}{ Management scenario represented by a factor to multiply F with when calculating the F of the next time step. ffac=0.8 means a 20\% reduction in F over the next year. The factor is only used when predicting beyond the data set. Default: 1 (0\% reduction).}
 #'  \item{"inp$lamperti"}{ Logical indicating whether to use Lamperti transformed equations (recommended). Default: TRUE.}
 #'  \item{"inp$euler"}{ Logical indicating whether to use Euler time discretisation (recommended). Default: TRUE.}
@@ -137,8 +139,8 @@ check.inp <- function(inp){
     }
 
     # -- MODEL OPTIONS --
-    if(!"tdfc" %in% names(inp)) inp$tdfc <- 100
-    if(!"tdfi" %in% names(inp)) inp$tdfi <- 100
+    if(!"robflagc" %in% names(inp)) inp$robflagc <- 0
+    if(!"robflagi" %in% names(inp)) inp$robflagi <- 0
     if(!"ffac" %in% names(inp)) inp$ffac <- 1
     if(!"lamperti" %in% names(inp)) inp$lamperti <- 1
     inp$lamperti <- 1 # Since Pella-Tomlinson form was implemented only Lamperti is allowed
@@ -280,6 +282,8 @@ check.inp <- function(inp){
     # Fill in unspecified less important model parameter values
     if(!"phi1" %in% names(inp$ini)) inp$ini$phi1 <- 1
     if(!"phi2" %in% names(inp$ini)) inp$ini$phi2 <- 0
+    if(!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
+    if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(20-1)
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
     if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.3)
@@ -305,6 +309,8 @@ check.inp <- function(inp){
     # Reorder parameter list
     inp$ini <- list(phi1=inp$ini$phi1,
                     phi2=inp$ini$phi2,
+                    logitpp=inp$ini$logitpp,
+                    logp1robfac=inp$ini$logp1robfac,
                     logalpha=inp$ini$logalpha,
                     logbeta=inp$ini$logbeta,
                     #loggamma=inp$ini$loggamma,
@@ -320,15 +326,20 @@ check.inp <- function(inp){
                     logB=inp$ini$logB)
     # Determine phases and fixed parameters
     if(inp$delay==1){
-        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta', 'logp') # These are fixed unless specified
+        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta', 'logp', 'logitpp', 'logp1robfac') # These are fixed unless specified
     } else {
-        fixpars <- c('logalpha', 'logbeta', 'logp') # These are fixed unless otherwise specified
+        fixpars <- c('logalpha', 'logbeta', 'logp', 'logitpp', 'logp1robfac') # These are fixed unless otherwise specified
     }
     if(!"phases" %in% names(inp)){
         inp$phases <- list()
         for(i in 1:length(fixpars)) inp$phases[[fixpars[i]]] <- -1
     } else {
         for(i in 1:length(fixpars)) if(!fixpars[i] %in% names(inp$phases)) inp$phases[[fixpars[i]]] <- -1
+    }
+    # If robust flags are set to 1 then set phases for robust parameters to 1
+    if(inp$robflagc==1 | inp$robflagi==1){
+        inp$phases$logitpp <- 1
+        inp$phases$logp1robfac <- 1
     }
     # Assign phase 1 to parameters without a phase
     nms <- names(inp$ini)
@@ -447,7 +458,7 @@ fit.spict <- function(inp, dbg=0){
     #if(!'checked' %in% names(inp)) inp <- check.inp(inp)
     #if(!inp$checked)
     inp <- check.inp(inp)
-    datin <- list(delay=inp$delay, dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, ffac=inp$ffaceuler, indpred=inp$indpred, tdfc=inp$tdfc, tdfi=inp$tdfi, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
+    datin <- list(delay=inp$delay, dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, ffac=inp$ffaceuler, indpred=inp$indpred, robflagc=inp$robflagc, robflagi=inp$robflagi, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
     pl <- inp$ini
     for(i in 1:inp$nphases){
         if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
@@ -564,7 +575,7 @@ calc.osa.resid <- function(rep, dbg=0){
         inp2$dtpredi <- timepred[j] - max(endtimes)
         if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[which(inp$timeC == timepred[j])]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
         inp2 <- check.inp(inp2)
-        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp2$indpred, tdfc=inp2$tdfc, tdfi=inp2$tdfi, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
+        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         verbose <- FALSE
@@ -745,8 +756,10 @@ plotspict.biomass <- function(rep, logax=FALSE){
         Bp <- get.par('logBp', rep, exp=TRUE)
         scal <- 1
         cicol <- 'lightgray'
+        obsI <- list()
+        for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]
         par(mar=c(5,4,4,4))
-        ylim <- range(Best[, 1:3], Bp[1:3])/scal
+        ylim <- range(Best[, 1:3], Bp[1:3], unlist(obsI))/scal
         plot(inp$time, Best[,2]/scal, typ='n', xlab='Time', ylab=paste('Biomass'), main=paste('- Bmsy:',round(Bmsy[2]),' K:',round(Kest[2])), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log)
         axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
         mtext("B/Bmsy", side=4, las=0, line=2, cex=par('cex'))
@@ -819,13 +832,15 @@ plotspict.bbmsy <- function(rep, logax=FALSE){
         ns <- dim(BB)[1]
         inds <- which(is.na(Binf) | Binf<0)
         cicol <- 'lightgray'
+        obsI <- list()
+        for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]/Bmsy[2]
         par(mar=c(5,4,4,4))
-        ylim <- range(BB[, 1:3])
+        ylim <- range(c(BB[, 1:3], unlist(obsI)))
         plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=paste('B/Bmsy'), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main='Relative biomass')
         cicol2 <- rgb(0, 0, 1, 0.1)
         polygon(c(inp$time, rev(inp$time)), c(BB[,1], rev(BB[,3])), col=cicol2, border=cicol2)
         abline(v=tail(inp$time[inp$indest],1), col='gray')
-        for(i in 1:inp$nindex) points(inp$timeI[[i]], inp$obsI[[i]]/qest[i, 2]/Bmsy[2], pch=i, cex=0.7)
+        for(i in 1:inp$nindex) points(inp$timeI[[i]], obsI[[i]], pch=i, cex=0.7)
         # Highlight influential index observations
         if('infl' %in% names(rep)){
             infl <- rep$infl$infl
@@ -1359,24 +1374,38 @@ summary.spictcls <- function(object, numdigits=8){
     sd <- sqrt(diag(rep$cov.fixed))
     nms <- names(rep$par.fixed)
     loginds <- grep('log', nms)
+    logp1inds <- grep('logp1',nms)
+    logitinds <- grep('logit',nms)
+    loginds <- setdiff(loginds, c(logp1inds, logitinds))
     est <- rep$par.fixed
     est[loginds] <- exp(est[loginds])
+    est[logitinds] <- invlogit(est[logitinds])
+    est[logp1inds] <- invlogp1(est[logp1inds])
     cilow <- rep$par.fixed-1.96*sd
     cilow[loginds] <- exp(cilow[loginds])
+    cilow[logitinds] <- invlogit(cilow[logitinds])
+    cilow[logp1inds] <- invlogp1(cilow[logp1inds])
     ciupp <- rep$par.fixed+1.96*sd
     ciupp[loginds] <- exp(ciupp[loginds])
+    ciupp[logitinds] <- invlogit(ciupp[logitinds])
+    ciupp[logp1inds] <- invlogp1(ciupp[logp1inds])
     if('true' %in% names(rep$inp)){
         npar <- length(nms)
         truepar <- rep(0, npar)
         for(i in 1:npar) truepar[i] <- rep$inp$true[[nms[i]]]
         truepar[loginds] <- exp(truepar[loginds])
+        truepar[logitinds] <- invlogit(truepar[logitinds])
+        truepar[logp1inds] <- invlogp1(truepar[logp1inds])
         ci <- rep(0, npar)
         for(i in 1:npar) ci[i] <- as.numeric(truepar[i] > cilow[i] & truepar[i] < ciupp[i])
         resout <- cbind(estimate=round(est,numdigits), true=round(truepar,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), true.in.ci=ci, est.in.log=round(rep$par.fixed,numdigits))
     } else {
         resout <- cbind(estimate=round(est,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), est.in.log=round(rep$par.fixed,numdigits))
     }
-    nms[loginds] <- substr(names(rep$par.fixed[loginds]),4,60)
+    #nms[loginds] <- substr(names(rep$par.fixed[loginds]),4,60)
+    nms[loginds] <- sub('log', '', names(rep$par.fixed[loginds]))
+    nms[logitinds] <- sub('logit', '', names(rep$par.fixed[logitinds]))
+    nms[logp1inds] <- sub('logp1', '', names(rep$par.fixed[logp1inds]))
     rownames(resout) <- nms
     cat(paste(capture.output(resout),' \n'))
     if(!'sderr' %in% names(rep)){
@@ -1781,6 +1810,15 @@ sim.spict <- function(input, nobs=100){
         }
         obsC[i] <- exp(log(C[i]) + rnorm(1, 0, sdc))
     }
+    if('outliers' %in% names(inp)){
+        if('noutC' %in% names(inp$outliers)){
+            #if(!'facoutC' %in% names(inp$outliers)) inp$outliers$facoutC <- 20
+            fac <- invlogp1(inp$ini$logp1robfac)
+            inp$outliers$orgobsC <- obsC
+            inp$outliers$indsoutC <- sample(1:inp$nobsC, inp$outliers$noutC)
+            obsC[inp$outliers$indsoutC] <- exp(log(obsC[inp$outliers$indsoutC]) + rnorm(inp$outliers$noutC, 0, fac*sdc))
+        }
+    }
     # - Index observations -
     obsI <- list()
     errI <- list()
@@ -1791,6 +1829,20 @@ sim.spict <- function(input, nobs=100){
             errI[[I]][i] <- rnorm(1, 0, sdi)
             logItrue <- log(q[I]) + log(B[inp$ii[[I]][i]])
             obsI[[I]][i] <- exp(logItrue + errI[[I]][i])
+        }
+    }
+    if('outliers' %in% names(inp)){
+        if('noutI' %in% names(inp$outliers)){
+            if(length(inp$outliers$noutI)==1) inp$outliers$noutI <- rep(inp$outliers$noutI, inp$nindex)
+            #if(!'facoutI' %in% names(inp$outliers)) inp$outliers$facoutI <- 20
+            fac <- invlogp1(inp$ini$logp1robfac)
+            #if(length(inp$outliers$facoutI)==1) inp$outliers$facoutI <- rep(inp$outliers$facoutI, inp$nindex)
+            inp$outliers$orgobsI <- obsI
+            inp$outliers$indsoutI <- list()
+            for(i in 1:inp$nindex){
+                inp$outliers$indsoutI[[i]] <- sample(1:inp$nobsI[i], inp$outliers$noutI[i])
+                obsI[[i]][inp$outliers$indsoutI[[i]]] <- exp(log(obsI[[i]][inp$outliers$indsoutI[[i]]]) + rnorm(inp$outliers$noutI[i], 0, fac*sdi))
+            }
         }
     }
     
@@ -1804,6 +1856,7 @@ sim.spict <- function(input, nobs=100){
     sim$euler <- inp$euler
     sim$lamperti <- inp$lamperti
     sim$phases <- inp$phases
+    sim$outliers <- inp$outliers
     sim$true <- pl
     sim$true$B <- B
     sim$true$F <- F
@@ -2043,6 +2096,7 @@ get.osar.pvals <- function(rep){
 #' @export
 calc.influence <- function(rep){
     #parnams <- c('logFmsy', 'MSY', 'logCp', 'logBlBmsy')
+    if(!'osar' %in% names(rep)) stop('Need to calculate one-step-ahead residuals before calculating influence statistics. Use the calc.osa.resid() function.')
     inp <- rep$inp
     parnams <- c('logFmsy', 'MSY')
     parnamsnolog <- sub('log', '', parnams)
@@ -2067,7 +2121,7 @@ calc.influence <- function(rep){
     colnames(dosarpvals) <- sernames
     cat('Calculating influence statistics for', nobs, 'observations:\n')
     inflfun <- function(c, inp, parnams){
-        cat(c, '.. ')
+        #cat(c, '.. ')
         inp2 <- inp
         if(c <= inp$nobsC){
             # Loop over catches
@@ -2098,11 +2152,39 @@ calc.influence <- function(rep){
         return(list(parmat=parmat, detcov=detcov, dosarpvals=dosarpvals))
     }
     # Calculate influence
-    partry <- try(library(parallel))
+    #partry <- try(library(parallel))
+    partry <- try(library(multicore))
     if(class(partry)=='try-error'){
-        res <- lapply(1:nobs, inflfun, inp, parnams)
+        single.inflfun <- function(c, inp, parnams, nobs){
+            res <- inflfun(c, inp, parnams)
+            ## Send progress update
+            cat(sprintf("Progress: %.2f%%\r", c/nobs * 100))
+            return(res)
+        }
+
+        res <- lapply(1:nobs, single.inflfun, inp, parnams, nobs)
     } else {
-        res <- mclapply(1:nobs, inflfun, inp, parnams, mc.cores=4)
+        multi.inflfun <- function(c, inp, parnams, nobs, progfile){
+            res <- inflfun(c, inp, parnams)
+            ## Send progress update
+            if(class(progfile)[1]=='fifo') writeBin(1/nobs, progfile)
+            return(res)
+        }
+        ## Open fifo progress file
+        progfile <- fifo(tempfile(), open="w+b", blocking=T)
+        if(inherits(fork(), "masterProcess")) {
+            ## Child
+            progress <- 0.0
+            while (progress < 1 && !isIncomplete(progfile)) {
+                msg <- readBin(progfile, "double")
+                progress <- progress + as.numeric(msg)
+                cat(sprintf("Progress (multicore): %.2f%%\r", progress * 100))
+            } 
+            exit()
+        }
+        res <- mclapply(1:nobs, multi.inflfun, inp, parnams, nobs, progfile, mc.cores=4)
+        ## Close progress file
+        close(progfile)
     }
     cat('\n')
     # Gather results
@@ -2426,3 +2508,18 @@ plotspict.lprof <- function(input, logpar=FALSE){
         contour(pv[, 1], pv[, 2], pvals, xlab=pars[1], ylab=pars[2], levels=c(0.5, 0.8, 0.95))
     }
 }
+
+
+#' @name invlogit
+#' @title Inverse logit transform.
+#' @param a Value to take inverse logit of.
+#' @return Inverse logit.
+invlogit <- function(a) 1/(1+exp(-a))
+
+
+#' @name invlogp1
+#' @title Inverse log "plus one" transform
+#' @details If a = log(b-1), then the inverse transform is b = 1 + exp(a). Useful for values with lower bound at 1.
+#' @param a Value to take inverse logp1 of.
+#' @return Inverse logp1.
+invlogp1 <- function(a) 1 + exp(a)
