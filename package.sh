@@ -7,4 +7,7 @@ cd ..
 #cp spict.pdf spict/
 R CMD build spict
 #R CMD check spict_0.1.tar.gz
-R CMD INSTALL spict
+R CMD INSTALL spict_0.1.tar.gz
+#R CMD INSTALL spicttest_0.1.tar.gz
+echo "Done!"
+date
