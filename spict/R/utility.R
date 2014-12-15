@@ -513,20 +513,21 @@ fit.spict <- function(inp, dbg=0){
             rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
             # Prager's nearness
             Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
-            Bdiff <- Bests - Bmsy
+            Bdiff <- Bmsy - Bests
             if(any(diff(sign(Bdiff))!=0)){
                 rep$stats$nearness <- 1
             } else {
-                ind <- which.min(abs(Bdiff))
-                Bstar <- Bests[ind]
-                if(Bstar > Bmsy){
-                    rep$stats$nearness <- (K-Bstar)/(K-Bmsy)
-                } else {
-                    rep$stats$nearness <- Bstar/Bmsy
-                }
+                rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
+                #ind <- which.min(abs(Bdiff))
+                #Bstar <- Bests[ind]
+                #if(Bstar > Bmsy){
+                #    rep$stats$nearness <- (K-Bstar)/(K-Bmsy)
+                #} else {
+                #    rep$stats$nearness <- Bstar/Bmsy
+                #}
             }
             # Prager's coverage
-            rep$stats$coverage <- diff(range(Bests))/K
+            rep$stats$coverage <- (min(c(K, max(Bests))) - min(Bests))/Bmsy
         } else {
             stop('Could not fit model, try changing the initial parameter guess in inp$ini. Error msg:', opt)
         }
@@ -2002,33 +2003,32 @@ extract.simstats <- function(rep){
         # OSA residuals p-values
         if('osar' %in% names(rep)) ss$osarpvalC <- rep$osar$logCpboxtest$p.value
         if('osar' %in% names(rep)) ss$osarpvalI <- rep$osar$logIpboxtest[[1]]$p.value
+        # Estimates
+        calc.simstats <- function(parname, rep, exp=TRUE, true, ind=NULL){
+            par <- get.par(parname, rep, exp)
+            mu <- get.par(parname, rep, exp=FALSE)[2]
+            if(!is.null(ind)){
+                par <- par[ind, ]
+                mu <- get.par(parname, rep, exp=FALSE)[ind, 2]
+            }
+            ci <- unname(true > par[1] & true < par[3])
+            ciw <- unname(par[3] - par[1])
+            cv <- unname(par[4]/mu)
+            return(list(ci=ci, ciw=ciw, cv=cv))
+        }
         # Fmsy estimate
-        Fmsy <- get.par('logFmsy', rep, exp=TRUE)
-        ss$Fmsyci <- rep$inp$true$Fmsy > Fmsy[1] & rep$inp$true$Fmsy < Fmsy[3]
-        ss$Fmsyciw <- Fmsy[3] - Fmsy[1]
+        ss$Fmsy <- calc.simstats('logFmsy', rep, exp=TRUE, rep$inp$true$Fmsy)
         # Bmsy estimate
-        Bmsy <- get.par('logBmsy', rep, exp=TRUE)
-        ss$Bmsyci <- rep$inp$true$Bmsy > Bmsy[1] & rep$inp$true$Bmsy < Bmsy[3]
-        ss$Bmsyciw <- Bmsy[3] - Bmsy[1]
+        ss$Bmsy <- calc.simstats('logBmsy', rep, exp=TRUE, rep$inp$true$Bmsy)
         # MSY estimate
-        MSY <- get.par('MSY', rep)
-        ss$MSYci <- rep$inp$true$MSY > MSY[1] & rep$inp$true$MSY < MSY[3]
-        ss$MSYciw <- MSY[3] - MSY[1]
+        ss$MSY <- calc.simstats('MSY', rep, exp=FALSE, rep$inp$true$MSY)
         # Final biomass estimate
-        Best <- get.par('logB', rep, exp=TRUE, random=TRUE)
-        ind <- which(tail(rep$inp$timeC, 1)==rep$inp$time)
-        ss$Bci <- rep$inp$true$B[ind] > Best[ind, 1] & rep$inp$true$B[ind] < Best[ind, 3]
-        ss$Bciw <- Best[ind, 3] - Best[ind, 1]
+        ind <- tail(rep$inp$indest, 1) - 1
+        ss$B <- calc.simstats('logB', rep, exp=TRUE, rep$inp$true$B[ind], ind=ind)
         # Final B/Bmsy estimate
-        BB <- get.par('logBBmsy', rep, exp=TRUE)
-        ind <- which(tail(rep$inp$timeC, 1)==rep$inp$time)
-        ss$BBci <- rep$inp$true$B[ind]/rep$inp$true$Bmsy > BB[ind, 1] & rep$inp$true$B[ind]/rep$inp$true$Bmsy < BB[ind, 3]
-        ss$BBciw <- BB[ind, 3] - BB[ind, 1]
+        ss$BB <- calc.simstats('logBBmsy', rep, exp=TRUE, rep$inp$true$B[ind]/rep$inp$true$Bmsy, ind=ind)
         # Final F/Fmsy estimate
-        FF <- get.par('logFFmsy', rep, exp=TRUE)
-        ind <- which(tail(rep$inp$timeC, 1)==rep$inp$time)
-        ss$FFci <- rep$inp$true$F[ind]/rep$inp$true$Fmsy > FF[ind, 1] & rep$inp$true$F[ind]/rep$inp$true$Fmsy < FF[ind, 3]
-        ss$FFciw <- FF[ind, 3] - FF[ind, 1]
+        ss$FF <- calc.simstats('logFFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy, ind=ind)
         return(ss)
     } else {
         stop('These results do not come from the estimation of a simulated data set!')
