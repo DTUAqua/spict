@@ -495,6 +495,38 @@ fit.spict <- function(inp, dbg=0){
             rep$Cp <- obj$report()$Cp
             rep$inp <- inp
             rep$opt <- opt
+            #  - Calculate statistics -
+            rep$stats <- list()
+            K <- get.par('logK', rep, exp=TRUE)[2]
+            r <- get.par('logr', rep, exp=TRUE)[2]
+            p <- get.par('logp', rep, exp=TRUE)[2]
+            Best <- get.par('logB', rep, exp=TRUE)
+            Bests <- Best[rep$inp$indest, 2]
+            # R-square
+            Pest <- get.par('P', rep)
+            B <- Best[-inp$ns, 2]
+            inds <- unique(c(inp$ic[1:inp$nobsC], unlist(inp$ii)))
+            gr <- r*(1-(B[inds]/K)^p) # Pella-Tomlinson intrinsic growth
+            grobs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
+            ssqobs <- sum((grobs - mean(grobs))^2)
+            ssqres <- sum((grobs - gr)^2)
+            rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
+            # Prager's nearness
+            Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
+            Bdiff <- Bests - Bmsy
+            if(any(diff(sign(Bdiff))!=0)){
+                rep$stats$nearness <- 1
+            } else {
+                ind <- which.min(abs(Bdiff))
+                Bstar <- Bests[ind]
+                if(Bstar > Bmsy){
+                    rep$stats$nearness <- (K-Bstar)/(K-Bmsy)
+                } else {
+                    rep$stats$nearness <- Bstar/Bmsy
+                }
+            }
+            # Prager's coverage
+            rep$stats$coverage <- diff(range(Bests))/K
         } else {
             stop('Could not fit model, try changing the initial parameter guess in inp$ini. Error msg:', opt)
         }
@@ -595,18 +627,23 @@ calc.osa.resid <- function(rep, dbg=0){
     logCpred <- log(predmat[inds, 1])
     logCpres <- log(obsmat[inds, 1]) - logCpred
     logCpboxtest <- Box.test(logCpres, lag=1, type='Ljung-Box')
+    rep$stats$osarCpval <- logCpboxtest$p.value
     # Indices
     timeI <- list()
     logIpred <- list()
     logIpres <- list()
     logIpboxtest <- list()
+    pvals <- rep(0, inp$nindex)
+    names(pvals) <- paste0('I', 1:inp$nindex)
     for(i in 1:inp$nindex){
         inds <- which(haveobs[, i+1]==1)
         timeI[[i]] <- timepred[inds]
         logIpred[[i]] <- log(predmat[inds, i+1])
         logIpres[[i]] <- log(obsmat[inds, i+1]) - logIpred[[i]]
         logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=1, type='Ljung-Box')
+        pvals[i] <- logIpboxtest[[i]]$p.value
     }
+    rep$stats$osarIpval <- pvals
     rep$osar <- list(logCpres=logCpres, logCpred=logCpred, timeC=timeC, logCpboxtest=logCpboxtest, timeI=timeI, logIpres=logIpres, logIpred=logIpred, logIpboxtest=logIpboxtest)
     return(rep)
 }
@@ -654,20 +691,29 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
             ul <- est + 1.96*sd
         }
         if(length(est)==0){
+            ll <- NA
+            ul <- NA
+            sd <- NA
+            est <- NA
             if(length(indopt)>0){
                 est <- rep$opt$par[indopt]
-                ll <- NA
-                ul <- NA
-                sd <- NA
             } else {
-                cat(paste('WARNING: could not extract', parname, '\n'))
+                if('phases' %in% names(rep$inp)){
+                    if(rep$inp$phases[[parname]] == -1){
+                        cat(paste('WARNING: did not estimate', parname, 'extracting fixed initial value.\n'))
+                        est <- rep$inp$ini[[parname]]
+                        ll <- est
+                        ul <- est
+                    }
+                } else {
+                    cat(paste('WARNING: could not extract', parname, '\n'))
+                }
             }
+        }
+        if(exp){
+            return(cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd))
         } else {
-            if(exp){
-                return(cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd))
-            } else {
-                return(cbind(ll, est, ul, sd))
-            }
+            return(cbind(ll, est, ul, sd))
         }
     }
 }
@@ -1207,18 +1253,22 @@ plotspict.production <- function(rep){
 plotspict.growthrate <- function(rep){
     if(!'sderr' %in% names(rep)){
         inp <- rep$inp
-        Best <- get.par('logB', rep, exp=TRUE, random=TRUE)
-        Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
-        rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
+        Best <- get.par('logB', rep, exp=TRUE)
+        Kest <- get.par('logK', rep, exp=TRUE)
+        rest <- get.par('logr', rep, exp=TRUE)
+        pest <- get.par('logp', rep, exp=TRUE)
         Pest <- get.par('P', rep)
-        B <- Best[-1,2]
+        inds <- unique(c(inp$ic, unlist(inp$ii)))
+        B <- Best[-inp$ns,2]
         r <- rest[2]
+        p <- pest[2]
         K <- Kest[2]
-        gr <- r*(1-B/K)
-        plot(B, Pest[, 2]/inp$dt/B, typ='p', xlab='B', ylab='Intrinsic growth rate', col='blue')
-        lines(B, gr)
+        gr <- r*(1-(B[inds]/K)^p)
+        grobs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
+        plot(B[inds], grobs, typ='p', xlab='B', ylab='Intrinsic growth rate', col='blue', main=bquote(pseudoR^2 == .(round(rep$stats$pseudoRsq, 4))))
+        lines(B[inds], gr)
         abline(h=0, lty=3)
-        legend('topright', legend=c('Observed growth', 'r*(1-B/K)'), col=c(4,1), pch=c(1,NA), lty=c(NA,1))
+        legend('topright', legend=c('Observed growth', expression(r*(1-(B/K)^p))), col=c(4,1), pch=c(1,NA), lty=c(NA,1))
     }
 }
 
@@ -1236,12 +1286,12 @@ plotspict.growthrate <- function(rep){
 plotspict.tc <- function(rep){
     if(!'sderr' %in% names(rep)){
         inp <- rep$inp
-        Best <- get.par('logB', rep, exp=TRUE, random=TRUE)
-        Fest <- get.par('logF', rep, exp=TRUE, random=TRUE)
-        Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
-        rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
+        Best <- get.par('logB', rep, exp=TRUE)
+        Fest <- get.par('logF', rep, exp=TRUE)
+        Kest <- get.par('logK', rep, exp=TRUE)
+        rest <- get.par('logr', rep, exp=TRUE)
         p <- get.par('logp', rep, exp=TRUE)
-        sdbest <- get.par('logsdb', rep, exp=TRUE, fixed=TRUE)
+        sdbest <- get.par('logsdb', rep, exp=TRUE)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
         B0cur <- Best[inp$indlastobs, 2]
@@ -1275,7 +1325,10 @@ plotspict.tc <- function(rep){
             frac <- 0.95
             if(B0cur < Bmsy[2]) inds <- which(Bsim[nFvec, ]<0.99)
             if(B0cur > Bmsy[2]) inds <- which(Bsim[nFvec, ]>(1/0.99))
-            plot(time[1, ], Bsim[1, ], typ='l', xlim=range(time[nFvec, inds]), ylim=range(Bsim[nFvec, ]), col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy')
+            ylim <- range(Bsim[nFvec, ])
+            #print(Bsim[nFvec, ])
+            #print(ylim)
+            plot(time[1, ], Bsim[1, ], typ='l', xlim=range(time[nFvec, inds]), ylim=ylim, col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy')
             abline(h=c(frac, 1/frac), lty=1, col='lightgray')
             abline(h=1, lty=3)
             for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=i+2)
@@ -1319,7 +1372,7 @@ plot.spictcls <- function(rep, logax=FALSE){
     inp <- rep$inp
     #dev.new(width=10, height=10)
     #if('osar' %in% names(rep)){
-        par(mfrow=c(3, 3))
+        par(mfrow=c(4, 3))
     #} else {
     #    par(mfrow=c(2, 3))
     #}
@@ -1335,24 +1388,18 @@ plot.spictcls <- function(rep, logax=FALSE){
     plotspict.catch(rep)
     # Production curve
     plotspict.production(rep)
+    # Intrinsic growth rate
+    plotspict.growthrate(rep)
     # Time constant
     plotspict.tc(rep)
     if('osar' %in% names(rep)){
-        # Intrinsic growth rate
-        #plotspict.growthrate(rep)
-    }
-    if('osar' %in% names(rep)){
         # One-step-ahead catch residuals
         plotspict.osar(rep)
+        acf(rep$osar$logCpres, main='ACF of catch OSAR')
     }
     if('infl' %in% names(rep)){
         # Plot influence summary
         plotspict.inflsum(rep)
-    } else {
-        if('osar' %in% names(rep)){
-            # OSAR ACF
-            acf(rep$osar$logCpres, main='ACF of catch OSAR')
-        }
     }
 }
 
@@ -1376,6 +1423,9 @@ summary.spictcls <- function(object, numdigits=8){
     if(rep$opt$convergence>0) cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and should not be used.\n')
     if('sderr' %in% names(rep)) cat('WARNING: Could not calculate standard deviations. The optimum found may be invalid. Proceed with caution.\n')
     cat(paste('Negative log likelihood: ', round(rep$opt$objective, numdigits), '\n', sep=''))
+    cat('\nFit statistics\n')
+    statout <- unlist(rep$stats)
+    cat('', paste(capture.output(statout),' \n'))
     cat('\nModel parameter estimates w 95% CI \n')
     sd <- sqrt(diag(rep$cov.fixed))
     nms <- names(rep$par.fixed)
@@ -1413,7 +1463,7 @@ summary.spictcls <- function(object, numdigits=8){
     nms[logitinds] <- sub('logit', '', names(rep$par.fixed[logitinds]))
     nms[logp1inds] <- sub('logp1', '', names(rep$par.fixed[logp1inds]))
     rownames(resout) <- nms
-    cat(paste(capture.output(resout),' \n'))
+    cat('', paste(capture.output(resout),' \n'))
     if(!'sderr' %in% names(rep)){
         # Derived estimates
         cat('\nDerived estimates w 95% CI\n')
@@ -1431,7 +1481,7 @@ summary.spictcls <- function(object, numdigits=8){
             for(i in 1:3) cider[i] <- as.numeric(trueder[i] > derout[i, 2] & trueder[i] < derout[i, 3])
             derout <- cbind(estimate=derout[, 1], true=round(trueder,numdigits), derout[, 2:3], true.in.ci=cider, est.in.log=derout[, 4])
         }
-        cat(paste(capture.output(derout),' \n'))
+        cat('', paste(capture.output(derout),' \n'))
         # Stochastic derived estimates
         cat(' Stochastic\n')
         derout <- rbind(get.par(parname='logBmsy', rep, exp=TRUE)[c(2,1,3,2)],
@@ -1447,7 +1497,7 @@ summary.spictcls <- function(object, numdigits=8){
             for(i in 1:3) cider[i] <- as.numeric(trueder[i] > derout[i, 2] & trueder[i] < derout[i, 3])
             derout <- cbind(estimate=derout[, 1], true=round(trueder,numdigits), derout[, 2:3], true.in.ci=cider, est.in.log=derout[, 4])
         }
-        cat(paste(capture.output(derout),' \n'))
+        cat('', paste(capture.output(derout),' \n'))
         # States
         cat('\nStates w 95% CI \n')
         stateout <- rbind(
@@ -1460,7 +1510,7 @@ summary.spictcls <- function(object, numdigits=8){
         colnames(stateout) <- c('state est.', 'cilow', 'ciupp', 'est.in.log')
         et <- tail(rep$inp$time[rep$inp$indest],1)
         rownames(stateout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'))
-        cat(paste(capture.output(stateout),' \n'))
+        cat('', paste(capture.output(stateout),' \n'))
         # Predictions
         cat('\nPredictions w 95% CI \n')
         predout <- rbind(
@@ -1475,13 +1525,13 @@ summary.spictcls <- function(object, numdigits=8){
         colnames(predout) <- c('prediction', 'cilow', 'ciupp', 'est.in.log')
         et <- tail(rep$inp$time,1)
         rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_',tail(rep$inp$timeCp,1)))
-        cat(paste(capture.output(predout),' \n'))
+        cat('', paste(capture.output(predout),' \n'))
     }
-    if('osar' %in% names(rep)){
-        cat('\nOne-step-ahead residuals - Ljung-box test for independence of lag 1\n')
-        cat(paste(' Catches p-value:', round(rep$osar$logCpboxtest$p.value, numdigits), '\n'))
-        for(i in 1:rep$inp$nindex) cat(paste(' Index', i, 'p-value:', round(rep$osar$logIpboxtest[[i]]$p.value, numdigits), '\n'))
-    }
+    #if('osar' %in% names(rep)){
+    #    cat('\nOne-step-ahead residuals - Ljung-box test for independence of lag 1\n')
+    #    cat(paste(' Catches p-value:', round(rep$osar$logCpboxtest$p.value, numdigits), '\n'))
+    #    for(i in 1:rep$inp$nindex) cat(paste(' Index', i, 'p-value:', round(rep$osar$logIpboxtest[[i]]$p.value, numdigits), '\n'))
+    #}
 }
 
 
@@ -1712,6 +1762,7 @@ sim.spict <- function(input, nobs=100){
         rep <- input
         inp <- rep$inp
         pl <- rep$pl
+        plin <- inp$ini
     } else {
         if('ini' %in% names(input)){
             cat('Detected input as a SPiCT inp, proceeding...\n')
@@ -1752,6 +1803,7 @@ sim.spict <- function(input, nobs=100){
                 inp$obsI <- list()
                 for(i in 1:inp$nindex) inp$obsI[[i]] <- rep(10, inp$nobsI[i]) # Insert dummy
             }
+            plin <- inp$ini
             inp <- check.inp(inp)
             pl <- inp$ini
         } else {
@@ -1857,7 +1909,7 @@ sim.spict <- function(input, nobs=100){
     sim$timeC <- inp$timeC
     sim$obsI <- obsI
     sim$timeI <- inp$timeI
-    sim$ini <- list(logr=log(r), logK=log(K), logq=log(q), logsdf=log(sdf), logsdb=log(sdb))
+    sim$ini <- plin #list(logr=log(r), logK=log(K), logq=log(q), logsdf=log(sdf), logsdb=log(sdb))
     sim$dteuler <- inp$dteuler
     sim$euler <- inp$euler
     sim$lamperti <- inp$lamperti
@@ -1914,6 +1966,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
     for(i in 1:nnobsvec){
         ss[[i]] <- list()
         for(j in 1:nsim){
+            cat(paste(Sys.time(), '- validating:  i:', i, 'j:', j, '\n'))
             sim <- sim.spict(inp, nobs=nobsvec[i])
             if(!is.null(estinp)) sim$ini <- estinp$ini
             rep <- try(fit.spict(sim))
@@ -1921,7 +1974,6 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
                 rep <- calc.osa.resid(rep)
                 ss[[i]][[j]] <- extract.simstats(rep)
             }
-            cat(paste(Sys.time(), '- validating:  i:', i, 'j:', j, '\n'))
             if(!is.null(backup)) save(ss, file=backup)
         }
     }
@@ -1945,8 +1997,11 @@ extract.simstats <- function(rep){
         ss <- list()
         # Convergence
         ss$conv <- rep$opt$convergence
-        # OSA residuals p-value
-        if('osar' %in% names(rep)) ss$osarpval <- rep$osar$logCpboxtest$p.value
+        # Fit stats
+        ss$stats <- rep$stats
+        # OSA residuals p-values
+        if('osar' %in% names(rep)) ss$osarpvalC <- rep$osar$logCpboxtest$p.value
+        if('osar' %in% names(rep)) ss$osarpvalI <- rep$osar$logIpboxtest[[1]]$p.value
         # Fmsy estimate
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
         ss$Fmsyci <- rep$inp$true$Fmsy > Fmsy[1] & rep$inp$true$Fmsy < Fmsy[3]
@@ -2250,6 +2305,8 @@ calc.influence <- function(rep){
         infl[inds, i] <- i
     }
     rep$infl <- list(dfbeta=dfbeta, dpar=dpar, ddetcov=ddetcov, dosarpvals=dosarpvals, infl=infl)
+    # Add to stats
+    rep$stats$inflperc <- sum(apply(is.na(infl), 1, sum)<dim(infl)[2])/dim(infl)[1]
     return(rep)
 }
 
