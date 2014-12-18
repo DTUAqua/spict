@@ -4,6 +4,7 @@ setClass("spictcls")
 #' @name test.spict
 #' @title Example of a spict analysis.
 #' @details Loads a data set, fits the model, calculates one-step-ahead residuals, plots the results.
+#' @param dataset Specify one of the three test data sets: 'albacore', 'hake', 'lobster'. These can be accessed with the command data(pol).
 #' @return A result report as given by fit.spict().
 #' @examples
 #' rep <- test.spict()
@@ -296,7 +297,7 @@ check.inp <- function(inp){
         inp$ini$logF <- rep(inp$ini$logF0, inp$ns)
     } else {
         if(length(inp$ini$logF) != inp$ns){
-            cat('Wrong length of inp$ini$logF: ', length(inp$ini$logF), ' Should be equal to inp$ns: ', inp$ns, '. Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
+            cat('Wrong length of inp$ini$logF:', length(inp$ini$logF), ' Should be equal to inp$ns:', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
             inp$ini$logF <- inp$ini$logF[1:inp$ns]
         }
     }
@@ -304,7 +305,7 @@ check.inp <- function(inp){
         inp$ini$logB <- log(rep(exp(inp$ini$logbkfrac)*exp(inp$ini$logK), inp$ns))
     } else {
         if(length(inp$ini$logB) != inp$ns){
-            cat('Wrong length of inp$ini$logB: ', length(inp$ini$logB), ' Should be equal to inp$ns: ', inp$ns, '. Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
+            cat('Wrong length of inp$ini$logB:', length(inp$ini$logB), ' Should be equal to inp$ns:', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
             inp$ini$logB <- inp$ini$logB[1:inp$ns]
         }
     }
@@ -547,7 +548,7 @@ fit.spict <- function(inp, dbg=0){
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
-#' rep <- calc.osa.resid2(rep)
+#' rep <- calc.osa.resid(rep)
 #' plotspict.osar(rep)
 #' @import TMB
 calc.osa.resid <- function(rep, dbg=0){
@@ -701,13 +702,13 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
             } else {
                 if('phases' %in% names(rep$inp)){
                     if(rep$inp$phases[[parname]] == -1){
-                        cat(paste('WARNING: did not estimate', parname, 'extracting fixed initial value.\n'))
+                        #cat(paste('WARNING: did not estimate', parname, 'extracting fixed initial value.\n'))
                         est <- rep$inp$ini[[parname]]
                         ll <- est
                         ul <- est
                     }
                 } else {
-                    cat(paste('WARNING: could not extract', parname, '\n'))
+                    cat(paste('get.par WARNING: could not extract', parname, '\n'))
                 }
             }
         }
@@ -756,7 +757,7 @@ arrow.line <- function(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"
 
 #' @name annual
 #' @title Convert from quarterly (or other sub-annual) data to annual means.
-#' @param inp An inp list.
+#' @param intime A time vector corresponding to the values in vec.
 #' @param vec The vector of values to convert to annual means
 #' @return A list containing the annual means and a corresponding time vector.
 annual <- function(intime, vec){
@@ -1753,7 +1754,9 @@ predict.c <- function(F, K, r, B0, Binf, dt, sdb=0, lamperti=FALSE, euler=FALSE)
 #'
 #' inp <- pol$albacore
 #' inp$obsC <- NULL
+#' inp$timeC <- NULL
 #' inp$obsI <- NULL
+#' inp$timeI <- NULL
 #' sim2 <- sim.spict(inp, nobs=150)
 #' @export
 sim.spict <- function(input, nobs=100){
@@ -2158,6 +2161,11 @@ get.osar.pvals <- function(rep){
 #' @details TBA
 #' @param rep A valid result from fit.spict().
 #' @return A list equal to the input with the added key "infl" containing influence statistics.
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' rep <- calc.osa.resid(rep)
+#' rep <- calc.influence(rep)
 #' @export
 calc.influence <- function(rep){
     #parnams <- c('logFmsy', 'MSY', 'logCp', 'logBlBmsy')
@@ -2172,7 +2180,7 @@ calc.influence <- function(rep){
     parmat <- matrix(0, np, 4)
     rownames(parmat) <- parnamsnolog
     for(k in 1:np) parmat[k, ] <- get.par(parnams[k], rep)
-    detcov <- unlist(determinant(rep$cov.fixed, log=TRUE))[1]
+    detcov <- unlist(determinant(rep$cov.fixed, logarithm=TRUE))[1]
     likval <- rep$opt$objective
     osarpvals <- get.osar.pvals(rep)
     rwnms <- paste0('C_', inp$timeC)
@@ -2214,14 +2222,15 @@ calc.influence <- function(rep){
         np <- length(parnams)
         parmat <- matrix(0, np, 4)
         for(k in 1:np) parmat[k, ] <- get.par(parnams[k], rep2)
-        detcov <- unlist(determinant(rep2$cov.fixed, log=TRUE))[1]
+        detcov <- unlist(determinant(rep2$cov.fixed, logarithm=TRUE))[1]
         dosarpvals <- get.osar.pvals(rep2)
         return(list(parmat=parmat, detcov=detcov, dosarpvals=dosarpvals))
     }
     # Calculate influence
     #partry <- try(library(parallel))
-    partry <- try(library(multicore))
-    if(class(partry)=='try-error'){
+    #partry <- try(library(multicore))
+    if(Sys.info()['sysname']!='Linux'){
+    #if(class(partry)=='try-error'){
         single.inflfun <- function(c, inp, parnams, nobs){
             res <- inflfun(c, inp, parnams)
             ## Send progress update
@@ -2231,6 +2240,7 @@ calc.influence <- function(rep){
 
         res <- lapply(1:nobs, single.inflfun, inp, parnams, nobs)
     } else {
+        require(parallel)
         multi.inflfun <- function(c, inp, parnams, nobs, progfile){
             res <- inflfun(c, inp, parnams)
             ## Send progress update
@@ -2239,8 +2249,8 @@ calc.influence <- function(rep){
         }
         ## Open fifo progress file
         progfile <- fifo(tempfile(), open="w+b", blocking=T)
-        if(inherits(fork(), "masterProcess")) {
-        #if(inherits(parallel:::mcfork(), "masterProcess")) {
+        #if(inherits(fork(), "masterProcess")) {
+        if(inherits(parallel:::mcfork(), "masterProcess")) {
             ## Child
             progress <- 0.0
             while (progress < 1 && !isIncomplete(progfile)) {
@@ -2248,7 +2258,7 @@ calc.influence <- function(rep){
                 progress <- progress + as.numeric(msg)
                 cat(sprintf("Progress (multicore): %.2f%%\r", progress * 100))
             } 
-            exit()
+            #exit()
         }
         res <- mclapply(1:nobs, multi.inflfun, inp, parnams, nobs, progfile, mc.cores=4)
         ## Close progress file
@@ -2410,7 +2420,7 @@ plotspict.inflsum <- function(rep){
     infl <- rep$infl$infl
     nobs <- dim(infl)[1]
     ninfl <- dim(infl)[2]
-    matplot(infl, pch=1, col=1, yaxt='n', ylab='', xlab='', xaxt='n', main='Overall influence', typ='n')
+    matplot(infl, pch=1, col=1, yaxt='n', ylab='', xlab='', xaxt='n', main='Overall influence', type='n')
     axis(2, at=1:ninfl, labels=colnames(infl))
     cols <- apply(!is.na(infl), 1, sum)
     for(i in 1:nobs) abline(v=i, col=cols[i], lwd=(1+cols[i]/5))
@@ -2430,7 +2440,17 @@ plotspict.inflsum <- function(rep){
 #'   \item{"nogridpoints"}{ Number of grid points to evaluate the profile likelihood for each parameter. Default: 9. Note: with two parameters the calculation time increases quadratically when increasing the number of gridpoints.}
 #' }
 #' @param input A list containing observations and initial values for non profiled parameters (essentially an inp list) with the additional key "lprof" (see details for required keys). A valid result from fit.spict() containing an "inp" key with the described properties is also accepted.
-#' @return Nothing.
+#' @return The output is the input with the likelihood profile information added to the lprof key of either inp or rep$inp.
+#' @examples
+#' data(pol)
+#' inp <- pol$albacore
+#' inp$lprof <- list()
+#' inp$lprof$pars <- 'logsdb'
+#' inp$lprof$parrange <- c(log(0.05), log(0.4))
+#' inp$lprof$nogridpoints <- 15
+#' rep <- fit.spict(inp)
+#' rep <- lprof.spict(rep)
+#' plotspict.lprof(rep, logpar=TRUE)
 #' @export
 lprof.spict <- function(input){
     if('par.fixed' %in% names(input)){
@@ -2480,13 +2500,21 @@ lprof.spict <- function(input){
     }
     ngrid <- dim(pv)[1]
     do.grid <- function(i){
-        asd2 <- inp
-        asd2$ini <- pl
+        inptmp <- inp
+        inptmp$ini <- pl
         for(j in 1:np){
-            asd2$ini[[lprof$pars[j]]] <- pv[i, j]
-            asd2$phases[[lprof$pars[j]]] <- -1
+            inptmp$ini[[lprof$pars[j]]] <- pv[i, j]
+            inptmp$phases[[lprof$pars[j]]] <- -1
         }
-        rep2 <- fit.spict(asd2)
+        reptmp <- try(fit.spict(inptmp))
+        if(class(reptmp)=='try-error'){
+            cat('lprof WARNING: par[i], i=', i, 'failed to fit!\n')
+            rep2 <- list()
+            rep2$opt <- list()
+            rep2$opt$objective <- NA
+        } else {
+            rep2 <- reptmp
+        }
         #cat(i, '..')
         return(rep2$opt$objective)
     }
@@ -2501,17 +2529,19 @@ lprof.spict <- function(input){
         if(class(progfile)[1]=='fifo') writeBin(1/ngrid, progfile)
         return(lv)
     }
-    partry <- try(library(multicore))
+    #partry <- try(library(multicore))
     #partry <- try(library(parallel))
     cat('Profiling pars:', paste(lprof$pars, collapse=' and '), 'with', ngrid, 'trials.\n')
-    if(class(partry)=='try-error'){
+    if(Sys.info()['sysname']!='Linux'){
+    #if(class(partry)=='try-error'){
     #if(TRUE){
         likvals <- lapply(1:ngrid, single.do.grid, ngrid)
     } else {
+        require(parallel)
         ## Open fifo progress file
         progfile <- fifo(tempfile(), open="w+b", blocking=T)
-        if(inherits(fork(), "masterProcess")) {
-        #if(inherits(parallel:::mcfork(), "masterProcess")) {
+        #if(inherits(fork(), "masterProcess")) {
+        if(inherits(parallel:::mcfork(), "masterProcess")) {
             ## Child
             progress <- 0.0
             while (progress < 1 && !isIncomplete(progfile)) {
@@ -2519,7 +2549,7 @@ lprof.spict <- function(input){
                 progress <- progress + as.numeric(msg)
                 cat(sprintf("Multicore profiling: %.2f%%\r", progress * 100))
             } 
-            exit()
+            #exit()
         }
         likvals <- mclapply(1:ngrid, multi.do.grid, ngrid, progfile, mc.cores=4)
         ## Close progress file
