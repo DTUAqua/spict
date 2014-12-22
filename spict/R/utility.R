@@ -712,10 +712,15 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                 }
             }
         }
-        if(exp){
-            return(cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd))
+        if(exp==TRUE){
+            cv <- sqrt(exp(sd^2) - 1)
         } else {
-            return(cbind(ll, est, ul, sd))
+            cv <- sd/est
+        }
+        if(exp){
+            return(cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd, cv))
+        } else {
+            return(cbind(ll, est, ul, sd, cv))
         }
     }
 }
@@ -2016,11 +2021,12 @@ extract.simstats <- function(rep){
             mu <- get.par(parname, rep, exp=FALSE)[2]
             if(!is.null(ind)){
                 par <- par[ind, ]
-                mu <- get.par(parname, rep, exp=FALSE)[ind, 2]
+                #mu <- get.par(parname, rep, exp=FALSE)[ind, 2]
             }
             ci <- unname(true > par[1] & true < par[3])
             ciw <- unname(par[3] - par[1])
-            cv <- unname(par[4]/mu)
+            #cv <- unname(par[4]/mu)
+            cv <- par[5]
             return(list(ci=ci, ciw=ciw, cv=cv))
         }
         # Fmsy estimate
