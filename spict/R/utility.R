@@ -2009,6 +2009,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
 extract.simstats <- function(rep){
     if('true' %in% names(rep$inp)){
         ss <- list()
+        ss$nobs <- c(nobsc=rep$inp$nobsC, nobsI=rep$inp$nobsI)
         # Convergence
         ss$conv <- rep$opt$convergence
         # Fit stats
