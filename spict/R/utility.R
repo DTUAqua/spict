@@ -1977,6 +1977,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
     ss <- list()
     require(parallel)
     fun <- function(i, inp, nobs, estinp, backup){
+        cat(paste(Sys.time(), '- validating:  i:', i, 'nobs:', nobs, '\n'))
         sim <- sim.spict(inp, nobs)
         if(!is.null(estinp)) sim$ini <- estinp$ini
         rep <- try(fit.spict(sim))
@@ -1985,10 +1986,10 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
             s <- extract.simstats(rep)
         }
     }
-    for(i in 1:nnobsvec){
-        nobs <- nobsvec[i]        
-        cat(paste(Sys.time(), '- validating:  i:', i, 'nobs:', nobs, '\n'))
-        ss[[i]] <- mclapply(1:nsim, fun, inp, nobs, estinp, backup)
+    for(j in 1:nnobsvec){
+        nobs <- nobsvec[j]
+        cat(paste(Sys.time(), '- validating nobs:', nobs, '\n'))
+        ss[[j]] <- mclapply(1:nsim, fun, inp, nobs, estinp, backup)
         if(!is.null(backup)) save(ss, file=backup)
     }
     return(ss)
