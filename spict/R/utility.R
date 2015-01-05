@@ -528,7 +528,7 @@ fit.spict <- function(inp, dbg=0){
                 #}
             }
             # Prager's coverage
-            rep$stats$coverage <- (min(c(K, max(Bests))) - min(Bests))/Bmsy
+            rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
         } else {
             stop('Could not fit model, try changing the initial parameter guess in inp$ini. Error msg:', opt)
         }
