@@ -712,10 +712,15 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                 }
             }
         }
-        if(exp){
-            return(cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd))
+        if(exp==TRUE){
+            cv <- sqrt(exp(sd^2) - 1)
         } else {
-            return(cbind(ll, est, ul, sd))
+            cv <- sd/est
+        }
+        if(exp){
+            return(cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd, cv))
+        } else {
+            return(cbind(ll, est, ul, sd, cv))
         }
     }
 }
@@ -1970,20 +1975,21 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
     if('logF' %in% names(inp$ini)) inp$ini$logF <- NULL
     if('logB' %in% names(inp$ini)) inp$ini$logB <- NULL
     ss <- list()
-    
-    for(i in 1:nnobsvec){
-        ss[[i]] <- list()
-        for(j in 1:nsim){
-            cat(paste(Sys.time(), '- validating:  i:', i, 'j:', j, '\n'))
-            sim <- sim.spict(inp, nobs=nobsvec[i])
-            if(!is.null(estinp)) sim$ini <- estinp$ini
-            rep <- try(fit.spict(sim))
-            if(!class(rep)=='try-error'){
-                rep <- calc.osa.resid(rep)
-                ss[[i]][[j]] <- extract.simstats(rep)
-            }
-            if(!is.null(backup)) save(ss, file=backup)
+    require(parallel)
+    fun <- function(i, inp, nobs, estinp, backup){
+        sim <- sim.spict(inp, nobs)
+        if(!is.null(estinp)) sim$ini <- estinp$ini
+        rep <- try(fit.spict(sim))
+        if(!class(rep)=='try-error'){
+            rep <- calc.osa.resid(rep)
+            s <- extract.simstats(rep)
         }
+    }
+    for(i in 1:nnobsvec){
+        nobs <- nobsvec[i]        
+        cat(paste(Sys.time(), '- validating:  i:', i, 'nobs:', nobs, '\n'))
+        ss[[i]] <- mclapply(1:nsim, fun, inp, nobs, estinp, backup)
+        if(!is.null(backup)) save(ss, file=backup)
     }
     return(ss)
 }
@@ -2003,6 +2009,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
 extract.simstats <- function(rep){
     if('true' %in% names(rep$inp)){
         ss <- list()
+        ss$nobs <- c(nobsc=rep$inp$nobsC, nobsI=rep$inp$nobsI)
         # Convergence
         ss$conv <- rep$opt$convergence
         # Fit stats
@@ -2016,11 +2023,12 @@ extract.simstats <- function(rep){
             mu <- get.par(parname, rep, exp=FALSE)[2]
             if(!is.null(ind)){
                 par <- par[ind, ]
-                mu <- get.par(parname, rep, exp=FALSE)[ind, 2]
+                #mu <- get.par(parname, rep, exp=FALSE)[ind, 2]
             }
             ci <- unname(true > par[1] & true < par[3])
             ciw <- unname(par[3] - par[1])
-            cv <- unname(par[4]/mu)
+            #cv <- unname(par[4]/mu)
+            cv <- par[5]
             return(list(ci=ci, ciw=ciw, cv=cv))
         }
         # Fmsy estimate
