@@ -140,6 +140,10 @@ check.inp <- function(inp){
         stop('No index observations included. Please include them as a list in inp$obsI.')
     }
 
+    # -- MAX MIN RATIO --
+    inp$maxminratio <- rep(0, inp$nindex)
+    names(inp$maxminratio) <- paste0('I', 1:inp$nindex)
+    for(i in 1:inp$nindex) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
     # -- MODEL OPTIONS --
     if(!"robflagc" %in% names(inp)) inp$robflagc <- 0
     inp$robflagc <- as.numeric(inp$robflagc)
@@ -2015,6 +2019,8 @@ extract.simstats <- function(rep){
         ss$conv <- rep$opt$convergence
         # Fit stats
         ss$stats <- rep$stats
+        # Max min ratio
+        ss$maxminratio <- rep$inp$maxminratio
         # OSA residuals p-values
         if('osar' %in% names(rep)) ss$osarpvalC <- rep$osar$logCpboxtest$p.value
         if('osar' %in% names(rep)) ss$osarpvalI <- rep$osar$logIpboxtest[[1]]$p.value
