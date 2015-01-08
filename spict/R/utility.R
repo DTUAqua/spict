@@ -295,7 +295,8 @@ check.inp <- function(inp){
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
     if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.3)
-    if(!"logp" %in% names(inp$ini)) inp$ini$logp <- log(1.0)
+    #if(!"logp" %in% names(inp$ini)) inp$ini$logp <- log(1.0)
+    if(!"logn" %in% names(inp$ini)) inp$ini$logn <- log(2.0)
     if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr[1]))
     if(!"logF" %in% names(inp$ini)){
         inp$ini$logF <- rep(inp$ini$logF0, inp$ns)
@@ -327,16 +328,17 @@ check.inp <- function(inp){
                     logr=inp$ini$logr,
                     logK=inp$ini$logK,
                     logq=inp$ini$logq,
-                    logp=inp$ini$logp,
+                    #logp=inp$ini$logp,
+                    logn=inp$ini$logn,
                     logsdf=inp$ini$logsdf,
                     logsdb=inp$ini$logsdb,
                     logF=inp$ini$logF,
                     logB=inp$ini$logB)
     # Determine phases and fixed parameters
     if(inp$delay==1){
-        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta', 'logp', 'logitpp', 'logp1robfac') # These are fixed unless specified
+        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless specified
     } else {
-        fixpars <- c('logalpha', 'logbeta', 'logp', 'logitpp', 'logp1robfac') # These are fixed unless otherwise specified
+        fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless otherwise specified
     }
     if(!"phases" %in% names(inp)){
         inp$phases <- list()
@@ -377,8 +379,6 @@ check.inp <- function(inp){
             }
         }
     }
-        
-    #inp$checked <- TRUE
     return(inp)
 }
 
@@ -504,7 +504,8 @@ fit.spict <- function(inp, dbg=0){
             rep$stats <- list()
             K <- get.par('logK', rep, exp=TRUE)[2]
             r <- get.par('logr', rep, exp=TRUE)[2]
-            p <- get.par('logp', rep, exp=TRUE)[2]
+            n <- get.par('logn', rep, exp=TRUE)[2]
+            p <- n-1
             Best <- get.par('logB', rep, exp=TRUE)
             Bests <- Best[rep$inp$indest, 2]
             # R-square
@@ -1228,7 +1229,8 @@ plotspict.production <- function(rep){
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
         rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
         rest <- apply(rest, 2, mean)
-        p <- get.par('logp', rep, exp=TRUE)
+        n <- get.par('logn', rep, exp=TRUE)
+        p <- n-1
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
         Pest <- get.par('P', rep)
         nBplot <- 200
@@ -1267,12 +1269,12 @@ plotspict.prodrate <- function(rep){
         Best <- get.par('logB', rep, exp=TRUE)
         Kest <- get.par('logK', rep, exp=TRUE)
         rest <- get.par('logr', rep, exp=TRUE)
-        pest <- get.par('logp', rep, exp=TRUE)
+        nest <- get.par('logn', rep, exp=TRUE)
         Pest <- get.par('P', rep)
         inds <- unique(c(inp$ic, unlist(inp$ii)))
         B <- Best[-inp$ns,2]
         r <- rest[2]
-        p <- pest[2]
+        p <- nest[2]-1
         K <- Kest[2]
         pr <- r*(1-(B[inds]/K)^p)
         probs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
@@ -1301,7 +1303,8 @@ plotspict.tc <- function(rep){
         Fest <- get.par('logF', rep, exp=TRUE)
         Kest <- get.par('logK', rep, exp=TRUE)
         rest <- get.par('logr', rep, exp=TRUE)
-        p <- get.par('logp', rep, exp=TRUE)
+        n <- get.par('logn', rep, exp=TRUE)
+        p <- n-1
         sdbest <- get.par('logsdb', rep, exp=TRUE)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
@@ -1699,18 +1702,19 @@ calc.binf <- function(K, F, r, p, sdb=0, lamperti=FALSE){
 #' @param Binf Equilibrium biomass.
 #' @param F Fishing mortality.
 #' @param r Intrinsic growth rate.
+#' @param p Pella-Tomlinson exponent.
 #' @param K Carrying capacity.
 #' @param dt Time step.
 #' @param sdb Standard deviation of biomass process.
 #' @param lamperti Optional logical, use lamperti transformation?
 #' @param euler Optional logical, use Euler approximation?
 #' @return Predicted biomass at the end of dt.
-predict.b <- function(B0, Binf, F, r, K, dt, sdb=0, lamperti=FALSE, euler=FALSE){
+predict.b <- function(B0, Binf, F, r, p, K, dt, sdb=0, lamperti=FALSE, euler=FALSE){
     if(euler) lamperti <- 1
     if(!lamperti) sdb <- 0
     rate <- calc.rate(r, F, sdb)
     if(euler){
-        return(exp( log(B0) + (rate - r/K*B0)*dt )) # Euler
+        return(exp( log(B0) + (rate - r*(B0/K)^p)*dt )) # Euler
     } else {
         return(1 / ( 1/Binf + (1/B0 - 1/Binf) * exp(-rate*dt) )) # Approximative analytical
     }
@@ -1835,7 +1839,7 @@ sim.spict <- function(input, nobs=100){
     r <- exp(pl$logr)
     K <- exp(pl$logK)
     q <- exp(pl$logq)
-    p <- exp(pl$logp)
+    p <- exp(pl$logn)-1
     R <- mean(r*p/(p+1)) # Take mean in the case r is a vector
     sdb <- exp(pl$logsdb)
     sdf <- exp(pl$logsdf)
@@ -1864,7 +1868,7 @@ sim.spict <- function(input, nobs=100){
         B <- rep(0,nt)
         B[1] <- B0
         e <- exp(rnorm(nt-1, 0, sdb*sqrt(dt)))
-        for(t in 2:nt) B[t] <- predict.b(B[t-1], Binf[t-1], F[t-1], r[inp$ir[t]], K, dt, sdb, lamperti, euler) * e[t-1]
+        for(t in 2:nt) B[t] <- predict.b(B[t-1], Binf[t-1], F[t-1], r[inp$ir[t]], p, K, dt, sdb, lamperti, euler) * e[t-1]
         flag <- any(B <= 0) # Negative biomass not allowed
         recount <- recount+1
     }
@@ -1940,9 +1944,12 @@ sim.spict <- function(input, nobs=100){
     sim$true$Fmsyd <- R
     sim$true$MSYd <- sim$true$Bmsy * sim$true$Fmsy
     # From Bordet & Rivest (2014)
-    sim$true$Bmsy <- K/(p+1)^(1/p) * (1- (1+R*(p-1)/2)/(R*(2-R)^2)*sdb^2)
-    sim$true$Fmsy <- R - p*(1-R)*sdb^2/((2-R)^2)
-    sim$true$MSY <- K*R/((p+1)^(1/p)) * (1 - (p+1)/2*sdb^2/(1-(1-R)^2))
+    #sim$true$Bmsy <- K/(p+1)^(1/p) * (1- (1+R*(p-1)/2)/(R*(2-R)^2)*sdb^2)
+    #sim$true$Fmsy <- R - p*(1-R)*sdb^2/((2-R)^2)
+    #sim$true$MSY <- K*R/((p+1)^(1/p)) * (1 - (p+1)/2*sdb^2/(1-(1-R)^2))
+    sim$true$Bmsy <- sim$true$Bmsyd * (1 - (1+R*(p-1)/2)*sdb^2 / (R*(2-R)^2))
+    sim$true$Fmsy <- sim$true$Fmsyd - (p*(1-R)*sdb^2) / ((2-R)^2)
+    sim$true$MSY <- sim$true$MSYd * (1 - ((p+1)/2*sdb^2) / (1-(1-R)^2))
     sim$true$errI <- errI
     sim$true$logB <- NULL
     sim$true$logF <- NULL
@@ -2045,7 +2052,7 @@ extract.simstats <- function(rep){
         # MSY estimate
         ss$MSY <- calc.simstats('MSY', rep, exp=FALSE, rep$inp$true$MSY)
         # Final biomass estimate
-        ind <- tail(rep$inp$indest, 1) - 1
+        ind <- tail(rep$inp$indest, 1) - 1 # minus 1 because an extra time step is added to be able to integrate the catches over this time interval.
         ss$B <- calc.simstats('logB', rep, exp=TRUE, rep$inp$true$B[ind], ind=ind)
         # Final B/Bmsy estimate
         ss$BB <- calc.simstats('logBBmsy', rep, exp=TRUE, rep$inp$true$B[ind]/rep$inp$true$Bmsy, ind=ind)

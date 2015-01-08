@@ -106,7 +106,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logr);  // Intrinsic growth
   PARAMETER(logK);         // Carrying capacity
   PARAMETER_VECTOR(logq);  // Catchability
-  PARAMETER(logp);         // Pella-Tomlinson exponent
+  PARAMETER(logn);         // Pella-Tomlinson exponent
   PARAMETER(logsdf);       // Standard deviation for F
   PARAMETER(logsdb);       // Standard deviation for Index
   PARAMETER_VECTOR(logF);  // Random effects vector
@@ -123,7 +123,8 @@ Type objective_function<Type>::operator() ()
   int nq = logq.size();
   vector<Type> q(nq);
   for(int i=0; i<nq; i++){ q(i) = exp(logq(i)); }
-  Type p = exp(logp);
+  Type n = exp(logn);
+  Type p = n - 1.0;
   Type sdf = exp(logsdf);
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
@@ -160,9 +161,15 @@ Type objective_function<Type>::operator() ()
   Type logFmsyd = log(Fmsyd);
 
   // Stochastic reference points
-  Type Bmsy = Bmsyd * (1.0 - (1.0 + Rmean*(p-1.0)/2.0) / (Rmean*pow(2.0-Rmean, 2.0)) * sdb2);
-  Type Fmsy = Fmsyd - p*(1.0-Rmean) / pow(2.0-Rmean, 2.0) * sdb2;
-  Type MSY = MSYd * (1.0 - (p+1)/2.0 / (1.0 - pow(1.0-Rmean, 2.0)) * sdb2);
+  Type Bmsy = Bmsyd * (1.0 - (1.0 + Rmean*(p-1.0)/2.0)*sdb2 / (Rmean*pow(2.0-Rmean, 2.0)));
+  //Type Bmsy = Bmsyd * (1.0 - (1.0 + Rmean*(p-1.0)/2.0) / (Rmean*pow(2.0-Rmean, 2.0)) * sdb2);
+
+  Type Fmsy = Fmsyd - (p*(1.0-Rmean)*sdb2) / pow(2.0-Rmean, 2.0) ;
+  //Type Fmsy = Fmsyd - p*(1.0-Rmean) / pow(2.0-Rmean, 2.0) * sdb2;
+
+  Type MSY = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Rmean, 2.0)));
+  //Type MSY = MSYd * (1.0 - (p+1)/2.0 / (1.0 - pow(1.0-Rmean, 2.0)) * sdb2);
+
   Type logBmsy = log(Bmsy);
   Type logFmsy = log(Fmsy);
 
@@ -177,7 +184,7 @@ Type objective_function<Type>::operator() ()
     //std::cout << "INPUT: logr: " << logr << std::endl;
     std::cout << "INPUT: logK: " << logK << std::endl;
     for(int i=0; i<nq; i++){ std::cout << "INPUT: logq(i): " << logq(i) << " -- i: " << i << std::endl; }
-    std::cout << "INPUT: logp: " << logp << std::endl;
+    std::cout << "INPUT: logn: " << logn << std::endl;
     std::cout << "INPUT: logsdf: " << logsdf << std::endl;
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
     std::cout << "obsC.size(): " << obsC.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  F.size(): " << F.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  rvec.size(): " << rvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << std::endl;
@@ -391,7 +398,8 @@ Type objective_function<Type>::operator() ()
   ADREPORT(r);
   ADREPORT(K);
   ADREPORT(q);
-  ADREPORT(logp);
+  ADREPORT(p);
+  ADREPORT(logn);
   ADREPORT(sdf);
   ADREPORT(sdc);
   ADREPORT(sdb);
