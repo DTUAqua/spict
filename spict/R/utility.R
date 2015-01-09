@@ -287,6 +287,22 @@ check.inp <- function(inp){
     }
     check.ini('logsdb', inp, min=log(0.03), max=log(5))
     check.ini('logsdf', inp, min=log(0.03), max=log(5))
+    if(!"logn" %in% names(inp$ini)){
+        inp$ini$logn <- log(2.0)
+    } else {
+        if(inp$ini$logn==0) stop('Initial value for logn == 0, that is not valid!')
+    }
+    if(!"logm" %in% names(inp$ini)){
+        n <- exp(inp$ini$logn)
+        r <- exp(inp$ini$logr)
+        K <- exp(inp$ini$logK)
+        m <- r*K^(n-1) * (n-1)*(1/n)^(n/(n-1)) # n > 1
+        if(n>1){
+            inp$ini$logm <- log(m)
+        } else {
+            inp$ini$logm <- log(-m)
+        }
+    }
     # Fill in unspecified less important model parameter values
     if(!"phi1" %in% names(inp$ini)) inp$ini$phi1 <- 1
     if(!"phi2" %in% names(inp$ini)) inp$ini$phi2 <- 0
@@ -296,7 +312,6 @@ check.inp <- function(inp){
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
     if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.3)
     #if(!"logp" %in% names(inp$ini)) inp$ini$logp <- log(1.0)
-    if(!"logn" %in% names(inp$ini)) inp$ini$logn <- log(2.0)
     if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr[1]))
     if(!"logF" %in% names(inp$ini)){
         inp$ini$logF <- rep(inp$ini$logF0, inp$ns)
@@ -316,7 +331,7 @@ check.inp <- function(inp){
     }
 
     # Reorder parameter list
-    inp$ini <- list(phi1=inp$ini$phi1,
+    inp$parlist <- list(phi1=inp$ini$phi1,
                     phi2=inp$ini$phi2,
                     logitpp=inp$ini$logitpp,
                     logp1robfac=inp$ini$logp1robfac,
@@ -325,7 +340,8 @@ check.inp <- function(inp){
                     #loggamma=inp$ini$loggamma,
                     logbkfrac=inp$ini$logbkfrac,
                     logF0=inp$ini$logF0,
-                    logr=inp$ini$logr,
+                    #logr=inp$ini$logr,
+                    logm=inp$ini$logm,
                     logK=inp$ini$logK,
                     logq=inp$ini$logq,
                     #logp=inp$ini$logp,
@@ -352,7 +368,7 @@ check.inp <- function(inp){
         inp$phases$logp1robfac <- 1
     }
     # Assign phase 1 to parameters without a phase
-    nms <- names(inp$ini)
+    nms <- names(inp$parlist)
     nnms <- length(nms)
     for(i in 1:nnms){
         if(!nms[i] %in% names(inp$phases)){
@@ -370,9 +386,9 @@ check.inp <- function(inp){
         inds <- which(phasevec > j | phasevec == -1)
         for(i in inds){
             parnam <- names(phasevec)[i]
-            if(parnam %in% names(inp$ini)){
+            if(parnam %in% names(inp$parlist)){
                 phase <- inp$phases[[parnam]]
-                inp$map[[j]][[parnam]] <- factor(rep(NA, length(inp$ini[[parnam]])))
+                inp$map[[j]][[parnam]] <- factor(rep(NA, length(inp$parlist[[parnam]])))
                 #cat('WARNING: Phases not yet implemented! will estimate everything in one phase.\n')
             } else {
                 cat(paste('WARNING: Phase specified for an invalid parameter:', parnam, '\n'))
@@ -467,7 +483,7 @@ fit.spict <- function(inp, dbg=0){
     #if(!inp$checked)
     inp <- check.inp(inp)
     datin <- list(delay=inp$delay, dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, ffac=inp$ffaceuler, indpred=inp$indpred, robflagc=inp$robflagc, robflagi=inp$robflagi, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
-    pl <- inp$ini
+    pl <- inp$parlist
     for(i in 1:inp$nphases){
         if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
         obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map[[i]])
@@ -503,20 +519,20 @@ fit.spict <- function(inp, dbg=0){
             #  - Calculate statistics -
             rep$stats <- list()
             K <- get.par('logK', rep, exp=TRUE)[2]
-            r <- get.par('logr', rep, exp=TRUE)[2]
+            #r <- get.par('logr', rep, exp=TRUE)[2]
             n <- get.par('logn', rep, exp=TRUE)[2]
             p <- n-1
             Best <- get.par('logB', rep, exp=TRUE)
             Bests <- Best[rep$inp$indest, 2]
             # R-square
-            Pest <- get.par('P', rep)
-            B <- Best[-inp$ns, 2]
-            inds <- unique(c(inp$ic[1:inp$nobsC], unlist(inp$ii)))
-            gr <- r*(1-(B[inds]/K)^p) # Pella-Tomlinson production
-            grobs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
-            ssqobs <- sum((grobs - mean(grobs))^2)
-            ssqres <- sum((grobs - gr)^2)
-            rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
+            #Pest <- get.par('P', rep)
+            #B <- Best[-inp$ns, 2]
+            #inds <- unique(c(inp$ic[1:inp$nobsC], unlist(inp$ii)))
+            #gr <- r*(1-(B[inds]/K)^p) # Pella-Tomlinson production
+            #grobs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
+            #ssqobs <- sum((grobs - mean(grobs))^2)
+            #ssqres <- sum((grobs - gr)^2)
+            #rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
             # Prager's nearness
             Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
             Bdiff <- Bmsy - Bests
@@ -706,9 +722,10 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                 est <- rep$opt$par[indopt]
             } else {
                 if('phases' %in% names(rep$inp)){
+                    print(parname)
                     if(rep$inp$phases[[parname]] == -1){
                         #cat(paste('WARNING: did not estimate', parname, 'extracting fixed initial value.\n'))
-                        est <- rep$inp$ini[[parname]]
+                        est <- rep$inp$parlist[[parname]]
                         ll <- est
                         ul <- est
                     }
@@ -1822,7 +1839,7 @@ sim.spict <- function(input, nobs=100){
             }
             plin <- inp$ini
             inp <- check.inp(inp)
-            pl <- inp$ini
+            pl <- inp$parlist
         } else {
             stop('Invalid input! use either an inp list or a fit.spict() result.')
         }
@@ -1839,8 +1856,10 @@ sim.spict <- function(input, nobs=100){
     rf <- exp(pl$logr) # Fletcher's r
     K <- exp(pl$logK)
     q <- exp(pl$logq)
-    p <- exp(pl$logn)-1
-    Rvec <- 0.25 * rf * (p+1)^(1/p) # Bordet's r
+    n <- exp(pl$logn)
+    p <- n-1
+    #Rvec <- 0.25 * rf * (p+1)^(1/p) # Bordet's r
+    Rvec <- (n-1)/n * rf * K^(n-2) # Bordet's r
     R <- mean(Rvec) # Take mean in the case r is a vector
     r <- (p+1)/p * Rvec # Our r
     sdb <- exp(pl$logsdb)

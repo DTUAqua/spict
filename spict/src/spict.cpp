@@ -18,54 +18,19 @@ Type predictlogF(const Type &phi1, const Type &logF1, const Type &phi2, const Ty
   return phi1*logF1 + phi2*logF2;
 }
 
-/* Calculate B_infinity */
-template<class Type>
-Type calculateBinf(const Type &K, const Type &F, const Type &r, const Type &p, const Type &sdb2=0, int lamperti=0)
-{
-  if(lamperti){
-    // From Bordet & Rivest (2014)
-    return K * pow(1.0 - F/r, 1.0/p) * (1.0 - (p+1.0)/2.0 / (1.0-pow(1.0-p*r+p*F, 2.0)) * sdb2);
-  } else {
-    return K * pow(1.0 - F/r, 1.0/p);
-  }
-}
-
 /* Predict biomass */
 template<class Type>
-Type predictB(const Type &B0, const Type &Binf, const Type &F, const Type &r, const Type &K, const Type &dt, const Type &p, const Type &sdb2=0, int lamperti=0, int euler=0)
+Type predictB(const Type &B0, const Type &F, const Type &gamma, const Type &m, const Type &K, const Type &dt, const Type &n, const Type &sdb2=0)
 {
-  if(euler) lamperti = 1;
-  Type rate;
-  if(lamperti){
-    rate = r - F - 0.5*sdb2;
-  } else {
-    rate = r - F;    
-  }
-  if(euler){
-    // Pella-Tomlinson
-    return exp( log(B0) + (rate - r*pow(B0/K, p))*dt ); // Euler
-  } else {
-    // Schaefer only
-    return 1 / ( 1/Binf + (1/B0 - 1/Binf) * exp(-rate*dt) ); // Approximative analytical, p=1
-  }
+  // Pella-Tomlinson
+  return exp( log(B0) + (gamma*m/K - gamma*m/K*pow(B0/K, n-1.0) - F - 0.5*sdb2)*dt ); // Euler
 }
 
 /* Predict  catch*/
 template<class Type>
-Type predictC(const Type &F, const Type &K, const Type &r, const Type &B0, const Type &Binf, const Type &dt, const Type &sdb2=0, int lamperti=0, int euler=0)
+Type predictC(const Type &F, const Type &B0, const Type &dt)
 {
-  if(euler) lamperti = 1;
-  Type rate;
-  if(lamperti){
-    rate = r - F - 0.5*sdb2;
-  } else {
-    rate = r - F;    
-  }
-  if(euler){
-    return F*B0*dt;
-  } else {
-    return K/r*F * log( 1 - B0/Binf * (1 - exp(rate*dt)));
-  }
+  return F*B0*dt;
 }
 
 /* Main script */
@@ -103,7 +68,8 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logbeta);      // sdc = beta*sdf
   PARAMETER(logbkfrac);    // B0/K fraction
   PARAMETER(logF0);        // F at time 0
-  PARAMETER_VECTOR(logr);  // r following the Fletcher formulation (see Prager 2002)
+  //PARAMETER_VECTOR(logr);  // r following the Fletcher formulation (see Prager 2002)
+  PARAMETER_VECTOR(logm);  // r following the Fletcher formulation (see Prager 2002)
   PARAMETER(logK);         // Carrying capacity
   PARAMETER_VECTOR(logq);  // Catchability
   PARAMETER(logn);         // Pella-Tomlinson exponent
@@ -112,13 +78,15 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logF);  // Random effects vector
   PARAMETER_VECTOR(logB);  // Random effects vector
 
+  lamperti = 1.0; // Not used anymore
+  euler = 1.0; // Not used anymore
   Type pp = 1.0/(1.0 + exp(-logitpp));
   Type robfac = 1.0 + exp(logp1robfac);
   Type bkfrac = exp(logbkfrac);
   Type F0 = exp(logF0);
-  int nr = logr.size();
-  vector<Type> rf(nr); // Fletcher r
-  for(int i=0; i<nr; i++){ rf(i) = exp(logr(i)); }
+  int nm = logm.size();
+  vector<Type> m(nm); 
+  for(int i=0; i<nm; i++){ m(i) = exp(logm(i)); }
   Type K = exp(logK);
   int nq = logq.size();
   vector<Type> q(nq);
@@ -137,12 +105,12 @@ Type objective_function<Type>::operator() ()
   int ns = logF.size();
   vector<Type> F = exp(logF);
   vector<Type> P(ns-1);
-  vector<Type> Binf(ns);
-  vector<Type> logBinf(ns);
+  //vector<Type> Binf(ns);
+  //vector<Type> logBinf(ns);
   vector<Type> B = exp(logB);
   Type logB0 = logbkfrac + logK;
   vector<Type> Bpred(ns);
-  vector<Type> rvec(ns);
+  vector<Type> mvec(ns);
   vector<Type> ffacvec(ns);
   for(int i=0; i<ns; i++){ ffacvec(i) = 1.0; }
   vector<Type> Cpred(nobsCp);
@@ -150,31 +118,49 @@ Type objective_function<Type>::operator() ()
   vector<Type> Cpredsub(ns);
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
-  vector<Type> rb(nr); // Bordet r (Bordet 2014)
-  for(int i=0; i<nr; i++){ rb(i) = 0.25 * rf(i) * pow(p+1.0, 1.0/p); }
-  vector<Type> rm(nr); // Martin r
-  for(int i=0; i<nr; i++){ rm(i) = (p+1.0)/p * rb(i); }
-  Type rbmean = 0.0;
-  for(int i=0; i<nr; i++){ rbmean += rb(i)/nr; }
+  //vector<Type> rb(nr); // Bordet r (Bordet 2014)
+  //for(int i=0; i<nr; i++){ rb(i) = 0.25 * rf(i) * pow(p+1.0, 1.0/p); }
+  //for(int i=0; i<nr; i++){ rb(i) = (n-1.0)/n * rf(i) * pow(K, n-2.0); }
+  //vector<Type> rm(nr); // Martin r
+  //for(int i=0; i<nr; i++){ rm(i) = (p+1.0)/p * rb(i); }
+  Type mmean = 0.0;
+  for(int i=0; i<nm; i++){ mmean += m(i)/nm; }
   // Deterministic reference points
-  Type Bmsyd = K/pow(p+1.0, 1.0/p);
-  Type Fmsyd = rbmean;
-  Type MSYd = Bmsyd * Fmsyd;
+  //Type Bmsyd = K/pow(p+1.0, 1.0/p);
+  //Type Fmsyd = rbmean;
+  //Type MSYd = Bmsyd * Fmsyd;
+  //Type logBmsyd = log(Bmsyd);
+  //Type logFmsyd = log(Fmsyd);
+  Type Bmsyd = K * pow(1.0/n, 1.0/(n-1.0));
+  Type MSYd = mmean;
+  Type Fmsyd = MSYd/Bmsyd;
   Type logBmsyd = log(Bmsyd);
   Type logFmsyd = log(Fmsyd);
+  Type Bmsy = Bmsyd;
+  Type Fmsy = Fmsyd;
+  Type logBmsy = log(Bmsyd);
+  Type logFmsy = log(Fmsyd);
+  Type MSY = MSYd;
+
+  vector<Type> r(nm);
+  vector<Type> logr(nm);
+  for(int i=0; i<nm; i++){ 
+    r(i) = gamma * m(i) / K; 
+    logr(i) = log(r(i)); 
+  }
 
   // Stochastic reference points
-  Type Bmsy = Bmsyd * (1.0 - (1.0 + rbmean*(p-1.0)/2.0)*sdb2 / (rbmean*pow(2.0-rbmean, 2.0)));
+  //Type Bmsy = Bmsyd * (1.0 - (1.0 + rbmean*(p-1.0)/2.0)*sdb2 / (rbmean*pow(2.0-rbmean, 2.0)));
   //Type Bmsy = Bmsyd * (1.0 - (1.0 + Rmean*(p-1.0)/2.0) / (Rmean*pow(2.0-Rmean, 2.0)) * sdb2);
 
-  Type Fmsy = Fmsyd - (p*(1.0-rbmean)*sdb2) / pow(2.0-rbmean, 2.0) ;
+  //Type Fmsy = Fmsyd - (p*(1.0-rbmean)*sdb2) / pow(2.0-rbmean, 2.0) ;
   //Type Fmsy = Fmsyd - p*(1.0-Rmean) / pow(2.0-Rmean, 2.0) * sdb2;
 
-  Type MSY = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean, 2.0)));
+  //Type MSY = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean, 2.0)));
   //Type MSY = MSYd * (1.0 - (p+1)/2.0 / (1.0 - pow(1.0-Rmean, 2.0)) * sdb2);
 
-  Type logBmsy = log(Bmsy);
-  Type logFmsy = log(Fmsy);
+  //Type logBmsy = log(Bmsy);
+  //Type logFmsy = log(Fmsy);
 
   Type likval;
 
@@ -183,22 +169,21 @@ Type objective_function<Type>::operator() ()
     //for(int i=0; i<ns; i++) std::cout << "F(i): " << F(i) << std::endl;
     std::cout << "INPUT: logbkfrac: " << logbkfrac << std::endl;
     std::cout << "INPUT: logF0: " << logF0 << std::endl;
-    for(int i=0; i<nr; i++){ std::cout << "INPUT: logr(i): " << logr(i) << " -- i: " << i << "rm(i): " << rm(i) << std::endl; }
-    //std::cout << "INPUT: logr: " << logr << std::endl;
+    for(int i=0; i<nm; i++){ std::cout << "INPUT: logm(i): " << logm(i) << " -- i: " << i << std::endl; }
     std::cout << "INPUT: logK: " << logK << std::endl;
     for(int i=0; i<nq; i++){ std::cout << "INPUT: logq(i): " << logq(i) << " -- i: " << i << std::endl; }
     std::cout << "INPUT: logn: " << logn << std::endl;
     std::cout << "INPUT: logsdf: " << logsdf << std::endl;
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
-    std::cout << "obsC.size(): " << obsC.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  F.size(): " << F.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  rvec.size(): " << rvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << std::endl;
+    std::cout << "obsC.size(): " << obsC.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  F.size(): " << F.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << std::endl;
   }
-  // Calculate rvec
+  // Calculate mvec
   int ind;
   for(int i=0; i<ns; i++){
     ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
-    rvec(i) = rm(ind);
+    mvec(i) = m(ind);
     if(dbg>1){
-      std::cout << "-- i: " << i << "-- ind: " << ind << " -   rvec(i): " << rvec(i) << std::endl;
+      std::cout << "-- i: " << i << "-- ind: " << ind << " -   mvec(i): " << mvec(i) << std::endl;
     }
   }
   for(int i=1; i<indpred.size(); i++){ // don't use i=0 because this is only for plotting
@@ -209,7 +194,7 @@ Type objective_function<Type>::operator() ()
     }
   }
   for(int i=0; i<ns; i++){
-    if(F(i)==rvec(i)) std::cout << "Warning: F(i)-rvec(i): " << F(i)-rvec(i) << std::endl;
+    if(F(i)==mvec(i)) std::cout << "Warning: F(i)-mvec(i): " << F(i)-mvec(i) << std::endl;
   }
 
   /*
@@ -247,8 +232,8 @@ Type objective_function<Type>::operator() ()
   }
 
   // CALCULATE B_infinity
-  for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), rvec(i), p, sdb2, lamperti); 
-  logBinf = log(Binf);
+  //for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), rvec(i), p, sdb2, lamperti); 
+  //logBinf = log(Binf);
 
   // BIOMASS PREDICTIONS
   // Hack to set log(B(0)) equal to the fixed effect log(B0).
@@ -259,7 +244,8 @@ Type objective_function<Type>::operator() ()
   }
   for(int i=0; i<(ns-1); i++){
     // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
-    Bpred(i+1) = predictB(B(i), Binf(i), F(i), rvec(i), K, dt(i), p, sdb2, lamperti, euler);
+    //Bpred(i+1) = predictB(B(i), Binf(i), F(i), rvec(i), K, dt(i), p, sdb2, lamperti, euler);
+    Bpred(i+1) = predictB(B(i), F(i), gamma, mvec(i), K, dt(i), n, sdb2);
     likval = dnorm(log(Bpred(i+1)), logB(i+1), sqrt(dt(i))*sdb, 1);
     ans-=likval;
     // DEBUGGING
@@ -271,7 +257,8 @@ Type objective_function<Type>::operator() ()
   // CATCH PREDICTIONS
   for(int i=0; i<(ns-1); i++){ // ns-1 because dt is 1 shorter than state vec
     // For Cpredsub(i) use dt(i) because Cpredsub(i) is integrated over t_i to t_i+1
-    Cpredsub(i) =  predictC(F(i), K, rvec(i), B(i), Binf(i), dt(i), sdb2, lamperti, euler);
+    //Cpredsub(i) =  predictC(F(i), K, rvec(i), B(i), Binf(i), dt(i), sdb2, lamperti, euler);
+    Cpredsub(i) =  predictC(F(i), B(i), dt(i));
   }
   for(int i=0; i<nobsCp; i++){
     // Sum catch contributions from each sub interval
@@ -362,9 +349,9 @@ Type objective_function<Type>::operator() ()
   // Biomass and F at the end of the prediction time interval
   Type Bp = B(CppAD::Integer(dtprediind-1)); 
   Type logBp = log(Bp);
-  Type logBpBmsy = logBp - logBmsy;
+  Type logBpBmsy = logBp - logBmsyd;
   Type logFp = logF(CppAD::Integer(dtprediind-1)); 
-  Type logFpFmsy = logFp - logFmsy;
+  Type logFpFmsy = logFp - logFmsyd;
 
   vector<Type> logIp(nq);
   for(int i=0; i<nq; i++){
@@ -385,25 +372,27 @@ Type objective_function<Type>::operator() ()
   // Biomass and fishing mortality at last time point
   // dtpredcinds(0) is the index of B and F corresponding to the time of the last observation.
   Type logBl = logB(CppAD::Integer(dtpredcinds(0)-1)); 
-  Type logBlBmsy = logBl - logBmsy;
+  Type logBlBmsy = logBl - logBmsyd;
   Type logFl = logF(CppAD::Integer(dtpredcinds(0)-1)); 
-  Type logFlFmsy = logFl - logFmsy;
+  Type logFlFmsy = logFl - logFmsyd;
 
   // Biomass and fishing mortality over msy levels
   vector<Type> logBBmsy(ns);
   vector<Type> logFFmsy(ns);
   for(int i=0; i<ns; i++){ 
-    logBBmsy(i) = logB(i) - logBmsy; 
-    logFFmsy(i) = logF(i) - logFmsy; 
+    logBBmsy(i) = logB(i) - logBmsyd; 
+    logFFmsy(i) = logF(i) - logFmsyd; 
   }
 
   // ADREPORTS
-  ADREPORT(rm);
+  //ADREPORT(rm);
+  ADREPORT(r);
+  ADREPORT(logr);
   ADREPORT(K);
   ADREPORT(q);
   ADREPORT(p);
   ADREPORT(gamma);
-  ADREPORT(logn);
+  ADREPORT(m);
   ADREPORT(sdf);
   ADREPORT(sdc);
   ADREPORT(sdb);
@@ -418,7 +407,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logBp);
   //ADREPORT(logBpmsy);
   ADREPORT(logBpBmsy);
-  ADREPORT(logBinf);
+  //ADREPORT(logBinf);
   ADREPORT(logB0);
   ADREPORT(logBl);
   ADREPORT(logBlBmsy);
