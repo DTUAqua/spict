@@ -103,7 +103,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logbeta);      // sdc = beta*sdf
   PARAMETER(logbkfrac);    // B0/K fraction
   PARAMETER(logF0);        // F at time 0
-  PARAMETER_VECTOR(logr);  // Intrinsic growth
+  PARAMETER_VECTOR(logr);  // r following the Fletcher formulation (see Prager 2002)
   PARAMETER(logK);         // Carrying capacity
   PARAMETER_VECTOR(logq);  // Catchability
   PARAMETER(logn);         // Pella-Tomlinson exponent
@@ -117,13 +117,14 @@ Type objective_function<Type>::operator() ()
   Type bkfrac = exp(logbkfrac);
   Type F0 = exp(logF0);
   int nr = logr.size();
-  vector<Type> r(nr);
-  for(int i=0; i<nr; i++){ r(i) = exp(logr(i)); }
+  vector<Type> rf(nr); // Fletcher r
+  for(int i=0; i<nr; i++){ rf(i) = exp(logr(i)); }
   Type K = exp(logK);
   int nq = logq.size();
   vector<Type> q(nq);
   for(int i=0; i<nq; i++){ q(i) = exp(logq(i)); }
   Type n = exp(logn);
+  Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
   Type p = n - 1.0;
   Type sdf = exp(logsdf);
   Type sdb = exp(logsdb);
@@ -149,25 +150,27 @@ Type objective_function<Type>::operator() ()
   vector<Type> Cpredsub(ns);
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
-  vector<Type> R(nr);
-  for(int i=0; i<nr; i++){ R(i) = r(i)*p/(p+1.0); }
-  Type Rmean = 0.0;
-  for(int i=0; i<nr; i++){ Rmean += R(i)/nr; }
+  vector<Type> rb(nr); // Bordet r (Bordet 2014)
+  for(int i=0; i<nr; i++){ rb(i) = 0.25 * rf(i) * pow(p+1.0, 1.0/p); }
+  vector<Type> rm(nr); // Martin r
+  for(int i=0; i<nr; i++){ rm(i) = (p+1.0)/p * rb(i); }
+  Type rbmean = 0.0;
+  for(int i=0; i<nr; i++){ rbmean += rb(i)/nr; }
   // Deterministic reference points
   Type Bmsyd = K/pow(p+1.0, 1.0/p);
-  Type Fmsyd = Rmean;
+  Type Fmsyd = rbmean;
   Type MSYd = Bmsyd * Fmsyd;
   Type logBmsyd = log(Bmsyd);
   Type logFmsyd = log(Fmsyd);
 
   // Stochastic reference points
-  Type Bmsy = Bmsyd * (1.0 - (1.0 + Rmean*(p-1.0)/2.0)*sdb2 / (Rmean*pow(2.0-Rmean, 2.0)));
+  Type Bmsy = Bmsyd * (1.0 - (1.0 + rbmean*(p-1.0)/2.0)*sdb2 / (rbmean*pow(2.0-rbmean, 2.0)));
   //Type Bmsy = Bmsyd * (1.0 - (1.0 + Rmean*(p-1.0)/2.0) / (Rmean*pow(2.0-Rmean, 2.0)) * sdb2);
 
-  Type Fmsy = Fmsyd - (p*(1.0-Rmean)*sdb2) / pow(2.0-Rmean, 2.0) ;
+  Type Fmsy = Fmsyd - (p*(1.0-rbmean)*sdb2) / pow(2.0-rbmean, 2.0) ;
   //Type Fmsy = Fmsyd - p*(1.0-Rmean) / pow(2.0-Rmean, 2.0) * sdb2;
 
-  Type MSY = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Rmean, 2.0)));
+  Type MSY = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean, 2.0)));
   //Type MSY = MSYd * (1.0 - (p+1)/2.0 / (1.0 - pow(1.0-Rmean, 2.0)) * sdb2);
 
   Type logBmsy = log(Bmsy);
@@ -180,7 +183,7 @@ Type objective_function<Type>::operator() ()
     //for(int i=0; i<ns; i++) std::cout << "F(i): " << F(i) << std::endl;
     std::cout << "INPUT: logbkfrac: " << logbkfrac << std::endl;
     std::cout << "INPUT: logF0: " << logF0 << std::endl;
-    for(int i=0; i<nr; i++){ std::cout << "INPUT: logr(i): " << logr(i) << " -- i: " << i << std::endl; }
+    for(int i=0; i<nr; i++){ std::cout << "INPUT: logr(i): " << logr(i) << " -- i: " << i << "rm(i): " << rm(i) << std::endl; }
     //std::cout << "INPUT: logr: " << logr << std::endl;
     std::cout << "INPUT: logK: " << logK << std::endl;
     for(int i=0; i<nq; i++){ std::cout << "INPUT: logq(i): " << logq(i) << " -- i: " << i << std::endl; }
@@ -193,7 +196,7 @@ Type objective_function<Type>::operator() ()
   int ind;
   for(int i=0; i<ns; i++){
     ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
-    rvec(i) = r(ind);
+    rvec(i) = rm(ind);
     if(dbg>1){
       std::cout << "-- i: " << i << "-- ind: " << ind << " -   rvec(i): " << rvec(i) << std::endl;
     }
@@ -395,10 +398,11 @@ Type objective_function<Type>::operator() ()
   }
 
   // ADREPORTS
-  ADREPORT(r);
+  ADREPORT(rm);
   ADREPORT(K);
   ADREPORT(q);
   ADREPORT(p);
+  ADREPORT(gamma);
   ADREPORT(logn);
   ADREPORT(sdf);
   ADREPORT(sdc);
