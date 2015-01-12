@@ -11,6 +11,13 @@ Type ltdistr(const Type &x, const Type &df)
   return -(-lgamma(h*(df+p)) + h*log(df*M_PI) + lgamma(h*df) + h*(df+p)*log(Type(1.0)+x*x/df));
 }
 
+/* Calculate Binf */
+template<class Type>
+Type calculateBinf(const Type &K, const Type &F, const Type &gamma, const Type &m, const Type &n, const Type &sdb2)
+{
+  return K*pow(1.0 - K/(gamma*m)*F - K/(gamma*m)*0.5*sdb2, 1.0/(n-1.0));
+}
+
 /* Predict log F */
 template<class Type>
 Type predictlogF(const Type &phi1, const Type &logF1, const Type &phi2, const Type &logF2)
@@ -26,7 +33,7 @@ Type predictB(const Type &B0, const Type &F, const Type &gamma, const Type &m, c
   return exp( log(B0) + (gamma*m/K - gamma*m/K*pow(B0/K, n-1.0) - F - 0.5*sdb2)*dt ); // Euler
 }
 
-/* Predict  catch*/
+/* Predict catch*/
 template<class Type>
 Type predictC(const Type &F, const Type &B0, const Type &dt)
 {
@@ -105,8 +112,8 @@ Type objective_function<Type>::operator() ()
   int ns = logF.size();
   vector<Type> F = exp(logF);
   vector<Type> P(ns-1);
-  //vector<Type> Binf(ns);
-  //vector<Type> logBinf(ns);
+  vector<Type> Binf(ns);
+  vector<Type> logBinf(ns);
   vector<Type> B = exp(logB);
   Type logB0 = logbkfrac + logK;
   vector<Type> Bpred(ns);
@@ -118,49 +125,34 @@ Type objective_function<Type>::operator() ()
   vector<Type> Cpredsub(ns);
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
-  //vector<Type> rb(nr); // Bordet r (Bordet 2014)
-  //for(int i=0; i<nr; i++){ rb(i) = 0.25 * rf(i) * pow(p+1.0, 1.0/p); }
-  //for(int i=0; i<nr; i++){ rb(i) = (n-1.0)/n * rf(i) * pow(K, n-2.0); }
-  //vector<Type> rm(nr); // Martin r
-  //for(int i=0; i<nr; i++){ rm(i) = (p+1.0)/p * rb(i); }
   Type mmean = 0.0;
   for(int i=0; i<nm; i++){ mmean += m(i)/nm; }
+
   // Deterministic reference points
-  //Type Bmsyd = K/pow(p+1.0, 1.0/p);
-  //Type Fmsyd = rbmean;
-  //Type MSYd = Bmsyd * Fmsyd;
-  //Type logBmsyd = log(Bmsyd);
-  //Type logFmsyd = log(Fmsyd);
   Type Bmsyd = K * pow(1.0/n, 1.0/(n-1.0));
   Type MSYd = mmean;
   Type Fmsyd = MSYd/Bmsyd;
   Type logBmsyd = log(Bmsyd);
   Type logFmsyd = log(Fmsyd);
-  Type Bmsy = Bmsyd;
-  Type Fmsy = Fmsyd;
-  Type logBmsy = log(Bmsyd);
-  Type logFmsy = log(Fmsyd);
-  Type MSY = MSYd;
 
+
+  // Stochastic reference points (NOTE: only proved for n>1, Bordet and Rivest (2014))
+  Type rbmean = (n-1)/n*gamma*mmean/K;
+  Type Bmsy = Bmsyd * (1.0 - (1.0 + rbmean*(p-1.0)/2.0)*sdb2 / (rbmean*pow(2.0-rbmean, 2.0)));
+  Type Fmsy = Fmsyd - (p*(1.0-rbmean)*sdb2) / pow(2.0-rbmean, 2.0) ;
+  Type MSY = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean, 2.0)));
+  Type logBmsy = log(Bmsy);
+  Type logFmsy = log(Fmsy);
+
+  // Calculate growth rate
+  Type sign = 1.0;
+  if(n < 1) sign = -1.0; // Following Fletcher (1978)
   vector<Type> r(nm);
   vector<Type> logr(nm);
   for(int i=0; i<nm; i++){ 
-    r(i) = gamma * m(i) / K; 
+    r(i) = sign * gamma * m(i) / K; 
     logr(i) = log(r(i)); 
   }
-
-  // Stochastic reference points
-  //Type Bmsy = Bmsyd * (1.0 - (1.0 + rbmean*(p-1.0)/2.0)*sdb2 / (rbmean*pow(2.0-rbmean, 2.0)));
-  //Type Bmsy = Bmsyd * (1.0 - (1.0 + Rmean*(p-1.0)/2.0) / (Rmean*pow(2.0-Rmean, 2.0)) * sdb2);
-
-  //Type Fmsy = Fmsyd - (p*(1.0-rbmean)*sdb2) / pow(2.0-rbmean, 2.0) ;
-  //Type Fmsy = Fmsyd - p*(1.0-Rmean) / pow(2.0-Rmean, 2.0) * sdb2;
-
-  //Type MSY = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean, 2.0)));
-  //Type MSY = MSYd * (1.0 - (p+1)/2.0 / (1.0 - pow(1.0-Rmean, 2.0)) * sdb2);
-
-  //Type logBmsy = log(Bmsy);
-  //Type logFmsy = log(Fmsy);
 
   Type likval;
 
@@ -232,8 +224,8 @@ Type objective_function<Type>::operator() ()
   }
 
   // CALCULATE B_infinity
-  //for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), rvec(i), p, sdb2, lamperti); 
-  //logBinf = log(Binf);
+  for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), gamma, mvec(i), n, sdb2); 
+  logBinf = log(Binf);
 
   // BIOMASS PREDICTIONS
   // Hack to set log(B(0)) equal to the fixed effect log(B0).
@@ -407,7 +399,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logBp);
   //ADREPORT(logBpmsy);
   ADREPORT(logBpBmsy);
-  //ADREPORT(logBinf);
+  ADREPORT(logBinf);
   ADREPORT(logB0);
   ADREPORT(logBl);
   ADREPORT(logBlBmsy);
