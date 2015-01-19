@@ -362,12 +362,13 @@ check.inp <- function(inp){
                     logsdf=inp$ini$logsdf,
                     logsdb=inp$ini$logsdb,
                     logF=inp$ini$logF,
-                    logB=inp$ini$logB)
+                    logB=inp$ini$logB,
+                    dum=0.0)
     # Determine phases and fixed parameters
     if(inp$delay==1){
-        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless specified
+        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac', 'dum') # These are fixed unless specified
     } else {
-        fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless otherwise specified
+        fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac', 'dum') # These are fixed unless otherwise specified
     }
     if(!"phases" %in% names(inp)){
         inp$phases <- list()
@@ -436,10 +437,12 @@ check.ini <- function(parname, inp, min=NULL, max=NULL){
 #' @return A map that can be input to TMB to fix all model parameters except the random effects.
 get.predmap <- function(guess, RE){
     FE <- setdiff(names(guess), RE)
-    predmap <- rep(factor(NA), length(FE))
-    names(predmap) <- FE
-    predmap <- as.list(predmap)
-    return(predmap)
+    #predmap <- rep(factor(NA), length(FE))
+    #names(predmap) <- FE
+    predmapout <- list()
+    for(nm in FE) predmapout[[nm]] <- factor(NA)
+    #predmap <- as.list(predmap)
+    return(predmapout)
 }
 
 
@@ -592,6 +595,7 @@ calc.osa.resid <- function(rep, dbg=0){
     if("logB" %in% names(inp$ini)) inp$ini$logB <- NULL
     if("ns" %in% names(inp)) inp$ns <- NULL
     predmap <- get.predmap(rep$pl, inp$RE)
+    predmap$dum <- NULL # Keep dummy parameter free, but fix all other FE
     plnew <- rep$pl
     logCpred <- rep(0, inp$nobsC-1)
     logIpred <- list()
@@ -602,13 +606,13 @@ calc.osa.resid <- function(rep, dbg=0){
         logIpred[[i]] <- rep(0, inp$nobsI[i]-1)
         timeobs <- c(timeobs, inp$timeI[[i]])
     }
-    timeobs <- sort(unique(timeobs))
+    timeobs <- sort(unique(timeobs)) # Times where observations are available
     inds <- which(timeobs >= timeobs[1]+delay)
-    timepred <- timeobs[inds]
+    timepred <- timeobs[inds] # Times where observations must be predicted
     npred <- length(timepred)
-    nser <- inp$nindex+1
-    obsmat <- matrix(0, npred, nser)
-    haveobs <- matrix(0, npred, nser)
+    nser <- inp$nindex+1 # Number of data series
+    obsmat <- matrix(0, npred, nser) # Collect all observations in a matrix
+    haveobs <- matrix(0, npred, nser) # Indicate which observations are available at timepred
     rm.na <- function(rr) rr[!is.na(rr)]
     icm <- rm.na(match(inp$timeC, timepred))
     ic <- rm.na(match(timepred, inp$timeC))
@@ -620,11 +624,13 @@ calc.osa.resid <- function(rep, dbg=0){
         obsmat[iim, i+1] <- inp$obsI[[i]][ii]
         haveobs[iim, i+1] <- 1
     }
-    predmat <- matrix(0, npred, nser)
+    logpredmat <- matrix(0, npred, nser) # Collect sdreport prediction in this matrix
+    sdlogpredmat <- matrix(0, npred, nser) # Collect sd of prediction in this matrix
 
     for(j in 1:npred){
+        cat('OSAR step:', j, '- ')
         inp2 <- inp
-        endtimes <- rep(-1, nser)
+        endtimes <- rep(-1, nser) # Times of last observations of all data series
         # Catch
         cind <- which(inp$timeC < timepred[j])
         inp2$timeC <- inp$timeC[cind]
@@ -649,24 +655,38 @@ calc.osa.resid <- function(rep, dbg=0){
         datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
+        #objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=inp$map[[length(inp$map)]], random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         verbose <- FALSE
         objpred$env$tracemgc <- verbose
         objpred$env$inner.control$trace <- verbose
         objpred$env$silent <- ! verbose
         objpred$fn()
-        if(haveobs[j, 1] == 1) predmat[j, 1] <- objpred$report()$Cp
-        for(i in 1:inp$nindex) if(haveobs[j, i+1] == 1) predmat[j, i+1] <- exp(objpred$report()$logIp[i])
+        sdr <- sdreport(objpred)
+        # Collect catch prediction
+        if(haveobs[j, 1] == 1){
+            logpredmat[j, 1] <- get.par('logCp', sdr)[2]
+            sdlogpredmat[j, 1] <- get.par('logCp', sdr)[4]
+        }
+        # Collect index prediction(s)
+        for(i in 1:inp$nindex){
+            if(haveobs[j, i+1] == 1){
+                logpredmat[j, i+1] <- get.par('logIp', sdr)[i, 2]
+                sdlogpredmat[j, i+1] <- get.par('logIp', sdr)[i, 4]
+            }
+        }
     }
     # Catches
     inds <- which(haveobs[, 1]==1)
     timeC <- timepred[inds]
-    logCpred <- log(predmat[inds, 1])
-    logCpres <- log(obsmat[inds, 1]) - logCpred
+    logCpred <- logpredmat[inds, 1]
+    sdlogCpred <- sdlogpredmat[inds, 1]
+    logCpres <- (log(obsmat[inds, 1]) - logCpred)/sdlogCpred
     logCpboxtest <- Box.test(logCpres, lag=1, type='Ljung-Box')
     rep$stats$osarCpval <- logCpboxtest$p.value
     # Indices
     timeI <- list()
     logIpred <- list()
+    sdlogIpred <- list()
     logIpres <- list()
     logIpboxtest <- list()
     pvals <- rep(0, inp$nindex)
@@ -674,13 +694,15 @@ calc.osa.resid <- function(rep, dbg=0){
     for(i in 1:inp$nindex){
         inds <- which(haveobs[, i+1]==1)
         timeI[[i]] <- timepred[inds]
-        logIpred[[i]] <- log(predmat[inds, i+1])
-        logIpres[[i]] <- log(obsmat[inds, i+1]) - logIpred[[i]]
+        logIpred[[i]] <- logpredmat[inds, i+1]
+        sdlogIpred[[i]] <- sdlogpredmat[inds, i+1]
+        logIpres[[i]] <- (log(obsmat[inds, i+1]) - logIpred[[i]])/sdlogIpred[[i]]
         logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=1, type='Ljung-Box')
         pvals[i] <- logIpboxtest[[i]]$p.value
     }
     rep$stats$osarIpval <- pvals
     rep$osar <- list(logCpres=logCpres, logCpred=logCpred, timeC=timeC, logCpboxtest=logCpboxtest, timeI=timeI, logIpres=logIpres, logIpred=logIpred, logIpboxtest=logIpboxtest)
+    #rep$osar <- list(logCpres=logCpres, logCpres2=logCpres2, logCpred=logCpred, logCpred2=logCpred2, sdlogCpred2=sdlogCpred2, timeC=timeC, logCpboxtest=logCpboxtest, logCpboxtest2=logCpboxtest2, timeI=timeI, logIpres=logIpres, logIpres2=logIpres2, logIpred=logIpred, logIpred2=logIpred2, sdlogIpred2=sdlogIpred2, logIpboxtest=logIpboxtest, logIpboxtest2=logIpboxtest2)
     return(rep)
 }
 

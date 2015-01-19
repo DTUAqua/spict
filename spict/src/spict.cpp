@@ -84,6 +84,8 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logsdb);       // Standard deviation for Index
   PARAMETER_VECTOR(logF);  // Random effects vector
   PARAMETER_VECTOR(logB);  // Random effects vector
+  PARAMETER(dum);       // Dummy parameter, needed because the RE cannot be evaluated without FE
+  ans+=dum*dum; // Add dummy contribution (0 for dum=0)
 
   lamperti = 1.0; // Not used anymore
   euler = 1.0; // Not used anymore
@@ -422,6 +424,9 @@ Type objective_function<Type>::operator() ()
   // Other
   ADREPORT(logIpred);
   ADREPORT(P);
+  // PREDICTIONS
+  ADREPORT(Cp);
+  ADREPORT(logIp);
   // REPORTS (these don't require sdreport to be output)
   REPORT(Cp);
   REPORT(logIp);
