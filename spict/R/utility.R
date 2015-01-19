@@ -607,7 +607,8 @@ calc.osa.resid <- function(rep, dbg=0){
         timeobs <- c(timeobs, inp$timeI[[i]])
     }
     timeobs <- sort(unique(timeobs)) # Times where observations are available
-    inds <- which(timeobs >= timeobs[1]+delay)
+    #inds <- which(timeobs >= timeobs[1]+delay)
+    inds <- which(timeobs >= timeobs[2]+delay) # Start from 2: skip first observation because the RE are set to the FE B0/K and F0.
     timepred <- timeobs[inds] # Times where observations must be predicted
     npred <- length(timepred)
     nser <- inp$nindex+1 # Number of data series
@@ -701,7 +702,7 @@ calc.osa.resid <- function(rep, dbg=0){
         pvals[i] <- logIpboxtest[[i]]$p.value
     }
     rep$stats$osarIpval <- pvals
-    rep$osar <- list(logCpres=logCpres, logCpred=logCpred, timeC=timeC, logCpboxtest=logCpboxtest, timeI=timeI, logIpres=logIpres, logIpred=logIpred, logIpboxtest=logIpboxtest)
+    rep$osar <- list(logCpres=logCpres, logCpred=logCpred, sdlogCpred=sdlogCpred, timeC=timeC, logCpboxtest=logCpboxtest, timeI=timeI, logIpres=logIpres, logIpred=logIpred, sdlogIpred=sdlogIpred, logIpboxtest=logIpboxtest)
     #rep$osar <- list(logCpres=logCpres, logCpres2=logCpres2, logCpred=logCpred, logCpred2=logCpred2, sdlogCpred2=sdlogCpred2, timeC=timeC, logCpboxtest=logCpboxtest, logCpboxtest2=logCpboxtest2, timeI=timeI, logIpres=logIpres, logIpres2=logIpres2, logIpred=logIpred, logIpred2=logIpred2, sdlogIpred2=sdlogIpred2, logIpboxtest=logIpboxtest, logIpboxtest2=logIpboxtest2)
     return(rep)
 }
@@ -917,7 +918,7 @@ plotspict.biomass <- function(rep, logax=FALSE){
         lines(Binftime, Binfs/scal, col='green', lty=1)
         tp <- tail(inp$time,1)
         points(tp, tail(Best[,2],1)/scal, pch=21, bg='yellow')
-        legend('topright', legend=c('Equilibrium',paste(tp,'pred.')), lty=c(1,NA), pch=c(NA,21), col=c('green',1), pt.bg=c(NA,'yellow'), bg='white')
+        legend('topright', legend=c(expression('E(B'[infinity]*')'),paste(tp,'pred.')), lty=c(1,NA), pch=c(NA,21), col=c('green',1), pt.bg=c(NA,'yellow'), bg='white')
         #legend('topright', legend=c(paste(tp,'pred.')), pch=c(21), col=c(1), pt.bg=c('yellow'), bg='white')
         box()
     }
@@ -1177,7 +1178,7 @@ plotspict.fb <- function(rep, logax=FALSE){
         #points(Bp[2]/scal, Fp[2], pch=21, bg='yellow')
         points(tail(Binf[,2],1)/scal, Fp[2], pch=22, bg='green', cex=2)
         arrow.line(c(tail(Best[,2],1), tail(Binf[,2],1))/scal, rep(Fp[2],2), col='black', length=0.05)
-        legend('topright', c('Estimated MSY',paste(tail(inp$time,1),'prediction'),'Equilibrium'), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
+        legend('topright', c('Estimated MSY',paste(tail(inp$time,1),'prediction'),expression('E(B'[infinity]*')')), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
     }
 }
 
