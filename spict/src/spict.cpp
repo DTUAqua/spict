@@ -84,6 +84,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logsdb);       // Standard deviation for Index
   PARAMETER_VECTOR(logF);  // Random effects vector
   PARAMETER_VECTOR(logB);  // Random effects vector
+  //PARAMETER_VECTOR(Cpredcum);  // 
   PARAMETER(dum);       // Dummy parameter, needed because the RE cannot be evaluated without FE
   ans+=dum*dum; // Add dummy contribution (0 for dum=0)
 
@@ -125,6 +126,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> Cpred(nobsCp);
   for(int i=0; i<nobsCp; i++){ Cpred(i) = 0.0; }
   vector<Type> Cpredsub(ns);
+  vector<Type> Cpredcum(ns-1);
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
   Type mmean = 0.0;
@@ -215,13 +217,16 @@ Type objective_function<Type>::operator() ()
   // Hack to set log(B(0)) equal to the fixed effect log(B0).
   likval = dnorm(logF0, logF(0), sd, 1);
   ans-=likval;
+  if(dbg>0){
+    std::cout << "- logF0: " << logF0 << " logF(0): " << logF(0) << "  likval: " << likval << "  ans:" << ans <<  std::endl;
+  }
   for(int i=delay; i<ns; i++){
     Type logFpred = log(ffacvec(i)) + predictlogF(phi1, logF(i-1), phi2, logF(i-delay));
     likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf, 1);
     ans-=likval;
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -   logF(i-1): " << logF(i-1) << "  logF(i): " << logF(i) << "  ffacvec(i): " << ffacvec(i) << "  sdf: " << sdf << "  likval: " << likval << std::endl;
+      std::cout << "-- i: " << i << " -   logF(i-1): " << logF(i-1) << "  logF(i): " << logF(i) << "  ffacvec(i): " << ffacvec(i) << "  sdf: " << sdf << "  likval: " << likval << "  ans:" << ans << std::endl;
     }
   }
 
@@ -234,7 +239,7 @@ Type objective_function<Type>::operator() ()
   likval = dnorm(logB0, log(B(0)), sd, 1);
   ans-=likval;
   if(dbg>1){
-    std::cout << "-- i: " << 0 << " -   logB0: " << logB0 << "  log(B(0)): " << log(B(0)) << "  sd: " << sd << "  likval: " << likval << std::endl;
+    std::cout << "-- i: " << 0 << " -   logB0: " << logB0 << "  log(B(0)): " << log(B(0)) << "  sd: " << sd << "  likval: " << likval << "  ans:" << ans << std::endl;
   }
   for(int i=0; i<(ns-1); i++){
     // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
@@ -244,7 +249,7 @@ Type objective_function<Type>::operator() ()
     ans-=likval;
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -   logB(i+1): " << logB(i+1) << "  log(Bpred(i+1)): " << log(Bpred(i+1)) << "  sdb: " << sdb << "  likval: " << likval << std::endl;
+      std::cout << "-- i: " << i << " -   logB(i+1): " << logB(i+1) << "  log(Bpred(i+1)): " << log(Bpred(i+1)) << "  sdb: " << sdb << "  likval: " << likval << "  ans:" << ans << std::endl;
     }
   }
 
@@ -259,11 +264,19 @@ Type objective_function<Type>::operator() ()
     for(int j=0; j<nc(i); j++){
       ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
       Cpred(i) += Cpredsub(ind);
+      Cpredcum(ind) = Cpredcum(ind) + Cpredsub(ind);
       logCpred(i) = log(Cpred(i));
+    }
+    // Calculate cummulated catch
+    ind = CppAD::Integer(ic(i)-1);
+    Cpredcum(ind) = Cpredsub(ind);
+    for(int j=1; j<nc(i); j++){
+      ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
+      Cpredcum(ind) = Cpredcum(ind-1) + Cpredsub(ind);
     }
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -  ind: " << ind << "  logCpred(i): " << logCpred(i) << std::endl;
+      std::cout << "-- i: " << i << " -  ind: " << ind << "  logCpred(i): " << logCpred(i) << "  Cpredcum(i): " << Cpredcum(ind) << std::endl;
     }
   }
 
@@ -283,18 +296,21 @@ Type objective_function<Type>::operator() ()
   //Type robfac = 20.0;
   //Type pp = 0.95;
   for(int i=0; i<nobsC; i++){
+    int j = CppAD::Integer(nc(i)-1);
+    ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
     if(robflagc==1.0){
       //Type z = (logCpred(i)-log(obsC(i)))/sdc;
       //likval = -log(sdc) + dnorm(z, Type(0.0), Type(1.0), 1);
       //likval = -log(sdc) + ltdistr(z, Type(100.0));
       likval = log(pp*dnorm(logCpred(i), log(obsC(i)), sdc, 0) + (1.0-pp)*dnorm(logCpred(i), log(obsC(i)), robfac*sdc, 0));
     } else {
-      likval = dnorm(logCpred(i), log(obsC(i)), sdc, 1);
+      likval = dnorm(log(Cpredcum(ind)), log(obsC(i)), sdc, 1);
+      //likval = dnorm(logCpred(i), log(obsC(i)), sdc, 1);
     }
     ans-=likval;
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -   logobsC(i): " << log(obsC(i))<< "  log(Cpred(i)): " << logCpred(i) << "  sdc: " << sdc << "  likval: " << likval << std::endl;
+      std::cout << "-- i: " << i << " -   logobsC(i): " << log(obsC(i))<< "  log(Cpredcum(ind)): " << log(Cpredcum(ind)) << "  sdc: " << sdc << "  likval: " << likval << "  ans:" << ans << std::endl;
     }
   }
 
@@ -320,7 +336,7 @@ Type objective_function<Type>::operator() ()
       ans-=likval;
       // DEBUGGING
       if(dbg>1){
-	std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -   log(I(i)): " << log(I(i)) << "  logIpred(i): " << logIpred(i) << "  sdi: " << sdi << "  likval: " << likval << std::endl;
+	std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -   log(I(i)): " << log(I(i)) << "  logIpred(i): " << logIpred(i) << "  sdi: " << sdi << "  likval: " << likval << "  ans:" << ans << std::endl;
       }
     }
   }
@@ -419,6 +435,7 @@ Type objective_function<Type>::operator() ()
   // C
   //ADREPORT(Cpmsy);
   ADREPORT(Cpredsub);
+  ADREPORT(Cpredcum);
   ADREPORT(logCpred);
   ADREPORT(logCp);
   // Other

@@ -206,6 +206,7 @@ check.inp <- function(inp){
     }
     dtpredmax <- max(c(inp$dtpredc, inp$dtpredi))
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB')
+    #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'Cpredcum')
     if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
 
     # -- ASPIC SETTINGS --
@@ -342,6 +343,9 @@ check.inp <- function(inp){
             inp$ini$logB <- inp$ini$logB[1:inp$ns]
         }
     }
+    #if(!"Cpredcum" %in% names(inp$ini)){
+    #    inp$ini$Cpredcum <- rep(sum(inp$obsC)/inp$ns, inp$ns-1)
+    #}
 
     # Reorder parameter list
     inp$parlist <- list(phi1=inp$ini$phi1,
@@ -363,6 +367,7 @@ check.inp <- function(inp){
                     logsdb=inp$ini$logsdb,
                     logF=inp$ini$logF,
                     logB=inp$ini$logB,
+                    #Cpredcum=inp$ini$Cpredcum,
                     dum=0.0)
     # Determine phases and fixed parameters
     if(inp$delay==1){
