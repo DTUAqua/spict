@@ -88,6 +88,9 @@ Type objective_function<Type>::operator() ()
 
   lamperti = 1.0; // Not used anymore
   euler = 1.0; // Not used anymore
+  vector<Type> logphipar(logphi.size()+1);
+  logphipar(0) = 0.0; // The first logphi is set to 0, the rest are estimated relative to this.
+  for(int i=1; i<logphipar.size(); i++){ logphipar(i) = logphi(i-1); }
   Type pp = 1.0/(1.0 + exp(-logitpp));
   Type robfac = 1.0 + exp(logp1robfac);
   Type bkfrac = exp(logbkfrac);
@@ -163,12 +166,14 @@ Type objective_function<Type>::operator() ()
     std::cout << "INPUT: logbkfrac: " << logbkfrac << std::endl;
     std::cout << "INPUT: logF0: " << logF0 << std::endl;
     for(int i=0; i<nm; i++){ std::cout << "INPUT: logm(i): " << logm(i) << " -- i: " << i << std::endl; }
+    for(int i=0; i<logphi.size(); i++){ std::cout << "INPUT: logphi(i): " << logphi(i) << " -- i: " << i << std::endl; }
+    for(int i=0; i<logphipar.size(); i++){ std::cout << "INPUT: logphipar(i): " << logphipar(i) << " -- i: " << i << std::endl; }
     std::cout << "INPUT: logK: " << logK << std::endl;
     for(int i=0; i<nq; i++){ std::cout << "INPUT: logq(i): " << logq(i) << " -- i: " << i << std::endl; }
     std::cout << "INPUT: logn: " << logn << std::endl;
     std::cout << "INPUT: logsdf: " << logsdf << std::endl;
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
-    std::cout << "obsC.size(): " << obsC.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << std::endl;
+    std::cout << "obsC.size(): " << obsC.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
   }
   // Calculate mvec
   int ind;
@@ -228,12 +233,13 @@ Type objective_function<Type>::operator() ()
     }
   }
   vector<Type> logFs(ns);
+
   for(int i=0; i<ns; i++){
     ind = CppAD::Integer(seasons(i)-1); // minus 1 because R starts at 1 and c++ at 0
-    logFs(i) = logphi(ind) + logF(i);
+    logFs(i) = logphipar(ind) + logF(i);
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -   logF(i): " << logF(i) << " ind: " << ind << " logphi(ind): " << logphi(ind) << std::endl;
+      std::cout << "-- i: " << i << " -   logF(i): " << logF(i) << " logFs(i): " << logFs(i) << " ind: " << ind << " logphipar(ind): " << logphipar(ind) << std::endl;
     }
   }
   vector<Type> F = exp(logFs);
@@ -368,7 +374,7 @@ Type objective_function<Type>::operator() ()
   Type Bp = B(CppAD::Integer(dtprediind-1)); 
   Type logBp = log(Bp);
   Type logBpBmsy = logBp - logBmsyd;
-  Type logFp = logF(CppAD::Integer(dtprediind-1)); 
+  Type logFp = logFs(CppAD::Integer(dtprediind-1)); 
   Type logFpFmsy = logFp - logFmsyd;
 
   vector<Type> logIp(nq);
@@ -391,7 +397,7 @@ Type objective_function<Type>::operator() ()
   // dtpredcinds(0) is the index of B and F corresponding to the time of the last observation.
   Type logBl = logB(CppAD::Integer(dtpredcinds(0)-1)); 
   Type logBlBmsy = logBl - logBmsyd;
-  Type logFl = logF(CppAD::Integer(dtpredcinds(0)-1)); 
+  Type logFl = logFs(CppAD::Integer(dtpredcinds(0)-1)); 
   Type logFlFmsy = logFl - logFmsyd;
 
   // Biomass and fishing mortality over msy levels
@@ -399,7 +405,8 @@ Type objective_function<Type>::operator() ()
   vector<Type> logFFmsy(ns);
   for(int i=0; i<ns; i++){ 
     logBBmsy(i) = logB(i) - logBmsyd; 
-    logFFmsy(i) = logF(i) - logFmsyd; 
+    //logFFmsy(i) = logF(i) - logFmsyd; 
+    logFFmsy(i) = logFs(i) - logFmsyd; 
   }
 
   // ADREPORTS
@@ -440,6 +447,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logFl);
   ADREPORT(logFlFmsy);
   ADREPORT(logFFmsy);
+  ADREPORT(logFs);
   // C
   //ADREPORT(Cpmsy);
   ADREPORT(Cpredsub);

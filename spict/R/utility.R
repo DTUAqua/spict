@@ -183,12 +183,8 @@ check.inp <- function(inp){
         if("dtpred" %in% names(inp)){
             inp$dtpredc <- inp$dtpred
         } else {
-            if(length(inp$dtc)>0){
-                inp$dtpredc <- min(inp$dtc)
-            } else {
-                inp$dtpredc <- 1
-                cat('Assuming a 1 year prediction interval for catch.\n')
-            }
+            inp$dtpredc <- 1
+            cat('Assuming a 1 year prediction interval for catch.\n')
         }
     }
     if(!"dtpredi" %in% names(inp)){
@@ -331,7 +327,7 @@ check.inp <- function(inp){
         }
     }
     # Fill in unspecified less important model parameter values
-    if(!"logphi" %in% names(inp$ini)) inp$ini$logphi <- rep(0, inp$nseasons)
+    if(!"logphi" %in% names(inp$ini)) inp$ini$logphi <- rep(0, inp$nseasons-1)
     if(!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
     if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(20-1)
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
@@ -1042,7 +1038,8 @@ plotspict.f <- function(rep, logax=FALSE){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         cicol <- 'lightgray'
-        Fest <- get.par('logF', rep, exp=TRUE, random=TRUE)
+        #Fest <- get.par('logF', rep, exp=TRUE)
+        Fest <- get.par('logFs', rep, exp=TRUE)
         FF <- get.par('logFFmsy', rep, exp=TRUE)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
         #rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
@@ -1055,23 +1052,26 @@ plotspict.f <- function(rep, logax=FALSE){
             al2 <- annual(inp$time, Fest[, 2])
             al3 <- annual(inp$time, Fest[, 3])
             inds <- which(!is.na(al1$annvec) & al2$anntime<=tail(inp$time[inp$indest],1))
-            time <- al1$anntime[inds]
             cl <- al1$annvec[inds]
-            F <- al2$annvec[inds]
             cu <- al3$annvec[inds]
+            inds <- which(!is.na(al2$annvec) & al2$anntime<=tail(inp$time[inp$indest],1))
+            time <- al1$anntime[inds]
+            F <- al2$annvec[inds]
             inds <- which(!is.na(al1$annvec) & al2$anntime>=tail(inp$time[inp$indest],1))
-            timep <- al1$anntime[inds]
             clp <- al1$annvec[inds]
-            Fp <- al2$annvec[inds]
             cup <- al3$annvec[inds]
+            inds <- which(!is.na(al2$annvec) & al2$anntime>=tail(inp$time[inp$indest],1))
+            timep <- al1$anntime[inds]
+            Fp <- al2$annvec[inds]
             al1f <- annual(inp$time, FF[, 1])
             al2f <- annual(inp$time, FF[, 2])
             al3f <- annual(inp$time, FF[, 3])
             inds <- which(!is.na(al1f$annvec))
-            timef <- al1f$anntime[inds]
             clf <- al1f$annvec[inds]*Fmsy[2]
-            Ff <- al2f$annvec[inds]*Fmsy[2]
             cuf <- al3f$annvec[inds]*Fmsy[2]
+            inds <- which(!is.na(al2f$annvec))
+            timef <- al2f$anntime[inds]
+            Ff <- al2f$annvec[inds]*Fmsy[2]
         } else {
             time <- inp$time[inp$indest]
             cl <- Fest[inp$indest, 1]
@@ -1086,15 +1086,19 @@ plotspict.f <- function(rep, logax=FALSE){
             Ff <- FF[, 2]*Fmsy[2]
             cuf <- FF[, 3]*Fmsy[2]
         }
-
-        ylim <- range(c(cl, cu))
+        flag <- length(cu)==0
+        if(flag){
+            ylim <- range(c(Ff, Fmsy[1:3]))
+        } else {
+            ylim <- range(c(cl, cu))
+        }
         plot(timef, Ff, typ='n', main=paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac), ylim=ylim, col='blue', ylab='F', xlab='Time')
         axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
         mtext("F/Fmsy", side=4, las=0, line=2, cex=par('cex'))
         polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Fmsy[1],Fmsy[1],Fmsy[3],Fmsy[3]), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
-        polygon(c(timef, rev(timef)), c(clf, rev(cuf)), col=cicol2, border=cicol2)
-        if(min(inp$dtc) < 1){
+        if(!flag) polygon(c(timef, rev(timef)), c(clf, rev(cuf)), col=cicol2, border=cicol2)
+        if(min(inp$dtc) < 1){ # Plot estimated sub annual F 
             lines(inp$time, Fest[, 2], col=rgb(0, 0, 0, 0.2))
         }
         abline(v=tail(inp$time[inp$indest],1), col='gray')
@@ -1103,14 +1107,14 @@ plotspict.f <- function(rep, logax=FALSE){
             abline(h=inp$true$Fmsy, col='orange', lty=2)
         }
         maincol <- 'blue'
-        lines(time, cl, col=maincol, lwd=1.5, lty=2)
+        if(!flag) lines(time, cl, col=maincol, lwd=1.5, lty=2)
         lines(time, F, col=maincol, lwd=1.5)
-        lines(time, cu, col=maincol, lwd=1.5, lty=2)
-        lines(timep, clp, col=maincol, lty=2)
+        if(!flag) lines(time, cu, col=maincol, lwd=1.5, lty=2)
+        if(!flag) lines(timep, clp, col=maincol, lty=2)
         lines(timep, Fp, col=maincol, lty=3)
-        lines(timep, cup, col=maincol, lty=2)
-        lines(timef, clf, col=rgb(0, 0, 1, 0.2))
-        lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
+        if(!flag) lines(timep, cup, col=maincol, lty=2)
+        if(!flag) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
+        if(!flag) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         points(tail(inp$time,1), tail(Fest[, 2],1), pch=21, bg='yellow')
         abline(h=Fmsy[2], col='black')
         #abline(h=rest[2], col='red')
@@ -1141,16 +1145,22 @@ plotspict.fb <- function(rep, logax=FALSE){
         Best <- get.par('logB', rep, exp=TRUE, random=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
         Binf <- get.par('logBinf', rep, exp=TRUE)
+        inds <- which(is.na(Binf) | Binf<0)
+        Binf[inds] <- 1e-12
+        annlist <- annual(inp$time, Binf[, 2])
+        Binftime <- annlist$anntime
+        Binfs <- annlist$annvec
+
         ns <- dim(Best)[1]
         qest <- get.par('logq', rep, exp=TRUE, fixed=TRUE)
         #rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
         #rest <- apply(rest, 2, mean)
-        Fest <- get.par('logF', rep, exp=TRUE, random=TRUE)
+        Fest <- get.par('logFs', rep, exp=TRUE, random=TRUE)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
         Fp <- Fest[ns,]
         inds <- c(which(names(rep$value)=='logBmsy'), which(names(rep$value)=='logFmsy'))
         cl <- make.ellipse(inds, rep)
-        xlim <- range(c(tail(Binf[!is.na(Binf[,2]),2],1),exp(cl[,1]),Best[,2])/scal)
+        xlim <- range(c(tail(Binfs,1),exp(cl[,1]),Best[,2])/scal)
         #xlim <- range(c(exp(cl[,1]),Best[,2])/scal)
         ylim <- range(c(exp(cl[,2]),Fest[,2]))
         #main <- paste('logalpha:',rep$pl$logalpha,'r:',round(rest[2],3),'q:',round(qest[2],3))
@@ -1161,7 +1171,7 @@ plotspict.fb <- function(rep, logax=FALSE){
         axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
         mtext("F/Fmsy", side=4, las=0, line=2, cex=par('cex'))
         alpha <- 0.15
-        polygon(c(Bmsy[2], Bmsy[2], xlim[2], xlim[2]), c(Fmsy[2], 0, 0, Fmsy[2]), col=rgb(0,0.6,0,alpha), border=NA)
+        polygon(c(Bmsy[2], Bmsy[2], xlim[2], xlim[2]), c(Fmsy[2], 0, 0, Fmsy[2]), col=rgb(0,0.8,0,alpha), border=NA)
         polygon(c(Bmsy[2], Bmsy[2], 0, 0), c(Fmsy[2], 0, 0, Fmsy[2]), col=rgb(1,1,0,alpha), border=NA)
         polygon(c(Bmsy[2], Bmsy[2], xlim[2], xlim[2]), c(Fmsy[2], ylim[2], ylim[2], Fmsy[2]), col=rgb(1,1,0,alpha), border=NA)
         polygon(c(Bmsy[2], Bmsy[2], 0, 0), c(Fmsy[2], ylim[2], ylim[2], Fmsy[2]), col=rgb(0.6,0,0,alpha), border=NA)
@@ -1180,18 +1190,21 @@ plotspict.fb <- function(rep, logax=FALSE){
             alf <- annual(inp$time, Fest[, 2])
             alb <- annual(inp$time, Best[, 2])
             lines(alb$annvec/scal, alf$annvec, col=maincol, lwd=1.5)
+            points(tail(alb$annvec,1)/scal, tail(alf$annvec,1), pch=21, bg='yellow')
+            #points(tail(Binfs,1)/scal, Fp[2], pch=22, bg='green', cex=2)
+            #arrow.line(c(tail(alb$annvec,1), tail(Binfs,1))/scal, rep(Fp[2],2), col='black', length=0.05)
+            legend('topright', c('Estimated MSY',paste(tail(inp$time,1),'prediction')), pch=c(24,21), pt.bg=c('black','yellow'), bg='white')
         } else {
             lines(Best[inp$indest,2]/scal, Fest[inp$indest,2], col=maincol, lwd=1.5)
             lines(Best[inp$indpred,2]/scal, Fest[inp$indpred,2], col=maincol, lty=3)
+            points(tail(Best[,2],1)/scal, tail(Fest[,2],1), pch=21, bg='yellow')
+            points(tail(Binfs,1)/scal, Fp[2], pch=22, bg='green', cex=2)
+            arrow.line(c(tail(Best[,2],1), tail(Binfs,1))/scal, rep(Fp[2],2), col='black', length=0.05)
+            legend('topright', c('Estimated MSY',paste(tail(inp$time,1),'prediction'),expression('E(B'[infinity]*')')), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
         }
         points(Bmsy[2]/scal, Fmsy[2], pch=24, bg='black')
-        #lines(tail(Best[,2],1)/scal, tail(Fest[,2],1), col='blue', lty=3)
-        #lines(c(tail(Best[,2],1), Bp[2])/scal, rep(Fp[2],2), col='blue', lty=3)
-        points(tail(Best[,2],1)/scal, tail(Fest[,2],1), pch=21, bg='yellow')
-        #points(Bp[2]/scal, Fp[2], pch=21, bg='yellow')
-        points(tail(Binf[,2],1)/scal, Fp[2], pch=22, bg='green', cex=2)
-        arrow.line(c(tail(Best[,2],1), tail(Binf[,2],1))/scal, rep(Fp[2],2), col='black', length=0.05)
-        legend('topright', c('Estimated MSY',paste(tail(inp$time,1),'prediction'),expression('E(B'[infinity]*')')), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
+
+        
     }
 }
 
@@ -1537,6 +1550,15 @@ summary.spictcls <- function(object, numdigits=8){
     nms[loginds] <- sub('log', '', names(rep$par.fixed[loginds]))
     nms[logitinds] <- sub('logit', '', names(rep$par.fixed[logitinds]))
     nms[logp1inds] <- sub('logp1', '', names(rep$par.fixed[logp1inds]))
+    unms <- unique(nms)
+    for(inm in unms){
+        nn <- sum(inm==nms)
+        if(nn>1){
+            newnms <- paste0(inm, 1:nn)
+            inds <- which(inm==nms)
+            nms[inds] <- newnms
+        }
+    }
     rownames(resout) <- nms
     cat('', paste(capture.output(resout),' \n'))
     if(!'sderr' %in% names(rep)){
