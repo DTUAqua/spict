@@ -59,7 +59,9 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(ii);         // A vector such that B(ii(i)) is the state corresponding to I(i)
   DATA_VECTOR(iq);         // A vector such that iq(i) is the index number corresponding to I_iq(i)
   DATA_VECTOR(ir);         // A vector indicating when the different rs should be used
-  DATA_VECTOR(seasons);    // A vector of length ns indicating to which saeson a state belongs
+  DATA_VECTOR(seasons);    // A vector of length ns indicating to which season a state belongs
+  DATA_VECTOR(seasonindex);// A vector of length ns giving the number stepped within the current year
+  DATA_MATRIX(splinemat);  // Design matrix for the seasonal spline
   DATA_SCALAR(ffac);       // Management factor each year multiply the predicted F with ffac
   DATA_VECTOR(indpred);    // A vector indicating when the management factor should be applied
   DATA_SCALAR(robflagc);        // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
@@ -91,6 +93,9 @@ Type objective_function<Type>::operator() ()
   vector<Type> logphipar(logphi.size()+1);
   logphipar(0) = 0.0; // The first logphi is set to 0, the rest are estimated relative to this.
   for(int i=1; i<logphipar.size(); i++){ logphipar(i) = logphi(i-1); }
+  vector<Type> temp = splinemat.col(0);
+  vector<Type> seasonspline(temp.size());
+  seasonspline = splinemat * logphipar;
   Type pp = 1.0/(1.0 + exp(-logitpp));
   Type robfac = 1.0 + exp(logp1robfac);
   Type bkfrac = exp(logbkfrac);
@@ -234,9 +239,12 @@ Type objective_function<Type>::operator() ()
   }
   vector<Type> logFs(ns);
 
+  int ind2;
   for(int i=0; i<ns; i++){
-    ind = CppAD::Integer(seasons(i)-1); // minus 1 because R starts at 1 and c++ at 0
-    logFs(i) = logphipar(ind) + logF(i);
+    //ind = CppAD::Integer(seasons(i)-1); // minus 1 because R starts at 1 and c++ at 0
+    //logFs(i) = logphipar(ind) + logF(i);
+    ind2 = CppAD::Integer(seasonindex(i));
+    logFs(i) = seasonspline(ind2) + logF(i);
     // DEBUGGING
     if(dbg>1){
       std::cout << "-- i: " << i << " -   logF(i): " << logF(i) << " logFs(i): " << logFs(i) << " ind: " << ind << " logphipar(ind): " << logphipar(ind) << std::endl;
