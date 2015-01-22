@@ -179,7 +179,6 @@ check.inp <- function(inp){
         }
     }
     inp$ffaceuler <- inp$ffac^inp$dteuler
-    if(!"delay" %in% names(inp)) inp$delay <- 1
     if(!"dtpredc" %in% names(inp)){
         if("dtpred" %in% names(inp)){
             inp$dtpredc <- inp$dtpred
@@ -228,6 +227,21 @@ check.inp <- function(inp){
     inp$indlastobs <- which(inp$time == inp$timerange[2])
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
+    # Seasons
+    if(!"nseasons" %in% names(inp)){
+        inp$nseasons <- length(unique(timeobs %% 1))
+        #if(inp$seasons>4) inp$seasons <- 4
+    }
+    if("nseasons" %in% names(inp)){
+       if(!inp$nseasons %in% c(1, 2, 4)) stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
+    }
+    inp$seasons <- rep(0, inp$ns)
+    for(i in 1:inp$nseasons){
+        frac <- 1/inp$nseasons
+        modtime <- inp$time %% 1
+        inds <- which(modtime>=((i-1)*frac) & modtime<(i*frac))
+        inp$seasons[inds] <- i
+    }
     # ic is the indices of inp$time to which catch observations correspond
     if(length(inp$dtc)>0){
         dtcpred <- min(inp$dtc)
@@ -251,7 +265,6 @@ check.inp <- function(inp){
     # Calculate time steps
     inp$dt <- diff(inp$time)
     # Add helper variable such that predicted catch can be calculated using small euler steps
-    # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
     # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
     inp$dtpredcinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpredc))
     inp$dtpredcnsteps <- length(inp$dtpredcinds)
@@ -318,8 +331,7 @@ check.inp <- function(inp){
         }
     }
     # Fill in unspecified less important model parameter values
-    if(!"phi1" %in% names(inp$ini)) inp$ini$phi1 <- 1
-    if(!"phi2" %in% names(inp$ini)) inp$ini$phi2 <- 0
+    if(!"logphi" %in% names(inp$ini)) inp$ini$logphi <- rep(0, inp$nseasons)
     if(!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
     if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(20-1)
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
@@ -348,20 +360,16 @@ check.inp <- function(inp){
     #}
 
     # Reorder parameter list
-    inp$parlist <- list(phi1=inp$ini$phi1,
-                    phi2=inp$ini$phi2,
+    inp$parlist <- list(logphi=inp$ini$logphi,
                     logitpp=inp$ini$logitpp,
                     logp1robfac=inp$ini$logp1robfac,
                     logalpha=inp$ini$logalpha,
                     logbeta=inp$ini$logbeta,
-                    #loggamma=inp$ini$loggamma,
                     logbkfrac=inp$ini$logbkfrac,
                     logF0=inp$ini$logF0,
-                    #logr=inp$ini$logr,
                     logm=inp$ini$logm,
                     logK=inp$ini$logK,
                     logq=inp$ini$logq,
-                    #logp=inp$ini$logp,
                     logn=inp$ini$logn,
                     logsdf=inp$ini$logsdf,
                     logsdb=inp$ini$logsdb,
@@ -370,8 +378,8 @@ check.inp <- function(inp){
                     #Cpredcum=inp$ini$Cpredcum,
                     dum=0.0)
     # Determine phases and fixed parameters
-    if(inp$delay==1){
-        fixpars <- c('phi1', 'phi2', 'logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac', 'dum') # These are fixed unless specified
+    if(inp$nseasons==1){
+        fixpars <- c('logphi', 'logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac', 'dum') # These are fixed unless specified
     } else {
         fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac', 'dum') # These are fixed unless otherwise specified
     }
@@ -503,7 +511,7 @@ fit.spict <- function(inp, dbg=0){
     #if(!'checked' %in% names(inp)) inp <- check.inp(inp)
     #if(!inp$checked)
     inp <- check.inp(inp)
-    datin <- list(delay=inp$delay, dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, ffac=inp$ffaceuler, indpred=inp$indpred, robflagc=inp$robflagc, robflagi=inp$robflagi, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
+    datin <- list(dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, seasons=inp$seasons, ffac=inp$ffaceuler, indpred=inp$indpred, robflagc=inp$robflagc, robflagi=inp$robflagi, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
     pl <- inp$parlist
     for(i in 1:inp$nphases){
         if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
@@ -605,7 +613,7 @@ calc.osa.resid <- function(rep, dbg=0){
     logCpred <- rep(0, inp$nobsC-1)
     logIpred <- list()
 
-    delay <- inp$delay*inp$dteuler # Delay in years
+    delay <- inp$dteuler # Delay in years
     timeobs <- inp$timeC
     for(i in 1:inp$nindex){
         logIpred[[i]] <- rep(0, inp$nobsI[i]-1)
@@ -613,7 +621,7 @@ calc.osa.resid <- function(rep, dbg=0){
     }
     timeobs <- sort(unique(timeobs)) # Times where observations are available
     #inds <- which(timeobs >= timeobs[1]+delay)
-    inds <- which(timeobs >= timeobs[2]+delay) # Start from 2: skip first observation because the RE are set to the FE B0/K and F0.
+    inds <- which(timeobs >= (timeobs[2]+delay)) # Start from 2: skip first observation because the RE are set to the FE B0/K and F0.
     timepred <- timeobs[inds] # Times where observations must be predicted
     npred <- length(timepred)
     nser <- inp$nindex+1 # Number of data series
@@ -658,7 +666,7 @@ calc.osa.resid <- function(rep, dbg=0){
         inp2$dtpredi <- timepred[j] - max(endtimes)
         if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[which(inp$timeC == timepred[j])]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
         inp2 <- check.inp(inp2)
-        datnew <- list(delay=inp2$delay, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, ffac=inp$ffac, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
+        datnew <- list(dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, ffac=inp$ffac, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         #objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=inp$map[[length(inp$map)]], random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)

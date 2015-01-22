@@ -46,7 +46,6 @@ Type objective_function<Type>::operator() ()
 {
   Type ans=0;
 
-  DATA_INTEGER(delay);     // Delay
   DATA_VECTOR(dt);         // Time steps
   //DATA_SCALAR(dtpredc);     // Time step for prediction
   DATA_VECTOR(dtpredcinds);
@@ -60,6 +59,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(ii);         // A vector such that B(ii(i)) is the state corresponding to I(i)
   DATA_VECTOR(iq);         // A vector such that iq(i) is the index number corresponding to I_iq(i)
   DATA_VECTOR(ir);         // A vector indicating when the different rs should be used
+  DATA_VECTOR(seasons);    // A vector of length ns indicating to which saeson a state belongs
   DATA_SCALAR(ffac);       // Management factor each year multiply the predicted F with ffac
   DATA_VECTOR(indpred);    // A vector indicating when the management factor should be applied
   DATA_SCALAR(robflagc);        // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
@@ -67,16 +67,14 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(lamperti);  // Lamperti flag.
   DATA_INTEGER(euler);     // Euler flag.
   DATA_SCALAR(dbg);        // Debug flag, if == 1 then print stuff.
-  PARAMETER(phi1);         // 
-  PARAMETER(phi2);         // 
+  PARAMETER_VECTOR(logphi);   // Season levels of F.
   PARAMETER(logitpp);      // 
   PARAMETER(logp1robfac);  // 
   PARAMETER(logalpha);     // sdi = alpha*sdb
   PARAMETER(logbeta);      // sdc = beta*sdf
   PARAMETER(logbkfrac);    // B0/K fraction
   PARAMETER(logF0);        // F at time 0
-  //PARAMETER_VECTOR(logr);  // r following the Fletcher formulation (see Prager 2002)
-  PARAMETER_VECTOR(logm);  // r following the Fletcher formulation (see Prager 2002)
+  PARAMETER_VECTOR(logm);  // m following the Fletcher formulation (see Prager 2002)
   PARAMETER(logK);         // Carrying capacity
   PARAMETER_VECTOR(logq);  // Catchability
   PARAMETER(logn);         // Pella-Tomlinson exponent
@@ -113,7 +111,6 @@ Type objective_function<Type>::operator() ()
   int nobsCp = ic.size();
   int nobsI = I.size();
   int ns = logF.size();
-  vector<Type> F = exp(logF);
   vector<Type> P(ns-1);
   vector<Type> Binf(ns);
   vector<Type> logBinf(ns);
@@ -171,7 +168,7 @@ Type objective_function<Type>::operator() ()
     std::cout << "INPUT: logn: " << logn << std::endl;
     std::cout << "INPUT: logsdf: " << logsdf << std::endl;
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
-    std::cout << "obsC.size(): " << obsC.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  F.size(): " << F.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << std::endl;
+    std::cout << "obsC.size(): " << obsC.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << std::endl;
   }
   // Calculate mvec
   int ind;
@@ -189,9 +186,9 @@ Type objective_function<Type>::operator() ()
       std::cout << "-- i: " << i << "-- ind: " << ind << " -   ffacvec(i): " << ffacvec(i) << std::endl;
     }
   }
-  for(int i=0; i<ns; i++){
-    if(F(i)==mvec(i)) std::cout << "Warning: F(i)-mvec(i): " << F(i)-mvec(i) << std::endl;
-  }
+  //  for(int i=0; i<ns; i++){
+  //  if(F(i)==mvec(i)) std::cout << "Warning: F(i)-mvec(i): " << F(i)-mvec(i) << std::endl;
+  //}
 
   /*
   dt[i] is the length of the time interval between t_i and t_i+1
@@ -220,8 +217,9 @@ Type objective_function<Type>::operator() ()
   if(dbg>0){
     std::cout << "- logF0: " << logF0 << " logF(0): " << logF(0) << "  likval: " << likval << "  ans:" << ans <<  std::endl;
   }
-  for(int i=delay; i<ns; i++){
-    Type logFpred = log(ffacvec(i)) + predictlogF(phi1, logF(i-1), phi2, logF(i-delay));
+  for(int i=1; i<ns; i++){
+    //Type logFpred = log(ffacvec(i)) + predictlogF(phi1, logF(i-1), phi2, logF(i-delay));
+    Type logFpred = log(ffacvec(i)) + logF(i-1);
     likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf, 1);
     ans-=likval;
     // DEBUGGING
@@ -229,6 +227,16 @@ Type objective_function<Type>::operator() ()
       std::cout << "-- i: " << i << " -   logF(i-1): " << logF(i-1) << "  logF(i): " << logF(i) << "  ffacvec(i): " << ffacvec(i) << "  sdf: " << sdf << "  likval: " << likval << "  ans:" << ans << std::endl;
     }
   }
+  vector<Type> logFs(ns);
+  for(int i=0; i<ns; i++){
+    ind = CppAD::Integer(seasons(i)-1); // minus 1 because R starts at 1 and c++ at 0
+    logFs(i) = logphi(ind) + logF(i);
+    // DEBUGGING
+    if(dbg>1){
+      std::cout << "-- i: " << i << " -   logF(i): " << logF(i) << " ind: " << ind << " logphi(ind): " << logphi(ind) << std::endl;
+    }
+  }
+  vector<Type> F = exp(logFs);
 
   // CALCULATE B_infinity
   for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), gamma, mvec(i), n, sdb2); 
