@@ -92,6 +92,9 @@ NULL
 #' (inp <- check.inp(pol$albacore))
 #' @export
 check.inp <- function(inp){
+    check.ini <- function(parname, inp, min=NULL, max=NULL){
+        if(!parname %in% names(inp$ini)) stop('Please specify an initial value for ', parname, '!')
+    }
     # -- DATA --
     # Check catches
     if('obsC' %in% names(inp)){
@@ -183,8 +186,12 @@ check.inp <- function(inp){
         if("dtpred" %in% names(inp)){
             inp$dtpredc <- inp$dtpred
         } else {
-            inp$dtpredc <- 1
-            cat('Assuming a 1 year prediction interval for catch.\n')
+            if(length(inp$dtc)>0){
+                inp$dtpredc <- min(inp$dtc)
+            } else {
+                inp$dtpredc <- 1
+                cat('Assuming a 1 year prediction interval for catch.\n')
+            }
         }
     }
     if(!"dtpredi" %in% names(inp)){
@@ -231,11 +238,20 @@ check.inp <- function(inp){
     if("nseasons" %in% names(inp)){
        if(!inp$nseasons %in% c(1, 2, 4)) stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
     }
-    if(!"splineorder" %in% names(inp)) inp$splineorder <- 2
-    knots <- seq(0, 1, by=1/inp$nseasons)
-    x <- seq(0, 1-inp$dteuler, by=inp$dteuler)
-    require(mgcv)
-    inp$splinemat <- cSplineDes(x, knots, ord=inp$splineorder)
+    # Calculate seasonal spline
+    if("splineorder" %in% names(inp)){
+        if(inp$nseasons==1 & inp$splineorder>2) inp$splineorder <- 2
+    } else {
+        inp$splineorder <- ifelse(inp$nseasons==1, 2, 3)
+    }
+    if(inp$dteuler < 1){
+        require(mgcv)
+        knots <- seq(0, 1, by=1/inp$nseasons)
+        x <- seq(0, 1-inp$dteuler, by=inp$dteuler)
+        inp$splinemat <- cSplineDes(x, knots, ord=inp$splineorder)
+    } else {
+        inp$splinemat <- matrix(1, 1, 1)
+    }
     inp$seasonindex <- 1/inp$dteuler*(inp$time %% 1)
     inp$seasons <- rep(0, inp$ns)
     for(i in 1:inp$nseasons){
@@ -428,39 +444,6 @@ check.inp <- function(inp){
 }
 
 
-#' @name check.ini
-#' @title Check initial values of required model parameters.
-#' @details Checks that specified initial values are valid (i.e. within a certain required range). If they are not the program stops and the user is notified with an error.
-#' @param parname Parameter name to be checked.
-#' @param inp List of input variables as output by check.inp.
-#' @param min Minimum allowed value of parameter.
-#' @param max Maximum allowed value of parameter.
-#' @return If the check passes nothing is returned, otherwise an error is returned.
-check.ini <- function(parname, inp, min=NULL, max=NULL){
-    if(!parname %in% names(inp$ini)) stop('Please specify an initial value for ', parname, '!')
-    #if(!is.null(min) & !is.null(max)){
-    #    if(inp$ini[[parname]] < min | inp$ini[[parname]] > max) stop('Please specify a value for ', parname, ' in the interval: [', min, ';', max, ']')
-    #}
-}
-
-
-#' @name get.predmap
-#' @title Get the map used to calculate one-step-ahead predictions.
-#' @details When calculating osa predictions using TMB spict is run by sequentially including one data point at a time while keeping the model parameters fixed at their ML estimates. This is obtained using a map, which contains the names of the parameters that need to be fixed.
-#' @param guess The guess used when running the TMB estimation.
-#' @param RE The names of the random effects of the model.
-#' @return A map that can be input to TMB to fix all model parameters except the random effects.
-get.predmap <- function(guess, RE){
-    FE <- setdiff(names(guess), RE)
-    #predmap <- rep(factor(NA), length(FE))
-    #names(predmap) <- FE
-    predmapout <- list()
-    for(nm in FE) predmapout[[nm]] <- factor(NA)
-    #predmap <- as.list(predmap)
-    return(predmapout)
-}
-
-
 #' @name fit.spict
 #' @title Fit a continuous-time surplus production model to data.
 #' @details Fits the model using the TMB package and returns a result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
@@ -604,6 +587,12 @@ fit.spict <- function(inp, dbg=0){
 #' plotspict.osar(rep)
 #' @import TMB
 calc.osa.resid <- function(rep, dbg=0){
+    get.predmap <- function(guess, RE){
+        FE <- setdiff(names(guess), RE)
+        predmapout <- list()
+        for(nm in FE) predmapout[[nm]] <- factor(rep(NA, length(rep$inp$parlist[[nm]])))
+        return(predmapout)
+    }
     inp <- rep$inp
     inp$ffac <- 1
     if("logF" %in% names(inp$ini)) inp$ini$logF <- NULL
@@ -668,7 +657,7 @@ calc.osa.resid <- function(rep, dbg=0){
         inp2$dtpredi <- timepred[j] - max(endtimes)
         if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[which(inp$timeC == timepred[j])]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
         inp2 <- check.inp(inp2)
-        datnew <- list(dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffac, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
+        datnew <- list(dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         #objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=inp$map[[length(inp$map)]], random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
@@ -1094,11 +1083,11 @@ plotspict.f <- function(rep, logax=FALSE){
         }
         flag <- length(cu)==0
         if(flag){
-            ylim <- range(c(Ff, Fmsy[1:3]))
+            ylim <- range(c(Ff, Fmsy[1:3], tail(Fest[, 2],1)))
         } else {
-            ylim <- range(c(cl, cu))
+            ylim <- range(c(cl, cu, tail(Fest[, 2],1)))
         }
-        plot(timef, Ff, typ='n', main=paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac), ylim=ylim, col='blue', ylab='F', xlab='Time')
+        plot(timef, Ff, typ='n', main=paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac), ylim=ylim, col='blue', ylab='F', xlab='Time', xlim=range(c(inp$time, tail(inp$time,1)+1)))
         axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
         mtext("F/Fmsy", side=4, las=0, line=2, cex=par('cex'))
         polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Fmsy[1],Fmsy[1],Fmsy[3],Fmsy[3]), col=cicol, border=cicol)
@@ -1276,9 +1265,10 @@ plotspict.catch <- function(rep){
         polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
         polygon(c(timef, rev(timef)), c(clf, rev(cuf)), col=cicol2, border=cicol2)
-
+        lines(timef, clf, col=rgb(0, 0, 1, 0.2))
+        lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         abline(v=tail(inp$timeC,1), col='gray')
-        points(timeo, obs/Cscal)
+        points(timeo, obs/Cscal, cex=0.7)
         # Highlight influential index observations
         if('infl' %in% names(rep) & min(inp$dtc) == 1){
             infl <- rep$infl$infl[1:inp$nobsC, ]
@@ -1440,6 +1430,43 @@ plotspict.tc <- function(rep){
 }
 
 
+#' @name plotspict.season
+#' @title Plot the mean F cycle
+#' @details If seasonal data are available the seasonal cycle in the fishing mortality can be estimated. This function plots this mean F cycle.
+#' @param rep A result report as generated by running fit.spict.
+#' @return Nothing.
+#' @export
+plotspict.season <- function(rep){
+    if(!'sderr' %in% names(rep)){
+        jan <- as.POSIXct("2015-01-01 00:00:01 UTC", tz='UTC')
+        apr <- jan+(31+28+31)*24*60*60
+        jul <- apr+(30+31+30)*24*60*60
+        oct <- jul+(31+31+30)*24*60*60
+        logF <- get.par('logF', rep)
+        #logFs <- get.par('logFs', rep)
+        logphi <- get.par('logphi', rep)
+        logphipar <- c(0, logphi[, 2])
+        require(mgcv)
+        dtfine <- 1/100
+        dtspl <- 1/rep$inp$nseasons
+        knots <- seq(0, 1, by=dtspl)
+        x <- seq(0, 1-dtfine, by=dtfine)
+        d <- cSplineDes(x, knots, ord=rep$inp$splineorder)
+        seasonspline <- d %*% logphipar
+        seasonspline <- c(seasonspline, seasonspline[1])
+        splinetime <- seq(0, 1, length=length(seasonspline))
+        y <- exp(mean(logF[, 2]) + seasonspline)
+        plot(splinetime, y, typ='n', xaxt='n', xlab='Time of year', ylab='Mean F cycle')
+        lab <- strftime(c(jan, apr, jul, oct, jan), format='%b')
+        ats <- c(0, 0.25, 0.5, 0.75, 1)
+        abline(v=ats, lty=3, col='lightgray')
+        abline(h=pretty(y), lty=3, col='lightgray')
+        lines(splinetime, y, lwd=1.5, col=4)
+        axis(1, at=ats, labels=lab)
+    }
+}
+
+
 
 #' @name plot.spictcls
 #' @title 3x3 plot illustrating spict results.
@@ -1484,6 +1511,8 @@ plot.spictcls <- function(rep, logax=FALSE){
     plotspict.production(rep)
     # Intrinsic production rate
     #plotspict.prodrate(rep)
+    # Seasonal F
+    if(inp$nseasons > 1) plotspict.season(rep)
     # Time constant
     plotspict.tc(rep)
     if('osar' %in% names(rep)){
@@ -1510,8 +1539,9 @@ plot.spictcls <- function(rep, logax=FALSE){
 #' summary(rep)
 #' @export
 summary.spictcls <- function(object, numdigits=8){
+    # Set number of decimals
     #options("scipen"=-100, "digits"=numdigits)
-    options("scipen"=-3)
+    #options("scipen"=-3)
     rep <- object
     cat(paste('Convergence: ', rep$opt$convergence, '  MSG: ', rep$opt$message, '\n', sep=''))
     if(rep$opt$convergence>0) cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and should not be used.\n')
