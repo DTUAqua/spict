@@ -454,17 +454,17 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logFpFmsy);
   ADREPORT(logFl);
   ADREPORT(logFlFmsy);
-  ADREPORT(logFFmsy);
-  ADREPORT(logFs);
+  ADREPORT(logFFmsy); // Vector of size ns
+  ADREPORT(logFs);    // Vector of size ns
   // C
   //ADREPORT(Cpmsy);
-  ADREPORT(Cpredsub);
-  ADREPORT(Cpredcum);
+  //ADREPORT(Cpredsub); // Vector of size ns
+  //ADREPORT(Cpredcum); // Vector of size ns
   ADREPORT(logCpred);
   ADREPORT(logCp);
   // Other
   ADREPORT(logIpred);
-  ADREPORT(P);
+  //ADREPORT(P); // Vector of size ns
   // PREDICTIONS
   ADREPORT(Cp);
   ADREPORT(logIp);

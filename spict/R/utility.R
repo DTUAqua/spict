@@ -519,51 +519,53 @@ fit.spict <- function(inp, dbg=0){
             # Results
             rep <- try(TMB::sdreport(obj))
             if(class(rep)=='try-error'){
+                cat('WARNING: Could not calculate sdreport.\n')
                 rep <- list()
                 rep$sderr <- 1
                 rep$par.fixed <- opt$par
                 rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
-                cat('WARNING: Could not calculate sdreport.\n')
             }
             rep$pl <- obj$env$parList(opt$par)
             obj$fn()
             rep$Cp <- obj$report()$Cp
             rep$inp <- inp
             rep$opt <- opt
-            #  - Calculate statistics -
-            rep$stats <- list()
-            K <- get.par('logK', rep, exp=TRUE)[2]
-            #r <- get.par('logr', rep, exp=TRUE)[2]
-            n <- get.par('logn', rep, exp=TRUE)[2]
-            p <- n-1
-            Best <- get.par('logB', rep, exp=TRUE)
-            Bests <- Best[rep$inp$indest, 2]
-            # R-square
-            #Pest <- get.par('P', rep)
-            #B <- Best[-inp$ns, 2]
-            #inds <- unique(c(inp$ic[1:inp$nobsC], unlist(inp$ii)))
-            #gr <- r*(1-(B[inds]/K)^p) # Pella-Tomlinson production
-            #grobs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
-            #ssqobs <- sum((grobs - mean(grobs))^2)
-            #ssqres <- sum((grobs - gr)^2)
-            #rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
-            # Prager's nearness
-            Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
-            Bdiff <- Bmsy - Bests
-            if(any(diff(sign(Bdiff))!=0)){
-                rep$stats$nearness <- 1
-            } else {
-                rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
-                #ind <- which.min(abs(Bdiff))
-                #Bstar <- Bests[ind]
-                #if(Bstar > Bmsy){
-                #    rep$stats$nearness <- (K-Bstar)/(K-Bmsy)
-                #} else {
-                #    rep$stats$nearness <- Bstar/Bmsy
-                #}
+            if(class(rep)!='try-error'){
+                #  - Calculate statistics -
+                rep$stats <- list()
+                K <- get.par('logK', rep, exp=TRUE)[2]
+                #r <- get.par('logr', rep, exp=TRUE)[2]
+                n <- get.par('logn', rep, exp=TRUE)[2]
+                p <- n-1
+                Best <- get.par('logB', rep, exp=TRUE)
+                Bests <- Best[rep$inp$indest, 2]
+                # R-square
+                #Pest <- get.par('P', rep)
+                #B <- Best[-inp$ns, 2]
+                #inds <- unique(c(inp$ic[1:inp$nobsC], unlist(inp$ii)))
+                #gr <- r*(1-(B[inds]/K)^p) # Pella-Tomlinson production
+                #grobs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
+                #ssqobs <- sum((grobs - mean(grobs))^2)
+                #ssqres <- sum((grobs - gr)^2)
+                #rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
+                # Prager's nearness
+                Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
+                Bdiff <- Bmsy - Bests
+                if(any(diff(sign(Bdiff))!=0)){
+                    rep$stats$nearness <- 1
+                } else {
+                    rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
+                    #ind <- which.min(abs(Bdiff))
+                    #Bstar <- Bests[ind]
+                    #if(Bstar > Bmsy){
+                    #    rep$stats$nearness <- (K-Bstar)/(K-Bmsy)
+                    #} else {
+                    #    rep$stats$nearness <- Bstar/Bmsy
+                    #}
+                }
+                # Prager's coverage
+                rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
             }
-            # Prager's coverage
-            rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
         } else {
             stop('Could not fit model, try changing the initial parameter guess in inp$ini. Error msg:', opt)
         }
@@ -762,11 +764,22 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                 est <- rep$opt$par[indopt]
             } else {
                 if('phases' %in% names(rep$inp)){
-                    if(rep$inp$phases[[parname]] == -1){
-                        #cat(paste('WARNING: did not estimate', parname, 'extracting fixed initial value.\n'))
-                        est <- rep$inp$parlist[[parname]]
-                        ll <- est
-                        ul <- est
+                    if(parname %in% names(rep$inp$phases)){
+                        if(rep$inp$phases[[parname]] == -1){
+                            #cat(paste('WARNING: did not estimate', parname, 'extracting fixed initial value.\n'))
+                            est <- rep$inp$parlist[[parname]]
+                            ll <- est
+                            ul <- est
+                        }
+                    }else {
+                        if(parname == 'P'){
+                            B <- get.par('logB', rep, exp=TRUE)
+                            C <- get.par('logCpred', rep, exp=TRUE)
+                            nn <- 1/rep$inp$dteuler
+                            mm <- dim(C)[1]
+                            Bs <- apply(matrix(diff(B[, 2]), nn, mm), 2, sum)
+                            est <- Bs + C[, 2]
+                        }
                     }
                 } else {
                     cat(paste('get.par WARNING: could not extract', parname, '\n'))
@@ -1220,8 +1233,7 @@ plotspict.catch <- function(rep){
         Cscal <- 1
         cicol <- 'lightgray'
         MSY <- get.par('MSY', rep, exp=FALSE)
-        Cpredsub <- get.par('Cpredsub', rep)
-        Pest <- get.par('P', rep)
+        #Cpredsub <- get.par('Cpredsub', rep)
         Cpredest <- get.par('logCpred', rep, exp=TRUE)
         Cpredest[Cpredest<0] <- 0
         rep$Cp[rep$Cp<0] <- 0
@@ -1313,12 +1325,14 @@ plotspict.production <- function(rep){
         pfun <- function(gamma, m, K, n, B) gamma*m/K*B*(1 - (B/K)^(n-1))
         Pst <- pfun(gamma[2], mest[2], Kest[2], n[2], Bplot)
         xlim <- range(Bplot/Kest[2])
-        Bvec <- Best[-1, 2]
+        #Bvec <- Best[-1, 2]
+        Bvec <- Best[inp$ic, 2]
         dt <- inp$dt[-1]
         inde <- inp$indest[-length(inp$indest)]
         indp <- inp$indpred[-1]-1
-        plot(Bvec[inde]/Kest[2], Pest[inde, 2]/dt[inde]/Bmsy[2], typ='l', ylim=range(Pest[,2]/inp$dt/Bmsy[2], Pst/Bmsy[2]), xlim=xlim, xlab='B/K', ylab='Production/Bmsy', col=4, main='Production curve')
-        lines(Bvec[indp]/Kest[2], Pest[indp, 2]/dt[indp]/Bmsy[2], col=4, lty=3)
+        #plot(Bvec[inde]/Kest[2], Pest[inde, 2]/dt[inde]/Bmsy[2], typ='l', ylim=range(Pest[,2]/inp$dt/Bmsy[2], Pst/Bmsy[2]), xlim=xlim, xlab='B/K', ylab='Production/Bmsy', col=4, main='Production curve')
+        plot(Bvec/Kest[2], Pest[, 2]/Bmsy[2], typ='l', ylim=range(Pest[,2]/Bmsy[2], Pst/Bmsy[2]), xlim=xlim, xlab='B/K', ylab='Production/Bmsy', col=4, main='Production curve')
+        #lines(Bvec[indp]/Kest[2], Pest[indp, 2]/dt[indp]/Bmsy[2], col=4, lty=3)
         lines(Bplot/Kest[2], Pst/Bmsy[2], col=1)
         #arrow.line(Best[-1, 2]/Bmsy[2], Pest[,2]/inp$dt/Bmsy[2], length=0.05)
         mx <- (1/n[2])^(1/(n[2]-1))
@@ -1430,6 +1444,27 @@ plotspict.tc <- function(rep){
 }
 
 
+#' @name get.spline
+#' @title Get the values of the seasonal spline for F
+#' @param logphi Values of the phi vector
+#' @param order Order of the spline
+#' @param steps Number of points to evaluate the spline on
+#' @return Nothing.
+#' @export
+get.spline <- function(logphi, order, points=100){
+    require(mgcv)
+    dtfine <- 1/points
+    logphipar <- c(0, logphi)
+    nseasons <- length(logphipar)
+    dtspl <- 1/nseasons
+    knots <- seq(0, 1, by=dtspl)
+    x <- seq(0, 1-dtfine, by=dtfine)
+    d <- cSplineDes(x, knots, ord=order)
+    spline <- d %*% logphipar
+    return(spline)
+}
+
+
 #' @name plotspict.season
 #' @title Plot the mean F cycle
 #' @details If seasonal data are available the seasonal cycle in the fishing mortality can be estimated. This function plots this mean F cycle.
@@ -1444,28 +1479,21 @@ plotspict.season <- function(rep){
         oct <- jul+(31+31+30)*24*60*60
         logF <- get.par('logF', rep)
         #logFs <- get.par('logFs', rep)
-        logphi <- get.par('logphi', rep)
-        logphipar <- c(0, logphi[, 2])
-        require(mgcv)
-        dtfine <- 1/100
-        dtspl <- 1/rep$inp$nseasons
-        knots <- seq(0, 1, by=dtspl)
-        x <- seq(0, 1-dtfine, by=dtfine)
-        d <- cSplineDes(x, knots, ord=rep$inp$splineorder)
-        seasonspline <- d %*% logphipar
+        logphi <- get.par('logphi', repq)
+        seasonspline <- get.spline(logphi[, 2], order=repq$inp$splineorder)
         seasonspline <- c(seasonspline, seasonspline[1])
-        splinetime <- seq(0, 1, length=length(seasonspline))
+        t <- seq(0, 1, length=length(seasonspline))
         y <- exp(mean(logF[, 2]) + seasonspline)
-        plot(splinetime, y, typ='n', xaxt='n', xlab='Time of year', ylab='Mean F cycle')
+        #t <- c(seasonspline$time, seasonspline$time[1]+)
+        plot(t, y, typ='n', xaxt='n', xlab='Time of year', ylab='Mean F cycle', main=paste('Spline order:',rep$inp$splineorder))
         lab <- strftime(c(jan, apr, jul, oct, jan), format='%b')
         ats <- c(0, 0.25, 0.5, 0.75, 1)
         abline(v=ats, lty=3, col='lightgray')
         abline(h=pretty(y), lty=3, col='lightgray')
-        lines(splinetime, y, lwd=1.5, col=4)
+        lines(t, y, lwd=1.5, col=4)
         axis(1, at=ats, labels=lab)
     }
 }
-
 
 
 #' @name plot.spictcls
@@ -1914,6 +1942,10 @@ sim.spict <- function(input, nobs=100){
     beta <- exp(pl$logbeta)
     sdi <- alpha * sdb
     sdc <- beta * sdf
+
+    if(inp$nseasons > 1){
+        seasonspline <- get.spline(pl$logphi, order=inp$splineorder)
+    }
 
     # B[t] is biomass at the beginning of the time interval starting at time t
     # I[t] is an index of biomass (e.g. CPUE) at the beginning of the time interval starting at time t
