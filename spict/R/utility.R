@@ -373,7 +373,7 @@ check.inp <- function(inp){
     if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(20-1)
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
-    if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.3)
+    if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
     #if(!"logp" %in% names(inp$ini)) inp$ini$logp <- log(1.0)
     if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr[1]))
     if(!"logF" %in% names(inp$ini)){
@@ -934,7 +934,7 @@ plotspict.biomass <- function(rep, logax=FALSE){
             }
         }
         if('true' %in% names(inp)){
-            lines(inp$time, inp$true$B/scal, col='orange') # Plot true
+            lines(inp$true$time, inp$true$B/scal, col='orange') # Plot true
             abline(h=inp$true$Bmsy, col='orange', lty=2)
         }
         lines(inp$time[inp$indest], Best[inp$indest,2]/scal, col='blue', lwd=1.5)
@@ -1012,7 +1012,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE){
             }
         }
         if('true' %in% names(inp)){
-            lines(inp$time, inp$true$B/inp$true$Bmsy, col='orange') # Plot true
+            lines(inp$true$time, inp$true$B/inp$true$Bmsy, col='orange') # Plot true
         }
         lines(inp$time[inp$indest], BB[inp$indest,2], col='blue', lwd=1.5)
         lines(inp$time[inp$indpred], BB[inp$indpred,2], col='blue', lty=3)
@@ -1134,7 +1134,7 @@ plotspict.f <- function(rep, logax=FALSE){
         }
         abline(v=tail(inp$time[inp$indest],1), col='gray')
         if('true' %in% names(inp)){
-            lines(inp$time, inp$true$Fs, col='orange') # Plot true
+            lines(inp$true$time, inp$true$Fs, col='orange') # Plot true
             abline(h=inp$true$Fmsy, col='orange', lty=2)
         }
         maincol <- 'blue'
@@ -1589,7 +1589,7 @@ plot.spictcls <- function(rep, logax=FALSE){
     # Catch
     plotspict.catch(rep)
     # Production curve
-    plotspict.production(rep)
+    if(inp$nseasons == 1) plotspict.production(rep)
     # Intrinsic production rate
     #plotspict.prodrate(rep)
     # Seasonal F
@@ -1652,8 +1652,10 @@ summary.spictcls <- function(object, numdigits=8){
     ciupp[logp1inds] <- invlogp1(ciupp[logp1inds])
     if('true' %in% names(rep$inp)){
         npar <- length(nms)
-        truepar <- rep(0, npar)
-        for(i in 1:npar) truepar[i] <- rep$inp$true[[nms[i]]]
+        unms <- unique(nms)
+        nupar <- length(unms)
+        truepar <- NULL
+        for(i in 1:nupar) truepar <- c(truepar, rep$inp$true[[unms[i]]])
         truepar[loginds] <- exp(truepar[loginds])
         truepar[logitinds] <- invlogit(truepar[logitinds])
         truepar[logp1inds] <- invlogp1(truepar[logp1inds])
@@ -1903,18 +1905,33 @@ predict.b <- function(B0, F0, gamma, m, K, n, dt, sdb){
 #' @return A list containing the simulated data.
 #' @examples
 #' data(pol)
-#' rep <- fit.spict(pol$albacore)
-#' sim <- sim.spict(rep)
-#' repsim <- fit.spict(sim)
-#' summary(repsim) # Note true values are listed in the summary
-#'
 #' # Simulate a specific number of observations
 #' inp <- pol$albacore
 #' inp$obsC <- NULL
 #' inp$timeC <- NULL
 #' inp$obsI <- NULL
 #' inp$timeI <- NULL
-#' sim2 <- sim.spict(inp, nobs=150)
+#' set.seed(1)
+#' sim <- sim.spict(inp, nobs=150)
+#' repsim <- fit.spict(sim)
+#' summary(repsim) # Note true values are listed in the summary
+#' dev.new(width=10, height=10)
+#' plot(repsim) # Note true states are shown with orange colour
+#'
+#' # Simulate data with seasonal F
+#' inp <- list()
+#' inp$dteuler <- 1/4
+#' inp$nseasons <- 2
+#' inp$splineorder <- 1
+#' inp$obsC <- 1:80
+#' inp$obsI <- 1:80
+#' inp$ini <- pol$albacore$ini
+#' inp$ini$logphi <- log(2) # Seasonality introduced here
+#' inp <- check.inp(inp)
+#' sim2 <- sim.spict(inp)
+#' par(mfrow=c(2, 1))
+#' plot(sim2$obsC, typ='l')
+#' plot(sim2$obsI[[1]], typ='l')
 #' @export
 sim.spict <- function(input, nobs=100){
     # Check if input is a inp (initial values) or rep (results).
@@ -2098,6 +2115,7 @@ sim.spict <- function(input, nobs=100){
     sim$outliers <- inp$outliers
     sim$recount <- recount
     sim$true <- pl
+    sim$true$time <- time
     sim$true$B <- B
     sim$true$F <- Fbase
     sim$true$Fs <- F
