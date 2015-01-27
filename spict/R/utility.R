@@ -98,7 +98,14 @@ check.inp <- function(inp){
     # -- DATA --
     # Check catches
     if('obsC' %in% names(inp)){
-        if(!'timeC' %in% names(inp)) inp$timeC <- 1:length(inp$obsC)
+        if(!'timeC' %in% names(inp)){
+            if(!'nseasons' %in% names(inp)){
+                inp$timeC <- 0:(length(inp$obsC)-1)
+            } else {
+                to <- (length(inp$obsC)-1)/inp$nseasons
+                inp$timeC <- seq(0, to, length=length(inp$obsC))
+            }
+        }
         if(any(diff(inp$timeC)<=0)) stop('Catch times are not strictly increasing!')
         if(length(inp$obsC) != length(inp$timeC)) stop('Time and observation vector do not match in length for catch series')
         neg <- which(inp$obsC<0 | is.na(inp$obsC))
@@ -121,7 +128,12 @@ check.inp <- function(inp){
         }
         if(!'timeI' %in% names(inp)){
             inp$timeI <- list()
-            inp$timeI[[1]] <- 1:length(inp$obsI[[1]])
+            if(!'nseasons' %in% names(inp)){
+                inp$timeI[[1]] <- 0:(length(inp$obsI[[1]])-1)
+            } else {
+                to <- (length(inp$obsI[[1]])-1)/inp$nseasons
+                inp$timeI[[1]] <- seq(0, to, length=length(inp$obsI[[1]]))
+            }
         } else {
             if(class(inp$timeI)!='list'){
                 tmp <- inp$timeI
@@ -240,18 +252,18 @@ check.inp <- function(inp){
     }
     # Calculate seasonal spline
     if("splineorder" %in% names(inp)){
-        if(inp$nseasons==1 & inp$splineorder>2) inp$splineorder <- 2
+        if(inp$nseasons<4 & inp$splineorder>2) inp$splineorder <- 2
     } else {
-        inp$splineorder <- ifelse(inp$nseasons==1, 2, 3)
+        inp$splineorder <- ifelse(inp$nseasons<4, 2, 3)
     }
-    if(inp$dteuler < 1){
-        require(mgcv)
-        knots <- seq(0, 1, by=1/inp$nseasons)
-        x <- seq(0, 1-inp$dteuler, by=inp$dteuler)
-        inp$splinemat <- cSplineDes(x, knots, ord=inp$splineorder)
-    } else {
-        inp$splinemat <- matrix(1, 1, 1)
-    }
+    inp$splinemat <- make.splinemat(inp$nseasons, inp$splineorder, dtfine=inp$dteuler)
+    #if(inp$dteuler < 1){
+        #knots <- seq(0, 1, by=1/inp$nseasons)
+        #x <- seq(0, 1-inp$dteuler, by=inp$dteuler)
+        #inp$splinemat <- cSplineDes(x, knots, ord=inp$splineorder)
+    #} else {
+     #   inp$splinemat <- matrix(1, 1, 1)
+    #}
     inp$seasonindex <- 1/inp$dteuler*(inp$time %% 1)
     inp$seasons <- rep(0, inp$ns)
     for(i in 1:inp$nseasons){
@@ -300,7 +312,12 @@ check.inp <- function(inp){
     # Check that required initial values are specified
     if(!'logr' %in% names(inp$ini)){
         if('logm' %in% names(inp$ini) & 'logK' %in% names(inp$ini)){
-            inp$ini$logr <- inp$ini$gamma*exp(inp$ini$logm)*exp(inp$ini$logK)
+            r <- inp$ini$gamma * exp(inp$ini$logm) / exp(inp$ini$logK) # n > 1
+            if(n>1){
+                inp$ini$logr <- log(r)
+            } else {
+                inp$ini$logr <- log(-r)
+            }
         } else {
             stop('Please specify initial value(s) for logr!')
         }
@@ -338,10 +355,12 @@ check.inp <- function(inp){
     check.ini('logsdb', inp, min=log(0.03), max=log(5))
     check.ini('logsdf', inp, min=log(0.03), max=log(5))
     if(!"logm" %in% names(inp$ini)){
-        n <- exp(inp$ini$logn)
+        #n <- exp(inp$ini$logn)
+        gamma <- inp$ini$gamma
         r <- exp(inp$ini$logr)
         K <- exp(inp$ini$logK)
-        m <- r*K^(n-1) * (n-1)*(1/n)^(n/(n-1)) # n > 1
+        #m <- r*K^(n-1) * (n-1)*(1/n)^(n/(n-1)) # n > 1
+        m <- r * K / gamma # n > 1
         if(n>1){
             inp$ini$logm <- log(m)
         } else {
@@ -932,10 +951,14 @@ plotspict.biomass <- function(rep, logax=FALSE){
         lines(inp$time[inp$indest], BB[inp$indest,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
         lines(inp$time[inp$indpred], BB[inp$indpred,1]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
         lines(inp$time[inp$indpred], BB[inp$indpred,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
-        lines(Binftime, Binfs/scal, col='green', lty=1)
+        if(inp$nseasons==1) lines(Binftime, Binfs/scal, col='green', lty=1)
         tp <- tail(inp$time,1)
         points(tp, tail(Best[,2],1)/scal, pch=21, bg='yellow')
-        legend('topright', legend=c(expression('E(B'[infinity]*')'),paste(tp,'pred.')), lty=c(1,NA), pch=c(NA,21), col=c('green',1), pt.bg=c(NA,'yellow'), bg='white')
+        if(inp$nseasons==1){
+            legend('topright', legend=c(expression('E(B'[infinity]*')'),paste(tp,'pred.')), lty=c(1,NA), pch=c(NA,21), col=c('green',1), pt.bg=c(NA,'yellow'), bg='white')
+        } else {
+            legend('topright', legend=paste(tp,'pred.'), pch=21, col=1, pt.bg='yellow', bg='white')
+        }
         #legend('topright', legend=c(paste(tp,'pred.')), pch=c(21), col=c(1), pt.bg=c('yellow'), bg='white')
         box()
     }
@@ -1111,7 +1134,7 @@ plotspict.f <- function(rep, logax=FALSE){
         }
         abline(v=tail(inp$time[inp$indest],1), col='gray')
         if('true' %in% names(inp)){
-            lines(inp$time, inp$true$F, col='orange') # Plot true
+            lines(inp$time, inp$true$Fs, col='orange') # Plot true
             abline(h=inp$true$Fmsy, col='orange', lty=2)
         }
         maincol <- 'blue'
@@ -1444,23 +1467,53 @@ plotspict.tc <- function(rep){
 }
 
 
+#' @name make.splinemat
+#' @title Make a spline design matrix
+#' @param nseasons Number of seasons
+#' @param order Order of the spline
+#' @param dtfine Time between points where spline is evaluated
+#' @return Spline design matrix.
+#' @export
+make.splinemat <- function(nseasons, order, dtfine=1/100){
+    if(dtfine==1){
+        d <- matrix(1, 1, 1)
+    } else {
+        dtspl <- 1/nseasons
+        knots <- seq(0, 1, by=dtspl)
+        x <- seq(0, 1-dtfine, by=dtfine)
+        if(order > 1){
+            require(mgcv)
+            d <- cSplineDes(x, knots, ord=order)
+        } else {
+            if(order < 1){
+                cat('WARNING: specified spline order (', order, ') not valid!')
+                order <- 1
+            }
+            nx <- length(x)
+            nknots <- length(knots)
+            d <- matrix(0, nx, nknots-1)
+            for(i in 1:(nknots-1)){
+                inds <- which(x >= knots[i] & x < knots[i+1])
+                d[inds, i] <- 1
+            }
+        }
+    }
+    return(d)
+}
+
+
 #' @name get.spline
 #' @title Get the values of the seasonal spline for F
 #' @param logphi Values of the phi vector
 #' @param order Order of the spline
-#' @param steps Number of points to evaluate the spline on
-#' @return Nothing.
+#' @param dtfine Time between points where spline is evaluated
+#' @return Spline values at the points between 0 and 1 with dtfine as time step.
 #' @export
-get.spline <- function(logphi, order, points=100){
-    require(mgcv)
-    dtfine <- 1/points
+get.spline <- function(logphi, order, dtfine=1/100){
     logphipar <- c(0, logphi)
     nseasons <- length(logphipar)
-    dtspl <- 1/nseasons
-    knots <- seq(0, 1, by=dtspl)
-    x <- seq(0, 1-dtfine, by=dtfine)
-    d <- cSplineDes(x, knots, ord=order)
-    spline <- d %*% logphipar
+    d <- make.splinemat(nseasons, order, dtfine)
+    spline <- as.vector(d %*% logphipar)
     return(spline)
 }
 
@@ -1479,8 +1532,8 @@ plotspict.season <- function(rep){
         oct <- jul+(31+31+30)*24*60*60
         logF <- get.par('logF', rep)
         #logFs <- get.par('logFs', rep)
-        logphi <- get.par('logphi', repq)
-        seasonspline <- get.spline(logphi[, 2], order=repq$inp$splineorder)
+        logphi <- get.par('logphi', rep)
+        seasonspline <- get.spline(logphi[, 2], order=rep$inp$splineorder)
         seasonspline <- c(seasonspline, seasonspline[1])
         t <- seq(0, 1, length=length(seasonspline))
         y <- exp(mean(logF[, 2]) + seasonspline)
@@ -1821,7 +1874,7 @@ read.aspic <- function(filename){
 #' @name predict.b
 #' @title Helper function for sim.spict().
 #' @param B0 Initial biomass.
-#' @param F Fishing mortality.
+#' @param F0 Fishing mortality.
 #' @param gamma gamma parameter in Fletcher's Pella-Tomlinson formulation.
 #' @param m m parameter in Fletcher's Pella-Tomlinson formulation.
 #' @param K Carrying capacity.
@@ -1829,9 +1882,9 @@ read.aspic <- function(filename){
 #' @param dt Time step.
 #' @param sdb Standard deviation of biomass process.
 #' @return Predicted biomass at the end of dt.
-predict.b <- function(B0, F, gamma, m, K, n, dt, sdb){
+predict.b <- function(B0, F0, gamma, m, K, n, dt, sdb){
     #return(exp( log(B0) + (rate - r*(B0/K)^p)*dt )) # Euler
-    exp( log(B0) + (gamma*m/K - gamma*m/K*(B0/K)^(n-1.0) - F - 0.5*sdb^2)*dt )
+    exp( log(B0) + (gamma*m/K - gamma*m/K*(B0/K)^(n-1.0) - F0 - 0.5*sdb^2)*dt )
 }
 
 
@@ -1855,6 +1908,7 @@ predict.b <- function(B0, F, gamma, m, K, n, dt, sdb){
 #' repsim <- fit.spict(sim)
 #' summary(repsim) # Note true values are listed in the summary
 #'
+#' # Simulate a specific number of observations
 #' inp <- pol$albacore
 #' inp$obsC <- NULL
 #' inp$timeC <- NULL
@@ -1932,6 +1986,7 @@ sim.spict <- function(input, nobs=100){
     gamma <- calc.gamma(n)
     K <- exp(pl$logK)
     q <- exp(pl$logq)
+    logphi <- pl$logphi
     #Rvec <- 0.25 * rf * (p+1)^(1/p) # Bordet's r
     #Rvec <- (n-1)/n * rf * K^(n-2) # Bordet's r
     #R <- mean(Rvec) # Take mean in the case r is a vector
@@ -1943,10 +1998,6 @@ sim.spict <- function(input, nobs=100){
     sdi <- alpha * sdb
     sdc <- beta * sdf
 
-    if(inp$nseasons > 1){
-        seasonspline <- get.spline(pl$logphi, order=inp$splineorder)
-    }
-
     # B[t] is biomass at the beginning of the time interval starting at time t
     # I[t] is an index of biomass (e.g. CPUE) at the beginning of the time interval starting at time t
     # P[t] is the accumulated biomass production over the interval starting at time t
@@ -1955,11 +2006,18 @@ sim.spict <- function(input, nobs=100){
     # obsC[j] is the catch removed over the interval starting at time j, this will typically be the accumulated catch over the year.
 
     # - Fishing mortality -
+    seasonspline <- get.spline(pl$logphi, order=inp$splineorder, dtfine=dt)
+    nseasonspline <- length(seasonspline)
     flag <- TRUE
     recount <- 0
     while(flag){
-        F <- c(F0, exp(log(F0) + cumsum(rnorm(nt-1, 0, sdf*sqrt(dt))))) # Fishing mortality
-        #flag <- any(F >= 1.5*max(r)) # Do this to avoid crazy F values
+        Fbase <- c(F0, exp(log(F0) + cumsum(rnorm(nt-1, 0, sdf*sqrt(dt))))) # Fishing mortality
+        F <- numeric(length(Fbase))
+        for(i in 1:nseasonspline){
+            inds <- which(inp$seasonindex==(i-1))
+            F[inds] <- Fbase[inds] * exp(seasonspline[i])
+        }
+        #F <- c(F0, exp(log(F0) + cumsum(rnorm(nt-1, 0, sdf*sqrt(dt))))) # Fishing mortality
         # - B_infinity
         #Binf <- rep(0,nt)
         #for(t in 1:nt) Binf[t] <- calc.binf(K, F[t], r[inp$ir[t]], p, sdb, lamperti)
@@ -1972,6 +2030,7 @@ sim.spict <- function(input, nobs=100){
         for(t in 2:nt) B[t] <- predict.b(B[t-1], F[t-1], gamma, m[inp$ir[t]], K, n, dt, sdb) * e[t-1]
         flag <- any(B <= 0) # Negative biomass not allowed
         recount <- recount+1
+        if(recount > 10) stop('Having problems simulating data where B > 0, check parameter values!')
     }
     # - Catch -
     Csub <- rep(0,nt)
@@ -2032,6 +2091,7 @@ sim.spict <- function(input, nobs=100){
     sim$timeI <- inp$timeI
     sim$ini <- plin #list(logr=log(r), logK=log(K), logq=log(q), logsdf=log(sdf), logsdb=log(sdb))
     sim$dteuler <- inp$dteuler
+    sim$splineorder <- inp$splineorder
     sim$euler <- inp$euler
     sim$lamperti <- inp$lamperti
     sim$phases <- inp$phases
@@ -2039,7 +2099,8 @@ sim.spict <- function(input, nobs=100){
     sim$recount <- recount
     sim$true <- pl
     sim$true$B <- B
-    sim$true$F <- F
+    sim$true$F <- Fbase
+    sim$true$Fs <- F
     sim$true$gamma <- gamma
     
     sign <- 1
@@ -2054,6 +2115,8 @@ sim.spict <- function(input, nobs=100){
     sim$true$Bmsy <- K/(p+1)^(1/p) * (1- (1+R*(p-1)/2)/(R*(2-R)^2)*sdb^2)
     sim$true$Fmsy <- R - p*(1-R)*sdb^2/((2-R)^2)
     sim$true$MSY <- K*R/((p+1)^(1/p)) * (1 - (p+1)/2*sdb^2/(1-(1-R)^2))
+    sim$true$BBmsy <- B/sim$true$Bmsy
+    sim$true$FFmsy <- F/sim$true$Fmsy
     #sim$true$Bmsy <- sim$true$Bmsyd * (1 - (1+R*(p-1)/2)*sdb^2 / (R*(2-R)^2))
     #sim$true$Fmsy <- sim$true$Fmsyd - (p*(1-R)*sdb^2) / ((2-R)^2)
     #sim$true$MSY <- sim$true$MSYd * (1 - ((p+1)/2*sdb^2) / (1-(1-R)^2))

@@ -247,7 +247,7 @@ Type objective_function<Type>::operator() ()
     logFs(i) = seasonspline(ind2) + logF(i);
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -   logF(i): " << logF(i) << " logFs(i): " << logFs(i) << " ind: " << ind << " logphipar(ind): " << logphipar(ind) << std::endl;
+      std::cout << "-- i: " << i << " -   logF(i): " << logF(i) << " logFs(i): " << logFs(i) << " ind2: " << ind2 << " seasonspline(ind2): " << seasonspline(ind2) << std::endl;
     }
   }
   vector<Type> F = exp(logFs);
