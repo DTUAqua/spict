@@ -1184,17 +1184,23 @@ plotspict.fb <- function(rep, logax=FALSE){
 
         ns <- dim(Best)[1]
         qest <- get.par('logq', rep, exp=TRUE, fixed=TRUE)
-        #rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
-        #rest <- apply(rest, 2, mean)
         Fest <- get.par('logFs', rep, exp=TRUE, random=TRUE)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
         Fp <- Fest[ns,]
         inds <- c(which(names(rep$value)=='logBmsy'), which(names(rep$value)=='logFmsy'))
         cl <- make.ellipse(inds, rep)
+        # Limits
         xlim <- range(c(tail(Binfs,1),exp(cl[,1]),Best[,2])/scal)
-        #xlim <- range(c(exp(cl[,1]),Best[,2])/scal)
         ylim <- range(c(exp(cl[,2]),Fest[,2]))
-        #main <- paste('logalpha:',rep$pl$logalpha,'r:',round(rest[2],3),'q:',round(qest[2],3))
+        if(min(inp$dtc) < 1){
+            #if(FALSE){
+            alf <- annual(inp$time, Fest[, 2])
+            alb <- annual(inp$time, Best[, 2])
+            # New annual limits
+            xlim <- range(c(alb$annvec/scal, exp(cl[, 1])))
+            ylim <- range(c(alf$annvec, exp(cl[, 2])))
+        }
+        # Plotting
         par(mar=c(5,4,4,4))
         plot(Bmsy[2]/scal, Fmsy[2], typ='p', xlim=xlim, xlab='Biomass', ylab='F',  pch=24, bg='blue', ylim=ylim, log=log)
         axis(3, labels=pretty(xlim/Bmsy[2]), at=pretty(xlim/Bmsy[2])*Bmsy[2])
@@ -1202,24 +1208,22 @@ plotspict.fb <- function(rep, logax=FALSE){
         axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
         mtext("F/Fmsy", side=4, las=0, line=2, cex=par('cex'))
         alpha <- 0.15
-        polygon(c(Bmsy[2], Bmsy[2], xlim[2], xlim[2]), c(Fmsy[2], 0, 0, Fmsy[2]), col=rgb(0,0.8,0,alpha), border=NA)
-        polygon(c(Bmsy[2], Bmsy[2], 0, 0), c(Fmsy[2], 0, 0, Fmsy[2]), col=rgb(1,1,0,alpha), border=NA)
-        polygon(c(Bmsy[2], Bmsy[2], xlim[2], xlim[2]), c(Fmsy[2], ylim[2], ylim[2], Fmsy[2]), col=rgb(1,1,0,alpha), border=NA)
-        polygon(c(Bmsy[2], Bmsy[2], 0, 0), c(Fmsy[2], ylim[2], ylim[2], Fmsy[2]), col=rgb(0.6,0,0,alpha), border=NA)
+        polygon(c(Bmsy[2], Bmsy[2], xlim[2]*2, xlim[2]*2), c(Fmsy[2], 0, 0, Fmsy[2]), col=rgb(0,0.8,0,alpha), border=NA) # Green
+        polygon(c(Bmsy[2], Bmsy[2], 0, 0), c(Fmsy[2], 0, 0, Fmsy[2]), col=rgb(1,1,0,alpha), border=NA) # Yellow
+        polygon(c(Bmsy[2], Bmsy[2], xlim[2]*2, xlim[2]*2), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2]), col=rgb(1,1,0,alpha), border=NA) # Yellow
+        polygon(c(Bmsy[2], Bmsy[2], 0, 0), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2]), col=rgb(0.6,0,0,alpha), border=NA) # Red
         cicol2 <- 'gray'
         polygon(exp(cl[,1])/scal, exp(cl[,2]), col=cicol, border=cicol2)
         abline(h=Fmsy[2], lty=3)
         abline(v=Bmsy[2], lty=3)
         #arrow.line(Best[,2]/scal, Fest[,2], length=0.05, col='blue')
         if('true' %in% names(inp)){
-            lines(inp$true$B/scal, inp$true$F, col='orange') # Plot true
+            #lines(inp$true$B/scal, inp$true$F, col='orange') # Plot true
             points(inp$true$Bmsy, inp$true$Fmsy, pch=24, bg='orange')
         }
         maincol <- rgb(0,0,1,0.8)
         if(min(inp$dtc) < 1){
         #if(FALSE){
-            alf <- annual(inp$time, Fest[, 2])
-            alb <- annual(inp$time, Best[, 2])
             lines(alb$annvec/scal, alf$annvec, col=maincol, lwd=1.5)
             points(tail(alb$annvec,1)/scal, tail(alf$annvec,1), pch=21, bg='yellow')
             #points(tail(Binfs,1)/scal, Fp[2], pch=22, bg='green', cex=2)
@@ -1533,17 +1537,32 @@ plotspict.season <- function(rep){
         logF <- get.par('logF', rep)
         #logFs <- get.par('logFs', rep)
         logphi <- get.par('logphi', rep)
-        seasonspline <- get.spline(logphi[, 2], order=rep$inp$splineorder)
-        seasonspline <- c(seasonspline, seasonspline[1])
-        t <- seq(0, 1, length=length(seasonspline))
-        y <- exp(mean(logF[, 2]) + seasonspline)
-        #t <- c(seasonspline$time, seasonspline$time[1]+)
-        plot(t, y, typ='n', xaxt='n', xlab='Time of year', ylab='Mean F cycle', main=paste('Spline order:',rep$inp$splineorder))
+        seasonsplineest <- get.spline(logphi[, 2], order=rep$inp$splineorder, dtfine=rep$inp$dteuler)
+        seasonsplineest <- c(seasonsplineest, seasonsplineest[1])
+        test <- seq(0, 1, length=length(seasonsplineest))
+        yest <- exp(mean(logF[, 2]) + seasonsplineest)
+        seasonsplinesmoo <- get.spline(logphi[, 2], order=rep$inp$splineorder)
+        seasonsplinesmoo <- c(seasonsplinesmoo, seasonsplinesmoo[1])
+        t <- seq(0, 1, length=length(seasonsplinesmoo))
+        y <- exp(mean(logF[, 2]) + seasonsplinesmoo)
+        ylim <- range(c(yest, y))
+        if("true" %in% names(rep$inp)){
+            seasonsplinetrue <- get.spline(rep$inp$true$logphi, order=rep$inp$true$splineorder, dtfine=rep$inp$true$dteuler)
+            seasonsplinetrue <- c(seasonsplinetrue, seasonsplinetrue[1])
+            ttrue <- seq(0, 1, length=length(seasonsplinetrue))
+            ytrue <- exp(mean(log(rep$inp$true$F)) + seasonsplinetrue)
+            ylim <- range(c(yest, y, ytrue))
+        }
+        plot(t, y, typ='n', xaxt='n', xlab='Time of year', ylab='Mean F cycle', main=paste('Spline order:',rep$inp$splineorder), ylim=ylim)
         lab <- strftime(c(jan, apr, jul, oct, jan), format='%b')
         ats <- c(0, 0.25, 0.5, 0.75, 1)
         abline(v=ats, lty=3, col='lightgray')
         abline(h=pretty(y), lty=3, col='lightgray')
-        lines(t, y, lwd=1.5, col=4)
+        lines(t, y, lwd=1, col='lightgray')
+        lines(test, yest, lwd=1.5, col=4, typ='s')
+        if("true" %in% names(rep$inp)){
+            lines(ttrue, ytrue, lwd=1, col='orange', typ='s')            
+        }
         axis(1, at=ats, labels=lab)
     }
 }
@@ -2115,6 +2134,8 @@ sim.spict <- function(input, nobs=100){
     sim$outliers <- inp$outliers
     sim$recount <- recount
     sim$true <- pl
+    sim$true$dteuler <- inp$dteuler
+    sim$true$splineorder <- inp$splineorder
     sim$true$time <- time
     sim$true$B <- B
     sim$true$F <- Fbase
