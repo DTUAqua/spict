@@ -310,33 +310,69 @@ check.inp <- function(inp){
     n <- exp(inp$ini$logn)
     inp$ini$gamma <- calc.gamma(n)
     # Check that required initial values are specified
+    if('logr' %in% names(inp$ini) & 'logm' %in% names(inp$ini)) inp$ini$logr <- NULL # If both r and m are specified use m and discard r
     if(!'logr' %in% names(inp$ini)){
-        if('logm' %in% names(inp$ini) & 'logK' %in% names(inp$ini)){
-            r <- inp$ini$gamma * exp(inp$ini$logm) / exp(inp$ini$logK) # n > 1
-            if(n>1){
-                inp$ini$logr <- log(r)
+        if('logm' %in% names(inp$ini)){
+            if('logK' %in% names(inp$ini)){
+                r <- inp$ini$gamma * exp(inp$ini$logm) / exp(inp$ini$logK) # n > 1
+                if(n>1){
+                    inp$ini$logr <- log(r)
+                } else {
+                    inp$ini$logr <- log(-r)
+                }
             } else {
-                inp$ini$logr <- log(-r)
+                stop('Please specify initial value(s) for logK!')
             }
         } else {
-            stop('Please specify initial value(s) for logr!')
+            stop('Please specify initial value(s) for logm!')
         }
     }
+    #print(inp$ini$logr)
     if('logr' %in% names(inp$ini)){
         nr <- length(inp$ini$logr)
-        if(!nr %in% c(1, 2, 4)){
-            stop('logr must be a vector of length either 1, 2 or 4.')
-        }
+        #if(!nr %in% c(1, 2, 4)){
+        #    stop('logr must be a vector of length either 1, 2 or 4.')
+        #}
         #min <- log(0.3)-3
         #max <- log(0.3)+3
         #for(i in 1:nr) if(inp$ini$logr[i] < min | inp$ini$logr[i] > max) stop('Please specify a value for logr(', i, ') in the interval: [', min, ';', max, ']')
         # ir is the mapping from time to the r vector
-        inp$ir <- rep(0, inp$ns)
-        for(i in 1:nr){
-            frac <- 1/nr
-            modtime <- inp$time %% 1
-            inds <- which(modtime>=((i-1)*frac) & modtime<(i*frac))
-            inp$ir[inds] <- i
+        if(!'ir' %in% names(inp) | nr==1){
+            inp$ir <- rep(0, inp$ns)
+            for(i in 1:nr){
+                frac <- 1/nr
+                modtime <- inp$time %% 1
+                inds <- which(modtime>=((i-1)*frac) & modtime<(i*frac))
+                inp$ir[inds] <- i
+            }
+        } else {
+            if(length(unique(inp$ir)) != nr) stop('Mismatch between specified inp$ir and inp$ini$logr!')
+            nir <- length(inp$ir)
+            if(nir != inp$ns){
+                if(nir == inp$nobsC){ # Assume that inp$ir fits with inp$timeC
+                    ir <- rep(0, inp$ns)
+                    for(i in 2:nir){
+                        inds <- which(inp$time >= inp$timeC[i-1] & inp$time < inp$timeC[i])
+                        ir[inds] <- inp$ir[i]
+                    }
+                    inds <- which(inp$time >= inp$timeC[nir])
+                    ir[inds] <- inp$ir[nir]
+                    inp$ir <- ir
+                } else {
+                    if(nir == inp$nobsI[[1]]){ # Assume that inp$ir fits with inp$timeI[[1]]
+                        ir <- rep(0, inp$ns)
+                        for(i in 2:nir){
+                            inds <- which(inp$time >= inp$timeI[[1]][i-1] & inp$time < inp$timeI[[1]][i])
+                            ir[inds] <- inp$ir[i]
+                        }
+                        inds <- which(inp$time >= inp$timeI[[1]][nir])
+                        ir[inds] <- inp$ir[nir]
+                        inp$ir <- ir
+                    } else {
+                        stop('inp$ir is misspecified, only advanced users should specify this manually!')
+                    }
+                }
+            }
         }
     }
     check.ini('logK', inp)
@@ -701,6 +737,7 @@ calc.osa.resid <- function(rep, dbg=0){
             }
         }
     }
+    alpha <- 0.05
     # Catches
     inds <- which(haveobs[, 1]==1)
     timeC <- timepred[inds]
@@ -708,15 +745,19 @@ calc.osa.resid <- function(rep, dbg=0){
     sdlogCpred <- sdlogpredmat[inds, 1]
     logCpres <- (log(obsmat[inds, 1]) - logCpred)/sdlogCpred
     logCpboxtest <- Box.test(logCpres, lag=1, type='Ljung-Box')
-    rep$stats$osarCpval <- logCpboxtest$p.value
+    logCpshapiro <- shapiro.test(logCpres)
+    logCpbias <- t.test(logCpres)
+    rep$stats$ljungboxC.p <- logCpboxtest$p.value
+    rep$stats$shapiroC.p <- logCpshapiro$p.value
+    rep$stats$biasC.p <- logCpbias$p.value
     # Indices
     timeI <- list()
     logIpred <- list()
     sdlogIpred <- list()
     logIpres <- list()
     logIpboxtest <- list()
-    pvals <- rep(0, inp$nindex)
-    names(pvals) <- paste0('I', 1:inp$nindex)
+    logIpshapiro <- list()
+    logIpbias <- list()
     for(i in 1:inp$nindex){
         inds <- which(haveobs[, i+1]==1)
         timeI[[i]] <- timepred[inds]
@@ -724,10 +765,16 @@ calc.osa.resid <- function(rep, dbg=0){
         sdlogIpred[[i]] <- sdlogpredmat[inds, i+1]
         logIpres[[i]] <- (log(obsmat[inds, i+1]) - logIpred[[i]])/sdlogIpred[[i]]
         logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=1, type='Ljung-Box')
-        pvals[i] <- logIpboxtest[[i]]$p.value
+        logIpshapiro[[i]] <- shapiro.test(logIpres[[i]])
+        logIpbias[[i]] <- t.test(logIpres[[i]])
+        nam <- paste0('ljungboxI', i, '.p')
+        rep$stats[[nam]] <- logIpboxtest[[i]]$p.value
+        nam <- paste0('shapiroI', i, '.p')
+        rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
+        nam <- paste0('biasI', i, '.p')
+        rep$stats[[nam]] <- logIpbias[[i]]$p.value
     }
-    rep$stats$osarIpval <- pvals
-    rep$osar <- list(logCpres=logCpres, logCpred=logCpred, sdlogCpred=sdlogCpred, timeC=timeC, logCpboxtest=logCpboxtest, timeI=timeI, logIpres=logIpres, logIpred=logIpred, sdlogIpred=sdlogIpred, logIpboxtest=logIpboxtest)
+    rep$osar <- list(logCpres=logCpres, logCpred=logCpred, sdlogCpred=sdlogCpred, timeC=timeC, logCpboxtest=logCpboxtest, logCpbias=logCpbias, logCpshapiro=logCpshapiro, timeI=timeI, logIpres=logIpres, logIpred=logIpred, sdlogIpred=sdlogIpred, logIpboxtest=logIpboxtest, logIpshapiro=logIpshapiro, logIpbias=logIpbias)
     #rep$osar <- list(logCpres=logCpres, logCpres2=logCpres2, logCpred=logCpred, logCpred2=logCpred2, sdlogCpred2=sdlogCpred2, timeC=timeC, logCpboxtest=logCpboxtest, logCpboxtest2=logCpboxtest2, timeI=timeI, logIpres=logIpres, logIpres2=logIpres2, logIpred=logIpred, logIpred2=logIpred2, sdlogIpred2=sdlogIpred2, logIpboxtest=logIpboxtest, logIpboxtest2=logIpboxtest2)
     return(rep)
 }
@@ -1649,6 +1696,9 @@ summary.spictcls <- function(object, numdigits=8){
     cat(paste('Negative log likelihood: ', round(rep$opt$objective, numdigits), '\n', sep=''))
     cat('\nFit statistics\n')
     statout <- unlist(rep$stats)
+    inds <- grep('.p', names(statout))
+    sig <- which(statout[inds]<0.05)
+    names(statout)[inds][sig] <- paste0('*', names(statout)[inds][sig])
     cat('', paste(capture.output(statout),' \n'))
     cat('\nModel parameter estimates w 95% CI \n')
     sd <- sqrt(diag(rep$cov.fixed))
@@ -2143,12 +2193,14 @@ sim.spict <- function(input, nobs=100){
     sim$true$gamma <- gamma
     
     sign <- 1
-    R <- (n-1)/n*gamma*m/K
+    #print(inp$ir)
+    #print(paste(n, gamma, m, mean(m[inp$ir]), K))
+    R <- (n-1)/n*gamma*mean(m[inp$ir])/K
     p <- n-1
     sim$true$R <- R
     # Deterministic reference points
     sim$true$Bmsyd <- K/(n^(1/(n-1)))
-    sim$true$MSYd <- m
+    sim$true$MSYd <- mean(m[inp$ir])
     sim$true$Fmsyd <- sim$true$MSYd/sim$true$Bmsyd
     # From Bordet & Rivest (2014)
     sim$true$Bmsy <- K/(p+1)^(1/p) * (1- (1+R*(p-1)/2)/(R*(2-R)^2)*sdb^2)
