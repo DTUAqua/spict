@@ -74,8 +74,8 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logp1robfac);  // 
   PARAMETER(logalpha);     // sdi = alpha*sdb
   PARAMETER(logbeta);      // sdc = beta*sdf
-  PARAMETER(logbkfrac);    // B0/K fraction
-  PARAMETER(logF0);        // F at time 0
+  //PARAMETER(logbkfrac);    // B0/K fraction
+  //PARAMETER(logF0);        // F at time 0
   PARAMETER_VECTOR(logm);  // m following the Fletcher formulation (see Prager 2002)
   PARAMETER(logK);         // Carrying capacity
   PARAMETER_VECTOR(logq);  // Catchability
@@ -98,8 +98,8 @@ Type objective_function<Type>::operator() ()
   seasonspline = splinemat * logphipar;
   Type pp = 1.0/(1.0 + exp(-logitpp));
   Type robfac = 1.0 + exp(logp1robfac);
-  Type bkfrac = exp(logbkfrac);
-  Type F0 = exp(logF0);
+  //Type bkfrac = exp(logbkfrac);
+  //Type F0 = exp(logF0);
   int nm = logm.size();
   vector<Type> m(nm); 
   for(int i=0; i<nm; i++){ m(i) = exp(logm(i)); }
@@ -123,7 +123,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> Binf(ns);
   vector<Type> logBinf(ns);
   vector<Type> B = exp(logB);
-  Type logB0 = logbkfrac + logK;
+  //Type logB0 = logbkfrac + logK;
   vector<Type> Bpred(ns);
   vector<Type> mvec(ns);
   vector<Type> ffacvec(ns);
@@ -168,8 +168,8 @@ Type objective_function<Type>::operator() ()
   if(dbg>0){
     std::cout << "--- DEBUG: script start ---" << std::endl;
     //for(int i=0; i<ns; i++) std::cout << "F(i): " << F(i) << std::endl;
-    std::cout << "INPUT: logbkfrac: " << logbkfrac << std::endl;
-    std::cout << "INPUT: logF0: " << logF0 << std::endl;
+    //std::cout << "INPUT: logbkfrac: " << logbkfrac << std::endl;
+    //std::cout << "INPUT: logF0: " << logF0 << std::endl;
     for(int i=0; i<nm; i++){ std::cout << "INPUT: logm(i): " << logm(i) << " -- i: " << i << std::endl; }
     for(int i=0; i<logphi.size(); i++){ std::cout << "INPUT: logphi(i): " << logphi(i) << " -- i: " << i << std::endl; }
     for(int i=0; i<logphipar.size(); i++){ std::cout << "INPUT: logphipar(i): " << logphipar(i) << " -- i: " << i << std::endl; }
@@ -222,10 +222,10 @@ Type objective_function<Type>::operator() ()
     std::cout << "--- DEBUG: F loop start" << std::endl;
   }
   // Hack to set log(B(0)) equal to the fixed effect log(B0).
-  likval = dnorm(logF0, logF(0), sd, 1);
-  ans-=likval;
+  //likval = dnorm(logF0, logF(0), sd, 1);
+  //ans-=likval;
   if(dbg>0){
-    std::cout << "- logF0: " << logF0 << " logF(0): " << logF(0) << "  likval: " << likval << "  ans:" << ans <<  std::endl;
+    //std::cout << "- logF0: " << logF0 << " logF(0): " << logF(0) << "  likval: " << likval << "  ans:" << ans <<  std::endl;
   }
   for(int i=1; i<ns; i++){
     //Type logFpred = log(ffacvec(i)) + predictlogF(phi1, logF(i-1), phi2, logF(i-delay));
@@ -258,10 +258,10 @@ Type objective_function<Type>::operator() ()
 
   // BIOMASS PREDICTIONS
   // Hack to set log(B(0)) equal to the fixed effect log(B0).
-  likval = dnorm(logB0, log(B(0)), sd, 1);
-  ans-=likval;
+  //likval = dnorm(logB0, log(B(0)), sd, 1);
+  //ans-=likval;
   if(dbg>1){
-    std::cout << "-- i: " << 0 << " -   logB0: " << logB0 << "  log(B(0)): " << log(B(0)) << "  sd: " << sd << "  likval: " << likval << "  ans:" << ans << std::endl;
+    //std::cout << "-- i: " << 0 << " -   logB0: " << logB0 << "  log(B(0)): " << log(B(0)) << "  sd: " << sd << "  likval: " << likval << "  ans:" << ans << std::endl;
   }
   for(int i=0; i<(ns-1); i++){
     // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
@@ -441,7 +441,7 @@ Type objective_function<Type>::operator() ()
   //ADREPORT(logBpmsy);
   ADREPORT(logBpBmsy);
   ADREPORT(logBinf);
-  ADREPORT(logB0);
+  //ADREPORT(logB0);
   ADREPORT(logBl);
   ADREPORT(logBlBmsy);
   ADREPORT(logBBmsy);

@@ -230,6 +230,9 @@ check.inp <- function(inp){
     if(!"nboot" %in% names(inp$aspic)) inp$aspic$nboot <- 1000
     if(!"ciperc" %in% names(inp$aspic)) inp$aspic$ciperc <- 95
 
+    # -- SIMULATION SETTINGS --
+    if(!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
+
     # -- DERIVED VARIABLES --
     timeobs <- inp$timeC
     timeobs <- c(timeobs, inp$timeC + inp$dtc)
@@ -409,11 +412,12 @@ check.inp <- function(inp){
     if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(20-1)
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
-    if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
+    #if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
     #if(!"logp" %in% names(inp$ini)) inp$ini$logp <- log(1.0)
-    if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr[1]))
+    #if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr[1]))
     if(!"logF" %in% names(inp$ini)){
-        inp$ini$logF <- rep(inp$ini$logF0, inp$ns)
+        #inp$ini$logF <- rep(inp$ini$logF0, inp$ns)
+        inp$ini$logF <- rep(log(0.2) + inp$ini$logr[1], inp$ns)
     } else {
         if(length(inp$ini$logF) != inp$ns){
             cat('Wrong length of inp$ini$logF:', length(inp$ini$logF), ' Should be equal to inp$ns:', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
@@ -421,7 +425,8 @@ check.inp <- function(inp){
         }
     }
     if(!"logB" %in% names(inp$ini)){
-        inp$ini$logB <- log(rep(exp(inp$ini$logbkfrac)*exp(inp$ini$logK), inp$ns))
+        #inp$ini$logB <- log(rep(exp(inp$ini$logbkfrac)*exp(inp$ini$logK), inp$ns))
+        inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
     } else {
         if(length(inp$ini$logB) != inp$ns){
             cat('Wrong length of inp$ini$logB:', length(inp$ini$logB), ' Should be equal to inp$ns:', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
@@ -438,8 +443,8 @@ check.inp <- function(inp){
                     logp1robfac=inp$ini$logp1robfac,
                     logalpha=inp$ini$logalpha,
                     logbeta=inp$ini$logbeta,
-                    logbkfrac=inp$ini$logbkfrac,
-                    logF0=inp$ini$logF0,
+                    #logbkfrac=inp$ini$logbkfrac,
+                    #logF0=inp$ini$logF0,
                     logm=inp$ini$logm,
                     logK=inp$ini$logK,
                     logq=inp$ini$logq,
@@ -668,8 +673,8 @@ calc.osa.resid <- function(rep, dbg=0){
         timeobs <- c(timeobs, inp$timeI[[i]])
     }
     timeobs <- sort(unique(timeobs)) # Times where observations are available
-    #inds <- which(timeobs >= timeobs[1]+delay)
-    inds <- which(timeobs >= (timeobs[2]+delay)) # Start from 2: skip first observation because the RE are set to the FE B0/K and F0.
+    inds <- which(timeobs >= timeobs[1]+delay)
+    #inds <- which(timeobs >= (timeobs[2]+delay)) # Start from 2: skip first observation because the RE are set to the FE B0/K and F0.
     timepred <- timeobs[inds] # Times where observations must be predicted
     npred <- length(timepred)
     nser <- inp$nindex+1 # Number of data series
@@ -737,17 +742,22 @@ calc.osa.resid <- function(rep, dbg=0){
             }
         }
     }
-    alpha <- 0.05
+    npar <- length(rep$opt$par)
     # Catches
     inds <- which(haveobs[, 1]==1)
     timeC <- timepred[inds]
     logCpred <- logpredmat[inds, 1]
     sdlogCpred <- sdlogpredmat[inds, 1]
     logCpres <- (log(obsmat[inds, 1]) - logCpred)/sdlogCpred
-    logCpboxtest <- Box.test(logCpres, lag=1, type='Ljung-Box')
-    logCpshapiro <- shapiro.test(logCpres)
-    logCpbias <- t.test(logCpres)
+    lblag <- npar+1 # Lags to check with LB test
+    logCpboxtest <- Box.test(logCpres, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
+    logCpp5boxtest <- Box.test(logCpres, lag=lblag+4, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
+    logCpsqboxtest <- Box.test(logCpres^2, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
+    logCpshapiro <- shapiro.test(logCpres) # Test for normality of residuals
+    logCpbias <- t.test(logCpres) # Test for bias of residuals
     rep$stats$ljungboxC.p <- logCpboxtest$p.value
+    rep$stats$ljungboxCp5.p <- logCpp5boxtest$p.value
+    rep$stats$ljungboxCsq.p <- logCpsqboxtest$p.value
     rep$stats$shapiroC.p <- logCpshapiro$p.value
     rep$stats$biasC.p <- logCpbias$p.value
     # Indices
@@ -756,6 +766,8 @@ calc.osa.resid <- function(rep, dbg=0){
     sdlogIpred <- list()
     logIpres <- list()
     logIpboxtest <- list()
+    logIpp5boxtest <- list()
+    logIpsqboxtest <- list()
     logIpshapiro <- list()
     logIpbias <- list()
     for(i in 1:inp$nindex){
@@ -764,11 +776,17 @@ calc.osa.resid <- function(rep, dbg=0){
         logIpred[[i]] <- logpredmat[inds, i+1]
         sdlogIpred[[i]] <- sdlogpredmat[inds, i+1]
         logIpres[[i]] <- (log(obsmat[inds, i+1]) - logIpred[[i]])/sdlogIpred[[i]]
-        logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=1, type='Ljung-Box')
+        logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=lblag, type='Ljung-Box', fitdf=npar)
+        logIpp5boxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag+4, type='Ljung-Box', fitdf=npar)
+        logIpsqboxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag, type='Ljung-Box', fitdf=npar)
         logIpshapiro[[i]] <- shapiro.test(logIpres[[i]])
         logIpbias[[i]] <- t.test(logIpres[[i]])
         nam <- paste0('ljungboxI', i, '.p')
         rep$stats[[nam]] <- logIpboxtest[[i]]$p.value
+        nam <- paste0('ljungboxIp5', i, '.p')
+        rep$stats[[nam]] <- logIpp5boxtest[[i]]$p.value
+        nam <- paste0('ljungboxIsq', i, '.p')
+        rep$stats[[nam]] <- logIpsqboxtest[[i]]$p.value
         nam <- paste0('shapiroI', i, '.p')
         rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
         nam <- paste0('biasI', i, '.p')
@@ -1922,7 +1940,7 @@ read.aspic <- function(filename){
     }
     # Insert initial values
     inp$ini <- list()
-    inp$ini$logbkfrac <- log(dat$B1Kini)
+    #inp$ini$logbkfrac <- log(dat$B1Kini)
     inp$ini$logr <- log(2*dat$Fmsyini)
     inp$ini$logK <- log(2*dat$MSYini/dat$Fmsyini)
     inp$ini$logq <- log(dat$qini)
@@ -2064,19 +2082,22 @@ sim.spict <- function(input, nobs=100){
     # Calculate derived variables
     dt <- inp$dteuler
     nt <- length(time)
-    B0 <- exp(pl$logbkfrac)*exp(pl$logK)
-    F0 <- exp(pl$logF0)
-    #rf <- exp(pl$logr) # Fletcher's r
+    if('logbkfrac' %in% names(inp$ini)){
+        B0 <- exp(inp$ini$logbkfrac)*exp(pl$logK)
+    } else {
+        B0 <- 0.8*exp(pl$logK)
+    }
+    if('logF0' %in% names(inp$ini)){
+        F0 <- exp(inp$ini$logF0)
+    } else {
+        F0 <- 0.2*exp(inp$ini$logr)
+    }
     m <- exp(pl$logm)
     n <- exp(pl$logn)
     gamma <- calc.gamma(n)
     K <- exp(pl$logK)
     q <- exp(pl$logq)
     logphi <- pl$logphi
-    #Rvec <- 0.25 * rf * (p+1)^(1/p) # Bordet's r
-    #Rvec <- (n-1)/n * rf * K^(n-2) # Bordet's r
-    #R <- mean(Rvec) # Take mean in the case r is a vector
-    #r <- (p+1)/p * Rvec # Our r
     sdb <- exp(pl$logsdb)
     sdf <- exp(pl$logsdf)
     alpha <- exp(pl$logalpha)
@@ -2097,7 +2118,9 @@ sim.spict <- function(input, nobs=100){
     flag <- TRUE
     recount <- 0
     while(flag){
-        Fbase <- c(F0, exp(log(F0) + cumsum(rnorm(nt-1, 0, sdf*sqrt(dt))))) # Fishing mortality
+        #ef <- rnorm(nt-1, 0, sdf*sqrt(dt))
+        ef <- arima.sim(inp$armalistF, nt-1) * sdf*sqrt(dt) # Used to simulate other than white noise in F
+        Fbase <- c(F0, exp(log(F0) + cumsum(ef))) # Fishing mortality
         F <- numeric(length(Fbase))
         for(i in 1:nseasonspline){
             inds <- which(inp$seasonindex==(i-1))
@@ -2369,6 +2392,7 @@ write.aspic <- function(input, filename='spictout.a7inp'){
     estbkfrac <- 1
     if(!is.null(inp$phases$logbkfrac)) if(inp$phases$logbkfrac==-1) estbkfrac <- 0
     #estbkfrac <- 0
+    if(!'logbkfrac' %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
     cat(sprintf('B1K   %3.2E  %i  %3.2E  %3.2E  penalty  %3.2E\n', exp(inp$ini$logbkfrac), estbkfrac, 0.01*exp(inp$ini$logbkfrac), 100*exp(inp$ini$logbkfrac), 0), file=filename, append=TRUE)
     MSY <- exp(inp$ini$logK + inp$ini$logr)/4
     cat(sprintf('MSY   %3.2E  1  %3.2E  %3.2E\n', MSY, 0.03*MSY, 5000*MSY), file=filename, append=TRUE)
