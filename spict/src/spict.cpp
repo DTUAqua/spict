@@ -253,7 +253,8 @@ Type objective_function<Type>::operator() ()
   vector<Type> F = exp(logFs);
 
   // CALCULATE B_infinity
-  for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), gamma, mvec(i), n, sdb2); 
+  //for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), gamma, mvec(i), n, sdb2); 
+  for(int i=0; i<ns; i++) Binf(i) = K * pow( 1.0 - (n-1.0)*F(i)/(n * Fmsyd), 1.0/(n-1.0)) * (1 - n/2.0 / (1.0- pow(1.0-n*Fmsyd + (n-1.0)*F(i), 2.0))* sdb2); // Bordet & Rivest (2014) eqn. 9
   logBinf = log(Binf);
 
   // BIOMASS PREDICTIONS
@@ -445,6 +446,9 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logBl);
   ADREPORT(logBlBmsy);
   ADREPORT(logBBmsy);
+  vector<Type> Bind(ns);
+  for(int i=0; i<ns; i++) Bind(i) = 1.0 - B(i)/Binf(i);
+  ADREPORT(Bind);
   // F
   ADREPORT(Fmsy);
   ADREPORT(logFmsy);

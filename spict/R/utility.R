@@ -1689,6 +1689,13 @@ plot.spictcls <- function(rep, logax=FALSE){
         # Plot influence summary
         plotspict.inflsum(rep)
     }
+    # Plot expected biomass trend
+    Bind <- get.par('Bind', rep)
+    plot(rep$inp$time, Bind[, 2], typ='l', ylim=range(Bind[, 1:3]), xlab='Time', ylab='Expected trend')
+    lines(rep$inp$time, Bind[, 1], lty=2)
+    lines(rep$inp$time, Bind[, 3], lty=2)
+    abline(h=0)
+
 }
 
 
