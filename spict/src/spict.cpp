@@ -475,6 +475,9 @@ Type objective_function<Type>::operator() ()
   // REPORTS (these don't require sdreport to be output)
   REPORT(Cp);
   REPORT(logIp);
+  REPORT(MSY);
+  REPORT(Bmsy);
+  REPORT(Fmsy);
 
   return ans;
 }

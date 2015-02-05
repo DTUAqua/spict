@@ -75,8 +75,9 @@ NULL
 #'  \item{"inp$ini$logbeta"}{ Default: 0.}
 #'  \item{"inp$ini$logF"}{ Default: logF0.}
 #'  \item{"inp$ini$logB"}{ Default: bkfrac*K.}
-#'  \item{"inp$ini$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
-#'  \item{"inp$ini$robflagi"}{ Flag indicating whether robust estimation should be used for indices (either 0 or 1). Default: 0.}
+#'  \item{"inp$do.sd.report"}{ Flag indicating whether SD report (uncertainty of derived quantities) should be calculated. For small values of inp$dteuler this may require a lot of memory. Default: TRUE.}
+#' \item{"inp$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
+#'  \item{"inp$robflagi"}{ Flag indicating whether robust estimation should be used for indices (either 0 or 1). Default: 0.}
 #'  \item{"inp$ffac"}{ Management scenario represented by a factor to multiply F with when calculating the F of the next time step. ffac=0.8 means a 20\% reduction in F over the next year. The factor is only used when predicting beyond the data set. Default: 1 (0\% reduction).}
 #'  \item{"inp$lamperti"}{ Logical indicating whether to use Lamperti transformed equations (recommended). Default: TRUE.}
 #'  \item{"inp$euler"}{ Logical indicating whether to use Euler time discretisation (recommended). Default: TRUE.}
@@ -165,6 +166,7 @@ check.inp <- function(inp){
     names(inp$maxminratio) <- paste0('I', 1:inp$nindex)
     for(i in 1:inp$nindex) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
     # -- MODEL OPTIONS --
+    if(!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
     if(!"robflagc" %in% names(inp)) inp$robflagc <- 0
     inp$robflagc <- as.numeric(inp$robflagc)
     if(!"robflagi" %in% names(inp)) inp$robflagi <- 0
@@ -572,60 +574,64 @@ fit.spict <- function(inp, dbg=0){
             pl <- obj$env$parList(opt$par)
         }
     }
-    rep <- NULL
+    rep <- list()
     if(dbg==0){
-        opt <- try(nlminb(obj$par, obj$fn, obj$gr))
+        #opt <- try(nlminb(obj$par, obj$fn, obj$gr))
         if(class(opt)!='try-error'){
-            # Results
-            rep <- try(TMB::sdreport(obj))
-            if(class(rep)=='try-error'){
-                cat('WARNING: Could not calculate sdreport.\n')
-                rep <- list()
-                rep$sderr <- 1
-                rep$par.fixed <- opt$par
-                rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
+            # Calculate SD report
+            if(inp$do.sd.report){
+                rep <- try(TMB::sdreport(obj))
+                if(class(rep)=='try-error'){
+                    cat('WARNING: Could not calculate sdreport.\n')
+                    rep <- list()
+                    rep$sderr <- 1
+                    rep$par.fixed <- opt$par
+                    rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
+                }
+                if(class(rep)!='try-error'){
+                    rep$inp <- inp
+                    #  - Calculate statistics -
+                    rep$stats <- list()
+                    K <- get.par('logK', rep, exp=TRUE)[2]
+                    #r <- get.par('logr', rep, exp=TRUE)[2]
+                    n <- get.par('logn', rep, exp=TRUE)[2]
+                    p <- n-1
+                    Best <- get.par('logB', rep, exp=TRUE)
+                    Bests <- Best[rep$inp$indest, 2]
+                    # R-square
+                    #Pest <- get.par('P', rep)
+                    #B <- Best[-inp$ns, 2]
+                    #inds <- unique(c(inp$ic[1:inp$nobsC], unlist(inp$ii)))
+                    #gr <- r*(1-(B[inds]/K)^p) # Pella-Tomlinson production
+                    #grobs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
+                    #ssqobs <- sum((grobs - mean(grobs))^2)
+                    #ssqres <- sum((grobs - gr)^2)
+                    #rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
+                    # Prager's nearness
+                    Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
+                    Bdiff <- Bmsy - Bests
+                    if(any(diff(sign(Bdiff))!=0)){
+                        rep$stats$nearness <- 1
+                    } else {
+                        rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
+                        #ind <- which.min(abs(Bdiff))
+                        #Bstar <- Bests[ind]
+                        #if(Bstar > Bmsy){
+                        #    rep$stats$nearness <- (K-Bstar)/(K-Bmsy)
+                        #} else {
+                        #    rep$stats$nearness <- Bstar/Bmsy
+                        #}
+                    }
+                    # Prager's coverage
+                    rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
+                }
             }
             rep$pl <- obj$env$parList(opt$par)
             obj$fn()
             rep$Cp <- obj$report()$Cp
+            rep$report <- obj$report()
             rep$inp <- inp
             rep$opt <- opt
-            if(class(rep)!='try-error'){
-                #  - Calculate statistics -
-                rep$stats <- list()
-                K <- get.par('logK', rep, exp=TRUE)[2]
-                #r <- get.par('logr', rep, exp=TRUE)[2]
-                n <- get.par('logn', rep, exp=TRUE)[2]
-                p <- n-1
-                Best <- get.par('logB', rep, exp=TRUE)
-                Bests <- Best[rep$inp$indest, 2]
-                # R-square
-                #Pest <- get.par('P', rep)
-                #B <- Best[-inp$ns, 2]
-                #inds <- unique(c(inp$ic[1:inp$nobsC], unlist(inp$ii)))
-                #gr <- r*(1-(B[inds]/K)^p) # Pella-Tomlinson production
-                #grobs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
-                #ssqobs <- sum((grobs - mean(grobs))^2)
-                #ssqres <- sum((grobs - gr)^2)
-                #rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
-                # Prager's nearness
-                Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
-                Bdiff <- Bmsy - Bests
-                if(any(diff(sign(Bdiff))!=0)){
-                    rep$stats$nearness <- 1
-                } else {
-                    rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
-                    #ind <- which.min(abs(Bdiff))
-                    #Bstar <- Bests[ind]
-                    #if(Bstar > Bmsy){
-                    #    rep$stats$nearness <- (K-Bstar)/(K-Bmsy)
-                    #} else {
-                    #    rep$stats$nearness <- Bstar/Bmsy
-                    #}
-                }
-                # Prager's coverage
-                rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
-            }
         } else {
             stop('Could not fit model, try changing the initial parameter guess in inp$ini. Error msg:', opt)
         }
@@ -2206,6 +2212,7 @@ sim.spict <- function(input, nobs=100){
     sim$obsI <- obsI
     sim$timeI <- inp$timeI
     sim$ini <- plin #list(logr=log(r), logK=log(K), logq=log(q), logsdf=log(sdf), logsdb=log(sdb))
+    sim$do.sd.report <- inp$do.sd.report
     sim$dteuler <- inp$dteuler
     sim$splineorder <- inp$splineorder
     sim$euler <- inp$euler
