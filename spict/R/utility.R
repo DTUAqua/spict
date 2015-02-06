@@ -2267,7 +2267,7 @@ sim.spict <- function(input, nobs=100){
 #' @param backup Since this procedure can be slow a filename can be specified in backup where the most recent results will be available.
 #' @return A list containing the results of the validation with the following keys:
 #' \itemize{
-#'  \item{"osarpvals"}{ P-values of the Ljun-Box test for uncorrelated one-step-ahead residuals.}
+#'  \item{"osarpvals"}{ P-values of the Ljung-Box test for uncorrelated one-step-ahead residuals.}
 #'  \item{"*msyci"}{Logical. TRUE if the true value of B/Fmsy was inside the 95\% confidence interval for the estimate, otherwise FALSE}
 #'  \item{"*msyciw"}{ Width of the 95\% confidence interval of the estimate of B/Fmsy.}
 #' }
