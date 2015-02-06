@@ -166,6 +166,7 @@ check.inp <- function(inp){
     names(inp$maxminratio) <- paste0('I', 1:inp$nindex)
     for(i in 1:inp$nindex) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
     # -- MODEL OPTIONS --
+    if(!"reportall" %in% names(inp)) inp$reportall <- TRUE
     if(!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
     if(!"robflagc" %in% names(inp)) inp$robflagc <- 0
     inp$robflagc <- as.numeric(inp$robflagc)
@@ -201,7 +202,7 @@ check.inp <- function(inp){
             inp$dtpredc <- inp$dtpred
         } else {
             if(length(inp$dtc)>0){
-                inp$dtpredc <- min(inp$dtc)
+                inp$dtpredc <- max(inp$dtc)
             } else {
                 inp$dtpredc <- 1
                 cat('Assuming a 1 year prediction interval for catch.\n')
@@ -212,12 +213,12 @@ check.inp <- function(inp){
         if("dtpred" %in% names(inp)){
             inp$dtpredi <- inp$dtpred
         } else {
-            if(length(inp$dtc)>0){
-                inp$dtpredi <- min(inp$dtc)
-            } else {
-                inp$dtpredi <- 1
-                cat('Assuming a 1 year prediction interval for index.\n')
-            }
+            #if(length(inp$dtc)>0){
+            #    inp$dtpredi <- max(inp$dtc)
+            #} else {
+                inp$dtpredi <- 0
+                #cat('Assuming a 0 year prediction interval for index.\n')
+            #}
         }
     }
     dtpredmax <- max(c(inp$dtpredc, inp$dtpredi))
@@ -236,15 +237,15 @@ check.inp <- function(inp){
     if(!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
 
     # -- DERIVED VARIABLES --
-    timeobs <- inp$timeC
-    timeobs <- c(timeobs, inp$timeC + inp$dtc)
-    for(i in 1:inp$nindex) timeobs <- c(timeobs, inp$timeI[[i]])
+    timeobsnodtc <- c(inp$timeC, unlist(inp$timeI))
+    # Include dtc because a catch observation at time t includes information in the interval [t; t+dtc[ 
+    timeobs <- c(inp$timeC, inp$timeC + inp$dtc, unlist(inp$timeI))
     inp$timerange <- range(timeobs)
-    time <- seq(inp$timerange[1], inp$timerange[2]+dtpredmax, by=inp$dteuler)
+    time <- seq(min(timeobs), max(timeobs)+dtpredmax, by=inp$dteuler)
     # Remove duplicate time points and store time in inp list
     inp$time <- sort(unique(c(timeobs, time)))
     inp$ns <- length(inp$time)
-    inp$indlastobs <- which(inp$time == inp$timerange[2])
+    inp$indlastobs <- which(inp$time == max(c(inp$timeC, unlist(inp$timeI))))
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
     # Seasons
@@ -304,6 +305,7 @@ check.inp <- function(inp){
     inp$dtpredcinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpredc))
     inp$dtpredcnsteps <- length(inp$dtpredcinds)
     inp$dtprediind <- which(inp$time == (inp$timerange[2]+inp$dtpredi))
+    #inp$dtprediind <- which(inp$time == (max(inp$timeI[[1]])+inp$dtpredi))
     
     # -- MODEL PARAMETERS --
     if(!"logn" %in% names(inp$ini)){
@@ -558,7 +560,7 @@ fit.spict <- function(inp, dbg=0){
     #if(!'checked' %in% names(inp)) inp <- check.inp(inp)
     #if(!inp$checked)
     inp <- check.inp(inp)
-    datin <- list(dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, seasons=inp$seasons, seasonindex=inp$seasonindex, splinemat=inp$splinemat, ffac=inp$ffaceuler, indpred=inp$indpred, robflagc=inp$robflagc, robflagi=inp$robflagi, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
+    datin <- list(reportall=as.numeric(inp$reportall), dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, indlastobs=inp$indlastobs, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, seasons=inp$seasons, seasonindex=inp$seasonindex, splinemat=inp$splinemat, ffac=inp$ffaceuler, indpred=inp$indpred, robflagc=inp$robflagc, robflagi=inp$robflagi, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
     pl <- inp$parlist
     for(i in 1:inp$nphases){
         if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
@@ -590,40 +592,42 @@ fit.spict <- function(inp, dbg=0){
                 }
                 if(class(rep)!='try-error'){
                     rep$inp <- inp
-                    #  - Calculate statistics -
-                    rep$stats <- list()
-                    K <- get.par('logK', rep, exp=TRUE)[2]
-                    #r <- get.par('logr', rep, exp=TRUE)[2]
-                    n <- get.par('logn', rep, exp=TRUE)[2]
-                    p <- n-1
-                    Best <- get.par('logB', rep, exp=TRUE)
-                    Bests <- Best[rep$inp$indest, 2]
-                    # R-square
-                    #Pest <- get.par('P', rep)
-                    #B <- Best[-inp$ns, 2]
-                    #inds <- unique(c(inp$ic[1:inp$nobsC], unlist(inp$ii)))
-                    #gr <- r*(1-(B[inds]/K)^p) # Pella-Tomlinson production
-                    #grobs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
-                    #ssqobs <- sum((grobs - mean(grobs))^2)
-                    #ssqres <- sum((grobs - gr)^2)
-                    #rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
-                    # Prager's nearness
-                    Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
-                    Bdiff <- Bmsy - Bests
-                    if(any(diff(sign(Bdiff))!=0)){
-                        rep$stats$nearness <- 1
-                    } else {
-                        rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
-                        #ind <- which.min(abs(Bdiff))
-                        #Bstar <- Bests[ind]
-                        #if(Bstar > Bmsy){
-                        #    rep$stats$nearness <- (K-Bstar)/(K-Bmsy)
-                        #} else {
-                        #    rep$stats$nearness <- Bstar/Bmsy
-                        #}
+                    if(inp$reportall){
+                        #  - Calculate statistics -
+                        rep$stats <- list()
+                        K <- get.par('logK', rep, exp=TRUE)[2]
+                        #r <- get.par('logr', rep, exp=TRUE)[2]
+                        n <- get.par('logn', rep, exp=TRUE)[2]
+                        p <- n-1
+                        Best <- get.par('logB', rep, exp=TRUE)
+                        Bests <- Best[rep$inp$indest, 2]
+                        # R-square
+                        #Pest <- get.par('P', rep)
+                        #B <- Best[-inp$ns, 2]
+                        #inds <- unique(c(inp$ic[1:inp$nobsC], unlist(inp$ii)))
+                        #gr <- r*(1-(B[inds]/K)^p) # Pella-Tomlinson production
+                        #grobs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
+                        #ssqobs <- sum((grobs - mean(grobs))^2)
+                        #ssqres <- sum((grobs - gr)^2)
+                        #rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
+                        # Prager's nearness
+                        Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
+                        Bdiff <- Bmsy - Bests
+                        if(any(diff(sign(Bdiff))!=0)){
+                            rep$stats$nearness <- 1
+                        } else {
+                            rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
+                            #ind <- which.min(abs(Bdiff))
+                            #Bstar <- Bests[ind]
+                            #if(Bstar > Bmsy){
+                            #    rep$stats$nearness <- (K-Bstar)/(K-Bmsy)
+                            #} else {
+                            #    rep$stats$nearness <- Bstar/Bmsy
+                            #}
+                        }
+                        # Prager's coverage
+                        rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
                     }
-                    # Prager's coverage
-                    rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
                 }
             }
             rep$pl <- obj$env$parList(opt$par)
@@ -725,7 +729,7 @@ calc.osa.resid <- function(rep, dbg=0){
         inp2$dtpredi <- timepred[j] - max(endtimes)
         if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[which(inp$timeC == timepred[j])]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
         inp2 <- check.inp(inp2)
-        datnew <- list(dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
+        datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         #objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=inp$map[[length(inp$map)]], random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
@@ -1824,7 +1828,8 @@ summary.spictcls <- function(object, numdigits=8){
         stateout[, 4] <- log(stateout[, 4])
         stateout <- round(stateout, numdigits)
         colnames(stateout) <- c('state est.', 'cilow', 'ciupp', 'est.in.log')
-        et <- tail(rep$inp$time[rep$inp$indest],1)
+        #et <- tail(rep$inp$time[rep$inp$indest],1)
+        et <- rep$inp$time[rep$inp$indlastobs]
         rownames(stateout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'))
         cat('', paste(capture.output(stateout),' \n'))
         # Predictions
@@ -1839,7 +1844,7 @@ summary.spictcls <- function(object, numdigits=8){
         predout[, 4] <- log(predout[, 4])
         predout <- round(predout, numdigits)
         colnames(predout) <- c('prediction', 'cilow', 'ciupp', 'est.in.log')
-        et <- tail(rep$inp$time,1)
+        et <- rep$inp$time[rep$inp$dtprediind]
         rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_',tail(rep$inp$timeCp,1)))
         cat('', paste(capture.output(predout),' \n'))
     }
@@ -2213,6 +2218,7 @@ sim.spict <- function(input, nobs=100){
     sim$timeI <- inp$timeI
     sim$ini <- plin #list(logr=log(r), logK=log(K), logq=log(q), logsdf=log(sdf), logsdb=log(sdb))
     sim$do.sd.report <- inp$do.sd.report
+    sim$reportall <- inp$reportall
     sim$dteuler <- inp$dteuler
     sim$splineorder <- inp$splineorder
     sim$euler <- inp$euler
@@ -2351,11 +2357,14 @@ extract.simstats <- function(rep){
         ss$MSY <- calc.simstats('MSY', rep, exp=FALSE, rep$inp$true$MSY)
         # Final biomass estimate
         ind <- tail(rep$inp$indest, 1) - 1 # minus 1 because an extra time step is added to be able to integrate the catches over this time interval.
-        ss$B <- calc.simstats('logB', rep, exp=TRUE, rep$inp$true$B[ind], ind=ind)
+        #ss$B <- calc.simstats('logB', rep, exp=TRUE, rep$inp$true$B[ind], ind=ind)
+        ss$B <- calc.simstats('logBl', rep, exp=TRUE, rep$inp$true$B[ind])
         # Final B/Bmsy estimate
-        ss$BB <- calc.simstats('logBBmsy', rep, exp=TRUE, rep$inp$true$B[ind]/rep$inp$true$Bmsy, ind=ind)
+        #ss$BB <- calc.simstats('logBBmsy', rep, exp=TRUE, rep$inp$true$B[ind]/rep$inp$true$Bmsy, ind=ind)
+        ss$BB <- calc.simstats('logBlBmsy', rep, exp=TRUE, rep$inp$true$B[ind]/rep$inp$true$Bmsy)
         # Final F/Fmsy estimate
-        ss$FF <- calc.simstats('logFFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy, ind=ind)
+        #ss$FF <- calc.simstats('logFFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy, ind=ind)
+        ss$FF <- calc.simstats('logFlFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy)
         return(ss)
     } else {
         stop('These results do not come from the estimation of a simulated data set!')

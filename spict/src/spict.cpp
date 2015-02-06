@@ -46,12 +46,12 @@ Type objective_function<Type>::operator() ()
 {
   Type ans=0;
 
+  DATA_INTEGER(reportall); // Euler flag.
   DATA_VECTOR(dt);         // Time steps
-  //DATA_SCALAR(dtpredc);     // Time step for prediction
   DATA_VECTOR(dtpredcinds);
   DATA_INTEGER(dtpredcnsteps); // Number of sub time step for prediction
-  //DATA_SCALAR(dtpredi);     // Time step for predictions of indices
   DATA_SCALAR(dtprediind);
+  DATA_INTEGER(indlastobs);// Index of B and F corresponding to the last observation.
   DATA_VECTOR(obsC);       // Catches
   DATA_VECTOR(ic);         // Vector such that B(ii(i)) is the state corresponding to obsC(i)
   DATA_VECTOR(nc);         // nc(i) gives the number of time intervals obsC(i) spans
@@ -404,22 +404,44 @@ Type objective_function<Type>::operator() ()
 
   // Biomass and fishing mortality at last time point
   // dtpredcinds(0) is the index of B and F corresponding to the time of the last observation.
-  Type logBl = logB(CppAD::Integer(dtpredcinds(0)-1)); 
-  Type logBlBmsy = logBl - logBmsyd;
-  Type logFl = logFs(CppAD::Integer(dtpredcinds(0)-1)); 
-  Type logFlFmsy = logFl - logFmsyd;
+  Type logBl = logB(indlastobs-1);
+  Type logBlBmsy = logBl - logBmsy;
+  Type logFl = logFs(indlastobs-1);
+  Type logFlFmsy = logFl - logFmsy;
 
   // Biomass and fishing mortality over msy levels
   vector<Type> logBBmsy(ns);
   vector<Type> logFFmsy(ns);
   for(int i=0; i<ns; i++){ 
-    logBBmsy(i) = logB(i) - logBmsyd; 
-    //logFFmsy(i) = logF(i) - logFmsyd; 
-    logFFmsy(i) = logFs(i) - logFmsyd; 
+    logBBmsy(i) = logB(i) - logBmsy; 
+    //logFFmsy(i) = logF(i) - logFmsy; 
+    logFFmsy(i) = logFs(i) - logFmsy; 
   }
 
   // ADREPORTS
-  //ADREPORT(rm);
+  ADREPORT(logBmsy);
+  ADREPORT(Bmsy);  
+  ADREPORT(Bmsyd);
+  ADREPORT(logBmsyd);
+  ADREPORT(logBp);
+  ADREPORT(logBpBmsy);
+  ADREPORT(logBl);
+  ADREPORT(logBlBmsy);
+  ADREPORT(logFmsy);
+  ADREPORT(Fmsy);
+  ADREPORT(Fmsyd);
+  ADREPORT(logFmsyd);
+  ADREPORT(logFp);
+  ADREPORT(logFpFmsy);
+  ADREPORT(logFl);
+  ADREPORT(logFlFmsy);
+  ADREPORT(MSY);
+  ADREPORT(MSYd);
+  // PREDICTIONS
+  ADREPORT(Cp);
+  ADREPORT(logIp);
+  ADREPORT(logCp);
+  // PARAMETERS
   ADREPORT(r);
   ADREPORT(logr);
   ADREPORT(K);
@@ -431,47 +453,22 @@ Type objective_function<Type>::operator() ()
   ADREPORT(sdc);
   ADREPORT(sdb);
   ADREPORT(sdi);
-  ADREPORT(MSY);
-  ADREPORT(MSYd);
-  // B
-  ADREPORT(Bmsy);
-  ADREPORT(logBmsy);
-  ADREPORT(Bmsyd);
-  ADREPORT(logBmsyd);
-  ADREPORT(logBp);
-  //ADREPORT(logBpmsy);
-  ADREPORT(logBpBmsy);
-  ADREPORT(logBinf);
-  //ADREPORT(logB0);
-  ADREPORT(logBl);
-  ADREPORT(logBlBmsy);
-  ADREPORT(logBBmsy);
-  vector<Type> Bind(ns);
-  for(int i=0; i<ns; i++) Bind(i) = 1.0 - B(i)/Binf(i);
-  ADREPORT(Bind);
-  // F
-  ADREPORT(Fmsy);
-  ADREPORT(logFmsy);
-  ADREPORT(Fmsyd);
-  ADREPORT(logFmsyd);
-  ADREPORT(logFp);
-  ADREPORT(logFpFmsy);
-  ADREPORT(logFl);
-  ADREPORT(logFlFmsy);
-  ADREPORT(logFFmsy); // Vector of size ns
-  ADREPORT(logFs);    // Vector of size ns
-  // C
-  //ADREPORT(Cpmsy);
-  //ADREPORT(Cpredsub); // Vector of size ns
-  //ADREPORT(Cpredcum); // Vector of size ns
-  ADREPORT(logCpred);
-  ADREPORT(logCp);
-  // Other
-  ADREPORT(logIpred);
-  //ADREPORT(P); // Vector of size ns
-  // PREDICTIONS
-  ADREPORT(Cp);
-  ADREPORT(logIp);
+  if(reportall){
+    // B
+    ADREPORT(logBinf);
+    ADREPORT(logBBmsy);
+    vector<Type> Bind(ns);
+    for(int i=0; i<ns; i++) Bind(i) = 1.0 - B(i)/Binf(i);
+    ADREPORT(Bind);
+    // F
+    ADREPORT(logFFmsy); // Vector of size ns
+    ADREPORT(logFs);    // Vector of size ns
+    // C
+    ADREPORT(logCpred);
+    // Other
+    ADREPORT(logIpred);
+  }
+
   // REPORTS (these don't require sdreport to be output)
   REPORT(Cp);
   REPORT(logIp);
