@@ -2356,7 +2356,8 @@ extract.simstats <- function(rep){
         # MSY estimate
         ss$MSY <- calc.simstats('MSY', rep, exp=FALSE, rep$inp$true$MSY)
         # Final biomass estimate
-        ind <- tail(rep$inp$indest, 1) - 1 # minus 1 because an extra time step is added to be able to integrate the catches over this time interval.
+        #ind <- tail(rep$inp$indest, 1) - 1 # minus 1 because an extra time step is added to be able to integrate the catches over this time interval.
+        ind <- rep$inp$indlastobs
         #ss$B <- calc.simstats('logB', rep, exp=TRUE, rep$inp$true$B[ind], ind=ind)
         ss$B <- calc.simstats('logBl', rep, exp=TRUE, rep$inp$true$B[ind])
         # Final B/Bmsy estimate
@@ -2365,6 +2366,8 @@ extract.simstats <- function(rep){
         # Final F/Fmsy estimate
         #ss$FF <- calc.simstats('logFFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy, ind=ind)
         ss$FF <- calc.simstats('logFlFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy)
+        # Biomass process noise
+        ss$sdb <- calc.simstats('logsdb', rep, exp=TRUE, exp(rep$inp$true$logsdb))
         return(ss)
     } else {
         stop('These results do not come from the estimation of a simulated data set!')
