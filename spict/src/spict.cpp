@@ -107,6 +107,8 @@ Type objective_function<Type>::operator() ()
   int nq = logq.size();
   vector<Type> q(nq);
   for(int i=0; i<nq; i++){ q(i) = exp(logq(i)); }
+  vector<Type> logq2(nq);
+  for(int i=0; i<nq; i++){ logq2(i) = log(100) + logq(i); }
   Type n = exp(logn);
   Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
   Type p = n - 1.0;
@@ -115,6 +117,8 @@ Type objective_function<Type>::operator() ()
   Type sdb2 = sdb*sdb;
   Type sdi = exp(logalpha)*sdb;
   Type sdc = exp(logbeta)*sdf;
+  Type logsdi = log(sdi);
+  Type logsdc = log(sdc);
   int nobsC = obsC.size();
   int nobsCp = ic.size();
   int nobsI = I.size();
@@ -152,6 +156,12 @@ Type objective_function<Type>::operator() ()
   Type MSY = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean, 2.0)));
   Type logBmsy = log(Bmsy);
   Type logFmsy = log(Fmsy);
+  vector<Type> Emsy(nq);
+  vector<Type> Emsy2(nq);
+  for(int i=0; i<nq; i++){ 
+    Emsy(i) = Fmsy/q(i); 
+    Emsy2(i) = Fmsy/exp(logq2(i))*1.0e4; 
+  }
 
   // Calculate growth rate
   Type sign = 1.0;
@@ -383,6 +393,7 @@ Type objective_function<Type>::operator() ()
   Type Bp = B(CppAD::Integer(dtprediind-1)); 
   Type logBp = log(Bp);
   Type logBpBmsy = logBp - logBmsyd;
+  Type logBpK = logBp - logK;
   Type logFp = logFs(CppAD::Integer(dtprediind-1)); 
   Type logFpFmsy = logFp - logFmsyd;
 
@@ -406,6 +417,7 @@ Type objective_function<Type>::operator() ()
   // dtpredcinds(0) is the index of B and F corresponding to the time of the last observation.
   Type logBl = logB(indlastobs-1);
   Type logBlBmsy = logBl - logBmsy;
+  Type logBlK = logBl - logK;
   Type logFl = logFs(indlastobs-1);
   Type logFlFmsy = logFl - logFmsy;
 
@@ -425,8 +437,10 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logBmsyd);
   ADREPORT(logBp);
   ADREPORT(logBpBmsy);
+  ADREPORT(logBpK);
   ADREPORT(logBl);
   ADREPORT(logBlBmsy);
+  ADREPORT(logBlK);
   ADREPORT(logFmsy);
   ADREPORT(Fmsy);
   ADREPORT(Fmsyd);
@@ -437,6 +451,8 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logFlFmsy);
   ADREPORT(MSY);
   ADREPORT(MSYd);
+  ADREPORT(Emsy);
+  ADREPORT(Emsy2);
   // PREDICTIONS
   ADREPORT(Cp);
   ADREPORT(logIp);
@@ -446,6 +462,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logr);
   ADREPORT(K);
   ADREPORT(q);
+  ADREPORT(logq2);
   ADREPORT(p);
   ADREPORT(gamma);
   ADREPORT(m);
@@ -453,6 +470,8 @@ Type objective_function<Type>::operator() ()
   ADREPORT(sdc);
   ADREPORT(sdb);
   ADREPORT(sdi);
+  ADREPORT(logsdb);
+  ADREPORT(logsdi);
   if(reportall){
     // B
     ADREPORT(logBinf);
