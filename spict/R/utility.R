@@ -36,8 +36,8 @@ calc.gamma <- function(n) n^(n/(n-1)) / (n-1)
 
 
 #' @name pol
-#' @title Fisheries data for south Atlantic albacore tuna 1967-1989.
-#' @details This data were included in Polacheck et al. (1993).
+#' @title Fisheries data included in Polacheck et al. (1993).
+#' @details Fisheries data for south Atlantic albacore, northern Namibian hake, and New Zealand rock lobster.
 #' @docType data
 #' @keywords datasets
 #' @usage data(pol)
@@ -45,7 +45,9 @@ calc.gamma <- function(n) n^(n/(n-1)) / (n-1)
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(inp=pol$albacore)
-#' @format pol$albacore is a list containing the data and initial values for estimation formatted to be used as an input to fit.spict().
+#' rep <- fit.spict(inp=pol$hake)
+#' rep <- fit.spict(inp=pol$lobster)
+#' @format Data are lists containing data and initial values for estimation formatted to be used as an input to fit.spict().
 NULL
 
 
@@ -63,27 +65,32 @@ NULL
 #'  \item{"inp$ini$logsdf"}{ Initial value for logsdf (log standard deviation of log fishing mortality).}
 #' }
 #' Optional inputs:
+#' - Data
 #' \itemize{
 #'  \item{"inp$timeC"}{ Vector of catch times. Default: even time steps starting at 1.}
 #'  \item{"inp$timeI"}{ List containing vectors of index times. Default: even time steps starting at 1.}
-#'  \item{"inp$ini$logp"}{ Pella-Tomlinson exponent. Default: log(1) corresponding to the Schaefer formulation.}
-#'  \item{"inp$ini$logbkfrac"}{ Default: log(0.3).}
-#'  \item{"inp$ini$logF0"}{ Default: log(0.2*r).}
-#'  \item{"inp$ini$phi1"}{ Default: 1.}
-#'  \item{"inp$ini$phi2"}{ Default: 0.}
-#'  \item{"inp$ini$logalpha"}{ Default: 0.}
-#'  \item{"inp$ini$logbeta"}{ Default: 0.}
-#'  \item{"inp$ini$logF"}{ Default: logF0.}
-#'  \item{"inp$ini$logB"}{ Default: bkfrac*K.}
+#'  \item{"inp$dtc"}{ Time interval for catches, e.g. for annual catches inp$dtc=1, for quarterly catches inp$dtc=0.25. Can be given as a scalar, which is then used for all catch observations. Can also be given as a vector specifying the catch interval of each catch observation. Default: min(diff(inp$timeC)). }
+#'  \item{"inp$nseasons"}{ Number of within-year seasons in data. If inp$nseasons > 1 then a cyclic B spline is used to impose a seasonal pattern in F. The parameters of the spline are phi and are estimated. Valid values are 1, 2 or 4. Default: number of unique within-year time points present in data.}
+#' }
+#' - Parameters
+#' \itemize{
+#'  \item{"inp$ini$logn"}{ Pella-Tomlinson exponent. Default: log(2) corresponding to the Schaefer formulation.}
+#'  \item{"inp$ini$phi"}{ Vector for cyclic B spline representing within-year seasonal variation. Default: rep(1, inp$nseasons).}
+#'  \item{"inp$ini$logalpha"}{ sdi = alpha*sdb. Default: log(1).}
+#'  \item{"inp$ini$logbeta"}{ sdc = beta*sdf. Default: log(1).}
+#'  \item{"inp$ini$logF"}{ Default: log(0.2*r).}
+#'  \item{"inp$ini$logB"}{ Default: log(0.5*K).}
+#' }
+#' - Settings
+#' \itemize{
+#'  \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc).}
+#'  \item{"inp$dtpredi"}{ Length of index prediction interval in years. Default: 0.}
 #'  \item{"inp$do.sd.report"}{ Flag indicating whether SD report (uncertainty of derived quantities) should be calculated. For small values of inp$dteuler this may require a lot of memory. Default: TRUE.}
+#'  \item{"inp$reportall"}{ Flag indicating whether quantities derived from state vectors (e.g. B/Bmsy, F/Fmsy etc.) should be calculated by SD report. For small values of inp$dteuler (< 1/32) reporting all may have to be set to FALSE for sdreport to run. Additionally, if only reference points of parameter estimates are of interest one can set to FALSE to gain a speed-up. Default: TRUE.}
 #' \item{"inp$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
 #'  \item{"inp$robflagi"}{ Flag indicating whether robust estimation should be used for indices (either 0 or 1). Default: 0.}
 #'  \item{"inp$ffac"}{ Management scenario represented by a factor to multiply F with when calculating the F of the next time step. ffac=0.8 means a 20\% reduction in F over the next year. The factor is only used when predicting beyond the data set. Default: 1 (0\% reduction).}
-#'  \item{"inp$lamperti"}{ Logical indicating whether to use Lamperti transformed equations (recommended). Default: TRUE.}
-#'  \item{"inp$euler"}{ Logical indicating whether to use Euler time discretisation (recommended). Default: TRUE.}
-#'  \item{"inp$dtc"}{ Time interval for catches, e.g. for annual catches inp$dtc=1, for quarterly catches inp$dtc=0.25. Can be given as a scalar, which is then used for all catch observations. Can also be given as a vector specifying the catch interval of each catch observation. Default: min(diff(inp$timeC)). }
 #'  \item{"inp$dteuler"}{ Length of Euler time step in years. Default: min(inp$dtc).}
-#'  \item{"inp$delay"}{ Include a delayed effect in the the F-process: F_i = phi1*F_i-1 + phi2*F_i-delay. Note the delay is counted in the number of Euler time steps (dteuler). So if dteuler is refined delay also needs to change. Default: 1.}
 #'  \item{"inp$phases"}{ Phases can be used to fix/free parameters and estimate in different stages or phases. To fix e.g. logr at inp$ini$logr set inp$phases$logr <- -1. To free logalpha and estimate in phase 1 set inp$phases$logalpha <- 1.}
 #' }
 #' @param inp List of input variables, see details for required variables.
@@ -514,8 +521,6 @@ check.inp <- function(inp){
 #'
 #' Fixed effects:
 #' \itemize{
-#'   \item{"logbkfrac"}{ Log of B0/K.}
-#'   \item{"logF0"}{ Log of initial value (F0) of the fishing mortality process.}
 #'   \item{"logr"}{ Log of intrinsic growth rate.}
 #'   \item{"logK"}{ Log of carrying capacity.}
 #'   \item{"logq"}{ Log of catchability vector.}
@@ -525,16 +530,16 @@ check.inp <- function(inp){
 #'
 #' Optional fixed effects (which are normally not estimated):
 #' \itemize{
-#'   \item{"phi1"}{ Used in the delayed F-process: F_i = phi1*F_i-1 + phi2*F_i-delay. (normally set to phi1=1)}
-#'   \item{"phi2"}{ Used in the delayed F-process: F_i = phi1*F_i-1 + phi2*F_i-delay. (normally set to phi2=1)}
+#'   \item{"phi"}{ Used when inp$nseasons > 1 to specify the cyclic B spline representing seasonal variation.}
 #'   \item{"logalpha"}{ Proportionality factor for the observation noise of the indices and the biomass process noise: sdi = exp(logalpha)*sdb. (normally set to logalpha=0)}
 #'   \item{"logbeta"}{ Proportionality factor for the observation noise of the catches and the fishing mortality process noise: sdc = exp(logbeta)*sdf. (this is often difficult to estimate and can result in divergence of the optimisation. Normally set to logbeta=0)}
+#'   \item{"logn"}{ Parameter determining the shape of the production curve as in the generalised form of Pella & Tomlinson (1969). Default: log(2).}
 #' }
 #'
 #' Random effects:
 #' \itemize{
-#'   \item{"logB"}{ Log of the biomass process given by the continuous-time stochastic Schaefer equation: dB_t = r*B_t*(1-B_t/K)*dt + sdb*dW_t, where dW_t is Brownian motion.}
-#'   \item{"logF"}{ Log of the fishing mortality process given by: dF_t = sdf*dV, where dV is Brownian motion.}
+#'   \item{"logB"}{ Log of the biomass process given by the continuous-time stochastic Schaefer equation: dB_t = r*B_t*(1-(B_t/K)^n)*dt + sdb*dW_t, where dW_t is Brownian motion.}
+#'   \item{"logF"}{ Log of the fishing mortality process given by: F_t = D_s*G_t, where D_s is a cyclic B spline and dG_t = sigma_F * dV, with dV being Brownian motion.}
 #' }
 #'
 #' Derived parameters:
@@ -557,8 +562,6 @@ check.inp <- function(inp){
 #' @import TMB
 fit.spict <- function(inp, dbg=0){
     # Check input list
-    #if(!'checked' %in% names(inp)) inp <- check.inp(inp)
-    #if(!inp$checked)
     inp <- check.inp(inp)
     datin <- list(reportall=as.numeric(inp$reportall), dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, indlastobs=inp$indlastobs, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, seasons=inp$seasons, seasonindex=inp$seasonindex, splinemat=inp$splinemat, ffac=inp$ffaceuler, indpred=inp$indpred, robflagc=inp$robflagc, robflagi=inp$robflagi, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
     pl <- inp$parlist
@@ -578,7 +581,6 @@ fit.spict <- function(inp, dbg=0){
     }
     rep <- list()
     if(dbg==0){
-        #opt <- try(nlminb(obj$par, obj$fn, obj$gr))
         if(class(opt)!='try-error'){
             # Calculate SD report
             if(inp$do.sd.report){
@@ -610,23 +612,18 @@ fit.spict <- function(inp, dbg=0){
                         #ssqobs <- sum((grobs - mean(grobs))^2)
                         #ssqres <- sum((grobs - gr)^2)
                         #rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
-                        # Prager's nearness
                         Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
-                        Bdiff <- Bmsy - Bests
-                        if(any(diff(sign(Bdiff))!=0)){
-                            rep$stats$nearness <- 1
-                        } else {
-                            rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
-                            #ind <- which.min(abs(Bdiff))
-                            #Bstar <- Bests[ind]
-                            #if(Bstar > Bmsy){
-                            #    rep$stats$nearness <- (K-Bstar)/(K-Bmsy)
-                            #} else {
-                            #    rep$stats$nearness <- Bstar/Bmsy
-                            #}
+                        if(!any(is.na(Bests)) & !is.na(Bmsy)){
+                            Bdiff <- Bmsy - Bests
+                            # Prager's nearness
+                            if(any(diff(sign(Bdiff))!=0)){
+                                rep$stats$nearness <- 1
+                            } else {
+                                rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
+                            }
+                            # Prager's coverage
+                            rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
                         }
-                        # Prager's coverage
-                        rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
                     }
                 }
             }
