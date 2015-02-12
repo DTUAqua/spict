@@ -68,6 +68,7 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(robflagi);        // Index Degrees of freedom of t-distribution (only used if tdf < 25)
   DATA_INTEGER(lamperti);  // Lamperti flag.
   DATA_INTEGER(euler);     // Euler flag.
+  DATA_INTEGER(stochmsy);  // Euler flag.
   DATA_SCALAR(dbg);        // Debug flag, if == 1 then print stuff.
   PARAMETER_VECTOR(logphi);   // Season levels of F.
   PARAMETER(logitpp);      // 
@@ -148,14 +149,48 @@ Type objective_function<Type>::operator() ()
   Type logBmsyd = log(Bmsyd);
   Type logFmsyd = log(Fmsyd);
 
-
   // Stochastic reference points (NOTE: only proved for n>1, Bordet and Rivest (2014))
   Type rbmean = (n-1)/n*gamma*mmean/K;
-  Type Bmsy = Bmsyd * (1.0 - (1.0 + rbmean*(p-1.0)/2.0)*sdb2 / (rbmean*pow(2.0-rbmean, 2.0)));
-  Type Fmsy = Fmsyd - (p*(1.0-rbmean)*sdb2) / pow(2.0-rbmean, 2.0) ;
-  Type MSY = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean, 2.0)));
-  Type logBmsy = log(Bmsy);
-  Type logFmsy = log(Fmsy);
+  Type Bmsys = Bmsyd * (1.0 - (1.0 + rbmean*(p-1.0)/2.0)*sdb2 / (rbmean*pow(2.0-rbmean, 2.0)));
+  if(dbg==-1){
+    std::cout << "--- DEBUG Bmsy ---" << std::endl;
+    std::cout << "n: " << n << std::endl;
+    std::cout << "gamma: " << gamma << std::endl;
+    std::cout << "mmean: " << mmean << std::endl;
+    std::cout << "K: " << K << std::endl;
+    std::cout << "Bmsyd: " << Bmsyd << std::endl;
+    std::cout << "rbmean: " << rbmean << std::endl;
+    std::cout << "sdb2: " << sdb2 << std::endl;
+    std::cout << "p: " << p << std::endl;
+    std::cout << "Bmsys: " << Bmsys << std::endl;
+  }
+  Type Fmsys = Fmsyd - (p*(1.0-rbmean)*sdb2) / pow(2.0-rbmean, 2.0) ;
+  Type MSYs = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean, 2.0)));
+  Type logBmsys = log(Bmsys);
+  Type logFmsys = log(Fmsys);
+
+  Type Bmsy;
+  Type MSY;
+  Type Fmsy;
+  Type logBmsy;
+  Type logFmsy;
+
+  if(stochmsy==1){
+    // Use stochastic reference points
+    Bmsy = Bmsys;
+    MSY = MSYs;
+    Fmsy = Fmsys;
+    logBmsy = logBmsys;
+    logFmsy = logFmsys;
+  } else {
+    // Use deterministic reference points
+    Bmsy = Bmsyd;
+    MSY = MSYd;
+    Fmsy = Fmsyd;
+    logBmsy = logBmsyd;
+    logFmsy = logFmsyd;
+  }
+
   vector<Type> Emsy(nq);
   vector<Type> Emsy2(nq);
   for(int i=0; i<nq; i++){ 
@@ -431,26 +466,31 @@ Type objective_function<Type>::operator() ()
   }
 
   // ADREPORTS
-  ADREPORT(logBmsy);
   ADREPORT(Bmsy);  
   ADREPORT(Bmsyd);
+  ADREPORT(Bmsys);
+  ADREPORT(logBmsy);
   ADREPORT(logBmsyd);
+  ADREPORT(logBmsys);
   ADREPORT(logBp);
   ADREPORT(logBpBmsy);
   ADREPORT(logBpK);
   ADREPORT(logBl);
   ADREPORT(logBlBmsy);
   ADREPORT(logBlK);
-  ADREPORT(logFmsy);
   ADREPORT(Fmsy);
   ADREPORT(Fmsyd);
+  ADREPORT(Fmsys);
+  ADREPORT(logFmsy);
   ADREPORT(logFmsyd);
+  ADREPORT(logFmsys);
   ADREPORT(logFp);
   ADREPORT(logFpFmsy);
   ADREPORT(logFl);
   ADREPORT(logFlFmsy);
   ADREPORT(MSY);
   ADREPORT(MSYd);
+  ADREPORT(MSYs);
   ADREPORT(Emsy);
   ADREPORT(Emsy2);
   // PREDICTIONS

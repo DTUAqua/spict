@@ -173,6 +173,11 @@ check.inp <- function(inp){
     names(inp$maxminratio) <- paste0('I', 1:inp$nindex)
     for(i in 1:inp$nindex) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
     # -- MODEL OPTIONS --
+    if(!"msytype" %in% names(inp)){
+        inp$msytype <- 's'
+    } else {
+        if(!inp$msytype %in% c('s', 'd')) stop('inp$msytype must be either "s" (stochastic) or "d" (deterministic!')
+    }
     if(!"reportall" %in% names(inp)) inp$reportall <- TRUE
     if(!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
     if(!"robflagc" %in% names(inp)) inp$robflagc <- 0
@@ -563,7 +568,7 @@ check.inp <- function(inp){
 fit.spict <- function(inp, dbg=0){
     # Check input list
     inp <- check.inp(inp)
-    datin <- list(reportall=as.numeric(inp$reportall), dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, indlastobs=inp$indlastobs, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, seasons=inp$seasons, seasonindex=inp$seasonindex, splinemat=inp$splinemat, ffac=inp$ffaceuler, indpred=inp$indpred, robflagc=inp$robflagc, robflagi=inp$robflagi, lamperti=inp$lamperti, euler=inp$euler, dbg=dbg)
+    datin <- list(reportall=as.numeric(inp$reportall), dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, indlastobs=inp$indlastobs, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, seasons=inp$seasons, seasonindex=inp$seasonindex, splinemat=inp$splinemat, ffac=inp$ffaceuler, indpred=inp$indpred, robflagc=inp$robflagc, robflagi=inp$robflagi, lamperti=inp$lamperti, euler=inp$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), dbg=dbg)
     pl <- inp$parlist
     for(i in 1:inp$nphases){
         if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
@@ -574,13 +579,13 @@ fit.spict <- function(inp, dbg=0){
         obj$env$inner.control$trace <- verbose
         obj$env$silent <- ! verbose
         obj$fn(obj$par)
-        if(dbg==0){
+        if(dbg<1){
             opt <- try(nlminb(obj$par, obj$fn, obj$gr))
             pl <- obj$env$parList(opt$par)
         }
     }
     rep <- list()
-    if(dbg==0){
+    if(dbg<1){
         if(class(opt)!='try-error'){
             # Calculate SD report
             if(inp$do.sd.report){
@@ -712,6 +717,7 @@ calc.osa.resid <- function(rep, dbg=0){
         inp2$obsC <- inp$obsC[cind]
         inp2$dtc <- inp$dtc[cind]
         cindm <- which(inp$timeC == timepred[j])
+                 which(inp$timeC == timepred[j])
         if(length(cindm)==1) obsmat[j, 1] <- inp$obsC[cindm]
         # Indices
         for(i in 1:inp$nindex){
@@ -724,9 +730,10 @@ calc.osa.resid <- function(rep, dbg=0){
         }
         inp2$dtpredc <- timepred[j] - max(endtimes)
         inp2$dtpredi <- timepred[j] - max(endtimes)
-        if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[which(inp$timeC == timepred[j])]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
+        #if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[which(inp$timeC == timepred[j])]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
+        #if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[cindm]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
         inp2 <- check.inp(inp2)
-        datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, dbg=dbg)
+        datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         #objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=inp$map[[length(inp$map)]], random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
@@ -736,12 +743,17 @@ calc.osa.resid <- function(rep, dbg=0){
         objpred$env$silent <- ! verbose
         objpred$fn()
         sdr <- sdreport(objpred)
-        # Collect catch prediction
+        # Collect catch prediction (first colum of haveobs is catches)
         if(haveobs[j, 1] == 1){
-            logpredmat[j, 1] <- get.par('logCp', sdr)[2]
-            sdlogpredmat[j, 1] <- get.par('logCp', sdr)[4]
+            if(inp2$dtpredc >= inp$dtc[cindm]){
+                logpredmat[j, 1] <- get.par('logCp', sdr)[2]
+                sdlogpredmat[j, 1] <- get.par('logCp', sdr)[4]
+            } else {
+                logpredmat[j, 1] <- NA
+                sdlogpredmat[j, 1] <- NA
+            }
         }
-        # Collect index prediction(s)
+        # Collect index prediction(s) (column number > 1 are indices)
         for(i in 1:inp$nindex){
             if(haveobs[j, i+1] == 1){
                 logpredmat[j, i+1] <- get.par('logIp', sdr)[i, 2]
@@ -751,6 +763,7 @@ calc.osa.resid <- function(rep, dbg=0){
     }
     npar <- length(rep$opt$par)
     # Catches
+    if(any(is.na(logpredmat[, 1]))) cat('\nWARNING: Cannot calculate OSAR for catches because index has a finer time step than catch.\n')
     inds <- which(haveobs[, 1]==1)
     timeC <- timepred[inds]
     logCpred <- logpredmat[inds, 1]
@@ -762,9 +775,9 @@ calc.osa.resid <- function(rep, dbg=0){
     logCpsqboxtest <- Box.test(logCpres^2, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
     logCpshapiro <- shapiro.test(logCpres) # Test for normality of residuals
     logCpbias <- t.test(logCpres) # Test for bias of residuals
-    rep$stats$ljungboxC.p <- logCpboxtest$p.value
-    rep$stats$ljungboxCp5.p <- logCpp5boxtest$p.value
-    rep$stats$ljungboxCsq.p <- logCpsqboxtest$p.value
+    #rep$stats$ljungboxC.p <- logCpboxtest$p.value
+    #rep$stats$ljungboxCp5.p <- logCpp5boxtest$p.value
+    #rep$stats$ljungboxCsq.p <- logCpsqboxtest$p.value
     rep$stats$shapiroC.p <- logCpshapiro$p.value
     rep$stats$biasC.p <- logCpbias$p.value
     # Indices
@@ -783,24 +796,24 @@ calc.osa.resid <- function(rep, dbg=0){
         logIpred[[i]] <- logpredmat[inds, i+1]
         sdlogIpred[[i]] <- sdlogpredmat[inds, i+1]
         logIpres[[i]] <- (log(obsmat[inds, i+1]) - logIpred[[i]])/sdlogIpred[[i]]
-        logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=lblag, type='Ljung-Box', fitdf=npar)
-        logIpp5boxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag+4, type='Ljung-Box', fitdf=npar)
-        logIpsqboxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag, type='Ljung-Box', fitdf=npar)
+        #logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=lblag, type='Ljung-Box', fitdf=npar)
+        #logIpp5boxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag+4, type='Ljung-Box', fitdf=npar)
+        #logIpsqboxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag, type='Ljung-Box', fitdf=npar)
         logIpshapiro[[i]] <- shapiro.test(logIpres[[i]])
         logIpbias[[i]] <- t.test(logIpres[[i]])
         nam <- paste0('ljungboxI', i, '.p')
-        rep$stats[[nam]] <- logIpboxtest[[i]]$p.value
+        #rep$stats[[nam]] <- logIpboxtest[[i]]$p.value
         nam <- paste0('ljungboxIp5', i, '.p')
-        rep$stats[[nam]] <- logIpp5boxtest[[i]]$p.value
+        #rep$stats[[nam]] <- logIpp5boxtest[[i]]$p.value
         nam <- paste0('ljungboxIsq', i, '.p')
-        rep$stats[[nam]] <- logIpsqboxtest[[i]]$p.value
+        #rep$stats[[nam]] <- logIpsqboxtest[[i]]$p.value
         nam <- paste0('shapiroI', i, '.p')
         rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
         nam <- paste0('biasI', i, '.p')
         rep$stats[[nam]] <- logIpbias[[i]]$p.value
     }
-    rep$osar <- list(logCpres=logCpres, logCpred=logCpred, sdlogCpred=sdlogCpred, timeC=timeC, logCpboxtest=logCpboxtest, logCpbias=logCpbias, logCpshapiro=logCpshapiro, timeI=timeI, logIpres=logIpres, logIpred=logIpred, sdlogIpred=sdlogIpred, logIpboxtest=logIpboxtest, logIpshapiro=logIpshapiro, logIpbias=logIpbias)
-    #rep$osar <- list(logCpres=logCpres, logCpres2=logCpres2, logCpred=logCpred, logCpred2=logCpred2, sdlogCpred2=sdlogCpred2, timeC=timeC, logCpboxtest=logCpboxtest, logCpboxtest2=logCpboxtest2, timeI=timeI, logIpres=logIpres, logIpres2=logIpres2, logIpred=logIpred, logIpred2=logIpred2, sdlogIpred2=sdlogIpred2, logIpboxtest=logIpboxtest, logIpboxtest2=logIpboxtest2)
+    #rep$osar <- list(logCpres=logCpres, logCpred=logCpred, sdlogCpred=sdlogCpred, timeC=timeC, logCpboxtest=logCpboxtest, logCpbias=logCpbias, logCpshapiro=logCpshapiro, timeI=timeI, logIpres=logIpres, logIpred=logIpred, sdlogIpred=sdlogIpred, logIpboxtest=logIpboxtest, logIpshapiro=logIpshapiro, logIpbias=logIpbias)
+    rep$osar <- list(logCpres=logCpres, logCpred=logCpred, sdlogCpred=sdlogCpred, timeC=timeC, logCpbias=logCpbias, logCpshapiro=logCpshapiro, timeI=timeI, logIpres=logIpres, logIpred=logIpred, sdlogIpred=sdlogIpred, logIpshapiro=logIpshapiro, logIpbias=logIpbias)
     return(rep)
 }
 
@@ -1115,14 +1128,28 @@ plotspict.osar <- function(rep){
     inp <- rep$inp
     Cscal <- 1
     Cpred <- rep$osar$logCpred
-    plot(rep$osar$logCpres, main=paste('Catch LB p-val:',round(rep$osar$logCpboxtest$p.value,4)), xlab='Time', ylab='OSA catch res.')
+    #main <- paste('Catch LB p-val:',round(rep$osar$logCpboxtest$p.value,4))
+    fun <- function(time, res, add=FALSE, col=1, pch=1, ...){
+        nrem <- length(time) - length(res)
+        if(nrem>0) time <- time[-nrem]
+        if(add){
+            points(time, res, col=col, pch=pch)
+        } else {
+            plot(time, res, xlab='Time', ylab='OSA residuals', col=col, pch=pch, ...)
+        }
+        dum <- rep(NA, length(res))
+        dum[is.na(res)] <- 0
+        text(time, dum, labels='NA', cex=0.8, col=col)
+    }
+    # Catches
+    fun(rep$inp$timeC, rep$osar$logCpres, main='Catch')
     abline(h=0, lty=3)
     box(lwd=1.5)
-    #plot(inp$timeC, log(inp$obsC), typ='p', ylim=range(c(Cpred,log(inp$obsC),1.13*c(Cpred,log(inp$obsC)))), main=paste('Ljung-Box test p-value:',round(rep$osar$logCpboxtest$p.value,5)), ylab=paste('log Catch, Cscal:',Cscal), xlim=range(c(inp$timeC,inp$timeC[inp$nobsC]+1)), xlab='Time', col=1)
-    #clr <- 'blue'
-    #lines(rep$osar$timeC, Cpred, col=clr)
-    #points(rep$osar$timeC, Cpred, pch=20, cex=0.7, col=clr)
-    #legend('topright', c('Observations', 'OSA pred.'), lty=c(NA,1), col=c(1,clr), pch=c(1,20), pt.cex=c(1,0.7))
+    # Indices
+    fun(rep$inp$timeI[[1]], rep$osar$logIpres[[1]], main='Index', col=1, xlim=range(unlist(rep$inp$timeI)), ylim=range(unlist(rep$osar$logIpres)))
+    for(i in 2:rep$inp$nindex) fun(rep$inp$timeI[[i]], rep$osar$logIpres[[i]], add=TRUE, col=1, pch=i)
+    abline(h=0, lty=3)
+    box(lwd=1.5)
 }
 
 
@@ -1728,7 +1755,9 @@ plot.spictcls <- function(rep, logax=FALSE){
         if('osar' %in% names(rep)){
             # One-step-ahead catch residuals
             plotspict.osar(rep)
-            acf(rep$osar$logCpres, main='ACF of catch OSAR')
+            acf(rep$osar$logCpres[!is.na(rep$osar$logCpres)], main='ACF of catch OSAR')
+            box(lwd=1.5)
+            acf(rep$osar$logIpres[[1]][!is.na(rep$osar$logIpres[[1]])], main='ACF of index 1 OSAR')
             box(lwd=1.5)
         }
         if('infl' %in% names(rep)){
@@ -1736,9 +1765,9 @@ plot.spictcls <- function(rep, logax=FALSE){
             plotspict.inflsum(rep)
         }
         # Plot expected biomass trend
-        plotspict.btrend(rep)
+        #plotspict.btrend(rep)
     } else {
-        cat('Could not plot because inp$reportall is FALSE!')
+        cat('Could not plot because inp$reportall is FALSE!\n')
     }
 }
 
@@ -1820,7 +1849,7 @@ summary.spictcls <- function(object, numdigits=8){
     cat('', paste(capture.output(resout),' \n'))
     if(!'sderr' %in% names(rep)){
         # Derived estimates
-        cat('\nDerived estimates w 95% CI\n')
+        cat(paste0('\nDerived estimates w 95% CI (inp$msytype: ', rep$inp$msytype, ')\n'))
         cat(' Deterministic\n')
         derout <- rbind(get.par(parname='logBmsyd', rep, exp=TRUE)[c(2,1,3,2)],
                         get.par(parname='logFmsyd', rep, exp=TRUE)[c(2,1,3,2)],
@@ -1838,9 +1867,9 @@ summary.spictcls <- function(object, numdigits=8){
         cat('', paste(capture.output(derout),' \n'))
         # Stochastic derived estimates
         cat(' Stochastic\n')
-        derout <- rbind(get.par(parname='logBmsy', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='logFmsy', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='MSY', rep)[c(2,1,3,2)])
+        derout <- rbind(get.par(parname='logBmsys', rep, exp=TRUE)[c(2,1,3,2)],
+                        get.par(parname='logFmsys', rep, exp=TRUE)[c(2,1,3,2)],
+                        get.par(parname='MSYs', rep)[c(2,1,3,2)])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- c('estimate', 'cilow', 'ciupp', 'est.in.log')
@@ -2330,15 +2359,17 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
         sim <- sim.spict(inp, nobs)
         if(!is.null(estinp)) sim$ini <- estinp$ini
         rep <- try(fit.spict(sim))
+        s <- NA
         if(!class(rep)=='try-error'){
-            rep <- calc.osa.resid(rep)
+            #rep <- calc.osa.resid(rep)
             s <- extract.simstats(rep)
         }
+        return(s)
     }
     for(j in 1:nnobsvec){
         nobs <- nobsvec[j]
         cat(paste(Sys.time(), '- validating nobs:', nobs, '\n'))
-        ss[[j]] <- mclapply(1:nsim, fun, inp, nobs, estinp, backup)
+        ss[[j]] <- mclapply(1:nsim, fun, inp, nobs, estinp, backup, mc.cores=8)
         if(!is.null(backup)) save(ss, file=backup)
     }
     return(ss)
@@ -2402,6 +2433,9 @@ extract.simstats <- function(rep){
         ss$FF <- calc.simstats('logFlFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy)
         # Biomass process noise
         ss$sdb <- calc.simstats('logsdb', rep, exp=TRUE, exp(rep$inp$true$logsdb))
+        # Convergence for all values
+        uss <- unlist(ss)
+        ss$convall <- (any(is.na(uss) | !is.finite(uss)) | ss$conv>0)
         return(ss)
     } else {
         stop('These results do not come from the estimation of a simulated data set!')
