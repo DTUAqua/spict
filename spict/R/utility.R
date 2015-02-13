@@ -983,7 +983,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1){
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
         Binf <- get.par('logBinf', rep, exp=TRUE)
-        qest <- get.par('logq', rep, fixed=TRUE, exp=TRUE)
+        qest <- get.par('logq', rep, exp=TRUE)
         BB <- get.par('logBBmsy', rep, exp=TRUE)
         inds <- which(is.na(Binf) | Binf<0)
         Binf[inds] <- 1e-12
@@ -1147,7 +1147,7 @@ plotspict.osar <- function(rep){
     box(lwd=1.5)
     # Indices
     fun(rep$inp$timeI[[1]], rep$osar$logIpres[[1]], main='Index', col=1, xlim=range(unlist(rep$inp$timeI)), ylim=range(unlist(rep$osar$logIpres)))
-    for(i in 2:rep$inp$nindex) fun(rep$inp$timeI[[i]], rep$osar$logIpres[[i]], add=TRUE, col=1, pch=i)
+    if(rep$inp$nindex>1) for(i in 2:rep$inp$nindex) fun(rep$inp$timeI[[i]], rep$osar$logIpres[[i]], add=TRUE, col=1, pch=i)
     abline(h=0, lty=3)
     box(lwd=1.5)
 }
@@ -1363,7 +1363,7 @@ plotspict.catch <- function(rep){
         inp <- rep$inp
         Cscal <- 1
         cicol <- 'lightgray'
-        MSY <- get.par('MSY', rep, exp=FALSE)
+        MSY <- get.par('logMSY', rep, exp=TRUE)
         #Cpredsub <- get.par('Cpredsub', rep)
         Cpredest <- get.par('logCpred', rep, exp=TRUE)
         Cpredest[Cpredest<0] <- 0
@@ -1376,14 +1376,22 @@ plotspict.catch <- function(rep){
             alo <- annual(inp$timeC, inp$obsC/inp$dtc)
             timeo <- alo$anntime
             obs <- alo$annvec
+            al1 <- annual(inp$timeCp[indest], Cpredest[indest, 1]/dtc[indest])
             al2 <- annual(inp$timeCp[indest], Cpredest[indest, 2]/dtc[indest])
+            al3 <- annual(inp$timeCp[indest], Cpredest[indest, 3]/dtc[indest])
             inds <- which(!is.na(al2$annvec))
             time <- al2$anntime[inds]
             c <- al2$annvec[inds]
+            cl <- al1$annvec[inds]
+            cu <- al3$annvec[inds]
+            al1p <- annual(inp$timeCp[indpred], Cpredest[indpred, 1]/dtc[indpred])
             al2p <- annual(inp$timeCp[indpred], Cpredest[indpred, 2]/dtc[indpred])
+            al3p <- annual(inp$timeCp[indpred], Cpredest[indpred, 3]/dtc[indpred])
             inds <- which(!is.na(al2p$annvec))
             timep <- al2p$anntime[inds]
             cp <- al2p$annvec[inds]
+            clp <- al1p$annvec[inds]
+            cup <- al3p$annvec[inds]
             al1f <- annual(inp$timeCp, Cpredest[, 1]/dtc)
             al2f <- annual(inp$timeCp, Cpredest[, 2]/dtc)
             al3f <- annual(inp$timeCp, Cpredest[, 3]/dtc)
@@ -1392,6 +1400,15 @@ plotspict.catch <- function(rep){
             clf <- al1f$annvec[inds]
             cf <- al2f$annvec[inds]
             cuf <- al3f$annvec[inds]
+            if(any(inp$dtc==1)){
+                inds <- which(inp$dtc==1)
+                timeo <- c(timeo, inp$timeC[inds])
+                obs <- c(obs, inp$obsC[inds])
+                time <- c(time, inp$timeCp[inds])
+                c <- c(c, Cpredest[inds, 2])
+                cl <- c(cl, Cpredest[inds, 1])
+                cu <- c(cu, Cpredest[inds, 3])
+            }
         } else {
             timeo <- inp$timeC
             obs <- inp$obsC/inp$dtc
@@ -1751,7 +1768,7 @@ plot.spictcls <- function(rep, logax=FALSE){
         # Seasonal F
         if(inp$nseasons > 1) plotspict.season(rep)
         # Time constant
-        plotspict.tc(rep)
+        if(inp$nseasons == 1) plotspict.tc(rep)
         if('osar' %in% names(rep)){
             # One-step-ahead catch residuals
             plotspict.osar(rep)
@@ -1853,7 +1870,7 @@ summary.spictcls <- function(object, numdigits=8){
         cat(' Deterministic\n')
         derout <- rbind(get.par(parname='logBmsyd', rep, exp=TRUE)[c(2,1,3,2)],
                         get.par(parname='logFmsyd', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='MSYd', rep)[c(2,1,3,2)])
+                        get.par(parname='logMSYd', rep, exp=TRUE)[c(2,1,3,2)])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- c('estimate', 'cilow', 'ciupp', 'est.in.log')
@@ -1869,11 +1886,11 @@ summary.spictcls <- function(object, numdigits=8){
         cat(' Stochastic\n')
         derout <- rbind(get.par(parname='logBmsys', rep, exp=TRUE)[c(2,1,3,2)],
                         get.par(parname='logFmsys', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='MSYs', rep)[c(2,1,3,2)])
+                        get.par(parname='logMSYs', rep, exp=TRUE)[c(2,1,3,2)])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- c('estimate', 'cilow', 'ciupp', 'est.in.log')
-        rownames(derout) <- c('Bmsy', 'Fmsy', 'MSY')
+        rownames(derout) <- c('Bmsys', 'Fmsys', 'MSYs')
         if('true' %in% names(rep$inp)){
             trueder <- c(rep$inp$true$Bmsy, rep$inp$true$Fmsy, rep$inp$true$MSY)
             cider <- rep(0, 3)

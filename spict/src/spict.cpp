@@ -85,7 +85,6 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logsdb);       // Standard deviation for Index
   PARAMETER_VECTOR(logF);  // Random effects vector
   PARAMETER_VECTOR(logB);  // Random effects vector
-  //PARAMETER_VECTOR(Cpredcum);  // 
   PARAMETER(dum);       // Dummy parameter, needed because the RE cannot be evaluated without FE
   ans+=dum*dum; // Add dummy contribution (0 for dum=0)
 
@@ -136,17 +135,18 @@ Type objective_function<Type>::operator() ()
   vector<Type> Cpred(nobsCp);
   for(int i=0; i<nobsCp; i++){ Cpred(i) = 0.0; }
   vector<Type> Cpredsub(ns);
-  vector<Type> Cpredcum(ns-1);
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
-  Type mmean = 0.0;
-  for(int i=0; i<nm; i++){ mmean += m(i)/nm; }
+  Type mmean = m(0);
+  if(nm > 1) for(int i=1; i<nm; i++){ mmean += m(i)/nm; }
 
   // Deterministic reference points
   Type Bmsyd = K * pow(1.0/n, 1.0/(n-1.0));
-  Type MSYd = mmean;
+  //Type MSYd = mmean;
+  Type MSYd = m(0);
   Type Fmsyd = MSYd/Bmsyd;
   Type logBmsyd = log(Bmsyd);
+  Type logMSYd = log(MSYd);
   Type logFmsyd = log(Fmsyd);
 
   // Stochastic reference points (NOTE: only proved for n>1, Bordet and Rivest (2014))
@@ -168,12 +168,14 @@ Type objective_function<Type>::operator() ()
   Type MSYs = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean, 2.0)));
   Type logBmsys = log(Bmsys);
   Type logFmsys = log(Fmsys);
+  Type logMSYs = log(MSYs);
 
   Type Bmsy;
   Type MSY;
   Type Fmsy;
   Type logBmsy;
   Type logFmsy;
+  Type logMSY;
 
   if(stochmsy==1){
     // Use stochastic reference points
@@ -182,6 +184,7 @@ Type objective_function<Type>::operator() ()
     Fmsy = Fmsys;
     logBmsy = logBmsys;
     logFmsy = logFmsys;
+    logMSY = logMSYs;
   } else {
     // Use deterministic reference points
     Bmsy = Bmsyd;
@@ -189,6 +192,7 @@ Type objective_function<Type>::operator() ()
     Fmsy = Fmsyd;
     logBmsy = logBmsyd;
     logFmsy = logFmsyd;
+    logMSY = logMSYd;
   }
 
   vector<Type> Emsy(nq);
@@ -332,19 +336,11 @@ Type objective_function<Type>::operator() ()
     for(int j=0; j<nc(i); j++){
       ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
       Cpred(i) += Cpredsub(ind);
-      Cpredcum(ind) = Cpredcum(ind) + Cpredsub(ind);
       logCpred(i) = log(Cpred(i));
-    }
-    // Calculate cummulated catch
-    ind = CppAD::Integer(ic(i)-1);
-    Cpredcum(ind) = Cpredsub(ind);
-    for(int j=1; j<nc(i); j++){
-      ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
-      Cpredcum(ind) = Cpredcum(ind-1) + Cpredsub(ind);
     }
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -  ind: " << ind << "  logCpred(i): " << logCpred(i) << "  Cpredcum(i): " << Cpredcum(ind) << std::endl;
+      std::cout << "-- i: " << i << " -  ind: " << ind << "  logCpred(i): " << logCpred(i) << std::endl;
     }
   }
 
@@ -372,13 +368,12 @@ Type objective_function<Type>::operator() ()
       //likval = -log(sdc) + ltdistr(z, Type(100.0));
       likval = log(pp*dnorm(logCpred(i), log(obsC(i)), sdc, 0) + (1.0-pp)*dnorm(logCpred(i), log(obsC(i)), robfac*sdc, 0));
     } else {
-      likval = dnorm(log(Cpredcum(ind)), log(obsC(i)), sdc, 1);
-      //likval = dnorm(logCpred(i), log(obsC(i)), sdc, 1);
+      likval = dnorm(logCpred(i), log(obsC(i)), sdc, 1);
     }
     ans-=likval;
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -   logobsC(i): " << log(obsC(i))<< "  log(Cpredcum(ind)): " << log(Cpredcum(ind)) << "  sdc: " << sdc << "  likval: " << likval << "  ans:" << ans << std::endl;
+      std::cout << "-- i: " << i << " -   logobsC(i): " << log(obsC(i))<< "  sdc: " << sdc << "  likval: " << likval << "  ans:" << ans << std::endl;
     }
   }
 
@@ -491,6 +486,9 @@ Type objective_function<Type>::operator() ()
   ADREPORT(MSY);
   ADREPORT(MSYd);
   ADREPORT(MSYs);
+  ADREPORT(logMSY);
+  ADREPORT(logMSYd);
+  ADREPORT(logMSYs);
   ADREPORT(Emsy);
   ADREPORT(Emsy2);
   // PREDICTIONS
