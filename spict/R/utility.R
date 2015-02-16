@@ -1471,28 +1471,31 @@ plotspict.catch <- function(rep){
 plotspict.production <- function(rep){
     if(!'sderr' %in% names(rep)){
         inp <- rep$inp
-        Best <- get.par('logB', rep, exp=TRUE)
         Kest <- get.par('logK', rep, exp=TRUE)
         mest <- get.par('logm', rep, exp=TRUE)
         gamma <- get.par('gamma', rep)
         n <- get.par('logn', rep, exp=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
-        Pest <- get.par('P', rep)
         nBplot <- 200
-        Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
+        Bplot <- seq(0.5*1e-8, Kest[2], length=nBplot)        
+        if(inp$reportall & inp$nseasons==1){
+            Best <- get.par('logB', rep, exp=TRUE)
+            Pest <- get.par('P', rep)
+            Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
+            Bvec <- Best[inp$ic, 2]
+            ylim <- range(Pest[,2]/Bmsy[2], Pst/Bmsy[2])
+        }
         pfun <- function(gamma, m, K, n, B) gamma*m/K*B*(1 - (B/K)^(n-1))
         Pst <- pfun(gamma[2], mest[2], Kest[2], n[2], Bplot)
+        ylim <- range(Pst/Bmsy[2])
         xlim <- range(Bplot/Kest[2])
-        #Bvec <- Best[-1, 2]
-        Bvec <- Best[inp$ic, 2]
         dt <- inp$dt[-1]
         inde <- inp$indest[-length(inp$indest)]
         indp <- inp$indpred[-1]-1
-        #plot(Bvec[inde]/Kest[2], Pest[inde, 2]/dt[inde]/Bmsy[2], typ='l', ylim=range(Pest[,2]/inp$dt/Bmsy[2], Pst/Bmsy[2]), xlim=xlim, xlab='B/K', ylab='Production/Bmsy', col=4, main='Production curve')
-        plot(Bvec/Kest[2], Pest[, 2]/Bmsy[2], typ='l', ylim=range(Pest[,2]/Bmsy[2], Pst/Bmsy[2]), xlim=xlim, xlab='B/K', ylab='Production/Bmsy', col=4, main='Production curve')
-        #lines(Bvec[indp]/Kest[2], Pest[indp, 2]/dt[indp]/Bmsy[2], col=4, lty=3)
-        lines(Bplot/Kest[2], Pst/Bmsy[2], col=1)
-        #arrow.line(Best[-1, 2]/Bmsy[2], Pest[,2]/inp$dt/Bmsy[2], length=0.05)
+        plot(Bplot/Kest[2], Pst/Bmsy[2], typ='l', ylim=ylim, xlim=xlim, xlab='B/K', ylab='Production/Bmsy', col=1, main='Production curve')
+        if(inp$reportall & inp$nseasons==1){
+            lines(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, lwd=1.5)
+        }
         mx <- (1/n[2])^(1/(n[2]-1))
         abline(v=mx, lty=3)
         abline(h=0, lty=3)
@@ -1763,12 +1766,15 @@ plot.spictcls <- function(rep, logax=FALSE){
         plotspict.fb(rep, logax=logax)
         # Catch
         plotspict.catch(rep)
-        # Production curve
-        if(inp$nseasons == 1) plotspict.production(rep)
-        # Intrinsic production rate
-        #plotspict.prodrate(rep)
-        # Seasonal F
-        if(inp$nseasons > 1) plotspict.season(rep)
+    }
+    # Production curve
+    #if(inp$nseasons == 1) plotspict.production(rep)
+    plotspict.production(rep)
+    # Intrinsic production rate
+    #plotspict.prodrate(rep)
+    # Seasonal F
+    if(inp$nseasons > 1) plotspict.season(rep)
+    if(inp$reportall){
         # Time constant
         if(inp$nseasons == 1) plotspict.tc(rep)
         if('osar' %in% names(rep)){
@@ -1785,8 +1791,6 @@ plot.spictcls <- function(rep, logax=FALSE){
         }
         # Plot expected biomass trend
         #plotspict.btrend(rep)
-    } else {
-        cat('Could not plot because inp$reportall is FALSE!\n')
     }
 }
 
