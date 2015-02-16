@@ -590,14 +590,15 @@ fit.spict <- function(inp, dbg=0){
             # Calculate SD report
             if(inp$do.sd.report){
                 rep <- try(TMB::sdreport(obj))
-                if(class(rep)=='try-error'){
+                failflag <- class(rep)=='try-error'
+                if(failflag){
                     cat('WARNING: Could not calculate sdreport.\n')
                     rep <- list()
                     rep$sderr <- 1
                     rep$par.fixed <- opt$par
                     rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
                 }
-                if(class(rep)!='try-error'){
+                if(!failflag){
                     rep$inp <- inp
                     if(inp$reportall){
                         #  - Calculate statistics -
@@ -2850,9 +2851,9 @@ plotspict.inflsum <- function(rep){
     put.xax(rep)
 }
 
-#' @name lprof.spict
+#' @name likprof.spict
 #' @title Create profile likelihood
-#' @details The "lprof" list must containg the following keys:
+#' @details The "likprof" list must containg the following keys:
 #' \itemize{
 #'   \item{"pars"}{ A character vector of length equal 1 or 2 containing the name(s) of the parameters to calculate the profile likelihood for.}
 #'   \item{"parrange"}{ A vector containing the parameter range(s) to profile over: parrange = c(min(par1), max(par1), min(par2), max(par2)).}
@@ -2861,20 +2862,20 @@ plotspict.inflsum <- function(rep){
 #' \itemize{
 #'   \item{"nogridpoints"}{ Number of grid points to evaluate the profile likelihood for each parameter. Default: 9. Note: with two parameters the calculation time increases quadratically when increasing the number of gridpoints.}
 #' }
-#' @param input A list containing observations and initial values for non profiled parameters (essentially an inp list) with the additional key "lprof" (see details for required keys). A valid result from fit.spict() containing an "inp" key with the described properties is also accepted.
-#' @return The output is the input with the likelihood profile information added to the lprof key of either inp or rep$inp.
+#' @param input A list containing observations and initial values for non profiled parameters (essentially an inp list) with the additional key "likprof" (see details for required keys). A valid result from fit.spict() containing an "inp" key with the described properties is also accepted.
+#' @return The output is the input with the likelihood profile information added to the likprof key of either inp or rep$inp.
 #' @examples
 #' data(pol)
 #' inp <- pol$albacore
-#' inp$lprof <- list()
-#' inp$lprof$pars <- 'logsdb'
-#' inp$lprof$parrange <- c(log(0.05), log(0.4))
-#' inp$lprof$nogridpoints <- 15
+#' inp$likprof <- list()
+#' inp$likprof$pars <- 'logsdb'
+#' inp$likprof$parrange <- c(log(0.05), log(0.4))
+#' inp$likprof$nogridpoints <- 15
 #' rep <- fit.spict(inp)
-#' rep <- lprof.spict(rep)
-#' plotspict.lprof(rep, logpar=TRUE)
+#' rep <- likprof.spict(rep)
+#' plotspict.likprof(rep, logpar=TRUE)
 #' @export
-lprof.spict <- function(input){
+likprof.spict <- function(input){
     if('par.fixed' %in% names(input)){
         cat('Detected input as a SPiCT result, proceeding...\n')
         rep <- input
@@ -2887,18 +2888,18 @@ lprof.spict <- function(input){
         inp <- check.inp(inp)
         repflag <- FALSE
     }
-    lprof <- inp$lprof
-    # Check lprof input
-    if(!'pars' %in% names(lprof)) stop('"pars" key of lprof is unspecified!')
-    np <- length(lprof$pars)
+    likprof <- inp$likprof
+    # Check likprof input
+    if(!'pars' %in% names(likprof)) stop('"pars" key of likprof is unspecified!')
+    np <- length(likprof$pars)
     if(!np %in% 1:2) stop('Length of pars vector is ', np, ' but should be 1 or 2!')
-    if(!'parrange' %in% names(lprof)) stop('No "parrange" key specified in lprof!')
-    npp <- length(lprof$parrange)
+    if(!'parrange' %in% names(likprof)) stop('No "parrange" key specified in likprof!')
+    npp <- length(likprof$parrange)
     if(npp != (2*np)) stop('Length of "parrange" is ', npp, ' but should be ', 2*np)
-    if(lprof$parrange[2] <= lprof$parrange[1]) stop('Upper parameter bound is small than lower bound!')
-    if(np==2) if(lprof$parrange[4] <= lprof$parrange[3]) stop('Upper parameter bound is small than lower bound!')
-    prange <- matrix(lprof$parrange, np, 2, byrow=TRUE)
-    if(!'nogridpoints' %in% names(lprof)) lprof$nogridpoints <- 9
+    if(likprof$parrange[2] <= likprof$parrange[1]) stop('Upper parameter bound is small than lower bound!')
+    if(np==2) if(likprof$parrange[4] <= likprof$parrange[3]) stop('Upper parameter bound is small than lower bound!')
+    prange <- matrix(likprof$parrange, np, 2, byrow=TRUE)
+    if(!'nogridpoints' %in% names(likprof)) likprof$nogridpoints <- 9
     if(!'phases' %in% names(inp)) inp$phases <- list()
     # Determine good initial values for other parameters
     if(!repflag){
@@ -2907,14 +2908,14 @@ lprof.spict <- function(input){
         pp <- rep(0, np)
         for(i in 1:np){
             pp[i] <- mean(prange[i, ])
-            inpp$ini[[inp$lprof$pars[i]]] <- pp[i]
-            inpp$phases[[inp$lprof$pars[i]]] <- -1
+            inpp$ini[[inp$likprof$pars[i]]] <- pp[i]
+            inpp$phases[[inp$likprof$pars[i]]] <- -1
         }
         repp <- fit.spict(inpp)
         pl <- repp$pl
     }
-    parvals <- matrix(0, lprof$nogridpoints, np)
-    for(i in 1:np) parvals[, i] <- seq(prange[i, 1], prange[i, 2], length=lprof$nogridpoints)
+    parvals <- matrix(0, likprof$nogridpoints, np)
+    for(i in 1:np) parvals[, i] <- seq(prange[i, 1], prange[i, 2], length=likprof$nogridpoints)
     if(np==1){
         pv <- parvals[, 1, drop=FALSE]
     } else {
@@ -2925,12 +2926,12 @@ lprof.spict <- function(input){
         inptmp <- inp
         inptmp$ini <- pl
         for(j in 1:np){
-            inptmp$ini[[lprof$pars[j]]] <- pv[i, j]
-            inptmp$phases[[lprof$pars[j]]] <- -1
+            inptmp$ini[[likprof$pars[j]]] <- pv[i, j]
+            inptmp$phases[[likprof$pars[j]]] <- -1
         }
         reptmp <- try(fit.spict(inptmp))
         if(class(reptmp)=='try-error'){
-            cat('lprof WARNING: par[i], i=', i, 'failed to fit!\n')
+            cat('likprof WARNING: par[i], i=', i, 'failed to fit!\n')
             rep2 <- list()
             rep2$opt <- list()
             rep2$opt$objective <- NA
@@ -2953,7 +2954,7 @@ lprof.spict <- function(input){
     }
     #partry <- try(library(multicore))
     #partry <- try(library(parallel))
-    cat('Profiling pars:', paste(lprof$pars, collapse=' and '), 'with', ngrid, 'trials.\n')
+    cat('Profiling pars:', paste(likprof$pars, collapse=' and '), 'with', ngrid, 'trials.\n')
     if(Sys.info()['sysname']!='Linux'){
     #if(class(partry)=='try-error'){
     #if(TRUE){
@@ -2978,29 +2979,29 @@ lprof.spict <- function(input){
         close(progfile)
     }
     if(np==1){
-        lprof$likvals <- unlist(likvals)
+        likprof$likvals <- unlist(likvals)
     } else {
-        lprof$likvals <- matrix(unlist(likvals), lprof$nogridpoints, lprof$nogridpoints)
+        likprof$likvals <- matrix(unlist(likvals), likprof$nogridpoints, likprof$nogridpoints)
     }
-    lprof$parvals <- parvals
+    likprof$parvals <- parvals
     if(repflag){
-        rep$inp$lprof <- lprof
+        rep$inp$likprof <- likprof
         return(rep)
     } else {
-        inp$lprof <- lprof
+        inp$likprof <- likprof
         return(inp)
     }
 }
 
 
-#' @name plotspict.lprof
+#' @name plotspict.likprof
 #' @title Plots result of likelihood profiling.
 #' @details TBA
-#' @param input Result of running lprof.spict().
+#' @param input Result of running likprof.spict().
 #' @param logpar If TRUE log of parameters are shown.
 #' @return Nothing but shows a plot.
 #' @export
-plotspict.lprof <- function(input, logpar=FALSE){
+plotspict.likprof <- function(input, logpar=FALSE){
     repflag <- 'par.fixed' %in% names(input)
     if(repflag){
         rep <- input
@@ -3008,12 +3009,12 @@ plotspict.lprof <- function(input, logpar=FALSE){
         nll <- rep$opt$objective
     } else {
         inp <- input
-        nll <- min(inp$lprof$likvals)
+        nll <- min(inp$likprof$likvals)
     }
-    lprof <- inp$lprof
-    np <- length(lprof$pars)
-    pv <- lprof$parvals
-    pars <- lprof$pars
+    likprof <- inp$likprof
+    np <- length(likprof$pars)
+    pv <- likprof$parvals
+    pars <- likprof$pars
     loginds <- grep('log', pars)
     expinds <- setdiff(1:np, loginds)
     if(!logpar){
@@ -3024,11 +3025,11 @@ plotspict.lprof <- function(input, logpar=FALSE){
         pars[expinds] <- paste0('log', pars[expinds])
     }
     if(np==1){
-        plot(pv[, 1], lprof$likvals, typ='l', xlab=pars[1], ylab='negative log lik')
+        plot(pv[, 1], likprof$likvals, typ='l', xlab=pars[1], ylab='negative log lik')
         lrlim <- 0.5*qchisq(0.95, 1) + nll
         abline(h=lrlim, lty=2)
     } else {
-        pvals <- pchisq(2*(lprof$likvals - nll), np)
+        pvals <- pchisq(2*(likprof$likvals - nll), np)
         contour(pv[, 1], pv[, 2], pvals, xlab=pars[1], ylab=pars[2], levels=c(0.5, 0.8, 0.95))
     }
     box(lwd=1.5)
