@@ -229,7 +229,7 @@ Type objective_function<Type>::operator() ()
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
     std::cout << "obsC.size(): " << obsC.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
   }
-  // Calculate mvec
+  // Calculate mvec if multiple rs are used (rarely the case).
   int ind;
   for(int i=0; i<ns; i++){
     ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
@@ -264,7 +264,7 @@ Type objective_function<Type>::operator() ()
   /*
   --- PROCESS EQUATIONS ---
   */
-  Type sd = 1e-6; // This one is used in the hack to fix B0 and F0.
+  //Type sd = 1e-6; // This one is used in the hack to fix B0 and F0.
 
   // FISHING MORTALITY
   if(dbg>0){
@@ -290,8 +290,6 @@ Type objective_function<Type>::operator() ()
 
   int ind2;
   for(int i=0; i<ns; i++){
-    //ind = CppAD::Integer(seasons(i)-1); // minus 1 because R starts at 1 and c++ at 0
-    //logFs(i) = logphipar(ind) + logF(i);
     ind2 = CppAD::Integer(seasonindex(i));
     logFs(i) = seasonspline(ind2) + logF(i);
     // DEBUGGING
@@ -302,7 +300,6 @@ Type objective_function<Type>::operator() ()
   vector<Type> F = exp(logFs);
 
   // CALCULATE B_infinity
-  //for(int i=0; i<ns; i++) Binf(i) = calculateBinf(K, F(i), gamma, mvec(i), n, sdb2); 
   for(int i=0; i<ns; i++) Binf(i) = K * pow( 1.0 - (n-1.0)*F(i)/(n * Fmsyd), 1.0/(n-1.0)) * (1 - n/2.0 / (1.0- pow(1.0-n*Fmsyd + (n-1.0)*F(i), 2.0))* sdb2); // Bordet & Rivest (2014) eqn. 9
   logBinf = log(Binf);
 
@@ -315,7 +312,6 @@ Type objective_function<Type>::operator() ()
   }
   for(int i=0; i<(ns-1); i++){
     // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
-    //Bpred(i+1) = predictB(B(i), Binf(i), F(i), rvec(i), K, dt(i), p, sdb2, lamperti, euler);
     Bpred(i+1) = predictB(B(i), F(i), gamma, mvec(i), K, dt(i), n, sdb2);
     likval = dnorm(log(Bpred(i+1)), logB(i+1), sqrt(dt(i))*sdb, 1);
     ans-=likval;
@@ -328,7 +324,6 @@ Type objective_function<Type>::operator() ()
   // CATCH PREDICTIONS
   for(int i=0; i<(ns-1); i++){ // ns-1 because dt is 1 shorter than state vec
     // For Cpredsub(i) use dt(i) because Cpredsub(i) is integrated over t_i to t_i+1
-    //Cpredsub(i) =  predictC(F(i), K, rvec(i), B(i), Binf(i), dt(i), sdb2, lamperti, euler);
     Cpredsub(i) =  predictC(F(i), B(i), dt(i));
   }
   for(int i=0; i<nobsCp; i++){
@@ -345,8 +340,9 @@ Type objective_function<Type>::operator() ()
   }
 
   // CALCULATE PRODUCTION
-  //if(lamperti){
   for(int i=0; i<(ns-1); i++) P(i) = B(i+1) - B(i) + Cpredsub(i);
+
+
 
   /*
   --- OBSERVATION EQUATIONS ---
@@ -404,7 +400,12 @@ Type objective_function<Type>::operator() ()
     }
   }
 
-  // ONE-STEP-AHEAD PREDICTIONS
+
+
+  /*
+  --- ONE-STEP-AHEAD PREDICTIONS ---
+  */
+
   if(dbg>0){
     std::cout << "--- DEBUG: ONE-STEP-AHEAD PREDICTIONS" << std::endl;
     std::cout << "-- dtpredcnsteps: " << dtpredcnsteps << "  dtpredcinds.size(): " << dtpredcinds.size() <<std::endl;
@@ -431,17 +432,6 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<nq; i++){
     logIp(i) = logq(i) + log(Bp);
   }
-  
-  // MSY PREDICTIONS
-  /*
-  Type Bpmsy;
-  Type Binfpmsy;
-  Type Cpmsy;
-  Binfpmsy = calculateBinf(K, Fmsy, rvec(ns-1), p, sdb2, lamperti);
-  Bpmsy = predictB(B(ns-1), Binfpmsy, Fmsy, rvec(ns-1), K, dtpred, p, sdb2, lamperti, euler);
-  Cpmsy = predictC(Fmsy, K, rvec(ns-1), Bpmsy, Binfpmsy, dtpred, sdb2, lamperti, euler);
-  Type logBpmsy = log(Bpmsy);
-  */
 
   // Biomass and fishing mortality at last time point
   // dtpredcinds(0) is the index of B and F corresponding to the time of the last observation.
@@ -456,7 +446,6 @@ Type objective_function<Type>::operator() ()
   vector<Type> logFFmsy(ns);
   for(int i=0; i<ns; i++){ 
     logBBmsy(i) = logB(i) - logBmsy; 
-    //logFFmsy(i) = logF(i) - logFmsy; 
     logFFmsy(i) = logFs(i) - logFmsy; 
   }
 
@@ -510,7 +499,8 @@ Type objective_function<Type>::operator() ()
   ADREPORT(sdi);
   ADREPORT(logsdb);
   ADREPORT(logsdi);
-  if(reportall){
+  if(reportall){ 
+    // These reports are derived from the random effects and are therefore vectors. TMB calculates the covariance of all sdreports leading to a very large covariance matrix which may cause memory problems.
     // B
     ADREPORT(logBinf);
     ADREPORT(logBBmsy);
@@ -532,6 +522,8 @@ Type objective_function<Type>::operator() ()
   REPORT(MSY);
   REPORT(Bmsy);
   REPORT(Fmsy);
+  REPORT(logB);
+  REPORT(logF);
 
   return ans;
 }

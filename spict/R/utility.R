@@ -597,6 +597,7 @@ fit.spict <- function(inp, dbg=0){
                     rep$sderr <- 1
                     rep$par.fixed <- opt$par
                     rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
+                    rep$report <- obj$report()
                 }
                 if(!failflag){
                     rep$inp <- inp
