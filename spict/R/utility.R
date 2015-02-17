@@ -234,7 +234,7 @@ check.inp <- function(inp){
         }
     }
     dtpredmax <- max(c(inp$dtpredc, inp$dtpredi))
-    if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB')
+    if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'logbkfrac')
     #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'Cpredcum')
     if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
 
@@ -428,7 +428,7 @@ check.inp <- function(inp){
     if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(20-1)
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
-    #if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
+    if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
     #if(!"logp" %in% names(inp$ini)) inp$ini$logp <- log(1.0)
     #if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr[1]))
     if(!"logF" %in% names(inp$ini)){
@@ -441,8 +441,8 @@ check.inp <- function(inp){
         }
     }
     if(!"logB" %in% names(inp$ini)){
-        #inp$ini$logB <- log(rep(exp(inp$ini$logbkfrac)*exp(inp$ini$logK), inp$ns))
-        inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
+        inp$ini$logB <- log(rep(exp(inp$ini$logbkfrac)*exp(inp$ini$logK), inp$ns))
+        #inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
     } else {
         if(length(inp$ini$logB) != inp$ns){
             cat('Wrong length of inp$ini$logB:', length(inp$ini$logB), ' Should be equal to inp$ns:', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
@@ -459,7 +459,7 @@ check.inp <- function(inp){
                     logp1robfac=inp$ini$logp1robfac,
                     logalpha=inp$ini$logalpha,
                     logbeta=inp$ini$logbeta,
-                    #logbkfrac=inp$ini$logbkfrac,
+                    logbkfrac=inp$ini$logbkfrac,
                     #logF0=inp$ini$logF0,
                     logm=inp$ini$logm,
                     logK=inp$ini$logK,
@@ -998,14 +998,15 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1){
         obsI <- list()
         for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]
         par(mar=c(5,4,4,4))
-        ylim <- range(Best[, 1:3], Bp[1:3], unlist(obsI))/scal
+        fininds <- which(apply(Best, 1, function(x) all(is.finite(x))))
+        ylim <- range(Best[fininds, 1:3], Bp[1:3], unlist(obsI), Binf[,2])/scal
         if(main==-1) main <- paste('- Bmsy:',round(Bmsy[2]),' K:',round(Kest[2]))
         plot(inp$time, Best[,2]/scal, typ='n', xlab='Time', ylab=expression(B[t]), main=main, ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log)
         axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
         mtext(expression(B[t]/B[MSY]), side=4, las=0, line=2, cex=par('cex'))
         polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1],Bmsy[1],Bmsy[3],Bmsy[3]), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
-        polygon(c(inp$time, rev(inp$time)), c(BB[,1], rev(BB[,3]))/scal*Bmsy[2], col=cicol2, border=cicol2)
+        polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3]))/scal*Bmsy[2], col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
         for(i in 1:inp$nindex) points(inp$timeI[[i]], inp$obsI[[i]]/qest[i, 2], pch=i, cex=0.7)
         # Highlight influential index observations
@@ -1080,10 +1081,11 @@ plotspict.bbmsy <- function(rep, logax=FALSE){
         obsI <- list()
         for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]/Bmsy[2]
         par(mar=c(5,4,4,4))
-        ylim <- range(c(BB[, 1:3], unlist(obsI)))
+        fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
+        ylim <- range(c(BB[fininds, 1:3], unlist(obsI)))
         plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main='Relative biomass')
         cicol2 <- rgb(0, 0, 1, 0.1)
-        polygon(c(inp$time, rev(inp$time)), c(BB[,1], rev(BB[,3])), col=cicol2, border=cicol2)
+        polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3])), col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
         for(i in 1:inp$nindex) points(inp$timeI[[i]], obsI[[i]], pch=i, cex=0.7)
         # Highlight influential index observations
@@ -1222,9 +1224,11 @@ plotspict.f <- function(rep, logax=FALSE){
         }
         flag <- length(cu)==0
         if(flag){
+            fininds <- which(is.finite(Ff))
             ylim <- range(c(Ff, Fmsy[1:3], tail(Fest[, 2],1)))
         } else {
-            ylim <- range(c(cl, cu, tail(Fest[, 2],1)))
+            fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))))
+            ylim <- range(c(cl[fininds], cu[fininds], tail(Fest[, 2],1)))
         }
         #main <- paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac)
         plot(timef, Ff, typ='n', main='', ylim=ylim, col='blue', ylab=expression(F[t]), xlab='Time', xlim=range(c(inp$time, tail(inp$time,1)+1)))
@@ -1232,7 +1236,7 @@ plotspict.f <- function(rep, logax=FALSE){
         mtext(expression(F[t]/F[MSY]), side=4, las=0, line=2, cex=par('cex'))
         polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Fmsy[1],Fmsy[1],Fmsy[3],Fmsy[3]), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
-        if(!flag) polygon(c(timef, rev(timef)), c(clf, rev(cuf)), col=cicol2, border=cicol2)
+        if(!flag) polygon(c(timef[fininds], rev(timef[fininds])), c(clf[fininds], rev(cuf[fininds])), col=cicol2, border=cicol2)
         if(min(inp$dtc) < 1){ # Plot estimated sub annual F 
             lines(inp$time, Fest[, 2], col=rgb(0, 0, 0, 0.2))
         }
@@ -1427,7 +1431,9 @@ plotspict.catch <- function(rep){
             cf <- Cpredest[, 2]/dtc
             cuf <- Cpredest[, 3]
         }
-        plot(time, c, typ='n', main='', xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1))), ylim=range(c(clf, cuf))/Cscal)
+        fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
+        ylim <- range(c(clf[fininds], cuf[fininds]))/Cscal
+        plot(time, c, typ='n', main='', xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1))), ylim=ylim)
         polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
         #polygon(c(timef, rev(timef)), c(clf, rev(cuf)), col=cicol2, border=cicol2)
@@ -1477,7 +1483,10 @@ plotspict.production <- function(rep){
         n <- get.par('logn', rep, exp=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
         nBplot <- 200
-        Bplot <- seq(0.5*1e-8, Kest[2], length=nBplot)        
+        Bplot <- seq(0.5*1e-8, Kest[2], length=nBplot)
+        pfun <- function(gamma, m, K, n, B) gamma*m/K*B*(1 - (B/K)^(n-1))
+        Pst <- pfun(gamma[2], mest[2], Kest[2], n[2], Bplot)
+        ylim <- range(Pst/Bmsy[2])
         if(inp$reportall & inp$nseasons==1){
             Best <- get.par('logB', rep, exp=TRUE)
             Pest <- get.par('P', rep)
@@ -1485,9 +1494,6 @@ plotspict.production <- function(rep){
             Bvec <- Best[inp$ic, 2]
             ylim <- range(Pest[,2]/Bmsy[2], Pst/Bmsy[2])
         }
-        pfun <- function(gamma, m, K, n, B) gamma*m/K*B*(1 - (B/K)^(n-1))
-        Pst <- pfun(gamma[2], mest[2], Kest[2], n[2], Bplot)
-        ylim <- range(Pst/Bmsy[2])
         xlim <- range(Bplot/Kest[2])
         dt <- inp$dt[-1]
         inde <- inp$indest[-length(inp$indest)]
@@ -1812,7 +1818,7 @@ summary.spictcls <- function(object, numdigits=8){
     #options("scipen"=-3)
     rep <- object
     cat(paste('Convergence: ', rep$opt$convergence, '  MSG: ', rep$opt$message, '\n', sep=''))
-    if(rep$opt$convergence>0) cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and should not be used.\n')
+    if(rep$opt$convergence>0) cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and cannot be trusted.\n')
     if('sderr' %in% names(rep)) cat('WARNING: Could not calculate standard deviations. The optimum found may be invalid. Proceed with caution.\n')
     cat(paste('Negative log likelihood: ', round(rep$opt$objective, numdigits), '\n', sep=''))
     cat('\nFit statistics\n')
@@ -2044,7 +2050,7 @@ read.aspic <- function(filename){
     }
     # Insert initial values
     inp$ini <- list()
-    #inp$ini$logbkfrac <- log(dat$B1Kini)
+    inp$ini$logbkfrac <- log(dat$B1Kini)
     inp$ini$logr <- log(2*dat$Fmsyini)
     inp$ini$logK <- log(2*dat$MSYini/dat$Fmsyini)
     inp$ini$logq <- log(dat$qini)

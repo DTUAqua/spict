@@ -68,14 +68,14 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(robflagi);        // Index Degrees of freedom of t-distribution (only used if tdf < 25)
   DATA_INTEGER(lamperti);  // Lamperti flag.
   DATA_INTEGER(euler);     // Euler flag.
-  DATA_INTEGER(stochmsy);  // Euler flag.
+  DATA_INTEGER(stochmsy);  // Use stochastic msy?
   DATA_SCALAR(dbg);        // Debug flag, if == 1 then print stuff.
   PARAMETER_VECTOR(logphi);   // Season levels of F.
   PARAMETER(logitpp);      // 
   PARAMETER(logp1robfac);  // 
   PARAMETER(logalpha);     // sdi = alpha*sdb
   PARAMETER(logbeta);      // sdc = beta*sdf
-  //PARAMETER(logbkfrac);    // B0/K fraction
+  PARAMETER(logbkfrac);    // B0/K fraction
   //PARAMETER(logF0);        // F at time 0
   PARAMETER_VECTOR(logm);  // m following the Fletcher formulation (see Prager 2002)
   PARAMETER(logK);         // Carrying capacity
@@ -98,7 +98,7 @@ Type objective_function<Type>::operator() ()
   seasonspline = splinemat * logphipar;
   Type pp = 1.0/(1.0 + exp(-logitpp));
   Type robfac = 1.0 + exp(logp1robfac);
-  //Type bkfrac = exp(logbkfrac);
+  Type bkfrac = exp(logbkfrac);
   //Type F0 = exp(logF0);
   int nm = logm.size();
   vector<Type> m(nm); 
@@ -127,7 +127,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> Binf(ns);
   vector<Type> logBinf(ns);
   vector<Type> B = exp(logB);
-  //Type logB0 = logbkfrac + logK;
+  Type logB0 = logbkfrac + logK;
   vector<Type> Bpred(ns);
   vector<Type> mvec(ns);
   vector<Type> ffacvec(ns);
@@ -264,13 +264,13 @@ Type objective_function<Type>::operator() ()
   /*
   --- PROCESS EQUATIONS ---
   */
-  //Type sd = 1e-6; // This one is used in the hack to fix B0 and F0.
+  Type sd = 1e-6; // This one is used in the hack to fix B0 and F0.
 
   // FISHING MORTALITY
   if(dbg>0){
     std::cout << "--- DEBUG: F loop start" << std::endl;
   }
-  // Hack to set log(B(0)) equal to the fixed effect log(B0).
+  // Hack to set log(F(0)) equal to the fixed effect log(F0).
   //likval = dnorm(logF0, logF(0), sd, 1);
   //ans-=likval;
   if(dbg>0){
@@ -305,10 +305,10 @@ Type objective_function<Type>::operator() ()
 
   // BIOMASS PREDICTIONS
   // Hack to set log(B(0)) equal to the fixed effect log(B0).
-  //likval = dnorm(logB0, log(B(0)), sd, 1);
-  //ans-=likval;
+  likval = dnorm(logB0, log(B(0)), sd, 1);
+  ans-=likval;
   if(dbg>1){
-    //std::cout << "-- i: " << 0 << " -   logB0: " << logB0 << "  log(B(0)): " << log(B(0)) << "  sd: " << sd << "  likval: " << likval << "  ans:" << ans << std::endl;
+    std::cout << "-- i: " << 0 << " -   logB0: " << logB0 << "  log(B(0)): " << log(B(0)) << "  sd: " << sd << "  likval: " << likval << "  ans:" << ans << std::endl;
   }
   for(int i=0; i<(ns-1); i++){
     // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
@@ -522,8 +522,6 @@ Type objective_function<Type>::operator() ()
   REPORT(MSY);
   REPORT(Bmsy);
   REPORT(Fmsy);
-  REPORT(logB);
-  REPORT(logF);
 
   return ans;
 }
