@@ -234,7 +234,8 @@ check.inp <- function(inp){
         }
     }
     dtpredmax <- max(c(inp$dtpredc, inp$dtpredi))
-    if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'logbkfrac')
+    if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB')
+    #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'logbkfrac')
     #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'Cpredcum')
     if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
 
@@ -441,8 +442,8 @@ check.inp <- function(inp){
         }
     }
     if(!"logB" %in% names(inp$ini)){
-        inp$ini$logB <- log(rep(exp(inp$ini$logbkfrac)*exp(inp$ini$logK), inp$ns))
-        #inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
+        #inp$ini$logB <- log(rep(exp(inp$ini$logbkfrac)*exp(inp$ini$logK), inp$ns))
+        inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
     } else {
         if(length(inp$ini$logB) != inp$ns){
             cat('Wrong length of inp$ini$logB:', length(inp$ini$logB), ' Should be equal to inp$ns:', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
@@ -459,7 +460,7 @@ check.inp <- function(inp){
                     logp1robfac=inp$ini$logp1robfac,
                     logalpha=inp$ini$logalpha,
                     logbeta=inp$ini$logbeta,
-                    logbkfrac=inp$ini$logbkfrac,
+                    #logbkfrac=inp$ini$logbkfrac,
                     #logF0=inp$ini$logF0,
                     logm=inp$ini$logm,
                     logK=inp$ini$logK,
@@ -998,8 +999,9 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1){
         obsI <- list()
         for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]
         par(mar=c(5,4,4,4))
-        fininds <- which(apply(Best, 1, function(x) all(is.finite(x))))
-        ylim <- range(Best[fininds, 1:3], Bp[1:3], unlist(obsI), Binf[,2])/scal
+        #fininds <- which(apply(Best, 1, function(x) all(abs(x) < 1e8)))
+        fininds <- which(Best[, 5] < 5) # Use CV to check for large uncertainties
+        ylim <- range(Best[fininds, 1:3], Bp[2], unlist(obsI), Binf[,2])/scal
         if(main==-1) main <- paste('- Bmsy:',round(Bmsy[2]),' K:',round(Kest[2]))
         plot(inp$time, Best[,2]/scal, typ='n', xlab='Time', ylab=expression(B[t]), main=main, ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log)
         axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
@@ -2050,7 +2052,7 @@ read.aspic <- function(filename){
     }
     # Insert initial values
     inp$ini <- list()
-    inp$ini$logbkfrac <- log(dat$B1Kini)
+    #inp$ini$logbkfrac <- log(dat$B1Kini)
     inp$ini$logr <- log(2*dat$Fmsyini)
     inp$ini$logK <- log(2*dat$MSYini/dat$Fmsyini)
     inp$ini$logq <- log(dat$qini)

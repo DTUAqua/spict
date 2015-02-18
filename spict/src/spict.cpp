@@ -75,7 +75,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logp1robfac);  // 
   PARAMETER(logalpha);     // sdi = alpha*sdb
   PARAMETER(logbeta);      // sdc = beta*sdf
-  PARAMETER(logbkfrac);    // B0/K fraction
+  //PARAMETER(logbkfrac);    // B0/K fraction
   //PARAMETER(logF0);        // F at time 0
   PARAMETER_VECTOR(logm);  // m following the Fletcher formulation (see Prager 2002)
   PARAMETER(logK);         // Carrying capacity
@@ -98,7 +98,7 @@ Type objective_function<Type>::operator() ()
   seasonspline = splinemat * logphipar;
   Type pp = 1.0/(1.0 + exp(-logitpp));
   Type robfac = 1.0 + exp(logp1robfac);
-  Type bkfrac = exp(logbkfrac);
+  //Type bkfrac = exp(logbkfrac);
   //Type F0 = exp(logF0);
   int nm = logm.size();
   vector<Type> m(nm); 
@@ -127,7 +127,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> Binf(ns);
   vector<Type> logBinf(ns);
   vector<Type> B = exp(logB);
-  Type logB0 = logbkfrac + logK;
+  //Type logB0 = logbkfrac + logK;
   vector<Type> Bpred(ns);
   vector<Type> mvec(ns);
   vector<Type> ffacvec(ns);
@@ -305,10 +305,10 @@ Type objective_function<Type>::operator() ()
 
   // BIOMASS PREDICTIONS
   // Hack to set log(B(0)) equal to the fixed effect log(B0).
-  likval = dnorm(logB0, log(B(0)), sd, 1);
-  ans-=likval;
+  //likval = dnorm(logB0, log(B(0)), sd, 1);
+  //ans-=likval;
   if(dbg>1){
-    std::cout << "-- i: " << 0 << " -   logB0: " << logB0 << "  log(B(0)): " << log(B(0)) << "  sd: " << sd << "  likval: " << likval << "  ans:" << ans << std::endl;
+    //std::cout << "-- i: " << 0 << " -   logB0: " << logB0 << "  log(B(0)): " << log(B(0)) << "  sd: " << sd << "  likval: " << likval << "  ans:" << ans << std::endl;
   }
   for(int i=0; i<(ns-1); i++){
     // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
