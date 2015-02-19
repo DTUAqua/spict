@@ -2013,8 +2013,8 @@ summary.spictcls <- function(object, numdigits=8){
     if(!'sderr' %in% names(rep)){
         # Derived estimates
         cat(paste0('\nDerived estimates w 95% CI\n'))
-        derout <- rbind(get.par(parname='logq', rep, exp=TRUE)[c(2,1,3,2)])
-                        #get.par(parname='logr', rep, exp=TRUE)[c(2,1,3,2)])
+        derout <- rbind(get.par(parname='logr', rep, exp=TRUE)[c(2,1,3,2)])
+                        #get.par(parname='logq', rep, exp=TRUE)[c(2,1,3,2)])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- colnms
