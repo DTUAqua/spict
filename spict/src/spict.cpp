@@ -105,6 +105,8 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<nm; i++){ m(i) = exp(logm(i)); }
   Type K = exp(logK);
   int nq = logq.size();
+  //vector<Type> logq(nq);
+  //for(int i=0; i<nq; i++){ logq(i) = logqf(i) - logK; }
   vector<Type> q(nq);
   for(int i=0; i<nq; i++){ q(i) = exp(logq(i)); }
   vector<Type> logq2(nq);
@@ -199,7 +201,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> Emsy2(nq);
   for(int i=0; i<nq; i++){ 
     Emsy(i) = Fmsy/q(i); 
-    Emsy2(i) = Fmsy/exp(logq2(i))*1.0e4; 
+    Emsy2(i) = Fmsy/exp(logq2(i))*1.0e4; // Used for the results of the albacore data set
   }
 
   // Calculate growth rate
@@ -489,6 +491,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logr);
   ADREPORT(K);
   ADREPORT(q);
+  //ADREPORT(logq);
   ADREPORT(logq2);
   ADREPORT(p);
   ADREPORT(gamma);
