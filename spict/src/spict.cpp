@@ -497,8 +497,8 @@ Type objective_function<Type>::operator() ()
   ADREPORT(sdc);
   ADREPORT(sdb);
   ADREPORT(sdi);
-  ADREPORT(logsdb);
   ADREPORT(logsdi);
+  ADREPORT(logsdc);
   if(reportall){ 
     // These reports are derived from the random effects and are therefore vectors. TMB calculates the covariance of all sdreports leading to a very large covariance matrix which may cause memory problems.
     // B
