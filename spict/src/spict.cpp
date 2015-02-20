@@ -505,11 +505,11 @@ Type objective_function<Type>::operator() ()
   if(reportall){ 
     // These reports are derived from the random effects and are therefore vectors. TMB calculates the covariance of all sdreports leading to a very large covariance matrix which may cause memory problems.
     // B
-    ADREPORT(logBinf);
+    //ADREPORT(logBinf);
     ADREPORT(logBBmsy);
-    vector<Type> Bind(ns);
-    for(int i=0; i<ns; i++) Bind(i) = 1.0 - B(i)/Binf(i);
-    ADREPORT(Bind);
+    //vector<Type> Bind(ns);
+    //for(int i=0; i<ns; i++) Bind(i) = 1.0 - B(i)/Binf(i);
+    //ADREPORT(Bind);
     // F
     ADREPORT(logFFmsy); // Vector of size ns
     ADREPORT(logFs);    // Vector of size ns

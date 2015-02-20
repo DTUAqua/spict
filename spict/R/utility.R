@@ -297,13 +297,14 @@ check.inp <- function(inp){
     } else {
         dtcpred <- 1
     }
-    inp$timeCp <- unique(c(inp$timeC, (tail(inp$timeC,1) + seq(0, inp$dtpredc, by=dtcpred))))
-    inp$nobsCp <- length(inp$timeCp)
+    inp$timeCpred <- unique(c(inp$timeC, (tail(inp$timeC,1) + seq(0, inp$dtpredc, by=dtcpred))))
+    inp$timeCp <- tail(inp$timeCpred, 1)
+    inp$nobsCp <- length(inp$timeCpred)
     inp$dtcp <- c(inp$dtc, rep(dtcpred, inp$nobsCp-inp$nobsC))
-    inp$ic <- match(inp$timeCp, inp$time)
+    inp$ic <- match(inp$timeCpred, inp$time)
     # nc is number of states to integrate a catch observation over
     inp$nc <- rep(0, inp$nobsCp)
-    for(i in 1:inp$nobsCp) inp$nc[i] <- sum(inp$time >= inp$timeCp[i] & inp$time < (inp$timeCp[i]+inp$dtcp[i]))
+    for(i in 1:inp$nobsCp) inp$nc[i] <- sum(inp$time >= inp$timeCpred[i] & inp$time < (inp$timeCpred[i]+inp$dtcp[i]))
     # ii is the indices of inp$time to which index observations correspond
     inp$ii <- list()
     for(i in 1:inp$nindex) inp$ii[[i]] <- match(inp$timeI[[i]], inp$time)
@@ -651,6 +652,7 @@ fit.spict <- function(inp, dbg=0){
 }
 
 
+
 #' @name calc.osa.resid
 #' @title Calculate one-step-ahead residuals.
 #' @details In TMB one-step-ahead residuals are calculated by sequentially including one data point at a time while keeping the model parameters fixed at their ML estimates. The calculated residuals are tested for independence in lag 1 using the Ljung-Box test (see Box.test).
@@ -665,6 +667,156 @@ fit.spict <- function(inp, dbg=0){
 #' plotspict.osar(rep)
 #' @import TMB
 calc.osa.resid <- function(rep, dbg=0){
+    get.predmap <- function(guess, RE){
+        FE <- setdiff(names(guess), RE)
+        predmapout <- list()
+        for(nm in FE) predmapout[[nm]] <- factor(rep(NA, length(rep$inp$parlist[[nm]])))
+        return(predmapout)
+    }
+    inp <- rep$inp
+    inp$ffac <- 1
+    if("logF" %in% names(inp$ini)) inp$ini$logF <- NULL
+    if("logB" %in% names(inp$ini)) inp$ini$logB <- NULL
+    if("ns" %in% names(inp)) inp$ns <- NULL
+    predmap <- get.predmap(rep$pl, inp$RE)
+    predmap$dum <- NULL # Keep dummy parameter free, but fix all other FE
+    plnew <- rep$pl
+
+    ### --- CATCHES --- ###
+    logCpred <- rep(0, inp$nobsC-1)
+    sdlogCpred <- rep(0, inp$nobsC-1)
+    for(j in 2:inp$nobsC){
+        cat('Catch OSAR step:', j, '- ')
+        inp2 <- inp
+        cinds <- which(inp$timeC < inp$timeC[j])
+        inp2$obsC <- inp$obsC[cinds]
+        inp2$timeC <- inp$timeC[cinds]
+        inp2$dtc <- inp$dtc[cinds]
+        inp2$dtpredc <- inp$dtc[j]
+        inp2$obsI <- list()
+        inp2$timeI <- list()
+        for(i in inp$nindex){
+            iinds <- which(inp$timeI[[i]] <= inp$timeC[j]) # It is OK to include index observations in the beginning of the catch interval
+            inp2$obsI[[i]] <- inp$obsI[[i]][iinds]
+            inp2$timeI[[i]] <- inp$timeI[[i]][iinds]
+        }
+        inp2$dtpredi <- 0
+        inp2 <- check.inp(inp2)
+        datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), dbg=dbg)
+        for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
+        objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
+        verbose <- FALSE
+        objpred$env$tracemgc <- verbose
+        objpred$env$inner.control$trace <- verbose
+        objpred$env$silent <- ! verbose
+        objpred$fn()
+        sdr <- sdreport(objpred)
+        logCpred[j-1] <- get.par('logCp', sdr)[2]
+        sdlogCpred[j-1] <- get.par('logCp', sdr)[4]
+    }
+    logCpres <- (log(inp$obsC[-1]) - logCpred)/sdlogCpred
+    timeC <- inp$timeC[-1]
+
+    ### --- INDICES --- ###
+    cat('\n\n')
+    timeobs <- sort(unique(unlist(inp$timeI)))
+    timepred <- timeobs[-1] # Times where observations must be predicted
+    npred <- length(timepred)
+    obsmat <- matrix(0, npred, inp$nindex) # Collect all observations in a matrix
+    haveobs <- matrix(0, npred, inp$nindex) # Indicate which observations are available at timepred
+    for(i in 1:inp$nindex){
+        iim <- na.omit(match(inp$timeI[[i]], timepred))
+        ii <- na.omit(match(timepred, inp$timeI[[i]]))
+        obsmat[iim, i] <- inp$obsI[[i]][ii] # Put I in obsmat
+        haveobs[iim, i] <- 1
+    }
+    logpredmat <- matrix(0, npred, inp$nindex) # Collect sdreport prediction in this matrix
+    sdlogpredmat <- matrix(0, npred, inp$nindex) # Collect sd of prediction in this matrix
+    for(j in 1:npred){
+        cat('Index OSAR step:', j, '- ')
+        inp2 <- inp
+        cinds <- which((inp$timeC+inp$dtc) < timepred[j]) # Catch intervals ending at the index observations are not included
+        inp2$obsC <- inp$obsC[cinds]
+        inp2$timeC <- inp$timeC[cinds]
+        inp2$dtc <- inp$dtc[cinds]
+        inp2$dtpredc <- 0
+        inp2$obsI <- list()
+        inp2$timeI <- list()
+        for(i in inp$nindex){
+            iinds <- which(inp$timeI[[i]] < timepred[j])
+            inp2$obsI[[i]] <- inp$obsI[[i]][iinds]
+            inp2$timeI[[i]] <- inp$timeI[[i]][iinds]
+        }
+        inp2$dtpredi <- timepred[j] - timeobs[j]
+        inp2 <- check.inp(inp2)
+        datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), dbg=dbg)
+        for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
+        objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
+        verbose <- FALSE
+        objpred$env$tracemgc <- verbose
+        objpred$env$inner.control$trace <- verbose
+        objpred$env$silent <- ! verbose
+        objpred$fn()
+        sdr <- sdreport(objpred)
+        # Collect index prediction(s) (column number > 1 are indices)
+        for(i in 1:inp$nindex){
+            if(haveobs[j, i] == 1){
+                logpredmat[j, i] <- get.par('logIp', sdr)[i, 2]
+                sdlogpredmat[j, i] <- get.par('logIp', sdr)[i, 4]
+            }
+        }
+    }
+    logIpred <- list()
+    sdlogIpred <- list()
+    logIpres <- list()
+    timeI <- list()
+    for(i in inp$nindex){
+        logIpred[[i]] <- rep(0, inp$nobsI[i]-1)
+        sdlogIpred[[i]] <- rep(0, inp$nobsI[i]-1)
+        inds <- which(haveobs[, i]==1)
+        timeI[[i]] <- timepred[inds]
+        logIpred[[i]] <- logpredmat[inds, i]
+        sdlogIpred[[i]] <- sdlogpredmat[inds, i]
+        logIpres[[i]] <- (log(obsmat[inds, i]) - logIpred[[i]])/sdlogIpred[[i]]
+    }
+
+    ### --- POST PROCESSING RESIDUALS --- ###
+    # Catches
+    logCpshapiro <- shapiro.test(logCpres) # Test for normality of residuals
+    logCpbias <- t.test(logCpres) # Test for bias of residuals
+    rep$stats$shapiroC.p <- logCpshapiro$p.value
+    rep$stats$biasC.p <- logCpbias$p.value
+    # Indices
+    logIpshapiro <- list()
+    logIpbias <- list()
+    for(i in 1:inp$nindex){
+        logIpshapiro[[i]] <- shapiro.test(logIpres[[i]])
+        logIpbias[[i]] <- t.test(logIpres[[i]])
+        nam <- paste0('shapiroI', i, '.p')
+        rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
+        nam <- paste0('biasI', i, '.p')
+        rep$stats[[nam]] <- logIpbias[[i]]$p.value
+    }
+
+    rep$osar <- list(logCpres=logCpres, logCpred=logCpred, sdlogCpred=sdlogCpred, timeC=timeC, logCpbias=logCpbias, logCpshapiro=logCpshapiro, timeI=timeI, logIpres=logIpres, logIpred=logIpred, sdlogIpred=sdlogIpred, logIpshapiro=logIpshapiro, logIpbias=logIpbias)
+    return(rep)
+}
+
+
+#' @name calc.osa.resid.old
+#' @title Calculate one-step-ahead residuals.
+#' @details In TMB one-step-ahead residuals are calculated by sequentially including one data point at a time while keeping the model parameters fixed at their ML estimates. The calculated residuals are tested for independence in lag 1 using the Ljung-Box test (see Box.test).
+#' @param rep A result report as generated by running fit.spict.
+#' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. Will print even more if set to 2.
+#' @return An updated result report, which contains one-step-ahead residuals stored in the $osar variable.
+#' @export
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' rep <- calc.osa.resid(rep)
+#' plotspict.osar(rep)
+#' @import TMB
+calc.osa.resid.old <- function(rep, dbg=0){
     get.predmap <- function(guess, RE){
         FE <- setdiff(names(guess), RE)
         predmapout <- list()
@@ -989,14 +1141,14 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         ns <- dim(Best)[1]
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
-        Binf <- get.par('logBinf', rep, exp=TRUE)
+        #Binf <- get.par('logBinf', rep, exp=TRUE)
         qest <- get.par('logq', rep, exp=TRUE)
         BB <- get.par('logBBmsy', rep, exp=TRUE)
-        inds <- which(is.na(Binf) | Binf<0)
-        Binf[inds] <- 1e-12
-        annlist <- annual(inp$time, Binf[, 2])
-        Binftime <- annlist$anntime
-        Binfs <- annlist$annvec
+        #inds <- which(is.na(Binf) | Binf<0)
+        #Binf[inds] <- 1e-12
+        #annlist <- annual(inp$time, Binf[, 2])
+        #Binftime <- annlist$anntime
+        #Binfs <- annlist$annvec
         Bp <- get.par('logBp', rep, exp=TRUE)
         scal <- 1
         cicol <- 'lightgray'
@@ -1005,7 +1157,8 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         #par(mar=c(5,4,4,4))
         #fininds <- which(apply(Best, 1, function(x) all(abs(x) < 1e8)))
         fininds <- which(Best[, 5] < 5) # Use CV to check for large uncertainties
-        if(length(ylim)!=2) ylim <- range(BB[fininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), Binf[,2], 0.95*Bmsy[1], 1.05*Bmsy[3])/scal
+        #if(length(ylim)!=2) ylim <- range(BB[fininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), Binf[,2], 0.95*Bmsy[1], 1.05*Bmsy[3])/scal
+        if(length(ylim)!=2) ylim <- range(BB[fininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), 0.95*Bmsy[1], 1.05*Bmsy[3])/scal
         #if(main==-1) main <- paste('- Bmsy:',round(Bmsy[2]),' K:',round(Kest[2]))
         if(main==-1) main <- 'Absolute biomass'
         plot(inp$time, Best[,2]/scal, typ='n', xlab='Time', ylab=expression(B[t]), main=main, ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log)
@@ -1051,13 +1204,13 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         lines(inp$time[inp$indest], BB[inp$indest,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
         lines(inp$time[inp$indpred], BB[inp$indpred,1]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
         lines(inp$time[inp$indpred], BB[inp$indpred,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
-        if(inp$nseasons==1) lines(Binftime, Binfs/scal, col='green', lty=1)
+        #if(inp$nseasons==1) lines(Binftime, Binfs/scal, col='green', lty=1)
         #tp <- inp$time[rep$inp$dtprediind]
         #points(tp, Best[rep$inp$dtprediind, 2]/scal, pch=21, bg='yellow')
         if(plot.legend){
             if(inp$nseasons==1){
                 #legend('topleft', legend=c(expression('E(B'[infinity]*')'),paste(tp,'Pred.')), lty=c(1,NA), pch=c(NA,21), col=c('green',1), pt.bg=c(NA,'yellow'), bg='white')
-                legend('topleft', legend=c(expression('E(B'[infinity]*')')), lty=c(1), col=c('green'), bg='white')
+                #legend('topleft', legend=c(expression('E(B'[infinity]*')')), lty=c(1), col=c('green'), bg='white')
             } else {
                 #legend('topleft', legend=paste(tp,'Pred.'), pch=21, col=1, pt.bg='yellow', bg='white')
             }
@@ -1171,7 +1324,7 @@ plotspict.osar <- function(rep){
     abline(h=0, lty=3)
     box(lwd=1.5)
     # Indices
-    fun(rep$inp$timeI[[1]], rep$osar$logIpres[[1]], main='Index OSAR', col=1, xlim=range(unlist(rep$inp$timeI)), ylim=range(unlist(rep$osar$logIpres)))
+    fun(rep$inp$timeI[[1]], rep$osar$logIpres[[1]], main='Index OSAR', col=1, xlim=range(unlist(rep$inp$timeI)), ylim=range(unlist(rep$osar$logIpres), na.rm=TRUE))
     if(rep$inp$nindex>1) for(i in 2:rep$inp$nindex) fun(rep$inp$timeI[[i]], rep$osar$logIpres[[i]], add=TRUE, col=1, pch=i)
     abline(h=0, lty=3)
     box(lwd=1.5)
@@ -1425,12 +1578,12 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         Bp <- get.par('logBp', rep, exp=TRUE)
         Best <- get.par('logB', rep, exp=TRUE)
         logBest <- get.par('logB', rep)
-        Binf <- get.par('logBinf', rep, exp=TRUE)
-        inds <- which(is.na(Binf) | Binf<0)
-        Binf[inds] <- 1e-12
-        annlist <- annual(inp$time, Binf[, 2])
-        Binftime <- annlist$anntime
-        Binfs <- annlist$annvec
+        #Binf <- get.par('logBinf', rep, exp=TRUE)
+        #inds <- which(is.na(Binf) | Binf<0)
+        #Binf[inds] <- 1e-12
+        #annlist <- annual(inp$time, Binf[, 2])
+        #Binftime <- annlist$anntime
+        #Binfs <- annlist$annvec
         ns <- dim(Best)[1]
         qest <- get.par('logq', rep, exp=TRUE)
         Fest <- get.par('logFs', rep, exp=TRUE)
@@ -1439,7 +1592,8 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         inds <- c(which(names(rep$value)=='logBmsy'), which(names(rep$value)=='logFmsy'))
         cl <- make.ellipse(inds, rep)
         # Limits
-        xlim <- range(c(tail(Binfs,1),exp(cl[,1]),Best[,2])/bscal)
+        #xlim <- range(c(tail(Binfs,1),exp(cl[,1]),Best[,2])/bscal)
+        xlim <- range(c(exp(cl[,1]),Best[,2])/bscal)
         ylim <- range(c(exp(cl[,2]),Fest[,2])/fscal)
         if(min(inp$dtc) < 1){
             #if(FALSE){
@@ -1480,17 +1634,17 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             #points(alb$annvec[aind]/bscal, alf$annvec[aind], pch=21, bg='yellow')
             #points(tail(Binfs,1)/bscal, Fp[2], pch=22, bg='green', cex=2)
             #arrow.line(c(tail(alb$annvec,1), tail(Binfs,1))/bscal, rep(Fp[2],2), col='black', length=0.05)
-            if(plot.legend) legend('topright', c('Estimated MSY'), pch=c(24), pt.bg=c('black'), bg='white')
         } else {
             lines(Best[inp$indest,2]/bscal, Fest[inp$indest,2]/fscal, col=maincol, lwd=1.5)
             lines(Best[inp$indpred,2]/bscal, Fest[inp$indpred,2]/fscal, col=maincol, lty=3)
             pind <- rep$inp$dtprediind
             #points(Best[pind,2]/bscal, Fest[pind,2], pch=21, bg='yellow')
-            points(tail(Binfs,1)/bscal, Fp[2]/fscal, pch=22, bg='green', cex=2)
-            arrow.line(c(tail(Best[,2],1), tail(Binfs,1))/bscal, rep(Fp[2],2)/fscal, col='black', length=0.05)
+            #points(tail(Binfs,1)/bscal, Fp[2]/fscal, pch=22, bg='green', cex=2)
+            #arrow.line(c(tail(Best[,2],1), tail(Binfs,1))/bscal, rep(Fp[2],2)/fscal, col='black', length=0.05)
             #if(plot.legend) legend('topright', c('Estimated MSY',paste(inp$time[pind],'Pred.'),expression('E(B'[infinity]*')')), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
-            if(plot.legend) legend('topright', c('Estimated MSY',expression('E(B'[infinity]*')')), pch=c(24,22), pt.bg=c('black','green'), bg='white')
+            #if(plot.legend) legend('topright', c('Estimated MSY',expression('E(B'[infinity]*')')), pch=c(24,22), pt.bg=c('black','green'), bg='white')
         }
+        if(plot.legend) legend('topright', c('Estimated MSY'), pch=c(24), pt.bg=c('black'), bg='white')
         points(Bmsy[2]/bscal, Fmsy[2]/fscal, pch=24, bg='black')
         box(lwd=1.5)
     }
@@ -1517,33 +1671,33 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
         Cpredest <- get.par('logCpred', rep, exp=TRUE)
         Cpredest[Cpredest<0] <- 0
         rep$Cp[rep$Cp<0] <- 0
-        indest <- which(inp$timeCp <= tail(inp$timeC,1))
-        indpred <- which(inp$timeCp >= tail(inp$timeC,1))
+        indest <- which(inp$timeCpred <= tail(inp$timeC,1))
+        indpred <- which(inp$timeCpred >= tail(inp$timeC,1))
         dtc <- inp$dtcp
         if(min(inp$dtc) < 1){
         #if(FALSE){
             alo <- annual(inp$timeC, inp$obsC/inp$dtc)
             timeo <- alo$anntime
             obs <- alo$annvec
-            al1 <- annual(inp$timeCp[indest], Cpredest[indest, 1]/dtc[indest])
-            al2 <- annual(inp$timeCp[indest], Cpredest[indest, 2]/dtc[indest])
-            al3 <- annual(inp$timeCp[indest], Cpredest[indest, 3]/dtc[indest])
+            al1 <- annual(inp$timeCpred[indest], Cpredest[indest, 1]/dtc[indest])
+            al2 <- annual(inp$timeCpred[indest], Cpredest[indest, 2]/dtc[indest])
+            al3 <- annual(inp$timeCpred[indest], Cpredest[indest, 3]/dtc[indest])
             inds <- which(!is.na(al2$annvec))
             time <- al2$anntime[inds]
             c <- al2$annvec[inds]
             cl <- al1$annvec[inds]
             cu <- al3$annvec[inds]
-            al1p <- annual(inp$timeCp[indpred], Cpredest[indpred, 1]/dtc[indpred])
-            al2p <- annual(inp$timeCp[indpred], Cpredest[indpred, 2]/dtc[indpred])
-            al3p <- annual(inp$timeCp[indpred], Cpredest[indpred, 3]/dtc[indpred])
+            al1p <- annual(inp$timeCpred[indpred], Cpredest[indpred, 1]/dtc[indpred])
+            al2p <- annual(inp$timeCpred[indpred], Cpredest[indpred, 2]/dtc[indpred])
+            al3p <- annual(inp$timeCpred[indpred], Cpredest[indpred, 3]/dtc[indpred])
             inds <- which(!is.na(al2p$annvec))
             timep <- al2p$anntime[inds]
             cp <- al2p$annvec[inds]
             clp <- al1p$annvec[inds]
             cup <- al3p$annvec[inds]
-            al1f <- annual(inp$timeCp, Cpredest[, 1]/dtc)
-            al2f <- annual(inp$timeCp, Cpredest[, 2]/dtc)
-            al3f <- annual(inp$timeCp, Cpredest[, 3]/dtc)
+            al1f <- annual(inp$timeCpred, Cpredest[, 1]/dtc)
+            al2f <- annual(inp$timeCpred, Cpredest[, 2]/dtc)
+            al3f <- annual(inp$timeCpred, Cpredest[, 3]/dtc)
             inds <- which(!is.na(al2f$annvec))
             timef <- al2f$anntime[inds]
             clf <- al1f$annvec[inds]
@@ -1553,7 +1707,7 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
                 inds <- which(inp$dtc==1)
                 timeo <- c(timeo, inp$timeC[inds])
                 obs <- c(obs, inp$obsC[inds])
-                time <- c(time, inp$timeCp[inds])
+                time <- c(time, inp$timeCpred[inds])
                 c <- c(c, Cpredest[inds, 2])
                 cl <- c(cl, Cpredest[inds, 1])
                 cu <- c(cu, Cpredest[inds, 3])
@@ -1561,15 +1715,15 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
         } else {
             timeo <- inp$timeC
             obs <- inp$obsC/inp$dtc
-            time <- inp$timeCp[indest]
+            time <- inp$timeCpred[indest]
             c <- Cpredest[indest, 2]/dtc[indest]
             cl <- Cpredest[indest, 1]
             cu <- Cpredest[indest, 3]
-            timep <- inp$timeCp[indpred]
+            timep <- inp$timeCpred[indpred]
             cp <- Cpredest[indpred, 2]/dtc[indpred]
             clp <- Cpredest[indpred, 1]
             cup <- Cpredest[indpred, 3]
-            timef <- inp$timeCp
+            timef <- inp$timeCpred
             clf <- Cpredest[, 1]
             cf <- Cpredest[, 2]/dtc
             cuf <- Cpredest[, 3]
@@ -1601,8 +1755,8 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
         abline(h=MSY[2]/Cscal)
         lines(time, c, col=4, lwd=1.5)
         lines(timep, cp, col=4, lty=3)
-        #if(min(inp$dtc) == 1) points(tail(inp$timeCp,1), tail(Cpredest[,2],1)/Cscal, pch=21, bg='yellow')
-        #if(min(inp$dtc) == 1 & plot.legend) legend('topleft',c(paste(tail(inp$timeCp,1),'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
+        #if(min(inp$dtc) == 1) points(tail(inp$timeCpred,1), tail(Cpredest[,2],1)/Cscal, pch=21, bg='yellow')
+        #if(min(inp$dtc) == 1 & plot.legend) legend('topleft',c(paste(tail(inp$timeCpred,1),'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
         box(lwd=1.5)
     }
 }
@@ -2098,7 +2252,7 @@ summary.spictcls <- function(object, numdigits=8){
         predout <- round(predout, numdigits)
         colnames(predout) <- c('prediction', colnms[2:4])
         et <- rep$inp$time[rep$inp$dtprediind]
-        rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_',tail(rep$inp$timeCp,1)))
+        rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_',tail(rep$inp$timeCpred,1)))
         cat('', paste(capture.output(predout),' \n'))
     }
     #if('osar' %in% names(rep)){
