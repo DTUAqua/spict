@@ -1053,7 +1053,8 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                             C <- get.par('logCpred', rep, exp=TRUE)
                             nn <- 1/rep$inp$dteuler
                             mm <- dim(C)[1]
-                            Bs <- apply(matrix(diff(B[, 2]), nn, mm), 2, sum)
+                            inds <- 1:(nn*mm+1)
+                            Bs <- apply(matrix(diff(B[inds, 2]), nn, mm), 2, sum)
                             est <- Bs + C[, 2]
                         }
                     }
@@ -1087,7 +1088,7 @@ make.ellipse <- function(inds, rep){
     covBF <- rep$cov[inds,inds]
     corBF <- cov2cor(covBF)
     parBF <- rep$value[inds]
-    return(ellipse(corBF[1,2], scale=sqrt(diag(covBF)), centre=parBF))
+    return(ellipse(corBF[1,2], scale=sqrt(diag(covBF)), centre=parBF, npoints=300))
 }
 
 
@@ -1200,6 +1201,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         fininds <- which(Best[, 5] < 5) # Use CV to check for large uncertainties
         #if(length(ylim)!=2) ylim <- range(BB[fininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), Binf[,2], 0.95*Bmsy[1], 1.05*Bmsy[3])/scal
         if(length(ylim)!=2) ylim <- range(BB[fininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), 0.95*Bmsy[1], 1.05*Bmsy[3])/scal
+        ylim[2] <- min(c(ylim[2], 3*max(Best[fininds, 2]))) # Limit upper limit
         #if(main==-1) main <- paste('- Bmsy:',round(Bmsy[2]),' K:',round(Kest[2]))
         if(main==-1) main <- 'Absolute biomass'
         plot(inp$time, Best[,2]/scal, typ='n', xlab='Time', ylab=expression(B[t]), main=main, ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log)
@@ -1291,6 +1293,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         #par(mar=c(5,4,4,4))
         fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
         if(length(ylim)!=2) ylim <- range(c(BB[fininds, 1:3], unlist(obsI), 0.95*Bmsy[1]/Bmsy[2], 1.05*Bmsy[3]/Bmsy[2]))
+        ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2]))) # Limit upper limit
         if(main==-1) main <- 'Relative biomass'
         plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main=main)
         polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1]/Bmsy[2],Bmsy[1]/Bmsy[2],Bmsy[3]/Bmsy[2],Bmsy[3]/Bmsy[2]), col=cicol, border=cicol)
@@ -1555,6 +1558,7 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
             fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))))
             if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds], clf[fininds], cuf[fininds], tail(Fest[, 2],1)))
         }
+        ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         #main <- paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac)
         if(main==-1) main <- 'Absolute fishing mortality'
         plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]), xlab='Time', xlim=range(c(inp$time, tail(inp$time,1)+1)))
@@ -1662,6 +1666,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
             fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))))
             if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds], 0.95*Fmsy[1]/Fmsy[2], 1.05*Fmsy[3]/Fmsy[2]))
         }
+        ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         #main <- paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac)
         if(main==-1) main <- 'Relative fishing mortality'
         plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]), xlab='Time', xlim=range(c(inp$time, tail(inp$time,1)+1)))
@@ -1705,7 +1710,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.fb(rep)
 #' @export
-plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE){
+plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE, xlim=NULL, ylim=NULL){
     if(!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'xy', '')
         inp <- rep$inp
@@ -1741,16 +1746,23 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         inds <- c(which(names(rep$value)=='logBmsy'), which(names(rep$value)=='logFmsy'))
         cl <- make.ellipse(inds, rep)
         # Limits
-        #xlim <- range(c(tail(Binfs,1),exp(cl[,1]),Best[,2])/bscal)
-        xlim <- range(c(exp(cl[,1]),Best[,2])/bscal)
-        ylim <- range(c(exp(cl[,2]),Fest[,2])/fscal)
-        if(min(inp$dtc) < 1){
-            #if(FALSE){
-            alf <- annual(inp$time, logFest[, 2])
-            alb <- annual(inp$time, logBest[, 2])
-            # New annual limits
-            xlim <- range(c(exp(alb$annvec)/bscal, exp(cl[, 1])/bscal))
-            ylim <- range(c(exp(alf$annvec)/fscal, exp(cl[, 2])/fscal))
+        if(length(xlim)!=2){
+            xlim <- range(c(exp(cl[,1]),Best[,2])/bscal)
+            if(min(inp$dtc) < 1){
+                alb <- annual(inp$time, logBest[, 2])
+                # New annual limits
+                xlim <- range(c(exp(alb$annvec)/bscal, exp(cl[, 1])/bscal))
+            }
+            xlim[2] <- min(c(xlim[2], 8*Bmsy[2]/bscal))
+        }
+        if(length(ylim)!=2){
+            ylim <- range(c(exp(cl[,2]),Fest[,2])/fscal)
+            if(min(inp$dtc) < 1){
+                alf <- annual(inp$time, logFest[, 2])
+                # New annual limits
+                ylim <- range(c(exp(alf$annvec)/fscal, exp(cl[, 2])/fscal))
+            }
+            ylim[2] <- min(c(ylim[2], 8*Fmsy[2]/fscal))
         }
         # Plotting
         #par(mar=c(5,4,4,4))
