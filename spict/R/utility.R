@@ -376,8 +376,8 @@ check.inp <- function(inp){
             if(nir != inp$ns){
                 if(nir == inp$nobsC){ # Assume that inp$ir fits with inp$timeC
                     ir <- rep(0, inp$ns)
-                    for(i in 2:nir){
-                        inds <- which(inp$time >= inp$timeC[i-1] & inp$time < inp$timeC[i])
+                    for(i in 1:nir){
+                        inds <- which(inp$time >= inp$timeC[i] & inp$time < (inp$timeC[i]+inp$dtc[i]))
                         ir[inds] <- inp$ir[i]
                     }
                     inds <- which(inp$time >= inp$timeC[nir])
@@ -1304,6 +1304,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         # Biomass plot
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
+        Bmsyvec <- get.msyvec(inp, Bmsy)
         #Binf <- get.par('logBinf', rep, exp=TRUE)
         qest <- get.par('logq', rep, fixed=TRUE, exp=TRUE)
         BB <- get.par('logBBmsy', rep, exp=TRUE)
@@ -1311,14 +1312,15 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         #inds <- which(is.na(Binf) | Binf<0)
         cicol <- 'lightgray'
         obsI <- list()
-        for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]/Bmsy[2]
+        for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]/Bmsy[1,2]
         #par(mar=c(5,4,4,4))
         fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
         if(length(ylim)!=2) ylim <- range(c(BB[fininds, 1:3], unlist(obsI), 0.95*Bmsy[1]/Bmsy[2], 1.05*Bmsy[3]/Bmsy[2]), na.rm=TRUE)
         ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
         if(main==-1) main <- 'Relative biomass'
         plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main=main)
-        polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1]/Bmsy[2],Bmsy[1]/Bmsy[2],Bmsy[3]/Bmsy[2],Bmsy[3]/Bmsy[2]), col=cicol, border=cicol)
+        #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1]/Bmsy[2],Bmsy[1]/Bmsy[2],Bmsy[3]/Bmsy[2],Bmsy[3]/Bmsy[2]), col=cicol, border=cicol)
+        polygon(c(inp$time, rev(inp$time)), c(Bmsyvec$ll/Bmsyvec$msy,rev(Bmsyvec$ul/Bmsyvec$msy)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
         polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3])), col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
@@ -1639,6 +1641,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         FF <- get.par('logFFmsy', rep, exp=TRUE)
         logFF <- get.par('logFFmsy', rep)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
+        Fmsyvec <- get.msyvec(inp, Fmsy)
         #rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
         #rest <- apply(rest, 2, mean)
 
@@ -1695,7 +1698,8 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         #main <- paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac)
         if(main==-1) main <- 'Relative fishing mortality'
         plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]), xlab='Time', xlim=range(c(inp$time, tail(inp$time,1)+1)))
-        polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Fmsy[1]/Fmsy[2],Fmsy[1]/Fmsy[2],Fmsy[3]/Fmsy[2],Fmsy[3]/Fmsy[2]), col=cicol, border=cicol)
+        #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Fmsy[1]/Fmsy[2],Fmsy[1]/Fmsy[2],Fmsy[3]/Fmsy[2],Fmsy[3]/Fmsy[2]), col=cicol, border=cicol)
+        polygon(c(inp$time, rev(inp$time)), c(Fmsyvec$ll/Fmsyvec$msy,rev(Fmsyvec$ul/Fmsyvec$msy)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
         if(!flag) polygon(c(timef[fininds], rev(timef[fininds])), c(clf[fininds], rev(cuf[fininds])), col=cicol2, border=cicol2)
         if(min(inp$dtc) < 1){ # Plot estimated sub annual F 
@@ -1739,8 +1743,10 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
     if(!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'xy', '')
         inp <- rep$inp
-        Bmsy <- get.par('logBmsy', rep, exp=TRUE)
-        Fmsy <- get.par('logFmsy', rep, exp=TRUE)
+        Bmsyall <- get.par('logBmsy', rep, exp=TRUE)
+        Fmsyall <- get.par('logFmsy', rep, exp=TRUE)
+        Bmsy <- tail(Bmsyall, 1)
+        Fmsy <- tail(Fmsyall, 1)
         if(rel.axes){
             ext <- FALSE
             bscal <- Bmsy[2]
@@ -1768,7 +1774,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         Fest <- get.par('logFs', rep, exp=TRUE)
         logFest <- get.par('logFs', rep)
         Fp <- Fest[ns,]
-        inds <- c(which(names(rep$value)=='logBmsy'), which(names(rep$value)=='logFmsy'))
+        inds <- c(max(which(names(rep$value)=='logBmsy')), max(which(names(rep$value)=='logFmsy')))
         cl <- make.ellipse(inds, rep)
         # Limits
         if(length(xlim)!=2){
@@ -1834,8 +1840,15 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             #if(plot.legend) legend('topright', c('Estimated MSY',paste(inp$time[pind],'Pred.'),expression('E(B'[infinity]*')')), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
             #if(plot.legend) legend('topright', c('Estimated MSY',expression('E(B'[infinity]*')')), pch=c(24,22), pt.bg=c('black','green'), bg='white')
         }
-        if(plot.legend) legend('topright', c('Estimated MSY'), pch=c(24), pt.bg=c('black'), bg='white')
+        
         points(Bmsy[2]/bscal, Fmsy[2]/fscal, pch=24, bg='black')
+        nr <- length(inp$ini$logr)
+        if(nr > 1){
+            points(Bmsyall[1:(nr-1), 2]/bscal, Fmsyall[1:(nr-1), 2]/fscal, pch=24, bg='magenta')
+            if(plot.legend) legend('topright', c('Current MSY', 'Previous MSY'), pch=24, pt.bg=c('black', 'magenta'), bg='white')
+        } else {
+            if(plot.legend) legend('topright', c('Estimated MSY'), pch=c(24), pt.bg=c('black'), bg='white')
+        }
         points(tail(bbb,1), tail(fff,1), pch=22, bg='red')
         points(bbb[1], fff[1], pch=21, bg='green')
         box(lwd=1.5)
@@ -1979,26 +1992,30 @@ plotspict.production <- function(rep){
         inp <- rep$inp
         Kest <- get.par('logK', rep, exp=TRUE)
         mest <- get.par('logm', rep, exp=TRUE)
+        nr <- dim(mest)[1]
         gamma <- get.par('gamma', rep)
         n <- get.par('logn', rep, exp=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
+        Bmsy <- c(1,1)
         nBplot <- 200
         Bplot <- seq(0.5*1e-8, Kest[2], length=nBplot)
         pfun <- function(gamma, m, K, n, B) gamma*m/K*B*(1 - (B/K)^(n-1))
-        Pst <- pfun(gamma[2], mest[2], Kest[2], n[2], Bplot)
-        ylim <- range(Pst/Bmsy[2], na.rm=TRUE)
+        Pst <- list()
+        for(i in 1:nr) Pst[[i]] <- pfun(gamma[2], mest[i,2], Kest[2], n[2], Bplot)
+        ylim <- range(unlist(Pst)/Bmsy[2], na.rm=TRUE)
         if(inp$reportall & inp$nseasons==1){
             Best <- get.par('logB', rep, exp=TRUE)
             Pest <- get.par('P', rep)
             Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
             Bvec <- Best[inp$ic, 2]
-            ylim <- range(Pest[,2]/Bmsy[2], Pst/Bmsy[2], na.rm=TRUE)
+            ylim <- range(Pest[,2]/Bmsy[2], unlist(Pst)/Bmsy[2], na.rm=TRUE)
         }
         xlim <- range(Bplot/Kest[2], na.rm=TRUE)
         dt <- inp$dt[-1]
         inde <- inp$indest[-length(inp$indest)]
         indp <- inp$indpred[-1]-1
-        plot(Bplot/Kest[2], Pst/Bmsy[2], typ='l', ylim=ylim, xlim=xlim, xlab='B/K', ylab='Production/Bmsy', col=1, main='Production curve')
+        plot(Bplot/Kest[2], Pst[[nr]]/Bmsy[2], typ='l', ylim=ylim, xlim=xlim, xlab='B/K', ylab='Production', col=1, main='Production curve')
+        if(nr > 1) for(i in 1:(nr-1)) lines(Bplot/Kest[2], Pst[[i]]/Bmsy[2], col='gray')
         if(inp$reportall & inp$nseasons==1){
             lines(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, lwd=1.5)
         }
@@ -2063,8 +2080,8 @@ plotspict.tc <- function(rep){
         n <- get.par('logn', rep, exp=TRUE)
         gamma <- calc.gamma(n[2])
         sdbest <- get.par('logsdb', rep, exp=TRUE)
-        Fmsy <- get.par('logFmsy', rep, exp=TRUE)
-        Bmsy <- get.par('logBmsy', rep, exp=TRUE)
+        Fmsy <- tail(get.par('logFmsy', rep, exp=TRUE), 1)
+        Bmsy <- tail(get.par('logBmsy', rep, exp=TRUE), 1)
         if(B0cur < Bmsy[2]) do.flag <- ifelse(B0cur/Bmsy[2]>0.95, FALSE, TRUE)
         if(B0cur > Bmsy[2]) do.flag <- ifelse(Bmsy[2]/B0cur>0.95, FALSE, TRUE)
         if(do.flag){
