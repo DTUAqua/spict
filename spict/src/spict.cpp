@@ -69,6 +69,7 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(lamperti);  // Lamperti flag.
   DATA_INTEGER(euler);     // Euler flag.
   DATA_INTEGER(stochmsy);  // Use stochastic msy?
+  //DATA_INTEGER(sepgrowth); // Separate growth between an early time period and a late
   DATA_SCALAR(dbg);        // Debug flag, if == 1 then print stuff.
   PARAMETER_VECTOR(logphi);   // Season levels of F.
   PARAMETER(logitpp);      // 
@@ -132,6 +133,8 @@ Type objective_function<Type>::operator() ()
   //Type logB0 = logbkfrac + logK;
   vector<Type> Bpred(ns);
   vector<Type> mvec(ns);
+  vector<Type> logBmsyvec(ns);
+  vector<Type> logFmsyvec(ns);
   vector<Type> ffacvec(ns);
   for(int i=0; i<ns; i++){ ffacvec(i) = 1.0; }
   vector<Type> Cpred(nobsCp);
@@ -139,45 +142,52 @@ Type objective_function<Type>::operator() ()
   vector<Type> Cpredsub(ns);
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
-  Type mmean = m(0);
-  if(nm > 1) for(int i=1; i<nm; i++){ mmean += m(i)/nm; }
 
-  // Deterministic reference points
-  Type Bmsyd = K * pow(1.0/n, 1.0/(n-1.0));
-  //Type MSYd = mmean;
-  Type MSYd = m(0);
-  Type Fmsyd = MSYd/Bmsyd;
-  Type logBmsyd = log(Bmsyd);
-  Type logMSYd = log(MSYd);
-  Type logFmsyd = log(Fmsyd);
+  vector<Type> Bmsyd(nm);
+  vector<Type> MSYd = m;
+  vector<Type> Fmsyd(nm);
+  vector<Type> rbmean(nm);
+  vector<Type> Bmsys(nm);
+  vector<Type> Fmsys(nm);
+  vector<Type> MSYs(nm);
+  for(int i=0; i<nm; i++){
+    // Deterministic reference points
+    Bmsyd(i) = K * pow(1.0/n, 1.0/(n-1.0));
+    Fmsyd(i) = MSYd(i)/Bmsyd(i);
 
-  // Stochastic reference points (NOTE: only proved for n>1, Bordet and Rivest (2014))
-  Type rbmean = (n-1)/n*gamma*mmean/K;
-  Type Bmsys = Bmsyd * (1.0 - (1.0 + rbmean*(p-1.0)/2.0)*sdb2 / (rbmean*pow(2.0-rbmean, 2.0)));
-  if(dbg==-1){
-    std::cout << "--- DEBUG Bmsy ---" << std::endl;
-    std::cout << "n: " << n << std::endl;
-    std::cout << "gamma: " << gamma << std::endl;
-    std::cout << "mmean: " << mmean << std::endl;
-    std::cout << "K: " << K << std::endl;
-    std::cout << "Bmsyd: " << Bmsyd << std::endl;
-    std::cout << "rbmean: " << rbmean << std::endl;
-    std::cout << "sdb2: " << sdb2 << std::endl;
-    std::cout << "p: " << p << std::endl;
-    std::cout << "Bmsys: " << Bmsys << std::endl;
+    // Stochastic reference points (NOTE: only proved for n>1, Bordet and Rivest (2014))
+    rbmean(i) = (n-1)/n*gamma*m(i)/K;
+    Bmsys(i) = Bmsyd(i) * (1.0 - (1.0 + rbmean(i)*(p-1.0)/2.0)*sdb2 / (rbmean(i)*pow(2.0-rbmean(i), 2.0)));
+    /*
+    if(dbg==-1){
+      std::cout << "--- DEBUG Bmsy ---" << std::endl;
+      std::cout << "n: " << n << std::endl;
+      std::cout << "gamma: " << gamma << std::endl;
+      std::cout << "K: " << K << std::endl;
+      std::cout << "Bmsyd: " << Bmsyd << std::endl;
+      std::cout << "rbmean: " << rbmean << std::endl;
+      std::cout << "sdb2: " << sdb2 << std::endl;
+      std::cout << "p: " << p << std::endl;
+      std::cout << "Bmsys: " << Bmsys << std::endl;
+    }
+    */
+    Fmsys(i) = Fmsyd(i) - (p*(1.0-rbmean(i))*sdb2) / pow(2.0-rbmean(i), 2.0) ;
+    MSYs(i) = MSYd(i) * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean(i), 2.0)));
   }
-  Type Fmsys = Fmsyd - (p*(1.0-rbmean)*sdb2) / pow(2.0-rbmean, 2.0) ;
-  Type MSYs = MSYd * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean, 2.0)));
-  Type logBmsys = log(Bmsys);
-  Type logFmsys = log(Fmsys);
-  Type logMSYs = log(MSYs);
 
-  Type Bmsy;
-  Type MSY;
-  Type Fmsy;
-  Type logBmsy;
-  Type logFmsy;
-  Type logMSY;
+  vector<Type> logBmsyd = log(Bmsyd);
+  vector<Type> logMSYd = log(MSYd);
+  vector<Type> logFmsyd = log(Fmsyd);
+  vector<Type> logBmsys = log(Bmsys);
+  vector<Type> logFmsys = log(Fmsys);
+  vector<Type> logMSYs = log(MSYs);
+
+  vector<Type> Bmsy(nm);
+  vector<Type> MSY(nm);
+  vector<Type> Fmsy(nm);
+  vector<Type> logBmsy(nm);
+  vector<Type> logFmsy(nm);
+  vector<Type> logMSY(nm);
 
   if(stochmsy==1){
     // Use stochastic reference points
@@ -200,8 +210,8 @@ Type objective_function<Type>::operator() ()
   vector<Type> Emsy(nq);
   vector<Type> Emsy2(nq);
   for(int i=0; i<nq; i++){ 
-    Emsy(i) = Fmsy/q(i); 
-    Emsy2(i) = Fmsy/exp(logq2(i))*1.0e4; // Used for the results of the albacore data set
+    Emsy(i) = Fmsy(0)/q(i); 
+    Emsy2(i) = Fmsy(0)/exp(logq2(i))*1.0e4; // Used for the results of the albacore data set
   }
 
   // Calculate growth rate
@@ -236,6 +246,8 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<ns; i++){
     ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
     mvec(i) = m(ind);
+    logFmsyvec(i) = logFmsy(ind);
+    logBmsyvec(i) = logBmsy(ind);
     if(dbg>1){
       std::cout << "-- i: " << i << "-- ind: " << ind << " -   mvec(i): " << mvec(i) << std::endl;
     }
@@ -302,8 +314,8 @@ Type objective_function<Type>::operator() ()
   vector<Type> F = exp(logFs);
 
   // CALCULATE B_infinity
-  for(int i=0; i<ns; i++) Binf(i) = K * pow( 1.0 - (n-1.0)*F(i)/(n * Fmsyd), 1.0/(n-1.0)) * (1 - n/2.0 / (1.0- pow(1.0-n*Fmsyd + (n-1.0)*F(i), 2.0))* sdb2); // Bordet & Rivest (2014) eqn. 9
-  logBinf = log(Binf);
+  //for(int i=0; i<ns; i++) Binf(i) = K * pow( 1.0 - (n-1.0)*F(i)/(n * Fmsyd(0)), 1.0/(n-1.0)) * (1 - n/2.0 / (1.0- pow(1.0-n*Fmsyd(0) + (n-1.0)*F(i), 2.0))* sdb2); // Bordet & Rivest (2014) eqn. 9
+  //logBinf = log(Binf);
 
   // BIOMASS PREDICTIONS
   // Hack to set log(B(0)) equal to the fixed effect log(B0).
@@ -423,12 +435,13 @@ Type objective_function<Type>::operator() ()
   Type logCp = log(Cp);
 
   // Biomass and F at the end of the prediction time interval
-  Type Bp = B(CppAD::Integer(dtprediind-1)); 
+  int pind = CppAD::Integer(dtprediind-1);
+  Type Bp = B(pind); 
   Type logBp = log(Bp);
-  Type logBpBmsy = logBp - logBmsyd;
+  Type logBpBmsy = logBp - logBmsyvec(pind);
   Type logBpK = logBp - logK;
-  Type logFp = logFs(CppAD::Integer(dtprediind-1)); 
-  Type logFpFmsy = logFp - logFmsyd;
+  Type logFp = logFs(pind); 
+  Type logFpFmsy = logFp - logFmsyvec(pind);
 
   vector<Type> logIp(nq);
   for(int i=0; i<nq; i++){
@@ -438,17 +451,17 @@ Type objective_function<Type>::operator() ()
   // Biomass and fishing mortality at last time point
   // dtpredcinds(0) is the index of B and F corresponding to the time of the last observation.
   Type logBl = logB(indlastobs-1);
-  Type logBlBmsy = logBl - logBmsy;
+  Type logBlBmsy = logBl - logBmsyvec(indlastobs-1);
   Type logBlK = logBl - logK;
   Type logFl = logFs(indlastobs-1);
-  Type logFlFmsy = logFl - logFmsy;
+  Type logFlFmsy = logFl - logFmsyvec(indlastobs-1);
 
   // Biomass and fishing mortality over msy levels
   vector<Type> logBBmsy(ns);
   vector<Type> logFFmsy(ns);
   for(int i=0; i<ns; i++){ 
-    logBBmsy(i) = logB(i) - logBmsy; 
-    logFFmsy(i) = logFs(i) - logFmsy; 
+    logBBmsy(i) = logB(i) - logBmsyvec(i); 
+    logFFmsy(i) = logFs(i) - logFmsyvec(i); 
   }
 
   // ADREPORTS

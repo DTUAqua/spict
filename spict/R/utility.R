@@ -348,8 +348,8 @@ check.inp <- function(inp){
             } else {
                 stop('Please specify initial value(s) for logK!')
             }
-        } else {
-            stop('Please specify initial value(s) for logm!')
+        } else { # No r and no m
+            inp$ini$logr <- log(0.8)
         }
     }
     #print(inp$ini$logr)
@@ -400,10 +400,9 @@ check.inp <- function(inp){
             }
         }
     }
-    check.ini('logK', inp)
-    if(!'logq' %in% names(inp$ini)){
-        stop('Please specify initial value(s) for logq!')            
-    }
+    if(!'logK' %in% names(inp$ini)) inp$ini$logK <- log(4*max(inp$obsC))
+    #check.ini('logK', inp)
+    if(!'logq' %in% names(inp$ini)) inp$ini$logq <- log(max(inp$obsI[[1]])) - inp$ini$logK
     if('logq' %in% names(inp$ini)){
         if(length(inp$ini$logq) != inp$nindex){
             if(length(inp$ini$logq) == 1){
@@ -413,8 +412,10 @@ check.inp <- function(inp){
             }
         }
     }
-    check.ini('logsdb', inp, min=log(0.03), max=log(5))
-    check.ini('logsdf', inp, min=log(0.03), max=log(5))
+    if(!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
+    if(!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
+    #check.ini('logsdb', inp, min=log(0.03), max=log(5))
+    #check.ini('logsdf', inp, min=log(0.03), max=log(5))
     if(!"logm" %in% names(inp$ini)){
         #n <- exp(inp$ini$logn)
         gamma <- inp$ini$gamma
@@ -904,6 +905,7 @@ calc.osa.resid <- function(rep, dbg=0){
         inp2$dtpredi <- timepred[j] - max(endtimes)
         #if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[which(inp$timeC == timepred[j])]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
         #if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[cindm]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
+        inp2$ir <- NULL # Remove ir from inp2, but use inp$ir as input (see below)
         inp2 <- check.inp(inp2)
         datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
@@ -1163,6 +1165,20 @@ plot.col <- function(time, obs, pch=1, add=FALSE, typ='p', do.line=TRUE, ...){
 }
 
 
+get.msyvec <- function(inp, msy){
+    vec <- rep(0, inp$ns)
+    ul <- rep(0, inp$ns)
+    ll <- rep(0, inp$ns)
+    nr <- length(inp$ini$logr)
+    for(i in 1:nr){
+        vec[inp$ir==i] <- msy[i, 2]
+        ul[inp$ir==i] <- msy[i, 3]
+        ll[inp$ir==i] <- msy[i, 1]
+    }
+    return(list(msy=vec, ll=ll, ul=ul))
+}
+
+    
 #' @name plotspict.biomass
 #' @title Plot estimated biomass.
 #' @details Plots estimated biomass, Bmsy with confidence limits.
@@ -1183,6 +1199,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         ns <- dim(Best)[1]
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
+        Bmsyvec <- get.msyvec(inp, Bmsy)
         #Binf <- get.par('logBinf', rep, exp=TRUE)
         qest <- get.par('logq', rep, exp=TRUE)
         BB <- get.par('logBBmsy', rep, exp=TRUE)
@@ -1200,16 +1217,17 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         #fininds <- which(apply(Best, 1, function(x) all(abs(x) < 1e8)))
         fininds <- which(Best[, 5] < 5) # Use CV to check for large uncertainties
         #if(length(ylim)!=2) ylim <- range(BB[fininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), Binf[,2], 0.95*Bmsy[1], 1.05*Bmsy[3])/scal
-        if(length(ylim)!=2) ylim <- range(BB[fininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), 0.95*Bmsy[1], 1.05*Bmsy[3])/scal
-        ylim[2] <- min(c(ylim[2], 3*max(Best[fininds, 2]))) # Limit upper limit
+        if(length(ylim)!=2) ylim <- range(BB[fininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), 0.95*Bmsy[1], 1.05*Bmsy[3], na.rm=TRUE)/scal
+        ylim[2] <- min(c(ylim[2], 3*max(Best[fininds, 2], unlist(obsI)))) # Limit upper limit
         #if(main==-1) main <- paste('- Bmsy:',round(Bmsy[2]),' K:',round(Kest[2]))
         if(main==-1) main <- 'Absolute biomass'
         plot(inp$time, Best[,2]/scal, typ='n', xlab='Time', ylab=expression(B[t]), main=main, ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log)
         axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
         mtext(expression(B[t]/B[MSY]), side=4, las=0, line=2.2, cex=par('cex'))
-        polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1],Bmsy[1],Bmsy[3],Bmsy[3]), col=cicol, border=cicol)
+        #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1],Bmsy[1],Bmsy[3],Bmsy[3]), col=cicol, border=cicol)
+        polygon(c(inp$time, rev(inp$time)), c(Bmsyvec$ll,rev(Bmsyvec$ul)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
-        polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3]))/scal*Bmsy[2], col=cicol2, border=cicol2)
+        if(!'yearsepgrowth' %in% names(inp)) polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3]))/scal*Bmsy[2], col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
         if(plot.obs){
             for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], inp$obsI[[i]]/qest[i, 2], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
@@ -1233,7 +1251,8 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         }
         lines(inp$time[inp$indest], Best[inp$indest,2]/scal, col='blue', lwd=1.5)
         lines(inp$time[inp$indpred], Best[inp$indpred,2]/scal, col='blue', lty=3)
-        abline(h=Bmsy[2]/scal, col='black')
+        #abline(h=Bmsy[2]/scal, col='black')
+        lines(inp$time, Bmsyvec$msy, col='black')
         # B CI
         if(inp$phases$logq>0){
             lines(inp$time[inp$indest], Best[inp$indest,1]/scal, col=4, lty=2, lwd=1.5)
@@ -1243,10 +1262,12 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         }
         # B/Bmsy CI
         cicol3 <- rgb(0, 0, 1, 0.2)
-        lines(inp$time[inp$indest], BB[inp$indest,1]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
-        lines(inp$time[inp$indest], BB[inp$indest,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
-        lines(inp$time[inp$indpred], BB[inp$indpred,1]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
-        lines(inp$time[inp$indpred], BB[inp$indpred,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
+        if(!'yearsepgrowth' %in% names(inp)){
+            lines(inp$time[inp$indest], BB[inp$indest,1]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
+            lines(inp$time[inp$indest], BB[inp$indest,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
+            lines(inp$time[inp$indpred], BB[inp$indpred,1]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
+            lines(inp$time[inp$indpred], BB[inp$indpred,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
+        }
         #if(inp$nseasons==1) lines(Binftime, Binfs/scal, col='green', lty=1)
         #tp <- inp$time[rep$inp$dtprediind]
         #points(tp, Best[rep$inp$dtprediind, 2]/scal, pch=21, bg='yellow')
@@ -1259,6 +1280,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
             }
         }
         #legend('topright', legend=c(paste(tp,'Pred.')), pch=c(21), col=c(1), pt.bg=c('yellow'), bg='white')
+        if('yearsepgrowth' %in% names(inp)) abline(v=inp$yearsepgrowth, col=3)
         box(lwd=1.5)
     }
 }
@@ -1292,8 +1314,8 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]/Bmsy[2]
         #par(mar=c(5,4,4,4))
         fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
-        if(length(ylim)!=2) ylim <- range(c(BB[fininds, 1:3], unlist(obsI), 0.95*Bmsy[1]/Bmsy[2], 1.05*Bmsy[3]/Bmsy[2]))
-        ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2]))) # Limit upper limit
+        if(length(ylim)!=2) ylim <- range(c(BB[fininds, 1:3], unlist(obsI), 0.95*Bmsy[1]/Bmsy[2], 1.05*Bmsy[3]/Bmsy[2]), na.rm=TRUE)
+        ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
         if(main==-1) main <- 'Relative biomass'
         plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main=main)
         polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1]/Bmsy[2],Bmsy[1]/Bmsy[2],Bmsy[3]/Bmsy[2],Bmsy[3]/Bmsy[2]), col=cicol, border=cicol)
@@ -1372,7 +1394,7 @@ plotspict.osar <- function(rep, collapse.I=TRUE){
             ylim <- range(unlist(rep$osar$logIpres), na.rm=TRUE)
             xlim <- range(unlist(rep$inp$timeI))
         } else {
-            ylim <- range(na.omit(rep$osar$logIpres[[1]]))
+            ylim <- range(rep$osar$logIpres[[1]], na.rm=TRUE)
             xlim <- range(rep$inp$timeI[[1]])
         }
         fun(rep$inp$timeI[[1]], rep$osar$logIpres[[1]], ylab='Index OSAR', col=1, xlim=xlim, ylim=ylim, main=paste0('I1 bias p-val: ', pval), col.main=colmain)
@@ -1506,6 +1528,7 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
         FF <- get.par('logFFmsy', rep, exp=TRUE)
         logFF <- get.par('logFFmsy', rep)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
+        Fmsyvec <- get.msyvec(inp, Fmsy)
         #rest <- get.par('logr', rep, exp=TRUE, fixed=TRUE)
         #rest <- apply(rest, 2, mean)
 
@@ -1547,16 +1570,16 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
             cup <- Fest[inp$indpred, 3]
             timef <- inp$time
             clf <- FF[, 1]*Fmsy[2]
-            Ff <- FF[, 2]*Fmsy[2]
+            Ff <- Fest[, 2] #*Fmsy[2]
             cuf <- FF[, 3]*Fmsy[2]
         }
         flag <- length(cu)==0
         if(flag){
             fininds <- which(is.finite(Ff))
-            if(length(ylim)!=2) ylim <- range(c(Ff, Fmsy[1:3], tail(Fest[, 2],1)))
+            if(length(ylim)!=2) ylim <- range(c(Ff, Fmsy[1:3], tail(Fest[, 2],1)), na.rm=TRUE)
         } else {
             fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))))
-            if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds], clf[fininds], cuf[fininds], tail(Fest[, 2],1)))
+            if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds], clf[fininds], cuf[fininds], tail(Fest[, 2],1)), na.rm=TRUE)
         }
         ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         #main <- paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac)
@@ -1564,9 +1587,10 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
         plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]), xlab='Time', xlim=range(c(inp$time, tail(inp$time,1)+1)))
         axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
         mtext(expression(F[t]/F[MSY]), side=4, las=0, line=2.2, cex=par('cex'))
-        polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Fmsy[1],Fmsy[1],Fmsy[3],Fmsy[3]), col=cicol, border=cicol)
+        #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Fmsy[1],Fmsy[1],Fmsy[3],Fmsy[3]), col=cicol, border=cicol)
+        polygon(c(inp$time, rev(inp$time)), c(Fmsyvec$ll,rev(Fmsyvec$ul)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
-        if(!flag) polygon(c(timef[fininds], rev(timef[fininds])), c(clf[fininds], rev(cuf[fininds])), col=cicol2, border=cicol2)
+        if(!flag & !'yearsepgrowth' %in% names(inp)) polygon(c(timef[fininds], rev(timef[fininds])), c(clf[fininds], rev(cuf[fininds])), col=cicol2, border=cicol2)
         if(min(inp$dtc) < 1){ # Plot estimated sub annual F 
             lines(inp$time, Fest[, 2], col=rgb(0, 0, 1, 0.4))
         }
@@ -1582,11 +1606,12 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
         if(!flag) lines(timep, clp, col=maincol, lty=2)
         lines(timep, Fp, col=maincol, lty=3)
         if(!flag) lines(timep, cup, col=maincol, lty=2)
-        if(!flag) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
-        if(!flag) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
+        if(!flag & !'yearsepgrowth' %in% names(inp)) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
+        if(!flag & !'yearsepgrowth' %in% names(inp)) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         #tp <- inp$time[inp$dtprediind]
         #points(tp, Fest[inp$dtprediind, 2], pch=21, bg='yellow')
-        abline(h=Fmsy[2], col='black')
+        #abline(h=Fmsy[2], col='black')
+        lines(inp$time, Fmsyvec$msy, col='black')
         #abline(h=rest[2], col='red')
         #if(plot.legend) legend('topleft',c(paste(tp,'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
         box(lwd=1.5)
@@ -1661,10 +1686,10 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         flag <- length(cu)==0
         if(flag){
             fininds <- which(is.finite(Ff))
-            if(length(ylim)!=2) ylim <- range(c(Ff[fininds], 0.95*Fmsy[1]/Fmsy[2], 1.05*Fmsy[3]/Fmsy[2]))
+            if(length(ylim)!=2) ylim <- range(c(Ff[fininds], 0.95*Fmsy[1]/Fmsy[2], 1.05*Fmsy[3]/Fmsy[2]), na.rm=TRUE)
         } else {
             fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))))
-            if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds], 0.95*Fmsy[1]/Fmsy[2], 1.05*Fmsy[3]/Fmsy[2]))
+            if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds], 0.95*Fmsy[1]/Fmsy[2], 1.05*Fmsy[3]/Fmsy[2]), na.rm=TRUE)
         }
         ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         #main <- paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac)
@@ -1747,20 +1772,20 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         cl <- make.ellipse(inds, rep)
         # Limits
         if(length(xlim)!=2){
-            xlim <- range(c(exp(cl[,1]),Best[,2])/bscal)
+            xlim <- range(c(exp(cl[,1]),Best[,2])/bscal, na.rm=TRUE)
             if(min(inp$dtc) < 1){
                 alb <- annual(inp$time, logBest[, 2])
                 # New annual limits
-                xlim <- range(c(exp(alb$annvec)/bscal, exp(cl[, 1])/bscal))
+                xlim <- range(c(exp(alb$annvec)/bscal, exp(cl[, 1])/bscal), na.rm=TRUE)
             }
             xlim[2] <- min(c(xlim[2], 8*Bmsy[2]/bscal))
         }
         if(length(ylim)!=2){
-            ylim <- range(c(exp(cl[,2]),Fest[,2])/fscal)
+            ylim <- range(c(exp(cl[,2]),Fest[,2])/fscal, na.rm=TRUE)
             if(min(inp$dtc) < 1){
                 alf <- annual(inp$time, logFest[, 2])
                 # New annual limits
-                ylim <- range(c(exp(alf$annvec)/fscal, exp(cl[, 2])/fscal))
+                ylim <- range(c(exp(alf$annvec)/fscal, exp(cl[, 2])/fscal), na.rm=TRUE)
             }
             ylim[2] <- min(c(ylim[2], 8*Fmsy[2]/fscal))
         }
@@ -1791,12 +1816,16 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         if(min(inp$dtc) < 1){
         #if(FALSE){
             aind <- which(inp$time[inp$dtprediind] == alb$anntime)
-            lines(exp(alb$annvec)/bscal, exp(alf$annvec)/fscal, col=maincol, lwd=1.5)
+            bbb <- exp(alb$annvec)/bscal
+            fff <- exp(alf$annvec)/fscal
+            lines(bbb, fff, col=maincol, lwd=1.5)
             #points(alb$annvec[aind]/bscal, alf$annvec[aind], pch=21, bg='yellow')
             #points(tail(Binfs,1)/bscal, Fp[2], pch=22, bg='green', cex=2)
             #arrow.line(c(tail(alb$annvec,1), tail(Binfs,1))/bscal, rep(Fp[2],2), col='black', length=0.05)
         } else {
-            lines(Best[inp$indest,2]/bscal, Fest[inp$indest,2]/fscal, col=maincol, lwd=1.5)
+            bbb <- Best[inp$indest,2]/bscal
+            fff <- Fest[inp$indest,2]/fscal
+            lines(bbb, fff, col=maincol, lwd=1.5)
             lines(Best[inp$indpred,2]/bscal, Fest[inp$indpred,2]/fscal, col=maincol, lty=3)
             pind <- rep$inp$dtprediind
             #points(Best[pind,2]/bscal, Fest[pind,2], pch=21, bg='yellow')
@@ -1807,6 +1836,8 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         }
         if(plot.legend) legend('topright', c('Estimated MSY'), pch=c(24), pt.bg=c('black'), bg='white')
         points(Bmsy[2]/bscal, Fmsy[2]/fscal, pch=24, bg='black')
+        points(tail(bbb,1), tail(fff,1), pch=22, bg='red')
+        points(bbb[1], fff[1], pch=21, bg='green')
         box(lwd=1.5)
     }
 }
@@ -1897,7 +1928,8 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
             cuf <- Cpredest[, 3]
         }
         fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
-        if(length(ylim)!=2) ylim <- range(c(cl, cu, clf[fininds], cuf[fininds], 0.9*MSY[1], 1.07*MSY[3]))/Cscal
+        if(length(ylim)!=2) ylim <- range(c(cl, cu, clf[fininds], cuf[fininds], 0.9*MSY[1], 1.07*MSY[3]), na.rm=TRUE)/Cscal
+        ylim[2] <- min(c(ylim[2], 3*max(cf[fininds]))) # Limit upper limit
         if(main==-1) main <- 'Catch'
         plot(time, c, typ='n', main=main, xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1))), ylim=ylim)
         polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
@@ -1954,15 +1986,15 @@ plotspict.production <- function(rep){
         Bplot <- seq(0.5*1e-8, Kest[2], length=nBplot)
         pfun <- function(gamma, m, K, n, B) gamma*m/K*B*(1 - (B/K)^(n-1))
         Pst <- pfun(gamma[2], mest[2], Kest[2], n[2], Bplot)
-        ylim <- range(Pst/Bmsy[2])
+        ylim <- range(Pst/Bmsy[2], na.rm=TRUE)
         if(inp$reportall & inp$nseasons==1){
             Best <- get.par('logB', rep, exp=TRUE)
             Pest <- get.par('P', rep)
             Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
             Bvec <- Best[inp$ic, 2]
-            ylim <- range(Pest[,2]/Bmsy[2], Pst/Bmsy[2])
+            ylim <- range(Pest[,2]/Bmsy[2], Pst/Bmsy[2], na.rm=TRUE)
         }
-        xlim <- range(Bplot/Kest[2])
+        xlim <- range(Bplot/Kest[2], na.rm=TRUE)
         dt <- inp$dt[-1]
         inde <- inp$indest[-length(inp$indest)]
         indp <- inp$indpred[-1]-1
@@ -2059,7 +2091,7 @@ plotspict.tc <- function(rep){
             frac <- 0.95
             if(B0cur < Bmsy[2]) inds <- which(Bsim[nFvec, ]<0.99)
             if(B0cur > Bmsy[2]) inds <- which(Bsim[nFvec, ]>(1/0.99))
-            ylim <- range(Bsim[nFvec, ])
+            ylim <- range(Bsim[nFvec, ], na.rm=TRUE)
             plot(time[1, ], Bsim[1, ], typ='l', xlim=range(time[nFvec, inds]), ylim=ylim, col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy')
             abline(h=c(frac, 1/frac), lty=1, col='lightgray')
             abline(h=1, lty=3)
@@ -2359,21 +2391,31 @@ summary.spictcls <- function(object, numdigits=8){
     if(!'sderr' %in% names(rep)){
         # Derived estimates
         cat(paste0('\nDerived estimates w 95% CI\n'))
-        derout <- rbind(get.par(parname='logr', rep, exp=TRUE)[c(2,1,3,2)])
+        derout <- rbind(get.par(parname='logr', rep, exp=TRUE)[, c(2,1,3,2)])
                         #get.par(parname='logq', rep, exp=TRUE)[c(2,1,3,2)])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- colnms
-        rownames(derout) <- c('r    ')
+        #rownames(derout) <- rep('r    ', dim(derout)[1])
+        if(dim(derout)[1]>1 & 'yearsepgrowth' %in% names(rep$inp)){
+            rownames(derout) <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
+        } else {
+            rownames(derout) <- paste0('r', each=paste0(1:dim(derout)[1], '    '))
+        }
         cat('', paste(capture.output(derout),' \n'))
         cat(' Deterministic reference points\n')
-        derout <- rbind(get.par(parname='logBmsyd', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='logFmsyd', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='logMSYd', rep, exp=TRUE)[c(2,1,3,2)])
+        derout <- rbind(get.par(parname='logBmsyd', rep, exp=TRUE)[,c(2,1,3,2)],
+                        get.par(parname='logFmsyd', rep, exp=TRUE)[,c(2,1,3,2)],
+                        get.par(parname='logMSYd', rep, exp=TRUE)[,c(2,1,3,2)])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- colnms
-        rownames(derout) <- c('Bmsyd', 'Fmsyd', 'MSYd')
+        nr <- length(rep$inp$ini$logr)
+        if(nr > 1){
+            rownames(derout) <- c(t(outer(c('Bmsyd', 'Fmsyd', 'MSYd'), 1:2, paste0)))
+        } else {
+            rownames(derout) <- c('Bmsyd', 'Fmsyd', 'MSYd')
+        }
         if('true' %in% names(rep$inp)){
             trueder <- c(rep$inp$true$Bmsyd, rep$inp$true$Fmsyd, rep$inp$true$MSYd)
             cider <- rep(0, 3)
@@ -2385,13 +2427,17 @@ summary.spictcls <- function(object, numdigits=8){
         cat('', paste(capture.output(derout),' \n'))
         # Stochastic derived estimates
         cat(' Stochastic reference points\n')
-        derout <- rbind(get.par(parname='logBmsys', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='logFmsys', rep, exp=TRUE)[c(2,1,3,2)],
-                        get.par(parname='logMSYs', rep, exp=TRUE)[c(2,1,3,2)])
+        derout <- rbind(get.par(parname='logBmsys', rep, exp=TRUE)[,c(2,1,3,2)],
+                        get.par(parname='logFmsys', rep, exp=TRUE)[,c(2,1,3,2)],
+                        get.par(parname='logMSYs', rep, exp=TRUE)[,c(2,1,3,2)])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- colnms
-        rownames(derout) <- c('Bmsys', 'Fmsys', 'MSYs')
+        if(nr > 1){
+            rownames(derout) <- c(t(outer(c('Bmsys', 'Fmsys', 'MSYs'), 1:2, paste0)))
+        } else {
+            rownames(derout) <- c('Bmsys', 'Fmsys', 'MSYs')
+        }
         if('true' %in% names(rep$inp)){
             trueder <- c(rep$inp$true$Bmsy, rep$inp$true$Fmsy, rep$inp$true$MSY)
             cider <- rep(0, 3)
