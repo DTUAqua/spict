@@ -213,6 +213,12 @@ check.inp <- function(inp){
         }
     }
     inp$ffaceuler <- inp$ffac^inp$dteuler
+    timeobs <- c(inp$timeC, inp$timeC + inp$dtc, unlist(inp$timeI))
+    if(!"timepredc" %in% names(inp)){
+        inp$timepredc <- max(timeobs)
+    } else {
+        if(inp$timepredc < max(timeobs)) stop('inp$timepredc must be later than last observation!')
+    }
     if(!"dtpredc" %in% names(inp)){
         if("dtpred" %in% names(inp)){
             inp$dtpredc <- inp$dtpred
@@ -256,9 +262,9 @@ check.inp <- function(inp){
     # -- DERIVED VARIABLES --
     timeobsnodtc <- c(inp$timeC, unlist(inp$timeI))
     # Include dtc because a catch observation at time t includes information in the interval [t; t+dtc[ 
-    timeobs <- c(inp$timeC, inp$timeC + inp$dtc, unlist(inp$timeI))
     inp$timerange <- range(timeobs)
-    time <- seq(min(timeobs), max(timeobs)+dtpredmax, by=inp$dteuler)
+    #time <- seq(min(timeobs), max(timeobs)+dtpredmax, by=inp$dteuler)
+    time <- seq(min(timeobs), max(max(timeobs)+inp$dtpredi, inp$timepredc+inp$dtpredc), by=inp$dteuler)
     # Remove duplicate time points and store time in inp list
     inp$time <- sort(unique(c(timeobs, time)))
     inp$ns <- length(inp$time)
@@ -301,8 +307,8 @@ check.inp <- function(inp){
     } else {
         dtcpred <- 1
     }
-    inp$timeCpred <- unique(c(inp$timeC, (tail(inp$timeC,1) + seq(0, inp$dtpredc, by=dtcpred))))
-    inp$timeCp <- tail(inp$timeCpred, 1)
+    inp$timeCpred <- unique(c(inp$timeC, (seq(tail(inp$timeC,1), inp$timepredc, by=dtcpred))))
+    #inp$timeCp <- tail(inp$timeCpred, 1)
     inp$nobsCp <- length(inp$timeCpred)
     inp$dtcp <- c(inp$dtc, rep(dtcpred, inp$nobsCp-inp$nobsC))
     inp$ic <- match(inp$timeCpred, inp$time)
@@ -320,10 +326,11 @@ check.inp <- function(inp){
     inp$dt <- diff(inp$time)
     # Add helper variable such that predicted catch can be calculated using small euler steps
     # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
-    inp$dtpredcinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpredc))
+    #inp$dtpredcinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpredc))
+    inp$dtpredcinds <- which(inp$time >= inp$timepredc & inp$time < (inp$timepredc+inp$dtpredc))
     inp$dtpredcnsteps <- length(inp$dtpredcinds)
     inp$dtprediind <- which(inp$time == (inp$timerange[2]+inp$dtpredi))
-    #inp$dtprediind <- which(inp$time == (max(inp$timeI[[1]])+inp$dtpredi))
+
     
     # -- MODEL PARAMETERS --
     if(!"logn" %in% names(inp$ini)){
@@ -835,6 +842,7 @@ calc.osa.resid <- function(rep, dbg=0){
         return(predmapout)
     }
     inp <- rep$inp
+    inp$timepredc <- NULL
     inp$ffac <- 1
     if("logF" %in% names(inp$ini)) inp$ini$logF <- NULL
     if("logB" %in% names(inp$ini)) inp$ini$logB <- NULL
@@ -901,7 +909,6 @@ calc.osa.resid <- function(rep, dbg=0){
             if(length(iindm)==1) obsmat[j, i+1] <- inp$obsI[[i]][iindm]
         }
         inp2$dtpredc <- dtc[j]
-        #inp2$dtpredc <- timepred[j] - max(endtimes)
         inp2$dtpredi <- timepred[j] - max(endtimes)
         #if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[which(inp$timeC == timepred[j])]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
         #if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[cindm]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
@@ -1872,6 +1879,8 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
         Cscal <- 1
         cicol <- 'lightgray'
         MSY <- get.par('logMSY', rep, exp=TRUE)
+        MSYvec <- get.msyvec(inp, MSY)
+        Crc <- get.par('logCrcsum', rep, exp=TRUE)
         #Cpredsub <- get.par('Cpredsub', rep)
         Cpredest <- get.par('logCpred', rep, exp=TRUE)
         Cpredest[Cpredest<0] <- 0
@@ -1945,7 +1954,8 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
         ylim[2] <- min(c(ylim[2], 3*max(cf[fininds]))) # Limit upper limit
         if(main==-1) main <- 'Catch'
         plot(time, c, typ='n', main=main, xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1))), ylim=ylim)
-        polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
+        #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
+        polygon(c(inp$time, rev(inp$time)), c(MSYvec$ll,rev(MSYvec$ul)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
         #polygon(c(timef, rev(timef)), c(clf, rev(cuf)), col=cicol2, border=cicol2)
         #lines(timef, clf, col=rgb(0, 0, 1, 0.2))
@@ -1967,11 +1977,14 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
             points(inp$timeC[inds], inp$obsC[inds]/Cscal, pch=21, cex=0.9, bg=cols[inds])
         }
         if('true' %in% names(inp)) abline(h=inp$true$MSY, col='orange', lty=2)
-        abline(h=MSY[2]/Cscal)
+        #abline(h=MSY[2]/Cscal)
+        lines(inp$time, MSYvec$msy)
         lines(time, c, col=4, lwd=1.5)
         lines(timep, cp, col=4, lty=3)
         #if(min(inp$dtc) == 1) points(tail(inp$timeCpred,1), tail(Cpredest[,2],1)/Cscal, pch=21, bg='yellow')
+        points(inp$timepredc, Crc[2], pch=21, bg='yellow')
         #if(min(inp$dtc) == 1 & plot.legend) legend('topleft',c(paste(tail(inp$timeCpred,1),'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
+        if(min(inp$dtc) == 1 & plot.legend) legend('topright', 'C at Fmsy', pch=21, pt.bg=c('yellow'), bg='white')
         box(lwd=1.5)
     }
 }
@@ -2076,7 +2089,8 @@ plotspict.tc <- function(rep){
         B0cur <- get.par('logBl', rep, exp=TRUE)[2]
         Kest <- get.par('logK', rep, exp=TRUE)
         m <- get.par('logm', rep, exp=TRUE)
-        mmean <- apply(m, 2, mean)[2]
+        #mmean <- apply(m, 2, mean)[2]
+        mmean <- tail(m, 1)[2]
         n <- get.par('logn', rep, exp=TRUE)
         gamma <- calc.gamma(n[2])
         sdbest <- get.par('logsdb', rep, exp=TRUE)
@@ -2109,7 +2123,9 @@ plotspict.tc <- function(rep){
             if(B0cur < Bmsy[2]) inds <- which(Bsim[nFvec, ]<0.99)
             if(B0cur > Bmsy[2]) inds <- which(Bsim[nFvec, ]>(1/0.99))
             ylim <- range(Bsim[nFvec, ], na.rm=TRUE)
-            plot(time[1, ], Bsim[1, ], typ='l', xlim=range(time[nFvec, inds]), ylim=ylim, col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy')
+            xlim <- range(time[nFvec, inds])
+            xlim[2] <- min(xlim[2], 15) # Max 15 years ahead
+            plot(time[1, ], Bsim[1, ], typ='l', xlim=xlim, ylim=ylim, col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy')
             abline(h=c(frac, 1/frac), lty=1, col='lightgray')
             abline(h=1, lty=3)
             for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=i+2)
@@ -2328,6 +2344,20 @@ plot.spictcls <- function(rep, logax=FALSE){
         }
     }
 }
+
+
+#' @name get.AIC
+#' @title Calculate AIC from a rep list.
+#' @param rep 
+#' @return AIC
+#' @export
+get.AIC <- function(rep){
+    negloglik <- rep$opt$objective
+    numpars <- length(rep$opt$par)
+    AIC <- 2*numpars + 2*negloglik
+    return(AIC)
+}
+
 
 #' @name summary.spictcls
 #' @title Output a summary of a fit.spict() run.
