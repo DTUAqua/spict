@@ -496,6 +496,10 @@ check.inp <- function(inp){
         inp$phases <- list()
         for(i in 1:length(fixpars)) inp$phases[[fixpars[i]]] <- -1
     } else {
+        if("logr" %in% names(inp$phases)){
+            inp$phases$logm <- inp$phases$logr
+            inp$phases$logr <- NULL
+        }
         for(i in 1:length(fixpars)) if(!fixpars[i] %in% names(inp$phases)) inp$phases[[fixpars[i]]] <- -1
     }
     # If robust flags are set to 1 then set phases for robust parameters to 1
@@ -1185,6 +1189,14 @@ get.msyvec <- function(inp, msy){
     return(list(msy=vec, ll=ll, ul=ul))
 }
 
+
+refpointci <- function(t, ll, ul, cicol='ivory2'){
+    tplus <- c(t[1]*0.8, t, tail(t, 1)*1.2)
+    llplus <- c(ll[1], ll, tail(ll, 1))
+    ulplus <- c(ul[1], ul, tail(ul, 1))
+    polygon(c(tplus, rev(tplus)), c(llplus, rev(ulplus)), col=cicol, border=cicol)
+}
+
     
 #' @name plotspict.biomass
 #' @title Plot estimated biomass.
@@ -1218,6 +1230,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         Bp <- get.par('logBp', rep, exp=TRUE)
         scal <- 1
         cicol <- 'lightgray'
+        #cicol <- 'ivory2'
         obsI <- list()
         for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]
         #par(mar=c(5,4,4,4))
@@ -1232,6 +1245,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
         mtext(expression(B[t]/B[MSY]), side=4, las=0, line=2.2, cex=par('cex'))
         #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1],Bmsy[1],Bmsy[3],Bmsy[3]), col=cicol, border=cicol)
+        #refpointci(inp$time, Bmsyvec$ll, Bmsyvec$ul, cicol)
         polygon(c(inp$time, rev(inp$time)), c(Bmsyvec$ll,rev(Bmsyvec$ul)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
         if(!'yearsepgrowth' %in% names(inp)) polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3]))/scal*Bmsy[2], col=cicol2, border=cicol2)
@@ -3645,3 +3659,77 @@ invlogit <- function(a) 1/(1+exp(-a))
 #' @param a Value to take inverse logp1 of.
 #' @return Inverse logp1.
 invlogp1 <- function(a) 1 + exp(a)
+
+
+#' @name latex.figure
+#' @title Generate latex code for including a figure.
+#' @param figfile Path to figure file.
+#' @param reportfile Path to report file.
+#' @param caption This character string will be included as the figure caption.
+#' @return Nothing.
+latex.figure <- function(figfile, reportfile, caption=''){
+    figstr <- paste0('\\begin{figure}\n\\centering\n \\includegraphics[trim=0cm 0cm 0cm 0cm,clip,width=1\\textwidth]{', figfile, '}\n \\caption{', caption, '}\n \\end{figure}\n')
+    cat(figstr, file=reportfile, append=TRUE)
+}
+
+
+#' @name make.report
+#' @title Creates a pdf file containing the summary output and result plots
+#' @details This function probably requires you're running linux and that you have latex functions installed (pdflatex).
+#' @param rep A valid result from calc.influence().
+#' @param reporttitle This character string will be printed as the first line of the report.
+#' @param reportfile The generated tex code will be stored in this file.
+#' @return Nothing.
+#' @export
+make.report <- function(rep, reporttitle, reportfile){
+    latexstart <- '\\documentclass[12pt]{article}\n\\usepackage{graphicx}\\begin{document}\n'
+    latexend <- '\\end{document}\n'
+    summaryout <- capture.output(summary(rep))
+
+    # -- Write tex file -- #
+    cat(latexstart, file=reportfile)
+    # Summary
+    cat('\\footnotesize\n', file=reportfile, append=TRUE)
+    cat('\\begin{verbatim}\n', file=reportfile, append=TRUE)
+    cat(reporttitle, file=reportfile, append=TRUE)
+    cat(summaryout, sep='\n', file=reportfile, append=TRUE)
+    cat('\\end{verbatim}\n', file=reportfile, append=TRUE)
+
+    # Results plot
+    figfile1 <- 'res.pdf'
+    pdf(figfile1, width=9, height=10)
+    plot(rep)
+    dev.off()
+    latex.figure(figfile1, reportfile, caption='Results.')
+
+    # Diagnostic plot
+    figfile2 <- 'diag.pdf'
+    pdf(figfile2, width=9, height=10)
+    plotspict.diagnostic(rep)
+    dev.off()
+    latex.figure(figfile2, reportfile, caption='Model diagnostics.')
+    
+    # Data plot
+    figfile3 <- 'data.pdf'
+    pdf(figfile3, width=7, height=6+rep$inp$nindex)
+    par(mfrow=c(1+rep$inp$nindex,1))
+    plot(rep$inp$timeC, rep$inp$obsC, xlab='Time', ylab='Catch', typ='b')
+    for(i in 1:rep$inp$nindex) plot(rep$inp$timeI[[i]], rep$inp$obsI[[i]], xlab='Time', ylab=paste('Index', i), typ='b')
+    dev.off()
+    latex.figure(figfile3, reportfile, caption='Data.')
+    
+    cat(latexend, file=reportfile, append=TRUE)
+
+    # -- Compile tex file -- #
+    #latexcompile <- system(paste('pdflatex -output-directory=../res/', reportfile), intern=TRUE)
+    latexcompile <- system(paste('pdflatex', reportfile), intern=TRUE)
+
+    # -- Remove temporary files -- #
+    #file.remove(paste0('../res/', substr(reportfile, 1, nchar(reportfile)-4), '.log'))
+    #file.remove(paste0('../res/', substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
+    file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.log'))
+    file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
+    file.remove(figfile1)
+    file.remove(figfile2)
+    file.remove(figfile3)
+}
