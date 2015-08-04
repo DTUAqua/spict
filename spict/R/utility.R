@@ -3675,8 +3675,8 @@ latex.figure <- function(figfile, reportfile, caption=''){
 
 #' @name make.report
 #' @title Creates a pdf file containing the summary output and result plots
-#' @details This function probably requires you're running linux and that you have latex functions installed (pdflatex).
-#' @param rep A valid result from calc.influence().
+#' @details This function probably requires that you are running linux and that you have latex functions installed (pdflatex).
+#' @param rep A valid result from fit.spict with OSA residuals.
 #' @param reporttitle This character string will be printed as the first line of the report.
 #' @param reportfile The generated tex code will be stored in this file.
 #' @return Nothing.
@@ -3732,4 +3732,69 @@ make.report <- function(rep, reporttitle, reportfile){
     file.remove(figfile1)
     file.remove(figfile2)
     file.remove(figfile3)
+}
+
+
+#' @name retro
+#' @title Conduct retrospective analysis 
+#' @details A retrospective analysis consists of estimating the model with later data points removed sequentially one year at a time.
+#' @param rep A valid result from fit.spict.
+#' @param nretroyear Number of years of data to remove (this is also the total number of model runs).
+#' @return A rep list with the added key retro containing the results of the retrospective analysis. Use plotspict.retro() to plot these results.
+#' @export
+retro <- function(rep, nretroyear=5){
+    inp1 <- rep$inp
+    inpall <- list()
+    for(i in 1:nretroyear){
+        inpall[[i]] <- list()
+        inpall[[i]]$ini <- as.list(rep$par.fixed)
+        indsC <- which(inp1$timeC <= inp1$timeC[inp1$nobsC]-i)
+        inpall[[i]]$obsC <- inp1$obsC[indsC]
+        inpall[[i]]$timeC <- inp1$timeC[indsC]
+        inpall[[i]]$obsI <- list()
+        inpall[[i]]$timeI <- list()
+        for(j in 1:inp1$nindex){
+            indsI <- which(inp1$timeI[[j]] <= inp1$timeI[[j]][inp1$nobsI[j]]-i)
+            inpall[[i]]$obsI[[j]] <- inp1$obsI[[j]][indsI]
+            inpall[[i]]$timeI[[j]] <- inp1$timeI[[j]][indsI]
+        }
+    }
+
+    asd <- try(library(parallel))
+    if(class(asd) == 'try-error'){
+        rep$retro <- mclapply(inpall, fit.spict)
+    } else {
+        rep$retro <- lapply(inpall, fit.spict)
+    }
+    return(rep)
+}
+
+
+#' @name plotspict.retro
+#' @title Plot results of retrospective analysis 
+#' @param rep A valid result from fit.spict.
+#' @return Nothing
+#' @export
+plotspict.retro <- function(rep){
+    nretroyear <- length(rep$retro)
+    bs <- list()
+    for(i in 1:nretroyear) bs[[i]] <- get.par('logB', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 2]
+    bbs <- list()
+    for(i in 1:nretroyear) bbs[[i]] <- get.par('logBBmsy', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 2]
+    fs <- list()
+    for(i in 1:nretroyear) fs[[i]] <- get.par('logF', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 2]
+    ffs <- list()
+    for(i in 1:nretroyear) ffs[[i]] <- get.par('logFFmsy', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 2]
+    time <- list()
+    for(i in 1:nretroyear) time[[i]] <- rep$retro[[i]]$inp$time[rep$retro[[i]]$inp$indest]
+
+    par(mfrow=c(2, 2))
+    plot(time[[1]], bs[[1]], typ='l', ylim=range(unlist(bs)), xlab='Time', ylab = expression(B[t]))
+    for(i in 2:nretroyear) lines(time[[i]], bs[[i]], col=i)
+    plot(time[[1]], fs[[1]], typ='l', ylim=range(unlist(fs)), xlab='Time', ylab = expression(F[t]))
+    for(i in 2:nretroyear) lines(time[[i]], fs[[i]], col=i)
+    plot(time[[1]], bbs[[1]], typ='l', ylim=range(unlist(bbs)), xlab='Time', ylab = expression(B[t]/B[MSY]))
+    for(i in 2:nretroyear) lines(time[[i]], bbs[[i]], col=i)
+    plot(time[[1]], ffs[[1]], typ='l', ylim=range(unlist(ffs)), xlab='Time', ylab = expression(F[t]/F[MSY]))
+    for(i in 2:nretroyear) lines(time[[i]], ffs[[i]], col=i)
 }
