@@ -434,27 +434,29 @@ Type objective_function<Type>::operator() ()
   }
   Type logCp = log(Cp);
   // CALCULATE RECOMMENDED CATCH
-  vector<Type> Brc(dtpredcnsteps+1); // Biomass when predicting using Fmsy
-  ind = CppAD::Integer(dtpredcinds(0)-1);
-  Brc(0) = B(ind); // Start with the current biomass
-  vector<Type> Crc(dtpredcnsteps); // Catch when predicting using Fmsy
-  Type Crcsum = 0.0;
-  if(dbg>0){
-    std::cout << "--- DEBUG: RECOMMENDED CATCH" << std::endl;
-    std::cout << "-- Brc.size(): " << Brc.size() << " Crc.size(): " << Crc.size() << " dt.size(): " << dt.size() << std::endl;
-  }
-  for(int i=0; i<dtpredcnsteps; i++){
-    ind = CppAD::Integer(dtpredcinds(i)-1);
-    //std::cout << "-- i: " << i << " -  dtpredcinds(i)-1: " << ind << std::endl;
-    Crc(i) =  predictC(Fmsy(nm-1), Brc(i), dt(ind));
-    //std::cout << " -  Crc(i): " << Crc(i) << std::endl;
-    Crcsum += Crc(i);
-    //std::cout << " -  Crcsum: " << Crcsum << std::endl;
-    Brc(i+1) = predictB(Brc(i), Fmsy(nm-1), gamma, mvec(ind), K, dt(ind), n, sdb2);
-    //std::cout << " -  Brc(i+1): " << Brc(i+1) << std::endl;
-    // DEBUGGING
-    if(dbg>1){
-      std::cout << "-- i: " << i << " -  dtpredcinds(i)-1: " << ind << " -   Brc(i+1): " << Brc(i+1) << "  Crc(i): " << Crc(i) << "  Fmsy(nm-1): " << Fmsy(nm-1) << std::endl;
+  Type Crcsum = 1.0e-12;
+  if(dtpredcnsteps > 0){
+    vector<Type> Brc(dtpredcnsteps+1); // Biomass when predicting using Fmsy
+    ind = CppAD::Integer(dtpredcinds(0)-1);
+    Brc(0) = B(ind); // Start with the current biomass
+    vector<Type> Crc(dtpredcnsteps); // Catch when predicting using Fmsy
+    if(dbg>0){
+      std::cout << "--- DEBUG: RECOMMENDED CATCH" << std::endl;
+      std::cout << "-- Brc.size(): " << Brc.size() << " Crc.size(): " << Crc.size() << " dt.size(): " << dt.size() << std::endl;
+    }
+    for(int i=0; i<dtpredcnsteps; i++){
+      ind = CppAD::Integer(dtpredcinds(i)-1);
+      //std::cout << "-- i: " << i << " -  dtpredcinds(i)-1: " << ind << std::endl;
+      Crc(i) =  predictC(Fmsy(nm-1), Brc(i), dt(ind));
+      //std::cout << " -  Crc(i): " << Crc(i) << std::endl;
+      Crcsum += Crc(i);
+      //std::cout << " -  Crcsum: " << Crcsum << std::endl;
+      Brc(i+1) = predictB(Brc(i), Fmsy(nm-1), gamma, mvec(ind), K, dt(ind), n, sdb2);
+      //std::cout << " -  Brc(i+1): " << Brc(i+1) << std::endl;
+      // DEBUGGING
+      if(dbg>1){
+	std::cout << "-- i: " << i << " -  dtpredcinds(i)-1: " << ind << " -   Brc(i+1): " << Brc(i+1) << "  Crc(i): " << Crc(i) << "  Fmsy(nm-1): " << Fmsy(nm-1) << std::endl;
+      }
     }
   }
   Type logCrcsum = log(Crcsum);

@@ -1064,6 +1064,7 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                         if(parname == 'P'){
                             B <- get.par('logB', rep, exp=TRUE)
                             C <- get.par('logCpred', rep, exp=TRUE)
+                            if(rep$inp$dtpredc <= 0) C <- C[-dim(C)[1], ]
                             nn <- 1/rep$inp$dteuler
                             mm <- dim(C)[1]
                             inds <- 1:(nn*mm+1)
@@ -1964,7 +1965,10 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
             cuf <- Cpredest[, 3]
         }
         fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
-        if(length(ylim)!=2) ylim <- range(c(cl, cu, clf[fininds], cuf[fininds], 0.9*MSY[1], 1.07*MSY[3]), na.rm=TRUE)/Cscal
+        if(length(ylim)!=2){
+            ylim <- range(c(cl, cu, 0.9*MSY[1], 1.07*MSY[3]), na.rm=TRUE)/Cscal
+            if(inp$dtpredc > 0) ylim <- range(ylim, clf[fininds], cuf[fininds])
+        }
         ylim[2] <- min(c(ylim[2], 3*max(cf[fininds]))) # Limit upper limit
         if(main==-1) main <- 'Catch'
         plot(time, c, typ='n', main=main, xlab='Time', ylab=paste('Catch'), xlim=range(c(inp$time, tail(inp$time,1))), ylim=ylim)
@@ -1976,8 +1980,6 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
         #lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         lines(time, cl, col=4, lwd=1.5, lty=2)
         lines(time, cu, col=4, lwd=1.5, lty=2)
-        lines(timep, clp, col=4, lwd=1, lty=2)
-        lines(timep, cup, col=4, lwd=1, lty=2)
         abline(v=tail(inp$timeC,1), col='gray')
         #points(timeo, obs/Cscal, cex=0.7)
         plot.col(timeo, obs/Cscal, cex=0.7, do.line=FALSE, add=TRUE)
@@ -1994,9 +1996,12 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
         #abline(h=MSY[2]/Cscal)
         lines(inp$time, MSYvec$msy)
         lines(time, c, col=4, lwd=1.5)
-        lines(timep, cp, col=4, lty=3)
-        #if(min(inp$dtc) == 1) points(tail(inp$timeCpred,1), tail(Cpredest[,2],1)/Cscal, pch=21, bg='yellow')
-        points(inp$timepredc, Crc[2], pch=21, bg='yellow')
+        if(inp$dtpredc > 0){
+            lines(timep, cp, col=4, lty=3)
+            lines(timep, clp, col=4, lwd=1, lty=2)
+            lines(timep, cup, col=4, lwd=1, lty=2)
+            points(inp$timepredc, Crc[2], pch=21, bg='yellow')
+        }
         #if(min(inp$dtc) == 1 & plot.legend) legend('topleft',c(paste(tail(inp$timeCpred,1),'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
         if(min(inp$dtc) == 1 & plot.legend) legend('topright', 'C at Fmsy', pch=21, pt.bg=c('yellow'), bg='white')
         box(lwd=1.5)
@@ -2034,7 +2039,7 @@ plotspict.production <- function(rep){
             Best <- get.par('logB', rep, exp=TRUE)
             Pest <- get.par('P', rep)
             Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
-            Bvec <- Best[inp$ic, 2]
+            Bvec <- Best[inp$ic[1:dim(Pest)[1]], 2]
             ylim <- range(Pest[,2]/Bmsy[2], unlist(Pst)/Bmsy[2], na.rm=TRUE)
         }
         xlim <- range(Bplot/Kest[2], na.rm=TRUE)
@@ -2537,6 +2542,7 @@ summary.spictcls <- function(object, numdigits=8){
         colnames(predout) <- c('prediction', colnms[2:4])
         et <- rep$inp$time[rep$inp$dtprediind]
         rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_',tail(rep$inp$timeCpred,1)))
+        if(rep$inp$dtpredc == 0) predout <- predout[-dim(predout)[1], ]
         cat('', paste(capture.output(predout),' \n'))
     }
     #if('osar' %in% names(rep)){
@@ -3741,6 +3747,12 @@ make.report <- function(rep, reporttitle, reportfile){
 #' @param rep A valid result from fit.spict.
 #' @param nretroyear Number of years of data to remove (this is also the total number of model runs).
 #' @return A rep list with the added key retro containing the results of the retrospective analysis. Use plotspict.retro() to plot these results.
+#' @examples
+#' data(pol)
+#' inp <- pol$albacore
+#' rep <- fit.spict(inp)
+#' rep <- retro(rep, nretroyear=6)
+#' plotspict.retro(rep)
 #' @export
 retro <- function(rep, nretroyear=5){
     inp1 <- rep$inp
@@ -3748,6 +3760,7 @@ retro <- function(rep, nretroyear=5){
     for(i in 1:nretroyear){
         inpall[[i]] <- list()
         inpall[[i]]$ini <- as.list(rep$par.fixed)
+        inpall[[i]]$dtpredc <- 0
         indsC <- which(inp1$timeC <= inp1$timeC[inp1$nobsC]-i)
         inpall[[i]]$obsC <- inp1$obsC[indsC]
         inpall[[i]]$timeC <- inp1$timeC[indsC]
@@ -3776,6 +3789,7 @@ retro <- function(rep, nretroyear=5){
 #' @return Nothing
 #' @export
 plotspict.retro <- function(rep){
+    par(mfrow=c(2, 2), oma=c(1, 0.2, 0, 2), mar=c(4,4,2,1))
     nretroyear <- length(rep$retro)
     bs <- list()
     for(i in 1:nretroyear) bs[[i]] <- get.par('logB', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 2]
@@ -3788,13 +3802,25 @@ plotspict.retro <- function(rep){
     time <- list()
     for(i in 1:nretroyear) time[[i]] <- rep$retro[[i]]$inp$time[rep$retro[[i]]$inp$indest]
 
+    # Do plots
     par(mfrow=c(2, 2))
-    plot(time[[1]], bs[[1]], typ='l', ylim=range(unlist(bs)), xlab='Time', ylab = expression(B[t]))
-    for(i in 2:nretroyear) lines(time[[i]], bs[[i]], col=i)
-    plot(time[[1]], fs[[1]], typ='l', ylim=range(unlist(fs)), xlab='Time', ylab = expression(F[t]))
-    for(i in 2:nretroyear) lines(time[[i]], fs[[i]], col=i)
-    plot(time[[1]], bbs[[1]], typ='l', ylim=range(unlist(bbs)), xlab='Time', ylab = expression(B[t]/B[MSY]))
-    for(i in 2:nretroyear) lines(time[[i]], bbs[[i]], col=i)
-    plot(time[[1]], ffs[[1]], typ='l', ylim=range(unlist(ffs)), xlab='Time', ylab = expression(F[t]/F[MSY]))
-    for(i in 2:nretroyear) lines(time[[i]], ffs[[i]], col=i)
+    plot(time[[1]], bs[[1]], typ='l', ylim=range(unlist(bs)), xlab='Time', ylab = expression(B[t]), lwd=1.5)
+    for(i in 2:nretroyear) lines(time[[i]], bs[[i]], col=i, lwd=1.5)
+    box(lwd=1.5)
+    plot(time[[1]], fs[[1]], typ='l', ylim=range(unlist(fs)), xlab='Time', ylab = expression(F[t]), lwd=1.5)
+    for(i in 2:nretroyear) lines(time[[i]], fs[[i]], col=i, lwd=1.5)
+    box(lwd=1.5)
+    plot(time[[1]], bbs[[1]], typ='l', ylim=range(unlist(bbs)), xlab='Time', ylab = expression(B[t]/B[MSY]), lwd=1.5)
+    for(i in 2:nretroyear) lines(time[[i]], bbs[[i]], col=i, lwd=1.5)
+    box(lwd=1.5)
+    plot(time[[1]], ffs[[1]], typ='l', ylim=range(unlist(ffs)), xlab='Time', ylab = expression(F[t]/F[MSY]), lwd=1.5)
+    for(i in 2:nretroyear) lines(time[[i]], ffs[[i]], col=i, lwd=1.5)
+    box(lwd=1.5)
+    #par(xpd=TRUE)
+    #x <- max(unlist(time))+0.1*diff(range(unlist(time)))
+    #for(i in 1:nretroyear){
+    #    y <- max(unlist(ffs))-0.1*(i-1)*diff(range(unlist(ffs)))
+    #    points(x, y, pch=22, col=i, bg=i)
+    #    text(x, y, max(time[[i]]), pos=4)
+    #}
 }
