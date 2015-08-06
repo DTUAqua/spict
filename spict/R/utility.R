@@ -1342,7 +1342,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         if(main==-1) main <- 'Relative biomass'
         plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main=main)
         #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1]/Bmsy[2],Bmsy[1]/Bmsy[2],Bmsy[3]/Bmsy[2],Bmsy[3]/Bmsy[2]), col=cicol, border=cicol)
-        polygon(c(inp$time, rev(inp$time)), c(Bmsyvec$ll/Bmsyvec$msy,rev(Bmsyvec$ul/Bmsyvec$msy)), col=cicol, border=cicol)
+        #polygon(c(inp$time, rev(inp$time)), c(Bmsyvec$ll/Bmsyvec$msy,rev(Bmsyvec$ul/Bmsyvec$msy)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
         polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3])), col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
@@ -1721,7 +1721,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         if(main==-1) main <- 'Relative fishing mortality'
         plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]), xlab='Time', xlim=range(c(inp$time, tail(inp$time,1)+1)))
         #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Fmsy[1]/Fmsy[2],Fmsy[1]/Fmsy[2],Fmsy[3]/Fmsy[2],Fmsy[3]/Fmsy[2]), col=cicol, border=cicol)
-        polygon(c(inp$time, rev(inp$time)), c(Fmsyvec$ll/Fmsyvec$msy,rev(Fmsyvec$ul/Fmsyvec$msy)), col=cicol, border=cicol)
+        #polygon(c(inp$time, rev(inp$time)), c(Fmsyvec$ll/Fmsyvec$msy,rev(Fmsyvec$ul/Fmsyvec$msy)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
         if(!flag) polygon(c(timef[fininds], rev(timef[fininds])), c(clf[fininds], rev(cuf[fininds])), col=cicol2, border=cicol2)
         if(min(inp$dtc) < 1){ # Plot estimated sub annual F 
@@ -3707,6 +3707,13 @@ make.report <- function(rep, reporttitle, reportfile){
     plot(rep)
     dev.off()
     latex.figure(figfile1, reportfile, caption='Results.')
+
+    # Retrospective analysis plot
+    figfile1b <- 'retro.pdf'
+    pdf(figfile1b)
+    plotspict.retro(rep)
+    dev.off()
+    latex.figure(figfile1b, reportfile, caption='Retrospective analysis.')
 
     # Diagnostic plot
     figfile2 <- 'diag.pdf'
