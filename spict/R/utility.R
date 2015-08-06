@@ -1602,7 +1602,7 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
             fininds <- which(is.finite(Ff))
             if(length(ylim)!=2) ylim <- range(c(Ff, Fmsy[1:3], tail(Fest[, 2],1)), na.rm=TRUE)
         } else {
-            fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))))
+            fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
             if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds], clf[fininds], cuf[fininds], tail(Fest[, 2],1)), na.rm=TRUE)
         }
         ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
@@ -1713,7 +1713,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
             fininds <- which(is.finite(Ff))
             if(length(ylim)!=2) ylim <- range(c(Ff[fininds], 0.95*Fmsy[1]/Fmsy[2], 1.05*Fmsy[3]/Fmsy[2]), na.rm=TRUE)
         } else {
-            fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))))
+            fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
             if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds], 0.95*Fmsy[1]/Fmsy[2], 1.05*Fmsy[3]/Fmsy[2]), na.rm=TRUE)
         }
         ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
