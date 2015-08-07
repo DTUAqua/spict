@@ -46,10 +46,35 @@
 fit.spict <- function(inp, dbg=0){
     # Check input list
     inp <- check.inp(inp)
-    datin <- list(reportall=as.numeric(inp$reportall), dt=inp$dt, dtpredcinds=inp$dtpredcinds, dtpredcnsteps=inp$dtpredcnsteps, dtprediind=inp$dtprediind, indlastobs=inp$indlastobs, obsC=inp$obsC, ic=inp$ic, nc=inp$nc, I=inp$obsIin, ii=inp$iiin, iq=inp$iqin, ir=inp$ir, seasons=inp$seasons, seasonindex=inp$seasonindex, splinemat=inp$splinemat, ffac=inp$ffaceuler, indpred=inp$indpred, robflagc=inp$robflagc, robflagi=inp$robflagi, lamperti=inp$lamperti, euler=inp$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), dbg=dbg)
+    datin <- list(reportall=as.numeric(inp$reportall),
+                  dt=inp$dt,
+                  dtpredcinds=inp$dtpredcinds,
+                  dtpredcnsteps=inp$dtpredcnsteps,
+                  dtprediind=inp$dtprediind,
+                  indlastobs=inp$indlastobs,
+                  obsC=inp$obsC,
+                  ic=inp$ic,
+                  nc=inp$nc,
+                  I=inp$obsIin,
+                  ii=inp$iiin,
+                  iq=inp$iqin,
+                  ir=inp$ir,
+                  seasons=inp$seasons,
+                  seasonindex=inp$seasonindex,
+                  splinemat=inp$splinemat,
+                  ffac=inp$ffaceuler,
+                  indpred=inp$indpred,
+                  robflagc=inp$robflagc,
+                  robflagi=inp$robflagi,
+                  lamperti=inp$lamperti,
+                  euler=inp$euler,
+                  stochmsy=ifelse(inp$msytype=='s', 1, 0),
+                  dbg=dbg)
     pl <- inp$parlist
+    # Cycle through phases
     for(i in 1:inp$nphases){
         if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
+        # Create TMB object
         obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map[[i]])
         config(trace.optimize=0, DLL=inp$scriptname)
         verbose <- FALSE
@@ -58,6 +83,7 @@ fit.spict <- function(inp, dbg=0){
         obj$env$silent <- ! verbose
         obj$fn(obj$par)
         if(dbg<1){
+            # Do estimation
             opt <- try(nlminb(obj$par, obj$fn, obj$gr))
             pl <- obj$env$parList(opt$par)
         }
@@ -65,8 +91,8 @@ fit.spict <- function(inp, dbg=0){
     rep <- list()
     if(dbg<1){
         if(class(opt)!='try-error'){
-            # Calculate SD report
             if(inp$do.sd.report){
+                # Calculate SD report
                 rep <- try(TMB::sdreport(obj))
                 failflag <- class(rep)=='try-error'
                 if(failflag){
@@ -80,23 +106,10 @@ fit.spict <- function(inp, dbg=0){
                 if(!failflag){
                     rep$inp <- inp
                     if(inp$reportall){
-                        #  - Calculate statistics -
+                        #  - Calculate Prager's statistics -
                         rep$stats <- list()
                         K <- get.par('logK', rep, exp=TRUE)[2]
-                        #r <- get.par('logr', rep, exp=TRUE)[2]
-                        n <- get.par('logn', rep, exp=TRUE)[2]
-                        p <- n-1
-                        Best <- get.par('logB', rep, exp=TRUE)
-                        Bests <- Best[rep$inp$indest, 2]
-                        # R-square
-                        #Pest <- get.par('P', rep)
-                        #B <- Best[-inp$ns, 2]
-                        #inds <- unique(c(inp$ic[1:inp$nobsC], unlist(inp$ii)))
-                        #gr <- r*(1-(B[inds]/K)^p) # Pella-Tomlinson production
-                        #grobs <- Pest[inds, 2]/inp$dt[inds]/B[inds]
-                        #ssqobs <- sum((grobs - mean(grobs))^2)
-                        #ssqres <- sum((grobs - gr)^2)
-                        #rep$stats$pseudoRsq <- 1 - ssqres/ssqobs
+                        Bests <- get.par('logB', rep, exp=TRUE)[rep$inp$indest, 2]
                         Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
                         if(!any(is.na(Bests)) & !is.na(Bmsy)){
                             Bdiff <- Bmsy - Bests
