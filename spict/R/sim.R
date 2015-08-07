@@ -144,19 +144,18 @@ sim.spict <- function(input, nobs=100){
     sdc <- beta * sdf
 
     # B[t] is biomass at the beginning of the time interval starting at time t
-    # I[t] is an index of biomass (e.g. CPUE) at the beginning of the time interval starting at time t
+    # I[t] is an index of biomass (e.g. CPUE) at time t
     # P[t] is the accumulated biomass production over the interval starting at time t
     # F[t] is the constant fishing mortality during the interval starting at time t
     # C[t] is the catch removed during the interval starting at time t. 
     # obsC[j] is the catch removed over the interval starting at time j, this will typically be the accumulated catch over the year.
 
-    # - Fishing mortality -
     seasonspline <- get.spline(pl$logphi, order=inp$splineorder, dtfine=dt)
     nseasonspline <- length(seasonspline)
     flag <- TRUE
     recount <- 0
     while(flag){
-        #ef <- rnorm(nt-1, 0, sdf*sqrt(dt))
+        # - Fishing mortality -
         ef <- arima.sim(inp$armalistF, nt-1) * sdf*sqrt(dt) # Used to simulate other than white noise in F
         Fbase <- c(F0, exp(log(F0) + cumsum(ef))) # Fishing mortality
         F <- numeric(length(Fbase))
@@ -164,16 +163,10 @@ sim.spict <- function(input, nobs=100){
             inds <- which(inp$seasonindex==(i-1))
             F[inds] <- Fbase[inds] * exp(seasonspline[i])
         }
-        #F <- c(F0, exp(log(F0) + cumsum(rnorm(nt-1, 0, sdf*sqrt(dt))))) # Fishing mortality
-        # - B_infinity
-        #Binf <- rep(0,nt)
-        #for(t in 1:nt) Binf[t] <- calc.binf(K, F[t], r[inp$ir[t]], p, sdb, lamperti)
         # - Biomass -
         B <- rep(0,nt)
         B[1] <- B0
         e <- exp(rnorm(nt-1, 0, sdb*sqrt(dt)))
-        
-        #for(t in 2:nt) B[t] <- predict.b(B[t-1], Binf[t-1], F[t-1], r[inp$ir[t]], p, K, dt, sdb, lamperti, euler) * e[t-1]
         for(t in 2:nt) B[t] <- predict.b(B[t-1], F[t-1], gamma, m[inp$ir[t]], K, n, dt, sdb) * e[t-1]
         flag <- any(B <= 0) # Negative biomass not allowed
         recount <- recount+1
@@ -197,7 +190,6 @@ sim.spict <- function(input, nobs=100){
     }
     if('outliers' %in% names(inp)){
         if('noutC' %in% names(inp$outliers)){
-            #if(!'facoutC' %in% names(inp$outliers)) inp$outliers$facoutC <- 20
             fac <- invlogp1(inp$ini$logp1robfac)
             inp$outliers$orgobsC <- obsC
             inp$outliers$indsoutC <- sample(1:inp$nobsC, inp$outliers$noutC)
@@ -219,9 +211,7 @@ sim.spict <- function(input, nobs=100){
     if('outliers' %in% names(inp)){
         if('noutI' %in% names(inp$outliers)){
             if(length(inp$outliers$noutI)==1) inp$outliers$noutI <- rep(inp$outliers$noutI, inp$nindex)
-            #if(!'facoutI' %in% names(inp$outliers)) inp$outliers$facoutI <- 20
             fac <- invlogp1(inp$ini$logp1robfac)
-            #if(length(inp$outliers$facoutI)==1) inp$outliers$facoutI <- rep(inp$outliers$facoutI, inp$nindex)
             inp$outliers$orgobsI <- obsI
             inp$outliers$indsoutI <- list()
             for(i in 1:inp$nindex){
@@ -236,7 +226,7 @@ sim.spict <- function(input, nobs=100){
     sim$timeC <- inp$timeC
     sim$obsI <- obsI
     sim$timeI <- inp$timeI
-    sim$ini <- plin #list(logr=log(r), logK=log(K), logq=log(q), logsdf=log(sdf), logsdb=log(sdb))
+    sim$ini <- plin
     sim$do.sd.report <- inp$do.sd.report
     sim$reportall <- inp$reportall
     sim$dteuler <- inp$dteuler
@@ -256,8 +246,6 @@ sim.spict <- function(input, nobs=100){
     sim$true$gamma <- gamma
     
     sign <- 1
-    #print(inp$ir)
-    #print(paste(n, gamma, m, mean(m[inp$ir]), K))
     R <- (n-1)/n*gamma*mean(m[inp$ir])/K
     p <- n-1
     sim$true$R <- R
@@ -363,11 +351,9 @@ extract.simstats <- function(rep){
             mu <- get.par(parname, rep, exp=FALSE)[2]
             if(!is.null(ind)){
                 par <- par[ind, ]
-                #mu <- get.par(parname, rep, exp=FALSE)[ind, 2]
             }
             ci <- unname(true > par[1] & true < par[3])
             ciw <- unname(par[3] - par[1])
-            #cv <- unname(par[4]/mu)
             cv <- par[5]
             return(list(ci=ci, ciw=ciw, cv=cv))
         }
@@ -378,15 +364,11 @@ extract.simstats <- function(rep){
         # MSY estimate
         ss$MSY <- calc.simstats('MSY', rep, exp=FALSE, rep$inp$true$MSY)
         # Final biomass estimate
-        #ind <- tail(rep$inp$indest, 1) - 1 # minus 1 because an extra time step is added to be able to integrate the catches over this time interval.
         ind <- rep$inp$indlastobs
-        #ss$B <- calc.simstats('logB', rep, exp=TRUE, rep$inp$true$B[ind], ind=ind)
         ss$B <- calc.simstats('logBl', rep, exp=TRUE, rep$inp$true$B[ind])
         # Final B/Bmsy estimate
-        #ss$BB <- calc.simstats('logBBmsy', rep, exp=TRUE, rep$inp$true$B[ind]/rep$inp$true$Bmsy, ind=ind)
         ss$BB <- calc.simstats('logBlBmsy', rep, exp=TRUE, rep$inp$true$B[ind]/rep$inp$true$Bmsy)
         # Final F/Fmsy estimate
-        #ss$FF <- calc.simstats('logFFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy, ind=ind)
         ss$FF <- calc.simstats('logFlFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy)
         # Biomass process noise
         ss$sdb <- calc.simstats('logsdb', rep, exp=TRUE, exp(rep$inp$true$logsdb))
