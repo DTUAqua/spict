@@ -355,7 +355,6 @@ check.inp <- function(inp){
         }
     }
     if(!'logK' %in% names(inp$ini)) inp$ini$logK <- log(4*max(inp$obsC))
-    #check.ini('logK', inp)
     if(!'logq' %in% names(inp$ini)) inp$ini$logq <- log(max(inp$obsI[[1]])) - inp$ini$logK
     if('logq' %in% names(inp$ini)){
         if(length(inp$ini$logq) != inp$nindex){
@@ -368,14 +367,10 @@ check.inp <- function(inp){
     }
     if(!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
     if(!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
-    #check.ini('logsdb', inp, min=log(0.03), max=log(5))
-    #check.ini('logsdf', inp, min=log(0.03), max=log(5))
     if(!"logm" %in% names(inp$ini)){
-        #n <- exp(inp$ini$logn)
         gamma <- inp$ini$gamma
         r <- exp(inp$ini$logr)
         K <- exp(inp$ini$logK)
-        #m <- r*K^(n-1) * (n-1)*(1/n)^(n/(n-1)) # n > 1
         m <- r * K / gamma # n > 1
         if(n>1){
             inp$ini$logm <- log(m)
@@ -383,7 +378,7 @@ check.inp <- function(inp){
             inp$ini$logm <- log(-m)
         }
     }
-    # Fill in unspecified less important model parameter values
+    # Fill in unspecified (more rarely user defined) model parameter values
     if(!"logphi" %in% names(inp$ini)) inp$ini$logphi <- rep(0, inp$nseasons-1)
     if(!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
     if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(20-1)
@@ -476,7 +471,6 @@ check.inp <- function(inp){
             if(parnam %in% names(inp$parlist)){
                 phase <- inp$phases[[parnam]]
                 inp$map[[j]][[parnam]] <- factor(rep(NA, length(inp$parlist[[parnam]])))
-                #cat('WARNING: Phases not yet implemented! will estimate everything in one phase.\n')
             } else {
                 cat(paste('WARNING: Phase specified for an invalid parameter:', parnam, '\n'))
             }
