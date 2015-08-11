@@ -137,8 +137,9 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         #par(mar=c(5,4,4,4))
         #fininds <- which(apply(Best, 1, function(x) all(abs(x) < 1e8)))
         fininds <- which(Best[, 5] < 5) # Use CV to check for large uncertainties
+        BBfininds <- which(BB[, 5] < 5) # Use CV to check for large uncertainties
         #if(length(ylim)!=2) ylim <- range(BB[fininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), Binf[,2], 0.95*Bmsy[1], 1.05*Bmsy[3])/scal
-        if(length(ylim)!=2) ylim <- range(BB[fininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), 0.95*Bmsy[1], 1.05*Bmsy[3], na.rm=TRUE)/scal
+        if(length(ylim)!=2) ylim <- range(BB[BBfininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), 0.95*Bmsy[1], 1.05*Bmsy[3], na.rm=TRUE)/scal
         ylim[2] <- min(c(ylim[2], 3*max(Best[fininds, 2], unlist(obsI)))) # Limit upper limit
         #if(main==-1) main <- paste('- Bmsy:',round(Bmsy[2]),' K:',round(Kest[2]))
         if(main==-1) main <- 'Absolute biomass'
@@ -147,9 +148,9 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         mtext(expression(B[t]/B[MSY]), side=4, las=0, line=2.2, cex=par('cex'))
         #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(Bmsy[1],Bmsy[1],Bmsy[3],Bmsy[3]), col=cicol, border=cicol)
         #refpointci(inp$time, Bmsyvec$ll, Bmsyvec$ul, cicol)
-        polygon(c(inp$time, rev(inp$time)), c(Bmsyvec$ll,rev(Bmsyvec$ul)), col=cicol, border=cicol)
+        if(all(is.finite(unlist(Bmsyvec)))) polygon(c(inp$time, rev(inp$time)), c(Bmsyvec$ll,rev(Bmsyvec$ul)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
-        if(!'yearsepgrowth' %in% names(inp)) polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3]))/scal*Bmsy[2], col=cicol2, border=cicol2)
+        if(!'yearsepgrowth' %in% names(inp)) polygon(c(inp$time[BBfininds], rev(inp$time[BBfininds])), c(BB[BBfininds,1], rev(BB[BBfininds,3]))/scal*Bmsy[2], col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
         if(plot.obs){
             for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], inp$obsI[[i]]/qest[i, 2], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
@@ -497,7 +498,7 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
             Ff <- Fest[, 2] #*Fmsy[2]
             cuf <- FF[, 3]*Fmsy[2]
         }
-        flag <- length(cu)==0
+        flag <- length(cu)==0 | all(!is.finite(cu))
         if(flag){
             fininds <- which(is.finite(Ff))
             if(length(ylim)!=2) ylim <- range(c(Ff, Fmsy[1:3], tail(Fest[, 2],1)), na.rm=TRUE)
@@ -608,7 +609,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
             Ff <- FF[, 2]
             cuf <- FF[, 3]
         }
-        flag <- length(cu)==0
+        flag <- length(cu)==0 | all(!is.finite(cu))
         if(flag){
             fininds <- which(is.finite(Ff))
             if(length(ylim)!=2) ylim <- range(c(Ff[fininds], 0.95*Fmsy[1]/Fmsy[2], 1.05*Fmsy[3]/Fmsy[2]), na.rm=TRUE)
@@ -903,7 +904,7 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
             points(inp$timepredc, Crc[2], pch=21, bg='yellow')
         }
         #if(min(inp$dtc) == 1 & plot.legend) legend('topleft',c(paste(tail(inp$timeCpred,1),'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
-        if(min(inp$dtc) == 1 & plot.legend) legend('topright', 'C at Fmsy', pch=21, pt.bg=c('yellow'), bg='white')
+        if(min(inp$dtc) == 1 & inp$dtpredc > 0 & plot.legend & Crc[2] > ylim[1] & Crc[2] < ylim[2]) legend('topright', 'C at Fmsy', pch=21, pt.bg=c('yellow'), bg='white')
         box(lwd=1.5)
     }
 }
@@ -950,6 +951,10 @@ plotspict.production <- function(rep){
         if(nr > 1) for(i in 1:(nr-1)) lines(Bplot/Kest[2], Pst[[i]]/Bmsy[2], col='gray')
         if(inp$reportall & inp$nseasons==1){
             lines(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, lwd=1.5)
+            points(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, pch=20, cex=0.7)
+            par(xpd=TRUE)
+            text(Bvec/Kest[2], Pest[, 2]/Bmsy[2], labels=inp$time[inp$ic], cex=0.65, pos=4, offset=0.25)
+            par(xpd=FALSE)
         }
         mx <- (1/n[2])^(1/(n[2]-1))
         abline(v=mx, lty=3)
