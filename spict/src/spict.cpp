@@ -46,14 +46,14 @@ Type objective_function<Type>::operator() ()
 {
   Type ans=0;
 
-  DATA_INTEGER(reportall); // Euler flag.
+  DATA_INTEGER(reportall); // Report everything?
   DATA_VECTOR(dt);         // Time steps
   DATA_VECTOR(dtpredcinds);
   DATA_INTEGER(dtpredcnsteps); // Number of sub time step for prediction
   DATA_SCALAR(dtprediind);
   DATA_INTEGER(indlastobs);// Index of B and F corresponding to the last observation.
   DATA_VECTOR(obsC);       // Catches
-  DATA_VECTOR(ic);         // Vector such that B(ii(i)) is the state corresponding to obsC(i)
+  DATA_VECTOR(ic);         // Vector such that B(ic(i)) is the state at the start of obsC(i)
   DATA_VECTOR(nc);         // nc(i) gives the number of time intervals obsC(i) spans
   DATA_VECTOR(I);          // Index
   DATA_VECTOR(ii);         // A vector such that B(ii(i)) is the state corresponding to I(i)
@@ -345,7 +345,7 @@ Type objective_function<Type>::operator() ()
     for(int j=0; j<nc(i); j++){
       ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
       Cpred(i) += Cpredsub(ind);
-      logCpred(i) = log(Cpred(i));
+      logCpred(i) = log(Cpred(i)); // This should be done outside loop?
     }
     // DEBUGGING
     if(dbg>1){
