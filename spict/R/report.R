@@ -17,21 +17,26 @@ latex.figure <- function(figfile, reportfile, caption=''){
 #' @param rep A valid result from fit.spict with OSA residuals.
 #' @param reporttitle This character string will be printed as the first line of the report.
 #' @param reportfile The generated tex code will be stored in this file.
+#' @param summaryoutfile Output of the summary will be stored in this file as plain text.
+#' @param keep.figurefiles If TRUE generated figure files will not be cleaned up.
+#' @param keep.txtfiles If TRUE generated txt files will not be cleaned up.
 #' @return Nothing.
 #' @export
-make.report <- function(rep, reporttitle, reportfile){
-    latexstart <- '\\documentclass[12pt]{article}\n\\usepackage{graphicx}\\begin{document}\n'
+make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryoutfile='summaryout.txt', keep.figurefiles=FALSE, keep.txtfiles=FALSE){
+    latexstart <- '\\documentclass[12pt]{article}\n\\usepackage{graphicx}\n\\usepackage{verbatim}\n\\begin{document}\n'
     latexend <- '\\end{document}\n'
-    summaryout <- capture.output(summary(rep))
+    cat(reporttitle, file=summaryoutfile)
+    summaryout <- capture.output(summary(rep), file=summaryoutfile, append=TRUE)
 
     # -- Write tex file -- #
     cat(latexstart, file=reportfile)
     # Summary
     cat('\\footnotesize\n', file=reportfile, append=TRUE)
-    cat('\\begin{verbatim}\n', file=reportfile, append=TRUE)
-    cat(reporttitle, file=reportfile, append=TRUE)
-    cat(summaryout, sep='\n', file=reportfile, append=TRUE)
-    cat('\\end{verbatim}\n', file=reportfile, append=TRUE)
+    cat(paste0('\\verbatiminput{', summaryoutfile, '}\n'), file=reportfile, append=TRUE)
+    #cat('\\begin{verbatim}\n', file=reportfile, append=TRUE)
+    #cat(reporttitle, file=reportfile, append=TRUE)
+    #cat(summaryout, sep='\n', file=reportfile, append=TRUE)
+    #cat('\\end{verbatim}\n', file=reportfile, append=TRUE)
 
     # Results plot
     figfile1 <- 'res.pdf'
@@ -41,12 +46,14 @@ make.report <- function(rep, reporttitle, reportfile){
     latex.figure(figfile1, reportfile, caption='Results.')
 
     # Retrospective analysis plot
-    figfile1b <- 'retro.pdf'
-    pdf(figfile1b)
-    plotspict.retro(rep)
-    dev.off()
-    latex.figure(figfile1b, reportfile, caption='Retrospective analysis.')
-
+    if('retro' %in% names(rep)){
+        figfile1b <- 'retro.pdf'
+        pdf(figfile1b)
+        plotspict.retro(rep)
+        dev.off()
+        latex.figure(figfile1b, reportfile, caption='Retrospective analysis.')
+    }
+    
     # Diagnostic plot
     figfile2 <- 'diag.pdf'
     pdf(figfile2, width=9, height=10)
@@ -74,7 +81,11 @@ make.report <- function(rep, reporttitle, reportfile){
     #file.remove(paste0('../res/', substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.log'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
-    file.remove(figfile1)
-    file.remove(figfile2)
-    file.remove(figfile3)
+    if(!keep.txtfiles) file.remove(summaryoutfile)
+    if(!keep.figurefiles){
+        file.remove(figfile1)
+        file.remove(figfile1b)
+        file.remove(figfile2)
+        file.remove(figfile3)
+    }
 }
