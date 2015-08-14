@@ -425,14 +425,17 @@ Type objective_function<Type>::operator() ()
     std::cout << "-- dtpredcnsteps: " << dtpredcnsteps << "  dtpredcinds.size(): " << dtpredcinds.size() <<std::endl;
   }
   Type Cp = 0.0;
+  vector<Type> Cpsub(dtpredcnsteps); // Catch in euler intervals (can be used to calculate a catch prediction for a given interval)
   for(int i=0; i<dtpredcnsteps; i++){
     ind = CppAD::Integer(dtpredcinds(i)-1);
     if(dbg>1){
       std::cout << "-- i: " << i << " -  dtpredcinds(i)-1: " << ind << std::endl;
     }
     Cp += Cpredsub(ind);
+    Cpsub(i) = Cpredsub(ind);
   }
   Type logCp = log(Cp);
+  vector<Type> logCpsub = log(Cpsub);
   // CALCULATE RECOMMENDED CATCH
   Type Crcsum = 1.0e-12;
   if(dtpredcnsteps > 0){
@@ -529,6 +532,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logCrcsum);
   ADREPORT(logIp);
   ADREPORT(logCp);
+  ADREPORT(logCpsub);
   // PARAMETERS
   ADREPORT(r);
   ADREPORT(logr);

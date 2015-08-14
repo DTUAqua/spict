@@ -19,11 +19,12 @@ arrow.line <- function(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"
 
 
 #' @name annual
-#' @title Convert from quarterly (or other sub-annual) data to annual means.
+#' @title Convert from quarterly (or other sub-annual) data to annual means or sums.
 #' @param intime A time vector corresponding to the values in vec.
 #' @param vec The vector of values to convert to annual means
+#' @param type If type='mean' then annual mean is calculated, if type='sum' then annual sum is calculated.
 #' @return A list containing the annual means and a corresponding time vector.
-annual <- function(intime, vec){
+annual <- function(intime, vec, type='mean'){
     anntime <- intime[which(intime %% 1 ==0)]
     nanntime <- length(anntime)
     nstepvec <- rep(0, nanntime)
@@ -36,7 +37,12 @@ annual <- function(intime, vec){
     annvec <- rep(0, nanntime)
     for(i in 1:nanntime){
         inds <- which(anntime[i]==floortime)
-        annvec[i] <- mean(vec[inds])
+        if(type=='mean'){
+            annvec[i] <- mean(vec[inds])
+        }
+        if(type=='sum'){
+            annvec[i] <- sum(vec[inds])
+        }
     }
     return(list(anntime=anntime, annvec=annvec))
 }
@@ -856,10 +862,20 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
             c <- Cpredest[indest, 2]/dtc[indest]
             cl <- Cpredest[indest, 1]
             cu <- Cpredest[indest, 3]
-            timep <- inp$timeCpred[indpred]
-            cp <- Cpredest[indpred, 2]/dtc[indpred]
-            clp <- Cpredest[indpred, 1]
-            cup <- Cpredest[indpred, 3]
+            #timep0 <- inp$timeCpred[indpred]
+            #cp0 <- Cpredest[indpred, 2]/dtc[indpred]
+            #clp0 <- Cpredest[indpred, 1]
+            #cup0 <- Cpredest[indpred, 3]
+            timeptemp <- inp$time[inp$indpred]
+            al <- annual(timeptemp, Cpsub[,2], type='sum')
+            timep <- c(tail(time, 1), al$anntime)
+            cp <- al$annvec
+            al2 <- annual(timeptemp, Cpsub[, 4]^2, type='sum') # Variance
+            clp <- cp - 1.96*sqrt(al2$annvec)
+            cup <- cp + 1.96*sqrt(al2$annvec)
+            cp <- c(tail(c, 1), cp)
+            clp <- c(tail(cl, 1), clp)
+            cup <- c(tail(cu, 1), cup)
             timef <- inp$timeCpred
             clf <- Cpredest[, 1]
             cf <- Cpredest[, 2]/dtc
@@ -898,6 +914,9 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
         lines(inp$time, MSYvec$msy)
         lines(time, c, col=4, lwd=1.5)
         if(inp$dtpredc > 0){
+            #lines(timep0, cp0, col=4, lty=3)
+            #lines(timep0, clp0, col=4, lwd=1, lty=2)
+            #lines(timep0, cup0, col=4, lwd=1, lty=2)
             lines(timep, cp, col=4, lty=3)
             lines(timep, clp, col=4, lwd=1, lty=2)
             lines(timep, cup, col=4, lwd=1, lty=2)
