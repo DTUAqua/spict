@@ -804,6 +804,7 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
         MSYvec <- get.msyvec(inp, MSY)
         Crc <- get.par('logCrcsum', rep, exp=TRUE)
         #Cpredsub <- get.par('Cpredsub', rep)
+        #Cpsub <- get.par('logCpsub', rep, exp=TRUE) # could be deleted
         Cpredest <- get.par('logCpred', rep, exp=TRUE)
         Cpredest[Cpredest<0] <- 0
         rep$Cp[rep$Cp<0] <- 0
@@ -862,20 +863,10 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
             c <- Cpredest[indest, 2]/dtc[indest]
             cl <- Cpredest[indest, 1]
             cu <- Cpredest[indest, 3]
-            #timep0 <- inp$timeCpred[indpred]
-            #cp0 <- Cpredest[indpred, 2]/dtc[indpred]
-            #clp0 <- Cpredest[indpred, 1]
-            #cup0 <- Cpredest[indpred, 3]
-            timeptemp <- inp$time[inp$indpred]
-            al <- annual(timeptemp, Cpsub[,2], type='sum')
-            timep <- c(tail(time, 1), al$anntime)
-            cp <- al$annvec
-            al2 <- annual(timeptemp, Cpsub[, 4]^2, type='sum') # Variance
-            clp <- cp - 1.96*sqrt(al2$annvec)
-            cup <- cp + 1.96*sqrt(al2$annvec)
-            cp <- c(tail(c, 1), cp)
-            clp <- c(tail(cl, 1), clp)
-            cup <- c(tail(cu, 1), cup)
+            timep <- inp$timeCpred[indpred]
+            cp <- Cpredest[indpred, 2]/dtc[indpred]
+            clp <- Cpredest[indpred, 1]
+            cup <- Cpredest[indpred, 3]
             timef <- inp$timeCpred
             clf <- Cpredest[, 1]
             cf <- Cpredest[, 2]/dtc
@@ -914,9 +905,6 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
         lines(inp$time, MSYvec$msy)
         lines(time, c, col=4, lwd=1.5)
         if(inp$dtpredc > 0){
-            #lines(timep0, cp0, col=4, lty=3)
-            #lines(timep0, clp0, col=4, lwd=1, lty=2)
-            #lines(timep0, cup0, col=4, lwd=1, lty=2)
             lines(timep, cp, col=4, lty=3)
             lines(timep, clp, col=4, lwd=1, lty=2)
             lines(timep, cup, col=4, lwd=1, lty=2)
