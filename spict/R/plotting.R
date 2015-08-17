@@ -1418,3 +1418,43 @@ plotspict.retro <- function(rep){
     #    text(x, y, max(time[[i]]), pos=4)
     #}
 }
+
+
+#' @name plotspict.ci
+#' @title Plot catch and index data.
+#' @param inp An input list containing data.
+#' @return Nothing
+#' @export
+plotspict.ci <- function(inp){
+    inp <- check.inp(inp)
+    y <- inp$obsC
+    z <- inp$obsI[[1]]
+    x <- y/z
+    mod0 <- lm(z ~ x)
+    a <- mod0$coefficients[1]
+    b <- mod0$coefficients[2]
+    c <- guess.m(inp, Emsy=TRUE)
+    MSY <- c$MSY
+    Emsy <- c$Emsy
+    xlim <- Re(polyroot(c(0, a, b)))
+    xp <- data.frame('x'=seq(xlim[1], xlim[2], length=100))
+    yp <- a*xp$x + b*xp$x^2 # Dome
+    yp0 <- predict(mod0, xp)
+    par(mfrow=c(3, 2))
+    plot(inp$timeC, y, typ='b', ylab='Catch', xlab='Time')
+    abline(h=MSY, lty=2)
+    grid()
+    plot(inp$timeI[[1]], z, typ='b', ylab='Index', xlab='Time')
+    grid()
+    plot(x, z, typ='b', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
+    lines(xp$x, yp0, col=4)
+    plot(x, y, typ='b', xlim=xlim, ylim=range(0, y), ylab='Catch', xlab='Catch/Index (E, effort proxy)', main=paste('MSY guess:', round(MSY,1), '   Emsy:', round(Emsy, 3)))
+    #abline(v=Emsy, col='green')
+    abline(h=MSY, lty=2)
+    lines(xp$x, yp, col=4)
+    plot(z, y, typ='b', ylab='Catch', xlab='Index')
+    abline(h=MSY, lty=2)
+    plot(y[-length(y)], diff(z)/z[-length(z)], typ='b', xlab='Catch', ylab='Proportional increase in index')
+    abline(h=0, lty=2)
+    abline(v=MSY, lty=2)
+}

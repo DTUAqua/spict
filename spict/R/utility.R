@@ -243,3 +243,31 @@ invlogit <- function(a) 1/(1+exp(-a))
 #' @param a Value to take inverse logp1 of.
 #' @return Inverse logp1.
 invlogp1 <- function(a) 1 + exp(a)
+
+
+#' @name guess.m
+#' @title Use a simple linear regression to guess m (MSY).
+#' @details Equations 9.1.7 and 9.1.8 on page 284 of FAO's tropical assessment book are used to guess MSY.
+#' @param inp An input list containing data.
+#' @param Emsy.return If true also return a guess on Emsy (effort at MSY).
+#' @return The guess on MSY.
+#' @export
+guess.m <- function(inp, Emsy.return=FALSE){
+    y <- inp$obsC
+    if(class(inp$obsI)=='list'){
+        z <- inp$obsI[[1]]
+    } else {
+        z <- inp$obsI
+    }
+    x <- y/z
+    mod0 <- lm(z ~ x)
+    a <- mod0$coefficients[1]
+    b <- mod0$coefficients[2]
+    MSY <- -0.25*a^2/b # p. 284 in FAO's book on tropical stock assessment
+    if(Emsy.return){
+        Emsy <- -0.5*a/b # p. 284 in FAO's book on tropical stock assessment
+        return(list(MSY=MSY, Emsy=Emsy))
+    } else {
+        return(MSY)
+    }
+}

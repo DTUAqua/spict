@@ -280,6 +280,7 @@ check.inp <- function(inp){
 
     
     # -- MODEL PARAMETERS --
+    # logn
     if(!"logn" %in% names(inp$ini)){
         inp$ini$logn <- log(2.0)
     } else {
@@ -288,22 +289,19 @@ check.inp <- function(inp){
     # Calculate gamma from n
     n <- exp(inp$ini$logn)
     inp$ini$gamma <- calc.gamma(n)
-    # Check that required initial values are specified
+    # logK
+    if(!'logK' %in% names(inp$ini)) inp$ini$logK <- log(4*max(inp$obsC))
+    # logr
     if('logr' %in% names(inp$ini) & 'logm' %in% names(inp$ini)) inp$ini$logr <- NULL # If both r and m are specified use m and discard r
     if(!'logr' %in% names(inp$ini)){
-        if('logm' %in% names(inp$ini)){
-            if('logK' %in% names(inp$ini)){
-                r <- inp$ini$gamma * exp(inp$ini$logm) / exp(inp$ini$logK) # n > 1
-                if(n>1){
-                    inp$ini$logr <- log(r)
-                } else {
-                    inp$ini$logr <- log(-r)
-                }
-            } else {
-                stop('Please specify initial value(s) for logK!')
-            }
-        } else { # No r and no m
-            inp$ini$logr <- log(0.8)
+        if(!'logm' %in% names(inp$ini)){
+            inp$ini$logm <- log(guess.m(inp))
+        }
+        r <- inp$ini$gamma * exp(inp$ini$logm) / exp(inp$ini$logK) # n > 1
+        if(n>1){
+            inp$ini$logr <- log(r)
+        } else {
+            inp$ini$logr <- log(-r)
         }
     }
     #print(inp$ini$logr)
@@ -354,7 +352,6 @@ check.inp <- function(inp){
             }
         }
     }
-    if(!'logK' %in% names(inp$ini)) inp$ini$logK <- log(4*max(inp$obsC))
     if(!'logq' %in% names(inp$ini)) inp$ini$logq <- log(max(inp$obsI[[1]])) - inp$ini$logK
     if('logq' %in% names(inp$ini)){
         if(length(inp$ini$logq) != inp$nindex){
