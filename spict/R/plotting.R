@@ -1448,7 +1448,7 @@ plotspict.ci <- function(inp){
     grid()
     plot(x, z, typ='b', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
     lines(xp$x, yp0, col=4)
-    plot(x, y, typ='b', xlim=xlim, ylim=range(0, y), ylab='Catch', xlab='Catch/Index (E, effort proxy)', main=paste('MSY guess:', round(MSY,1), '   Emsy:', round(Emsy, 3)))
+    plot(x, y, typ='b', xlim=xlim, ylim=range(0, y), ylab='Catch', xlab='Catch/Index (E, effort proxy)', main=paste('MSY guess:', round(MSY, 2), '   Emsy:', round(Emsy, 3)))
     #abline(v=Emsy, col='green')
     abline(h=MSY, lty=2)
     lines(xp$x, yp, col=4)
