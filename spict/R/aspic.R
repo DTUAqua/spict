@@ -125,6 +125,9 @@ read.aspic <- function(filename){
 #' @export
 write.aspic <- function(input, filename='spictout.a7inp'){
     inp <- check.inp(input)
+    if(any(c(inp$timeC, unlist(inp$timeI)) %% 1 != 0)) cat('Warning (write.aspic): Observation times were rounded down (floored) to integers. Consider providing only integer observation times.\n')
+    inp$timeC <- floor(inp$timeC)
+    for(i in 1:inp$nindex) inp$timeI[[i]] <- floor(inp$timeI[[i]])
     timeobs <- sort(unique(c(inp$timeC, inp$timeI[[1]])))
     nobs <- length(timeobs)
     dat <- cbind(timeobs, rep(-1, nobs), rep(-1, nobs))
@@ -164,7 +167,7 @@ write.aspic <- function(input, filename='spictout.a7inp'){
     for(i in 1:inp$nindex) cat(sprintf('q     %3.2E  1  %3.2E  %3.2E  %3.2E\n', exp(inp$ini$logq[i]), 1, 0.001*exp(inp$ini$logq[i]), 100*exp(inp$ini$logq[i])), file=filename, append=TRUE)
     cat('DATA\n', file=filename, append=TRUE)
     cat('"Combined-Fleet Index, Total Landings"\n', file=filename, append=TRUE)
-    cat('CC\n', file=filename, append=TRUE)
+    cat('CC\n', file=filename, append=TRUE) # CC refers to CPUE annual average, catch annual total.
     for(i in 1:nobs) cat(sprintf('  %4i    % 6.4E    % 6.4E\n', timeobs[i], dat[i, 2], dat[i, 3]), file=filename, append=TRUE)
     if(inp$nindex>1){
         for(I in 2:inp$nindex){
