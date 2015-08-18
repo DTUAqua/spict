@@ -63,10 +63,8 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     
     # Data plot
     figfile3 <- 'data.pdf'
-    pdf(figfile3, width=7, height=6+rep$inp$nindex)
-    par(mfrow=c(1+rep$inp$nindex,1))
-    plot(rep$inp$timeC, rep$inp$obsC, xlab='Time', ylab='Catch', typ='b')
-    for(i in 1:rep$inp$nindex) plot(rep$inp$timeI[[i]], rep$inp$obsI[[i]], xlab='Time', ylab=paste('Index', i), typ='b')
+    pdf(figfile3, width=9, height=10)
+    plotspict.ci(inp)
     dev.off()
     latex.figure(figfile3, reportfile, caption='Data.')
     
