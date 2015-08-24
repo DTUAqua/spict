@@ -70,6 +70,8 @@ fit.spict <- function(inp, dbg=0){
                   euler=inp$euler,
                   stochmsy=ifelse(inp$msytype=='s', 1, 0),
                   priorr=inp$priors$logr,
+                  priorm=inp$priors$logm,
+                  priorK=inp$priors$logK,
                   dbg=dbg)
     pl <- inp$parlist
     # Cycle through phases

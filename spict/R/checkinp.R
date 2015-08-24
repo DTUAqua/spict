@@ -289,15 +289,24 @@ check.inp <- function(inp){
     # log(mean): log of the mean of the prior distribution.
     # stdev in log: standard deviation of the prior distribution in log domain.
     # useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
+    check.prior.stdev <- function(priorvec, priorname) if(priorvec[2] <= 0) cat(paste('WARNING: invalid standard deviation specified in prior for', priorname, '(must be > 0). Not using this prior.\n'))
     if(!"priors" %in% names(inp)){
         inp$priors <- list()
     }
     if(!"logr" %in% names(inp$priors)){
-        inp$priors$logr <- c(log(0.8), 0.1, 0)
+        inp$priors$logr <- c(log(0.8), 0.2, 0)
     } else {
-        if(inp$priors$logr[3] == 1){ # If prior is to be used
-            if(inp$priors$logr[2] <= 0) cat(paste('WARNING: invalid standard deviation specified in prior for r (must be > 0). Not using this prior.\n'))
-        }
+        if(inp$priors$logr[3] == 1) check.prior.stdev(inp$priors$logr, 'logr') # If prior is to be used
+    }
+    if(!"logK" %in% names(inp$priors)){
+        inp$priors$logK <- c(log(4*max(inp$obsC)), 0.2, 0)
+    } else {
+        if(inp$priors$logK[3] == 1) check.prior.stdev(inp$priors$logK, 'logK') # If prior is to be used
+    }
+    if(!"logm" %in% names(inp$priors)){
+        inp$priors$logm <- c(log(mean(inp$obsC)), 0.2, 0)
+    } else {
+        if(inp$priors$logm[3] == 1) check.prior.stdev(inp$priors$logm, 'logm') # If prior is to be used
     }
     
     # -- MODEL PARAMETERS --

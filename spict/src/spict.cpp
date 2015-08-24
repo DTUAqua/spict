@@ -71,6 +71,8 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(euler);         // Euler flag.
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
   DATA_VECTOR(priorr);         // Prior vector for r, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
   //DATA_INTEGER(sepgrowth);   // Separate growth between an early time period and a late
   DATA_SCALAR(dbg);            // Debug flag, if == 1 then print stuff.
 
@@ -233,10 +235,17 @@ Type objective_function<Type>::operator() ()
   // PRIORS
   if(dbg > 0){
     std::cout << "PRIOR: priorr(0): " << priorr(0) << " -- priorr(1): " << priorr(1) << " -- priorr(2): " << priorr(2) << std::endl;
+    std::cout << "PRIOR: priorm(0): " << priorm(0) << " -- priorm(1): " << priorm(1) << " -- priorm(2): " << priorm(2) << std::endl;
+    std::cout << "PRIOR: priorK(0): " << priorK(0) << " -- priorK(1): " << priorK(1) << " -- priorK(2): " << priorK(2) << std::endl;
   }
   if(priorr(2) == 1 & nm == 1){
-    //std::cout << "PRIOR: priorr, check!" << std::endl;  
     ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
+  }
+  if(priorm(2) == 1 & nm == 1){
+    ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
+  }
+  if(priorK(2) == 1){
+    ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
   }
 
   Type likval;
