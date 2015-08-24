@@ -24,6 +24,15 @@ summary.spictcls <- function(object, numdigits=8){
     sig <- which(statout[inds]<0.05)
     names(statout)[inds][sig] <- paste0('*', names(statout)[inds][sig])
     cat('', paste(capture.output(statout),' \n'))
+    # Priors
+    npriors <- length(rep$inp$priors)
+    priormat <- matrix(unlist(rep$inp$priors), npriors, 3, byrow=TRUE)
+    inds <- which(priormat[, 3]==1)
+    if(length(inds)>0){
+        usepriors <- names(rep$inp$priors)[inds]
+        cat(paste('\nPriors on:', paste(usepriors, collapse=', '), '\n'))
+    }
+    # Model parameters
     cat('\nModel parameter estimates w 95% CI \n')
     sd <- sqrt(diag(rep$cov.fixed))
     nms <- names(rep$par.fixed)

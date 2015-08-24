@@ -46,48 +46,54 @@ Type objective_function<Type>::operator() ()
 {
   Type ans=0;
 
-  DATA_INTEGER(reportall); // Report everything?
-  DATA_VECTOR(dt);         // Time steps
-  DATA_VECTOR(dtpredcinds);
+  // DATA
+  DATA_INTEGER(reportall);     // Report everything?
+  DATA_VECTOR(dt);             // Time steps
+  DATA_VECTOR(dtpredcinds);    //
   DATA_INTEGER(dtpredcnsteps); // Number of sub time step for prediction
-  DATA_SCALAR(dtprediind);
-  DATA_INTEGER(indlastobs);// Index of B and F corresponding to the last observation.
-  DATA_VECTOR(obsC);       // Catches
-  DATA_VECTOR(ic);         // Vector such that B(ic(i)) is the state at the start of obsC(i)
-  DATA_VECTOR(nc);         // nc(i) gives the number of time intervals obsC(i) spans
-  DATA_VECTOR(I);          // Index
-  DATA_VECTOR(ii);         // A vector such that B(ii(i)) is the state corresponding to I(i)
-  DATA_VECTOR(iq);         // A vector such that iq(i) is the index number corresponding to I_iq(i)
-  DATA_VECTOR(ir);         // A vector indicating when the different rs should be used
-  DATA_VECTOR(seasons);    // A vector of length ns indicating to which season a state belongs
-  DATA_VECTOR(seasonindex);// A vector of length ns giving the number stepped within the current year
-  DATA_MATRIX(splinemat);  // Design matrix for the seasonal spline
-  DATA_SCALAR(ffac);       // Management factor each year multiply the predicted F with ffac
-  DATA_VECTOR(indpred);    // A vector indicating when the management factor should be applied
-  DATA_SCALAR(robflagc);        // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
-  DATA_SCALAR(robflagi);        // Index Degrees of freedom of t-distribution (only used if tdf < 25)
-  DATA_INTEGER(lamperti);  // Lamperti flag.
-  DATA_INTEGER(euler);     // Euler flag.
-  DATA_INTEGER(stochmsy);  // Use stochastic msy?
-  //DATA_INTEGER(sepgrowth); // Separate growth between an early time period and a late
-  DATA_SCALAR(dbg);        // Debug flag, if == 1 then print stuff.
-  PARAMETER_VECTOR(logphi);   // Season levels of F.
-  PARAMETER(logitpp);      // 
-  PARAMETER(logp1robfac);  // 
-  PARAMETER(logalpha);     // sdi = alpha*sdb
-  PARAMETER(logbeta);      // sdc = beta*sdf
-  //PARAMETER(logbkfrac);    // B0/K fraction
-  //PARAMETER(logF0);        // F at time 0
-  PARAMETER_VECTOR(logm);  // m following the Fletcher formulation (see Prager 2002)
-  PARAMETER(logK);         // Carrying capacity
-  PARAMETER_VECTOR(logq);  // Catchability
-  PARAMETER(logn);         // Pella-Tomlinson exponent
-  PARAMETER(logsdf);       // Standard deviation for F
-  PARAMETER(logsdb);       // Standard deviation for Index
-  PARAMETER_VECTOR(logF);  // Random effects vector
-  PARAMETER_VECTOR(logB);  // Random effects vector
-  PARAMETER(dum);       // Dummy parameter, needed because the RE cannot be evaluated without FE
+  DATA_SCALAR(dtprediind);     //
+  DATA_INTEGER(indlastobs);    // Index of B and F corresponding to the last observation.
+  DATA_VECTOR(obsC);           // Catches
+  DATA_VECTOR(ic);             // Vector such that B(ic(i)) is the state at the start of obsC(i)
+  DATA_VECTOR(nc);             // nc(i) gives the number of time intervals obsC(i) spans
+  DATA_VECTOR(I);              // Index observations
+  DATA_VECTOR(ii);             // A vector such that B(ii(i)) is the state corresponding to I(i)
+  DATA_VECTOR(iq);             // A vector such that iq(i) is the index number corresponding to I_iq(i)
+  DATA_VECTOR(ir);             // A vector indicating when the different rs should be used
+  DATA_VECTOR(seasons);        // A vector of length ns indicating to which season a state belongs
+  DATA_VECTOR(seasonindex);    // A vector of length ns giving the number stepped within the current year
+  DATA_MATRIX(splinemat);      // Design matrix for the seasonal spline
+  DATA_SCALAR(ffac);           // Management factor each year multiply the predicted F with ffac
+  DATA_VECTOR(indpred);        // A vector indicating when the management factor should be applied
+  DATA_SCALAR(robflagc);       // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
+  DATA_SCALAR(robflagi);       // Index Degrees of freedom of t-distribution (only used if tdf < 25)
+  DATA_INTEGER(lamperti);      // Lamperti flag.
+  DATA_INTEGER(euler);         // Euler flag.
+  DATA_INTEGER(stochmsy);      // Use stochastic msy?
+  DATA_VECTOR(priorr);         // Prior vector for r, [log(mean), stdev in log, useflag]
+  //DATA_INTEGER(sepgrowth);   // Separate growth between an early time period and a late
+  DATA_SCALAR(dbg);            // Debug flag, if == 1 then print stuff.
+
+  // PARAMETERS
+  PARAMETER_VECTOR(logphi);    // Season levels of F.
+  PARAMETER(logitpp);          // 
+  PARAMETER(logp1robfac);      // 
+  PARAMETER(logalpha);         // sdi = alpha*sdb
+  PARAMETER(logbeta);          // sdc = beta*sdf
+  //PARAMETER(logbkfrac);      // B0/K fraction
+  //PARAMETER(logF0);          // F at time 0
+  PARAMETER_VECTOR(logm);      // m following the Fletcher formulation (see Prager 2002)
+  PARAMETER(logK);             // Carrying capacity
+  PARAMETER_VECTOR(logq);      // Catchability
+  PARAMETER(logn);             // Pella-Tomlinson exponent
+  PARAMETER(logsdf);           // Standard deviation for F
+  PARAMETER(logsdb);           // Standard deviation for Index
+  PARAMETER_VECTOR(logF);      // Random effects vector
+  PARAMETER_VECTOR(logB);      // Random effects vector
+  PARAMETER(dum);              // Dummy parameter, needed because the RE cannot be evaluated without FE (perhaps not needed anymore? after updates to TMB)
+
   ans+=dum*dum; // Add dummy contribution (0 for dum=0)
+
 
   lamperti = 1.0; // Not used anymore
   euler = 1.0; // Not used anymore
@@ -189,7 +195,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> logFmsy(nm);
   vector<Type> logMSY(nm);
 
-  if(stochmsy==1){
+  if(stochmsy == 1){
     // Use stochastic reference points
     Bmsy = Bmsys;
     MSY = MSYs;
@@ -224,9 +230,18 @@ Type objective_function<Type>::operator() ()
     logr(i) = log(r(i)); 
   }
 
+  // PRIORS
+  if(dbg > 0){
+    std::cout << "PRIOR: priorr(0): " << priorr(0) << " -- priorr(1): " << priorr(1) << " -- priorr(2): " << priorr(2) << std::endl;
+  }
+  if(priorr(2) == 1 & nm == 1){
+    //std::cout << "PRIOR: priorr, check!" << std::endl;  
+    ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
+  }
+
   Type likval;
 
-  if(dbg>0){
+  if(dbg > 0){
     std::cout << "--- DEBUG: script start ---" << std::endl;
     //for(int i=0; i<ns; i++) std::cout << "F(i): " << F(i) << std::endl;
     //std::cout << "INPUT: logbkfrac: " << logbkfrac << std::endl;

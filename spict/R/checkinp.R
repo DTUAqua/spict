@@ -28,6 +28,12 @@
 #'  \item{"inp$ini$logF"}{ Default: log(0.2*r).}
 #'  \item{"inp$ini$logB"}{ Default: log(0.5*K).}
 #' }
+#' - Priors
+#' Priors on model parameters are assumed Gaussian and specified in a vector of length 3: c(log(mean), stdev in log, useflag).
+#' log(mean): log of the mean of the prior distribution.
+#' stdev in log: standard deviation of the prior distribution in log domain.
+#' useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
+#' Example: inp$priors$logr <- c(log(0.8), 0.1, 1)
 #' - Settings
 #' \itemize{
 #'  \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc).}
@@ -278,6 +284,21 @@ check.inp <- function(inp){
     inp$dtpredcnsteps <- length(inp$dtpredcinds)
     inp$dtprediind <- which(inp$time == (inp$timerange[2]+inp$dtpredi))
 
+    # -- PRIORS --
+    # Priors are assumed Gaussian and specified in a vector of length 3: c(log(mean), stdev in log, useflag).
+    # log(mean): log of the mean of the prior distribution.
+    # stdev in log: standard deviation of the prior distribution in log domain.
+    # useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
+    if(!"priors" %in% names(inp)){
+        inp$priors <- list()
+    }
+    if(!"logr" %in% names(inp$priors)){
+        inp$priors$logr <- c(log(0.8), 0.1, 0)
+    } else {
+        if(inp$priors$logr[3] == 1){ # If prior is to be used
+            if(inp$priors$logr[2] <= 0) cat(paste('WARNING: invalid standard deviation specified in prior for r (must be > 0). Not using this prior.\n'))
+        }
+    }
     
     # -- MODEL PARAMETERS --
     # logn
@@ -408,23 +429,23 @@ check.inp <- function(inp){
 
     # Reorder parameter list
     inp$parlist <- list(logphi=inp$ini$logphi,
-                    logitpp=inp$ini$logitpp,
-                    logp1robfac=inp$ini$logp1robfac,
-                    logalpha=inp$ini$logalpha,
-                    logbeta=inp$ini$logbeta,
-                    #logbkfrac=inp$ini$logbkfrac,
-                    #logF0=inp$ini$logF0,
-                    logm=inp$ini$logm,
-                    logK=inp$ini$logK,
-                    logq=inp$ini$logq,
-                    #logqf=inp$ini$logqf,
-                    logn=inp$ini$logn,
-                    logsdf=inp$ini$logsdf,
-                    logsdb=inp$ini$logsdb,
-                    logF=inp$ini$logF,
-                    logB=inp$ini$logB,
-                    #Cpredcum=inp$ini$Cpredcum,
-                    dum=0.0)
+                        logitpp=inp$ini$logitpp,
+                        logp1robfac=inp$ini$logp1robfac,
+                        logalpha=inp$ini$logalpha,
+                        logbeta=inp$ini$logbeta,
+                        #logbkfrac=inp$ini$logbkfrac,
+                        #logF0=inp$ini$logF0,
+                        logm=inp$ini$logm,
+                        logK=inp$ini$logK,
+                        logq=inp$ini$logq,
+                        #logqf=inp$ini$logqf,
+                        logn=inp$ini$logn,
+                        logsdf=inp$ini$logsdf,
+                        logsdb=inp$ini$logsdb,
+                        logF=inp$ini$logF,
+                        logB=inp$ini$logB,
+                        #Cpredcum=inp$ini$Cpredcum,
+                        dum=0.0)
     # Determine phases and fixed parameters
     if(inp$nseasons==1){
         fixpars <- c('logphi', 'logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac', 'dum') # These are fixed unless specified

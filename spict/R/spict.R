@@ -69,6 +69,7 @@ fit.spict <- function(inp, dbg=0){
                   lamperti=inp$lamperti,
                   euler=inp$euler,
                   stochmsy=ifelse(inp$msytype=='s', 1, 0),
+                  priorr=inp$priors$logr,
                   dbg=dbg)
     pl <- inp$parlist
     # Cycle through phases
