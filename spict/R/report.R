@@ -6,7 +6,7 @@
 #' @param caption This character string will be included as the figure caption.
 #' @return Nothing.
 latex.figure <- function(figfile, reportfile, caption=''){
-    figstr <- paste0('\\begin{figure}\n\\centering\n \\includegraphics[trim=0cm 0cm 0cm 0cm,clip,width=1\\textwidth]{', figfile, '}\n \\caption{', caption, '}\n \\end{figure}\n')
+    figstr <- paste0('\\begin{figure}[h!]\n\\centering\n \\includegraphics[trim=0cm 0cm 0cm 0cm,clip,width=1\\textwidth]{', figfile, '}\n \\caption{', caption, '}\n \\end{figure}\n\\newpage')
     cat(figstr, file=reportfile, append=TRUE)
 }
 
@@ -30,13 +30,13 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
 
     # -- Write tex file -- #
     cat(latexstart, file=reportfile)
-    # Summary
-    cat('\\footnotesize\n', file=reportfile, append=TRUE)
-    cat(paste0('\\verbatiminput{', summaryoutfile, '}\n'), file=reportfile, append=TRUE)
-    #cat('\\begin{verbatim}\n', file=reportfile, append=TRUE)
-    #cat(reporttitle, file=reportfile, append=TRUE)
-    #cat(summaryout, sep='\n', file=reportfile, append=TRUE)
-    #cat('\\end{verbatim}\n', file=reportfile, append=TRUE)
+
+    # Data plot
+    figfile3 <- 'data.pdf'
+    pdf(figfile3, width=9, height=10)
+    plotspict.ci(inp)
+    dev.off()
+    latex.figure(figfile3, reportfile, caption='Data.')
 
     # Results plot
     figfile1 <- 'res.pdf'
@@ -44,6 +44,14 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     plot(rep)
     dev.off()
     latex.figure(figfile1, reportfile, caption='Results.')
+
+    # Summary
+    cat('\\scriptsize\n', file=reportfile, append=TRUE)
+    cat(paste0('\\verbatiminput{', summaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
+    #cat('\\begin{verbatim}\n', file=reportfile, append=TRUE)
+    #cat(reporttitle, file=reportfile, append=TRUE)
+    #cat(summaryout, sep='\n', file=reportfile, append=TRUE)
+    #cat('\\end{verbatim}\n', file=reportfile, append=TRUE)
 
     # Retrospective analysis plot
     if('retro' %in% names(rep)){
@@ -61,12 +69,6 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     dev.off()
     latex.figure(figfile2, reportfile, caption='Model diagnostics.')
     
-    # Data plot
-    figfile3 <- 'data.pdf'
-    pdf(figfile3, width=9, height=10)
-    plotspict.ci(inp)
-    dev.off()
-    latex.figure(figfile3, reportfile, caption='Data.')
     
     cat(latexend, file=reportfile, append=TRUE)
 
