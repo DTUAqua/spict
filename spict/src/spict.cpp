@@ -75,6 +75,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(priorr);         // Prior vector for r, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorB);         // Prior vector for B, [log(mean), stdev in log, useflag, year, ib]
   //DATA_INTEGER(sepgrowth);   // Separate growth between an early time period and a late
   DATA_SCALAR(dbg);            // Debug flag, if == 1 then print stuff.
 
@@ -249,6 +250,14 @@ Type objective_function<Type>::operator() ()
   if(priorK(2) == 1){
     ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
   }
+  int ind;
+  if(priorB(2) == 1){
+    ind = CppAD::Integer(priorB(4)-1);
+    ans-= dnorm(logB(ind), priorB(0), priorB(1), 1); // Prior for logB
+  }
+
+
+
 
   Type likval;
 
@@ -268,7 +277,6 @@ Type objective_function<Type>::operator() ()
     std::cout << "obsC.size(): " << obsC.size() << "  Cpred.size(): " << Cpred.size() << "  I.size(): " << I.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
   }
   // Calculate mvec if multiple rs are used (rarely the case).
-  int ind;
   for(int i=0; i<ns; i++){
     ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
     mvec(i) = m(ind);

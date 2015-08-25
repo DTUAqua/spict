@@ -26,8 +26,9 @@ summary.spictcls <- function(object, numdigits=8){
     cat('', paste(capture.output(statout),' \n'))
     # Priors
     npriors <- length(rep$inp$priors)
-    priormat <- matrix(unlist(rep$inp$priors), npriors, 3, byrow=TRUE)
-    inds <- which(priormat[, 3]==1)
+    useflags <- numeric(npriors)
+    for(i in 1:npriors) useflags[i] <- rep$inp$priors[[i]][3]
+    inds <- which(useflags==1)
     if(length(inds)>0){
         usepriors <- names(rep$inp$priors)[inds]
         cat(paste('\nPriors on:', paste(usepriors, collapse=', '), '\n'))

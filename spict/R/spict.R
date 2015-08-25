@@ -72,6 +72,7 @@ fit.spict <- function(inp, dbg=0){
                   priorr=inp$priors$logr,
                   priorm=inp$priors$logm,
                   priorK=inp$priors$logK,
+                  priorB=inp$priors$logB,
                   dbg=dbg)
     pl <- inp$parlist
     # Cycle through phases
@@ -111,8 +112,10 @@ fit.spict <- function(inp, dbg=0){
                     rep$inp <- inp
                     if(inp$reportall){
                         # - Built-in OSAR -
-                        rep$osarC <- oneStepPredict(obj, observation.name = "obsC", data.term.indicator='keepC', method="oneStepGaussianOffMode", discrete=FALSE)
-                        rep$osarI <- oneStepPredict(obj, observation.name = "I", data.term.indicator='keepI', method="oneStepGaussianOffMode", discrete=FALSE)
+                        if(!inp$osar.method == 'none'){
+                            rep$osarC <- oneStepPredict(obj, observation.name = "obsC", data.term.indicator='keepC', method=inp$osar.method, discrete=FALSE)
+                            rep$osarI <- oneStepPredict(obj, observation.name = "I", data.term.indicator='keepI', method=inp$osar.method, discrete=FALSE)
+                        }
                         #  - Calculate Prager's statistics -
                         rep$stats <- list()
                         K <- get.par('logK', rep, exp=TRUE)[2]

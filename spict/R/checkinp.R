@@ -29,11 +29,12 @@
 #'  \item{"inp$ini$logB"}{ Default: log(0.5*K).}
 #' }
 #' - Priors
-#' Priors on model parameters are assumed Gaussian and specified in a vector of length 3: c(log(mean), stdev in log, useflag).
+#' Priors on model parameters are assumed Gaussian and specified in a vector of length 3: c(log(mean), stdev in log, useflag). NOTE: if specifying a prior for logB, then a 4th element is required specifying the year the prior should be applied.
 #' log(mean): log of the mean of the prior distribution.
 #' stdev in log: standard deviation of the prior distribution in log domain.
 #' useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
 #' Example: inp$priors$logr <- c(log(0.8), 0.1, 1)
+#' Example: inp$priors$logB <- c(log(200), 0.2, 1, 1985)
 #' - Settings
 #' \itemize{
 #'  \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc).}
@@ -45,6 +46,7 @@
 #'  \item{"inp$ffac"}{ Management scenario represented by a factor to multiply F with when calculating the F of the next time step. ffac=0.8 means a 20\% reduction in F over the next year. The factor is only used when predicting beyond the data set. Default: 1 (0\% reduction).}
 #'  \item{"inp$dteuler"}{ Length of Euler time step in years. Default: min(inp$dtc).}
 #'  \item{"inp$phases"}{ Phases can be used to fix/free parameters and estimate in different stages or phases. To fix e.g. logr at inp$ini$logr set inp$phases$logr <- -1. To free logalpha and estimate in phase 1 set inp$phases$logalpha <- 1.}
+#'  \item{"inp$osar.method"}{ Method to use in TMB's oneStepPredict function. Valid methods include: "oneStepGaussianOffMode", "fullGaussian", "oneStepGeneric", "oneStepGaussian", "cdf". See TMB help for more information. Default: "none" (i.e. don't run this).}
 #' }
 #' @param inp List of input variables, see details for required variables.
 #' @return An updated list of input variables checked for consistency and with defaults added.
@@ -130,6 +132,10 @@ check.inp <- function(inp){
         if(length(inp$obsI[[i]])>0) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
     }
     # -- MODEL OPTIONS --
+    if(!"osar.method" %in% names(inp)){
+        #inp$osar.method <- 'oneStepGaussianOffMode'
+        inp$osar.method <- 'none'
+    }
     if(!"msytype" %in% names(inp)){
         inp$msytype <- 's'
     } else {
@@ -289,24 +295,60 @@ check.inp <- function(inp){
     # log(mean): log of the mean of the prior distribution.
     # stdev in log: standard deviation of the prior distribution in log domain.
     # useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
-    check.prior.stdev <- function(priorvec, priorname) if(priorvec[2] <= 0) cat(paste('WARNING: invalid standard deviation specified in prior for', priorname, '(must be > 0). Not using this prior.\n'))
+    check.prior <- function(priors, priorname){
+        priorvec <- priors[[priorname]]
+        if(priorname == 'logB'){
+            if(!length(priorvec) %in% 4:5){
+                priorvec <- rep(0, 5)
+                cat(paste('WARNING: invalid prior length specified for', priorname, '(must be 4). Not using this prior.\n'))
+            }
+        } else {
+            if(!length(priorvec) == 3){
+                priorvec <- rep(0, 3)
+                cat(paste('WARNING: invalid prior length specified for', priorname, '(must be 3). Not using this prior.\n'))
+            }
+        }
+        if(priorvec[3] == 1){
+            # Check st dev
+            if(priorvec[2] <= 0){
+                cat(paste('WARNING: invalid standard deviation specified in prior for', priorname, '(must be > 0). Not using this prior.\n'))
+                priorvec[3] <- 0
+            }
+        }
+        return(priorvec)
+    }
     if(!"priors" %in% names(inp)){
         inp$priors <- list()
     }
     if(!"logr" %in% names(inp$priors)){
         inp$priors$logr <- c(log(0.8), 0.2, 0)
     } else {
-        if(inp$priors$logr[3] == 1) check.prior.stdev(inp$priors$logr, 'logr') # If prior is to be used
+         inp$priors$logr <- check.prior(inp$priors, 'logr')
     }
+    
     if(!"logK" %in% names(inp$priors)){
         inp$priors$logK <- c(log(4*max(inp$obsC)), 0.2, 0)
     } else {
-        if(inp$priors$logK[3] == 1) check.prior.stdev(inp$priors$logK, 'logK') # If prior is to be used
+        inp$priors$logK <- check.prior(inp$priors, 'logK')
     }
     if(!"logm" %in% names(inp$priors)){
         inp$priors$logm <- c(log(mean(inp$obsC)), 0.2, 0)
     } else {
-        if(inp$priors$logm[3] == 1) check.prior.stdev(inp$priors$logm, 'logm') # If prior is to be used
+        inp$priors$logm <- check.prior(inp$priors, 'logm')
+    }
+    if(!"logB" %in% names(inp$priors)){
+        inp$priors$logB <- c(log(4*max(inp$obsC)), 0.2, 0, 0, 0)
+    } else {
+        inp$priors$logB <- check.prior(inp$priors, 'logB')
+        if(inp$priors$logB[3] == 1 & length(inp$priors$logB)==4){
+            ib <- match(inp$priors$logB[4], inp$time)
+            if(is.na(ib)){
+                ib <- 0
+                inp$priors$logB[3] <- 0
+                cat(paste0('WARNING: year for prior on logB (', inp$priors$logB[3], ') did not match times where B is estimated. Not using this prior. To fix this use a year where an observation is available. \n'))                
+            }
+            inp$priors$logB <- c(inp$priors$logB, ib)
+        }
     }
     
     # -- MODEL PARAMETERS --
