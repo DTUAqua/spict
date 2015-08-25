@@ -53,10 +53,12 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(dtpredcnsteps); // Number of sub time step for prediction
   DATA_SCALAR(dtprediind);     //
   DATA_INTEGER(indlastobs);    // Index of B and F corresponding to the last observation.
-  DATA_VECTOR(obsC);           // Catches
+  DATA_VECTOR(obsC);           // Catch observations
+  DATA_VECTOR_INDICATOR(keepC, obsC);
   DATA_VECTOR(ic);             // Vector such that B(ic(i)) is the state at the start of obsC(i)
   DATA_VECTOR(nc);             // nc(i) gives the number of time intervals obsC(i) spans
   DATA_VECTOR(I);              // Index observations
+  DATA_VECTOR_INDICATOR(keepI, I);
   DATA_VECTOR(ii);             // A vector such that B(ii(i)) is the state corresponding to I(i)
   DATA_VECTOR(iq);             // A vector such that iq(i) is the index number corresponding to I_iq(i)
   DATA_VECTOR(ir);             // A vector indicating when the different rs should be used
@@ -404,7 +406,7 @@ Type objective_function<Type>::operator() ()
     } else {
       likval = dnorm(logCpred(i), log(obsC(i)), sdc, 1);
     }
-    ans-=likval;
+    ans-= keepC(i) * likval;
     // DEBUGGING
     if(dbg>1){
       std::cout << "-- i: " << i << " -   logobsC(i): " << log(obsC(i))<< "  sdc: " << sdc << "  likval: " << likval << "  ans:" << ans << std::endl;
@@ -430,7 +432,7 @@ Type objective_function<Type>::operator() ()
       } else {
 	likval = dnorm(log(I(i)), logIpred(i), sdi, 1);
       }
-      ans-=likval;
+      ans-= keepI(i) * likval;
       // DEBUGGING
       if(dbg>1){
 	std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -   log(I(i)): " << log(I(i)) << "  logIpred(i): " << logIpred(i) << "  sdi: " << sdi << "  likval: " << likval << "  ans:" << ans << std::endl;

@@ -88,6 +88,7 @@ fit.spict <- function(inp, dbg=0){
         if(dbg<1){
             # Do estimation
             opt <- try(nlminb(obj$par, obj$fn, obj$gr))
+            
             pl <- obj$env$parList(opt$par)
         }
     }
@@ -109,6 +110,9 @@ fit.spict <- function(inp, dbg=0){
                 if(!failflag){
                     rep$inp <- inp
                     if(inp$reportall){
+                        # - Built-in OSAR -
+                        rep$osarC <- oneStepPredict(obj, observation.name = "obsC", data.term.indicator='keepC', method="oneStepGaussianOffMode", discrete=FALSE)
+                        rep$osarI <- oneStepPredict(obj, observation.name = "I", data.term.indicator='keepI', method="oneStepGaussianOffMode", discrete=FALSE)
                         #  - Calculate Prager's statistics -
                         rep$stats <- list()
                         K <- get.par('logK', rep, exp=TRUE)[2]
