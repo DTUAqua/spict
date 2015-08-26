@@ -63,12 +63,13 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     }
     
     # Diagnostic plot
-    figfile2 <- 'diag.pdf'
-    pdf(figfile2, width=9, height=10)
-    plotspict.diagnostic(rep)
-    dev.off()
-    latex.figure(figfile2, reportfile, caption='Model diagnostics.')
-    
+    if('osar' %in% names(rep)){
+        figfile2 <- 'diag.pdf'
+        pdf(figfile2, width=9, height=10)
+        plotspict.diagnostic(rep)
+        dev.off()
+        latex.figure(figfile2, reportfile, caption='Model diagnostics.')
+    }    
     
     cat(latexend, file=reportfile, append=TRUE)
 
