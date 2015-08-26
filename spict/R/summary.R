@@ -25,12 +25,16 @@ summary.spictcls <- function(object, numdigits=8){
     names(statout)[inds][sig] <- paste0('*', names(statout)[inds][sig])
     cat('', paste(capture.output(statout),' \n'))
     # Priors
-    npriors <- length(rep$inp$priors)
-    useflags <- numeric(npriors)
-    for(i in 1:npriors) useflags[i] <- rep$inp$priors[[i]][3]
-    inds <- which(useflags==1)
+    #npriors <- length(rep$inp$priors)
+    #useflags <- numeric(npriors)
+    #for(i in 1:npriors) useflags[i] <- rep$inp$priors[[i]][3]
+    inds <- which(rep$inp$priorsuseflag==1)
     if(length(inds)>0){
         usepriors <- names(rep$inp$priors)[inds]
+        if('logB' %in% usepriors){
+            inds <- which(usepriors == 'logB')
+            for(i in 1:length(inds)) usepriors[inds[i]] <- paste0(usepriors[inds[i]], rep$inp$priors[[i]][4])
+        }
         cat(paste('\nPriors on:', paste(usepriors, collapse=', '), '\n'))
     }
     # Model parameters
