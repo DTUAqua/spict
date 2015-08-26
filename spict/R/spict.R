@@ -72,6 +72,7 @@ fit.spict <- function(inp, dbg=0){
                   priorr=inp$priors$logr,
                   priorm=inp$priors$logm,
                   priorK=inp$priors$logK,
+                  priorbkfrac=inp$priors$logbkfrac,
                   priorB=inp$priors$logB,
                   dbg=dbg)
     pl <- inp$parlist

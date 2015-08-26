@@ -47,7 +47,7 @@ calc.osa.resid.new <- function(rep, dbg=0){
         }
         inp2$dtpredi <- 0
         inp2 <- check.inp(inp2)
-        datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), priorr=inp$priors$logr, priorm=inp$priors$logm, priorK=inp$priors$logK, priorB=inp$priors$logB, dbg=dbg)
+        datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), priorr=inp$priors$logr, priorm=inp$priors$logm, priorK=inp$priors$logK, priorbkfrac=inp$priors$logbkfrac, priorB=inp$priors$logB, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         verbose <- FALSE
@@ -96,7 +96,7 @@ calc.osa.resid.new <- function(rep, dbg=0){
         }
         inp2$dtpredi <- timepred[j] - timeobs[j]
         inp2 <- check.inp(inp2)
-        datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), priorr=inp$priors$logr, priorm=inp$priors$logm, priorK=inp$priors$logK, priorB=inp$priors$logB, dbg=dbg)
+        datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), priorr=inp$priors$logr, priorm=inp$priors$logm, priorK=inp$priors$logK, priorbkfrac=inp$priors$logbkfrac, priorB=inp$priors$logB, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         verbose <- FALSE
@@ -246,7 +246,7 @@ calc.osa.resid <- function(rep, dbg=0){
         #if(haveobs[j, 1] == 1) if(inp2$dtpredc < inp$dtc[cindm]) stop('Cannot calculate OSAR because index has a finer time step than catch. This needs to be implemented!')
         inp2$ir <- NULL # Remove ir from inp2, but use inp$ir as input (see below)
         inp2 <- check.inp(inp2)
-        datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), priorr=inp$priors$logr, priorm=inp$priors$logm, priorK=inp$priors$logK, priorB=inp$priors$logB, dbg=dbg)
+        datnew <- list(reportall=0, dt=inp2$dt, dtpredcinds=inp2$dtpredcinds, dtpredcnsteps=inp2$dtpredcnsteps, dtprediind=inp2$dtprediind, indlastobs=inp2$indlastobs, obsC=inp2$obsC, ic=inp2$ic, nc=inp2$nc, I=inp2$obsIin, ii=inp2$iiin, iq=inp2$iqin, ir=inp$ir, seasons=inp2$seasons, seasonindex=inp2$seasonindex, splinemat=inp2$splinemat, ffac=inp$ffaceuler, indpred=inp2$indpred, robflagc=inp2$robflagc, robflagi=inp2$robflagi, lamperti=inp2$lamperti, euler=inp2$euler, stochmsy=ifelse(inp$msytype=='s', 1, 0), priorr=inp$priors$logr, priorm=inp$priors$logm, priorK=inp$priors$logK, priorbkfrac=inp$priors$logbkfrac, priorB=inp$priors$logB, dbg=dbg)
         for(k in 1:length(inp2$RE)) plnew[[inp2$RE[k]]] <- rep$pl[[inp2$RE[k]]][1:inp2$ns]
         objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=predmap, random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)
         #objpred <- TMB::MakeADFun(data=datnew, parameters=plnew, map=inp$map[[length(inp$map)]], random=inp2$RE, DLL=inp2$scriptname, hessian=TRUE, tracemgc=FALSE)

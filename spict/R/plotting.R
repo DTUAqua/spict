@@ -244,7 +244,8 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]/Bmsy[1,2]
         #par(mar=c(5,4,4,4))
         fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
-        if(length(ylim)!=2) ylim <- range(c(BB[fininds, 1:3], unlist(obsI), 0.95*Bmsy[1]/Bmsy[2], 1.05*Bmsy[3]/Bmsy[2]), na.rm=TRUE)
+        #if(length(ylim)!=2) ylim <- range(c(BB[fininds, 1:3], unlist(obsI), 0.95*Bmsy[1]/Bmsy[2], 1.05*Bmsy[3]/Bmsy[2]), na.rm=TRUE)
+        if(length(ylim)!=2) ylim <- range(c(BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
         ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
         if(main==-1) main <- 'Relative biomass'
         plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main=main)
@@ -1056,17 +1057,17 @@ plotspict.tc <- function(rep){
             ylim <- range(Bsim[nFvec, ], na.rm=TRUE)
             xlim <- range(time[nFvec, inds])
             xlim[2] <- min(xlim[2], 15) # Max 15 years ahead
-            plot(time[1, ], Bsim[1, ], typ='l', xlim=xlim, ylim=ylim, col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy')
+            plot(time[1, ], Bsim[1, ], typ='l', xlim=xlim, ylim=ylim, col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy', lwd=1.5)
             abline(h=c(frac, 1/frac), lty=1, col='lightgray')
             abline(h=1, lty=3)
-            for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=i+2)
+            for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=i+2, lwd=1.5)
             vt <- rep(0, nFvec)
             if(B0cur < Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(Bsim[i, ]<frac))]
             if(B0cur > Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(1/Bsim[i, ]<frac))]
             for(i in 1:nFvec) abline(v=vt[i], col=i+2, lty=2)
             lgnplace <- 'bottomright'
             if(B0cur > Bmsy[2]) lgnplace <- 'topright'
-            legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=2+(1:nFvec), lwd=rep(1,nFvec), bg='white')
+            legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=2+(1:nFvec), lwd=rep(1.5,nFvec), bg='white')
             points(vt, rep(par('usr')[3], nFvec), col=3:(nFvec+2), pch=4)
         }
         box(lwd=1.5)
@@ -1197,15 +1198,17 @@ plot.spictcls <- function(rep, logax=FALSE){
         if(inp$nseasons > 1) plotspict.season(rep)
         # Time constant
         if(inp$nseasons == 1) plotspict.tc(rep)
+        # Priors
+        if('priors' %in% names(rep$inp)) plotspict.priors(rep, do.plot=1)
         if('osar' %in% names(rep)){
             # One-step-ahead catch residuals
             plotspict.osar(rep)
-            acf(rep$osar$logCpres[!is.na(rep$osar$logCpres)], main='')
-            mtext('ACF of catch OSAR', cex=0.8, font=2)
-            box(lwd=1.5)
-            acf(rep$osar$logIpres[[1]][!is.na(rep$osar$logIpres[[1]])], main='')
-            mtext('ACF of index 1 OSAR', cex=0.8, font=2)
-            box(lwd=1.5)
+            #acf(rep$osar$logCpres[!is.na(rep$osar$logCpres)], main='')
+            #mtext('ACF of catch OSAR', cex=0.8, font=2)
+            #box(lwd=1.5)
+            #acf(rep$osar$logIpres[[1]][!is.na(rep$osar$logIpres[[1]])], main='')
+            #mtext('ACF of index 1 OSAR', cex=0.8, font=2)
+            #box(lwd=1.5)
         }
         if(inp$reportall){
             if('infl' %in% names(rep)){
@@ -1457,4 +1460,44 @@ plotspict.ci <- function(inp){
     plot(y[-length(y)], diff(z)/z[-length(z)], typ='b', xlab='Catch', ylab='Proportional increase in index')
     abline(h=0, lty=2)
     abline(v=MSY, lty=2)
+}
+
+
+#' @name plotspict.priors
+#' @title Plot priors and posterior distribution.
+#' @param rep A result from fit.spict.
+#' @param do.plot Integer defining maximum number of priors to plot.
+#' @return Nothing
+#' @export
+plotspict.priors <- function(rep, do.plot=4){
+    inp <- rep$inp
+    npriors <- length(inp$priors)
+    useflags <- numeric(npriors)
+    for(i in 1:npriors) useflags[i] <- inp$priors[[i]][3]
+    inds <- which(useflags==1)
+    ninds <- length(inds)
+    ninds <- min(ninds, do.plot)
+    nused <- sum(useflags)
+    if(ninds > 0){
+        for(i in 1:ninds){
+            j <- inds[i]
+            priorvec <- inp$priors[[j]]
+            nm <- names(inp$priors)[j]
+            nmpl <- sub('log', '', nm)
+            par <- get.par(nm, rep, exp=FALSE)
+            if(nm == 'logB'){
+                par <- par[priorvec[5], ]
+                nmpl <- paste0(nmpl, round(priorvec[4]))
+            }
+            xmin <- par[2] - 3*par[4]
+            xmax <- par[2] + 3*par[4]
+            x <- seq(xmin, xmax, length=200)
+            priorvals <- dnorm(x, priorvec[1], priorvec[2])
+            posteriorvals <- dnorm(x, par[2], par[4])
+            plot(exp(x), priorvals, typ='l', xlab=nmpl, ylab='Density', log='x', lwd=1.5, ylim=c(0, max(priorvals, posteriorvals)*1.3))
+            lines(exp(x), posteriorvals, col=3, lwd=1.5)
+            legend('topright', legend=c('Prior', 'Post.'), lty=1, col=c(1, 3), lwd=1.5)
+            box(lwd=1.5)
+        }
+    }
 }

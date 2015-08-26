@@ -75,6 +75,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(priorr);         // Prior vector for r, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorbkfrac);    // Prior vector for B0/K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorB);         // Prior vector for B, [log(mean), stdev in log, useflag, year, ib]
   //DATA_INTEGER(sepgrowth);   // Separate growth between an early time period and a late
   DATA_SCALAR(dbg);            // Debug flag, if == 1 then print stuff.
@@ -250,13 +251,14 @@ Type objective_function<Type>::operator() ()
   if(priorK(2) == 1){
     ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
   }
+  if(priorbkfrac(2) == 1){
+    ans-= dnorm(logB(0) - logK, priorbkfrac(0), priorbkfrac(1), 1); // Prior for logbkfrac
+  }
   int ind;
   if(priorB(2) == 1){
     ind = CppAD::Integer(priorB(4)-1);
     ans-= dnorm(logB(ind), priorB(0), priorB(1), 1); // Prior for logB
   }
-
-
 
 
   Type likval;
@@ -528,6 +530,9 @@ Type objective_function<Type>::operator() ()
     logFFmsy(i) = logFs(i) - logFmsyvec(i); 
   }
 
+  // 
+  Type logbkfrac = logB(0) - logK;
+
   // ADREPORTS
   ADREPORT(Bmsy);  
   ADREPORT(Bmsyd);
@@ -559,6 +564,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logMSYs);
   ADREPORT(Emsy);
   ADREPORT(Emsy2);
+  ADREPORT(logbkfrac);
   // PREDICTIONS
   ADREPORT(Cp);
   //ADREPORT(Crc);

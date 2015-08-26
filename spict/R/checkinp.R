@@ -336,6 +336,11 @@ check.inp <- function(inp){
     } else {
         inp$priors$logm <- check.prior(inp$priors, 'logm')
     }
+    if(!"logbkfrac" %in% names(inp$priors)){
+        inp$priors$logbkfrac <- c(log(0.8), 0.2, 0)
+    } else {
+        inp$priors$logbkfrac <- check.prior(inp$priors, 'logbkfrac')
+    }
     if(!"logB" %in% names(inp$priors)){
         inp$priors$logB <- c(log(4*max(inp$obsC)), 0.2, 0, 0, 0)
     } else {
@@ -350,6 +355,9 @@ check.inp <- function(inp){
             inp$priors$logB <- c(inp$priors$logB, ib)
         }
     }
+    npriors <- length(inp$priors)
+    inp$priorsuseflags <- numeric(npriors)
+    for(i in 1:npriors) inp$priorsuseflags[i] <- inp$priors[[i]][3]
     
     # -- MODEL PARAMETERS --
     # logn
