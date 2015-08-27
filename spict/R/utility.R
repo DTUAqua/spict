@@ -264,6 +264,7 @@ guess.m <- function(inp, Emsy.return=FALSE){
     a <- mod0$coefficients[1]
     b <- mod0$coefficients[2]
     MSY <- -0.25*a^2/b # p. 284 in FAO's book on tropical stock assessment
+    if(MSY <= 0) MSY <- mean(y) # Mean catch
     if(Emsy.return){
         Emsy <- -0.5*a/b # p. 284 in FAO's book on tropical stock assessment
         return(list(MSY=MSY, Emsy=Emsy))
