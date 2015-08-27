@@ -31,13 +31,6 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     # -- Write tex file -- #
     cat(latexstart, file=reportfile)
 
-    # Data plot
-    figfile3 <- 'data.pdf'
-    pdf(figfile3, width=9, height=10)
-    plotspict.ci(inp)
-    dev.off()
-    latex.figure(figfile3, reportfile, caption='Data.')
-
     # Results plot
     figfile1 <- 'res.pdf'
     pdf(figfile1, width=9, height=10)
@@ -70,7 +63,14 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
         dev.off()
         latex.figure(figfile2, reportfile, caption='Model diagnostics.')
     }    
-    
+
+    # Data plot
+    figfile3 <- 'data.pdf'
+    pdf(figfile3, width=9, height=10)
+    plotspict.ci(inp)
+    dev.off()
+    latex.figure(figfile3, reportfile, caption='Data.')
+
     cat(latexend, file=reportfile, append=TRUE)
 
     # -- Compile tex file -- #
