@@ -48,6 +48,7 @@ calc.osa.resid <- function(rep, dbg=0){
     logCpsqboxtest <- Box.test(logCpres^2, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
     logCpshapiro <- shapiro.test(logCpres) # Test for normality of residuals
     logCpbias <- t.test(logCpres) # Test for bias of residuals
+    if(!'stats' %in% names(rep)) rep$stats <- list()
     #rep$stats$ljungboxC.p <- logCpboxtest$p.value
     #rep$stats$ljungboxCp5.p <- logCpp5boxtest$p.value
     #rep$stats$ljungboxCsq.p <- logCpsqboxtest$p.value

@@ -113,12 +113,8 @@ fit.spict <- function(inp, dbg=0){
                 if(!failflag){
                     rep$inp <- inp
                     if(inp$reportall){
-                        # - Built-in OSAR -
-                        if(!inp$osar.method == 'none'){
-                            rep <- calc.osa.resid(rep)
-                        }
                         #  - Calculate Prager's statistics -
-                        rep$stats <- list()
+                        if(!'stats' %in% names(rep)) rep$stats <- list()
                         K <- get.par('logK', rep, exp=TRUE)[2]
                         Bests <- get.par('logB', rep, exp=TRUE)[rep$inp$indest, 2]
                         Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
@@ -133,6 +129,11 @@ fit.spict <- function(inp, dbg=0){
                             # Prager's coverage
                             rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
                         }
+                        # - Built-in OSAR -
+                        if(!inp$osar.method == 'none'){
+                            rep <- calc.osa.resid(rep)
+                        }
+
                     }
                 }
             }
