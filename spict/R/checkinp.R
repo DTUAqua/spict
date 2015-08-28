@@ -40,7 +40,8 @@
 #' - Settings
 #' \itemize{
 #'  \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc).}
-#'  \item{"inp$dtpredi"}{ Length of index prediction interval in years. Default: 0.}
+#'  \item{"inp$timepredc"}{ Predict catches in interval lengths given by $dtpredc until this time. Default: Time of last observation.}
+#'  \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation.}
 #'  \item{"inp$do.sd.report"}{ Flag indicating whether SD report (uncertainty of derived quantities) should be calculated. For small values of inp$dteuler this may require a lot of memory. Default: TRUE.}
 #'  \item{"inp$reportall"}{ Flag indicating whether quantities derived from state vectors (e.g. B/Bmsy, F/Fmsy etc.) should be calculated by SD report. For small values of inp$dteuler (< 1/32) reporting all may have to be set to FALSE for sdreport to run. Additionally, if only reference points of parameter estimates are of interest one can set to FALSE to gain a speed-up. Default: TRUE.}
 #' \item{"inp$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
@@ -186,28 +187,15 @@ check.inp <- function(inp){
         }
     }
     if(!"timepredc" %in% names(inp)){
-        if("dtpred" %in% names(inp)){
-            inp$timepredc <- tail(inp$timeC, 1) + inp$dtpred
-        } else {
-            inp$timepredc <- max(timeobs)
-        }
+        inp$timepredc <- max(timeobs)
     } else {
-        if(inp$timepredc < max(timeobs)) stop('inp$timepredc must be later than last observation!')
+        if(inp$timepredc < max(timeobs)) stop('inp$timepredc must be equal to or later than last observation!')
     }
-
-    if(!"dtpredi" %in% names(inp)){
-        if("dtpred" %in% names(inp)){
-            inp$dtpredi <- inp$dtpred
-        } else {
-            #if(length(inp$dtc)>0){
-            #    inp$dtpredi <- max(inp$dtc)
-            #} else {
-                inp$dtpredi <- 0
-                #cat('Assuming a 0 year prediction interval for index.\n')
-            #}
-        }
+    if(!"timepredi" %in% names(inp)){
+        inp$timepredi <- max(timeobs)
+    } else {
+        if(inp$timepredi < max(timeobs)) stop('inp$timepredi must be equal to or later than last observation!')
     }
-    dtpredmax <- max(c(inp$dtpredc, inp$dtpredi))
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB')
     #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'logbkfrac')
     #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'Cpredcum')
@@ -227,8 +215,7 @@ check.inp <- function(inp){
     timeobsnodtc <- c(inp$timeC, unlist(inp$timeI))
     # Include dtc because a catch observation at time t includes information in the interval [t; t+dtc[ 
     inp$timerange <- range(timeobs)
-    #time <- seq(min(timeobs), max(timeobs)+dtpredmax, by=inp$dteuler)
-    time <- seq(min(timeobs), max(max(timeobs)+inp$dtpredi, inp$timepredc+inp$dtpredc), by=inp$dteuler)
+    time <- seq(min(timeobs), max(inp$timepredi, inp$timepredc+inp$dtpredc), by=inp$dteuler)
     # Remove duplicate time points and store time in inp list
     inp$time <- sort(unique(c(timeobs, time)))
     inp$ns <- length(inp$time)
@@ -293,7 +280,7 @@ check.inp <- function(inp){
     #inp$dtpredcinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpredc))
     inp$dtpredcinds <- which(inp$time >= inp$timepredc & inp$time < (inp$timepredc+inp$dtpredc))
     inp$dtpredcnsteps <- length(inp$dtpredcinds)
-    inp$dtprediind <- which(inp$time == (inp$timerange[2]+inp$dtpredi))
+    inp$dtprediind <- which(inp$time == inp$timepredi)
 
     # - Sort observations in time and store in one vector -
     timeobsseen <- c(inp$timeC+inp$dtc-1e-4, unlist(inp$timeI)) # Add dtc to timeC because the total catch is first "seen" at the end of the given catch interval (typically year or quarter)
