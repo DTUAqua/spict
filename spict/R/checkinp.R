@@ -1,3 +1,5 @@
+
+
 #' @name check.inp
 #' @title Check list of input variables
 #' @details Fills in defalut values if missing.
@@ -78,6 +80,7 @@ check.inp <- function(inp){
             cat(paste('Removing negative and NAs in catch series\n'))
         }
         inp$nobsC <- length(inp$obsC)
+        inp$obsidC <- 1:inp$nobsC
     } else {
         stop('No catch observations included. Please include them as a vector in inp$obsC.')
     }
@@ -120,6 +123,11 @@ check.inp <- function(inp){
                 }
             }
             inp$nobsI[i] <- length(inp$obsI[[i]])
+            if(i==1){
+                inp$obsidI[[i]] <- (1:inp$nobsI[i]) + inp$nobsC
+            } else {
+                inp$obsidI[[i]] <- (1:inp$nobsI[i]) + tail(inp$obsidI[[i-1]], 1)
+            }
         }
     } else {
         stop('No index observations included. Please include them as a list in inp$obsI.')
@@ -148,10 +156,6 @@ check.inp <- function(inp){
     if(!"robflagi" %in% names(inp)) inp$robflagi <- 0
     inp$robflagi <- as.numeric(inp$robflagi)
     if(!"ffac" %in% names(inp)) inp$ffac <- 1
-    if(!"lamperti" %in% names(inp)) inp$lamperti <- 1
-    inp$lamperti <- 1 # Since Pella-Tomlinson form was implemented only Lamperti is allowed
-    if(!"euler" %in% names(inp)) inp$euler <- 1
-    inp$euler <- 1 # Since Pella-Tomlinson form was implemented only Euler is allowed
     if(!"dtc" %in% names(inp)){
         dtc <- diff(inp$timeC)
         if(length(dtc)>0){
@@ -289,6 +293,19 @@ check.inp <- function(inp){
     inp$dtpredcinds <- which(inp$time >= inp$timepredc & inp$time < (inp$timepredc+inp$dtpredc))
     inp$dtpredcnsteps <- length(inp$dtpredcinds)
     inp$dtprediind <- which(inp$time == (inp$timerange[2]+inp$dtpredi))
+
+    # - Sort observations in time and store in one vector -
+    timeobsseen <- c(inp$timeC+inp$dtc-1e-4, unlist(inp$timeI)) # Add dtc to timeC because the total catch is first "seen" at the end of the given catch interval (typically year or quarter)
+    srt <- sort(timeobsseen, index=TRUE)
+    timeobs <- c(inp$timeC, unlist(inp$timeI))
+    timeobssrt <- timeobs[srt$ix]
+    obs <- log(c(inp$obsC, unlist(inp$obsI)))
+    obsid <- c(inp$obsidC, unlist(inp$obsidI))
+    inp$obssrt <- obs[srt$ix]
+    inp$obsidsrt <- obsid[srt$ix]
+    inp$isc <- match(1:inp$nobsC, srt$ix)
+    inp$isi <- match((inp$nobsC+1):(inp$nobsC+sum(inp$nobsI)), srt$ix)
+    if(!"subset" %in% names(inp)) inp$subset <- (max(inp$isc[1], inp$isi[1])+1):length(inp$obssrt)
 
     # -- PRIORS --
     # Priors are assumed Gaussian and specified in a vector of length 3: c(log(mean), stdev in log, useflag).
@@ -482,9 +499,6 @@ check.inp <- function(inp){
             inp$ini$logB <- inp$ini$logB[1:inp$ns]
         }
     }
-    #if(!"Cpredcum" %in% names(inp$ini)){
-    #    inp$ini$Cpredcum <- rep(sum(inp$obsC)/inp$ns, inp$ns-1)
-    #}
 
     # Reorder parameter list
     inp$parlist <- list(logphi=inp$ini$logphi,
@@ -492,24 +506,19 @@ check.inp <- function(inp){
                         logp1robfac=inp$ini$logp1robfac,
                         logalpha=inp$ini$logalpha,
                         logbeta=inp$ini$logbeta,
-                        #logbkfrac=inp$ini$logbkfrac,
-                        #logF0=inp$ini$logF0,
                         logm=inp$ini$logm,
                         logK=inp$ini$logK,
                         logq=inp$ini$logq,
-                        #logqf=inp$ini$logqf,
                         logn=inp$ini$logn,
                         logsdf=inp$ini$logsdf,
                         logsdb=inp$ini$logsdb,
                         logF=inp$ini$logF,
-                        logB=inp$ini$logB,
-                        #Cpredcum=inp$ini$Cpredcum,
-                        dum=0.0)
+                        logB=inp$ini$logB)
     # Determine phases and fixed parameters
     if(inp$nseasons==1){
-        fixpars <- c('logphi', 'logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac', 'dum') # These are fixed unless specified
+        fixpars <- c('logphi', 'logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless specified
     } else {
-        fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac', 'dum') # These are fixed unless otherwise specified
+        fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless otherwise specified
     }
     if(!"phases" %in% names(inp)){
         inp$phases <- list()
