@@ -173,23 +173,24 @@ check.inp <- function(inp){
     }
     inp$ffaceuler <- inp$ffac^inp$dteuler
     timeobs <- c(inp$timeC, inp$timeC + inp$dtc, unlist(inp$timeI))
+    if(!"dtpredc" %in% names(inp)){
+        if(length(inp$dtc)>0){
+            inp$dtpredc <- max(inp$dtc)
+        } else {
+            inp$dtpredc <- 1
+            cat('Assuming a 1 year prediction interval for catch.\n')
+        }
+    }
     if(!"timepredc" %in% names(inp)){
-        inp$timepredc <- max(timeobs)
+        if("dtpred" %in% names(inp)){
+            inp$timepredc <- tail(inp$timeC, 1) + inp$dtpred
+        } else {
+            inp$timepredc <- max(timeobs)
+        }
     } else {
         if(inp$timepredc < max(timeobs)) stop('inp$timepredc must be later than last observation!')
     }
-    if(!"dtpredc" %in% names(inp)){
-        if("dtpred" %in% names(inp)){
-            inp$dtpredc <- inp$dtpred
-        } else {
-            if(length(inp$dtc)>0){
-                inp$dtpredc <- max(inp$dtc)
-            } else {
-                inp$dtpredc <- 1
-                cat('Assuming a 1 year prediction interval for catch.\n')
-            }
-        }
-    }
+
     if(!"dtpredi" %in% names(inp)){
         if("dtpred" %in% names(inp)){
             inp$dtpredi <- inp$dtpred
