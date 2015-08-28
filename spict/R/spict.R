@@ -52,10 +52,13 @@ fit.spict <- function(inp, dbg=0){
                   dtpredcnsteps=inp$dtpredcnsteps,
                   dtprediind=inp$dtprediind,
                   indlastobs=inp$indlastobs,
-                  obsC=inp$obsC,
+                  obssrt=inp$obssrt,
+                  isc=inp$isc,
+                  isi=inp$isi,
+                  #obsC=inp$obsC,
                   ic=inp$ic,
                   nc=inp$nc,
-                  I=inp$obsIin,
+                  #I=inp$obsIin,
                   ii=inp$iiin,
                   iq=inp$iqin,
                   ir=inp$ir,
@@ -66,8 +69,6 @@ fit.spict <- function(inp, dbg=0){
                   indpred=inp$indpred,
                   robflagc=inp$robflagc,
                   robflagi=inp$robflagi,
-                  lamperti=inp$lamperti,
-                  euler=inp$euler,
                   stochmsy=ifelse(inp$msytype=='s', 1, 0),
                   priorr=inp$priors$logr,
                   priorm=inp$priors$logm,
@@ -90,7 +91,6 @@ fit.spict <- function(inp, dbg=0){
         if(dbg<1){
             # Do estimation
             opt <- try(nlminb(obj$par, obj$fn, obj$gr))
-            
             pl <- obj$env$parList(opt$par)
         }
     }
@@ -109,13 +109,13 @@ fit.spict <- function(inp, dbg=0){
                     rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
                     rep$report <- obj$report()
                 }
+                rep$obj <- obj
                 if(!failflag){
                     rep$inp <- inp
                     if(inp$reportall){
                         # - Built-in OSAR -
                         if(!inp$osar.method == 'none'){
-                            rep$osarC <- oneStepPredict(obj, observation.name = "obsC", data.term.indicator='keepC', method=inp$osar.method, discrete=FALSE)
-                            rep$osarI <- oneStepPredict(obj, observation.name = "I", data.term.indicator='keepI', method=inp$osar.method, discrete=FALSE)
+                            rep <- calc.osa.resid(rep)
                         }
                         #  - Calculate Prager's statistics -
                         rep$stats <- list()
