@@ -210,7 +210,7 @@ Type objective_function<Type>::operator() ()
     //r(i) = sign * gamma * m(i) / K;  // For some reason this doesnt work....
     r(i) =  abs(gamma * m(i) / K);
     logr(i) = log(r(i)); 
-    std::cout << "sign: " << sign << " -- n: " << n << " -- gamma: " << gamma << n << " -- m(i): " << m(i)<< n << " -- K: " << K << " -- r(i): " << r(i) << " -- logr(i): " << logr(i) << std::endl;
+    //std::cout << "sign: " << sign << " -- n: " << n << " -- gamma: " << gamma << n << " -- m(i): " << m(i)<< n << " -- K: " << K << " -- r(i): " << r(i) << " -- logr(i): " << logr(i) << std::endl;
   }
 
   // PRIORS
