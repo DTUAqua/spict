@@ -203,12 +203,14 @@ Type objective_function<Type>::operator() ()
 
   // Calculate growth rate
   Type sign = 1.0;
-  if(n < 1) sign = -1.0; // Following Fletcher (1978)
+  if(n < 1.0) sign = -1.0; // Following Fletcher (1978)
   vector<Type> r(nm);
   vector<Type> logr(nm);
   for(int i=0; i<nm; i++){ 
-    r(i) = sign * gamma * m(i) / K; 
+    //r(i) = sign * gamma * m(i) / K;  // For some reason this doesnt work....
+    r(i) =  abs(gamma * m(i) / K);
     logr(i) = log(r(i)); 
+    std::cout << "sign: " << sign << " -- n: " << n << " -- gamma: " << gamma << n << " -- m(i): " << m(i)<< n << " -- K: " << K << " -- r(i): " << r(i) << " -- logr(i): " << logr(i) << std::endl;
   }
 
   // PRIORS
