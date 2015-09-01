@@ -944,10 +944,12 @@ plotspict.production <- function(rep){
         Pst <- list()
         for(i in 1:nr) Pst[[i]] <- pfun(gamma[2], mest[i,2], Kest[2], n[2], Bplot)
         ylim <- range(unlist(Pst)/Bmsy[2], na.rm=TRUE)
-        if(inp$reportall & inp$nseasons==1){
+        #if(inp$reportall & inp$nseasons==1){
+        if(inp$reportall){
             Best <- get.par('logB', rep, exp=TRUE)
             Pest <- get.par('P', rep)
             Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
+            for(i in 1:nr) Pst[[i]] <- pfun(gamma[2], mest[i,2], Kest[2], n[2], Bplot)
             Bvec <- Best[inp$ic[1:dim(Pest)[1]], 2]
             ylim <- range(Pest[,2]/Bmsy[2], unlist(Pst)/Bmsy[2], na.rm=TRUE)
         }
@@ -957,7 +959,8 @@ plotspict.production <- function(rep){
         indp <- inp$indpred[-1]-1
         plot(Bplot/Kest[2], Pst[[nr]]/Bmsy[2], typ='l', ylim=ylim, xlim=xlim, xlab='B/K', ylab='Production', col=1, main='Production curve')
         if(nr > 1) for(i in 1:(nr-1)) lines(Bplot/Kest[2], Pst[[i]]/Bmsy[2], col='gray')
-        if(inp$reportall & inp$nseasons==1){
+        #if(inp$reportall & inp$nseasons==1){
+        if(inp$reportall){
             lines(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, lwd=1.5)
             points(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, pch=20, cex=0.7)
             par(xpd=TRUE)
@@ -1432,34 +1435,47 @@ plotspict.ci <- function(inp){
     inp <- check.inp(inp)
     y <- inp$obsC
     z <- inp$obsI[[1]]
-    x <- y/z
-    mod0 <- lm(z ~ x)
-    a <- mod0$coefficients[1]
-    b <- mod0$coefficients[2]
-    c <- guess.m(inp, Emsy=TRUE)
-    MSY <- c$MSY
-    Emsy <- c$Emsy
-    xlim <- Re(polyroot(c(0, a, b)))
-    xp <- data.frame('x'=seq(xlim[1], xlim[2], length=100))
-    yp <- a*xp$x + b*xp$x^2 # Dome
-    yp0 <- predict(mod0, xp)
-    par(mfrow=c(3, 2))
-    plot(inp$timeC, y, typ='b', ylab='Catch', xlab='Time')
+    #x <- y/z
+    #mod0 <- lm(z ~ x)
+    #a <- mod0$coefficients[1]
+    #b <- mod0$coefficients[2]
+    c <- guess.m(inp, all=TRUE)
+    if(class(c) == 'list'){
+        MSY <- c$MSY
+        Emsy <- c$Emsy
+        a <- c$a
+        b <- c$b
+        x <- c$x
+        mod0 <- c$mod0
+        xlim <- Re(polyroot(c(0, a, b)))
+        xp <- data.frame('x'=seq(xlim[1], xlim[2], length=100))
+        yp <- a*xp$x + b*xp$x^2 # Dome
+        yp0 <- predict(mod0, xp)
+        par(mfrow=c(3, 2))
+    } else {
+        MSY <- c
+        par(mfrow=c(2, 1))
+    }
+    plot(inp$timeC, y, typ='l', ylab='Catch', xlab='Time', main=paste('MSY guess:', round(MSY, 2)))
+    points(inp$timeC, y, pch=20, cex=0.7)
     abline(h=MSY, lty=2)
     grid()
-    plot(inp$timeI[[1]], z, typ='b', ylab='Index', xlab='Time')
+    plot(inp$timeI[[1]], z, typ='l', ylab='Index', xlab='Time')
+    points(inp$timeI[[1]], z, pch=20, cex=0.7)
     grid()
-    plot(x, z, typ='b', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
-    lines(xp$x, yp0, col=4)
-    plot(x, y, typ='b', xlim=xlim, ylim=range(0, y), ylab='Catch', xlab='Catch/Index (E, effort proxy)', main=paste('MSY guess:', round(MSY, 2), '   Emsy:', round(Emsy, 3)))
-    #abline(v=Emsy, col='green')
-    abline(h=MSY, lty=2)
-    lines(xp$x, yp, col=4)
-    plot(z, y, typ='b', ylab='Catch', xlab='Index')
-    abline(h=MSY, lty=2)
-    plot(y[-length(y)], diff(z)/z[-length(z)], typ='b', xlab='Catch', ylab='Proportional increase in index')
-    abline(h=0, lty=2)
-    abline(v=MSY, lty=2)
+    if(class(c) == 'list'){    
+        plot(x, z, typ='b', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
+        lines(xp$x, yp0, col=4)
+        plot(x, y, typ='b', xlim=xlim, ylim=range(0, y), ylab='Catch', xlab='Catch/Index (E, effort proxy)', main=paste('Emsy guess:', round(Emsy, 3)))
+        #abline(v=Emsy, col='green')
+        abline(h=MSY, lty=2)
+        lines(xp$x, yp, col=4)
+        plot(z, y, typ='b', ylab='Catch', xlab='Index')
+        abline(h=MSY, lty=2)
+        plot(y[-length(y)], diff(z)/z[-length(z)], typ='b', xlab='Catch', ylab='Proportional increase in index')
+        abline(h=0, lty=2)
+        abline(v=MSY, lty=2)
+    }
 }
 
 
