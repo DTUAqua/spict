@@ -123,12 +123,17 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                         if(parname == 'P'){
                             B <- get.par('logB', rep, exp=TRUE)
                             C <- get.par('logCpred', rep, exp=TRUE)
-                            if(rep$inp$dtpredc <= 0) C <- C[-dim(C)[1], ]
-                            nn <- 1/rep$inp$dteuler
-                            mm <- dim(C)[1]
-                            inds <- 1:(nn*mm+1)
-                            Bs <- apply(matrix(diff(B[inds, 2]), nn, mm), 2, sum)
-                            est <- Bs + C[, 2]
+                            ic <- rep$inp$ic
+                            nc <- rep$inp$nc
+                            B0 <- B[ic, 2]
+                            B1 <- B[ic+nc, 2]
+                            est <- B1 - B0 + C[, 2]
+                            #if(rep$inp$dtpredc <= 0) C <- C[-dim(C)[1], ]
+                            #nn <- 1/rep$inp$dteuler
+                            #mm <- dim(C)[1]
+                            #inds <- 1:(nn*mm+1)
+                            #Bs <- apply(matrix(diff(B[inds, 2]), nn, mm), 2, sum)
+                            #est <- Bs + C[, 2]
                         }
                     }
                 } else {
