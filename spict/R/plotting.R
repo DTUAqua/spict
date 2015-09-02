@@ -701,31 +701,41 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         Bp <- get.par('logBp', rep, exp=TRUE)
         Best <- get.par('logB', rep, exp=TRUE)
         logBest <- get.par('logB', rep)
-        #Binf <- get.par('logBinf', rep, exp=TRUE)
-        #inds <- which(is.na(Binf) | Binf<0)
-        #Binf[inds] <- 1e-12
-        #annlist <- annual(inp$time, Binf[, 2])
-        #Binftime <- annlist$anntime
-        #Binfs <- annlist$annvec
-        ns <- dim(Best)[1]
         qest <- get.par('logq', rep, exp=TRUE)
         Fest <- get.par('logFs', rep, exp=TRUE)
         logFest <- get.par('logFs', rep)
+        K <- get.par('logK', rep, exp=TRUE)[2]
+        n <- get.par('logn', rep, exp=TRUE)[2]
+        sdb2 <- get.par('logsdb', rep, exp=TRUE)[2]^2
+        calc.EBinf <- function(K, n, Fl, Fmsy, sdb2) K*(1 - (n-1)/n * Fl/Fmsy)^(1/(n-1)) * (1 - n/2/(1 - (1-n*Fmsy + (n-1)*Fl))*sdb2)
+        ns <- dim(Best)[1]
         Fp <- Fest[ns,]
         inds <- c(max(which(names(rep$value)=='logBmsy')), max(which(names(rep$value)=='logFmsy')))
         cl <- make.ellipse(inds, rep)
+        if(min(inp$dtc) < 1){
+            aind <- which(inp$time[inp$dtprediind] == alb$anntime)
+            bbb <- exp(alb$annvec)/bscal
+            fff <- exp(alf$annvec)/fscal
+        } else {
+            bbb <- Best[inp$indest,2]/bscal
+            fff <- Fest[inp$indest,2]/fscal
+            pind <- rep$inp$dtprediind
+        }
+        Fl <- tail(unname(fff), 1)
+        Bl <- tail(unname(bbb), 1)
+        EBinf <- calc.EBinf(K, n, Fl, Fmsy[2], sdb2)
         # Limits
         if(length(xlim)!=2){
-            xlim <- range(c(exp(cl[,1]),Best[,2])/bscal, na.rm=TRUE)
+            xlim <- range(c(exp(cl[,1]), Best[,2], EBinf)/bscal, na.rm=TRUE)
             if(min(inp$dtc) < 1){
                 alb <- annual(inp$time, logBest[, 2])
                 # New annual limits
-                xlim <- range(c(exp(alb$annvec)/bscal, exp(cl[, 1])/bscal), na.rm=TRUE)
+                xlim <- range(c(exp(alb$annvec), exp(cl[, 1]), EBinf)/bscal, na.rm=TRUE)
             }
             xlim[2] <- min(c(xlim[2], 8*Bmsy[2]/bscal))
         }
         if(length(ylim)!=2){
-            ylim <- range(c(exp(cl[,2]),Fest[,2])/fscal, na.rm=TRUE)
+            ylim <- range(c(exp(cl[,2]), Fest[,2])/fscal, na.rm=TRUE)
             if(min(inp$dtc) < 1){
                 alf <- annual(inp$time, logFest[, 2])
                 # New annual limits
@@ -736,6 +746,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         # Plotting
         #par(mar=c(5,4,4,4))
         plot(Bmsy[2]/bscal, Fmsy[2]/fscal, typ='p', xlim=xlim, xlab=xlab, ylab=ylab,  pch=24, bg='blue', ylim=ylim, log=log)
+        abline(v=0, col='red', lty=2)
         if(ext){
             axis(3, labels=pretty(xlim/Bmsy[2]), at=pretty(xlim/Bmsy[2])*Bmsy[2])
             mtext(expression(B[t]/B[MSY]), side=3, las=0, line=2, cex=par('cex'))
@@ -744,13 +755,11 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         }
         alpha <- 0.15
         polygon(c(Bmsy[2], Bmsy[2], xlim[2]*2, xlim[2]*2)/bscal, c(Fmsy[2], 0, 0, Fmsy[2])/fscal, col=rgb(0,0.8,0,alpha), border=NA) # Green
-        polygon(c(Bmsy[2], Bmsy[2], 0, 0)/bscal, c(Fmsy[2], 0, 0, Fmsy[2])/fscal, col=rgb(1,1,0,alpha), border=NA) # Yellow
+        polygon(c(Bmsy[2], Bmsy[2], xlim[1]-xlim[2], xlim[1]-xlim[2])/bscal, c(Fmsy[2], 0, 0, Fmsy[2])/fscal, col=rgb(1,1,0,alpha), border=NA) # Yellow
         polygon(c(Bmsy[2], Bmsy[2], xlim[2]*2, xlim[2]*2)/bscal, c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(1,1,0,alpha), border=NA) # Yellow
-        polygon(c(Bmsy[2], Bmsy[2], 0, 0)/bscal, c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(0.6,0,0,alpha), border=NA) # Red
+        polygon(c(Bmsy[2], Bmsy[2], xlim[1]-xlim[2], xlim[1]-xlim[2])/bscal, c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(0.6,0,0,alpha), border=NA) # Red
         cicol2 <- 'gray'
         polygon(exp(cl[,1])/bscal, exp(cl[,2])/fscal, col=cicol, border=cicol2)
-        #abline(h=Fmsy[2], lty=1)
-        #abline(v=Bmsy[2], lty=1)
         #arrow.line(Best[,2]/bscal, Fest[,2], length=0.05, col='blue')
         if('true' %in% names(inp)){
             #lines(inp$true$B/bscal, inp$true$F, col='orange') # Plot true
@@ -758,36 +767,33 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         }
         maincol <- rgb(0,0,1,0.8)
         if(min(inp$dtc) < 1){
-        #if(FALSE){
-            aind <- which(inp$time[inp$dtprediind] == alb$anntime)
-            bbb <- exp(alb$annvec)/bscal
-            fff <- exp(alf$annvec)/fscal
             lines(bbb, fff, col=maincol, lwd=1.5)
             #points(alb$annvec[aind]/bscal, alf$annvec[aind], pch=21, bg='yellow')
             #points(tail(Binfs,1)/bscal, Fp[2], pch=22, bg='green', cex=2)
             #arrow.line(c(tail(alb$annvec,1), tail(Binfs,1))/bscal, rep(Fp[2],2), col='black', length=0.05)
         } else {
-            bbb <- Best[inp$indest,2]/bscal
-            fff <- Fest[inp$indest,2]/fscal
             lines(bbb, fff, col=maincol, lwd=1.5)
             lines(Best[inp$indpred,2]/bscal, Fest[inp$indpred,2]/fscal, col=maincol, lty=3)
-            pind <- rep$inp$dtprediind
+            #pind <- rep$inp$dtprediind
             #points(Best[pind,2]/bscal, Fest[pind,2], pch=21, bg='yellow')
             #points(tail(Binfs,1)/bscal, Fp[2]/fscal, pch=22, bg='green', cex=2)
             #arrow.line(c(tail(Best[,2],1), tail(Binfs,1))/bscal, rep(Fp[2],2)/fscal, col='black', length=0.05)
             #if(plot.legend) legend('topright', c('Estimated MSY',paste(inp$time[pind],'Pred.'),expression('E(B'[infinity]*')')), pch=c(24,21,22), pt.bg=c('black','yellow','green'), bg='white')
             #if(plot.legend) legend('topright', c('Estimated MSY',expression('E(B'[infinity]*')')), pch=c(24,22), pt.bg=c('black','green'), bg='white')
         }
-        
-        points(Bmsy[2]/bscal, Fmsy[2]/fscal, pch=24, bg='black')
+        lines(c(Bl, EBinf), c(Fl, Fl), lwd=1.5, lty=3, col='blue')
+        points(EBinf, Fl, pch=24, bg='yellow')
+        #points(Bmsy[2]/bscal, Fmsy[2]/fscal, pch=24, bg='black')
+        points(Bmsy[2]/bscal, Fmsy[2]/fscal, pch=3)
         nr <- length(inp$ini$logr)
         if(nr > 1){
             points(Bmsyall[1:(nr-1), 2]/bscal, Fmsyall[1:(nr-1), 2]/fscal, pch=24, bg='magenta')
-            if(plot.legend) legend('topright', c('Current MSY', 'Previous MSY'), pch=24, pt.bg=c('black', 'magenta'), bg='white')
+            if(plot.legend) legend('topright', c('Current MSY', 'Previous MSY'), pch=3, col=c('black', 'magenta'), bg='white')
         } else {
-            if(plot.legend) legend('topright', c('Estimated MSY'), pch=c(24), pt.bg=c('black'), bg='white')
+            if(plot.legend) legend('topright', expression('E(B'[infinity]*')'), pch=24, pt.bg='yellow', bg='white')
+            #if(plot.legend) legend('topright', c('Estimated MSY'), pch=3, col=c('black'), bg='white')
         }
-        points(tail(bbb,1), tail(fff,1), pch=22, bg='red')
+        points(Bl, Fl, pch=22, bg='red')
         points(bbb[1], fff[1], pch=21, bg='green')
         box(lwd=1.5)
     }
@@ -811,7 +817,7 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
         cicol <- 'lightgray'
         MSY <- get.par('logMSY', rep, exp=TRUE)
         MSYvec <- get.msyvec(inp, MSY)
-        Crc <- get.par('logCrcsum', rep, exp=TRUE)
+        #Crc <- get.par('logCrcsum', rep, exp=TRUE)
         #Cpredsub <- get.par('Cpredsub', rep)
         #Cpsub <- get.par('logCpsub', rep, exp=TRUE) # could be deleted
         Cpredest <- get.par('logCpred', rep, exp=TRUE)
@@ -917,10 +923,10 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL){
             lines(timep, cp, col=4, lty=3)
             lines(timep, clp, col=4, lwd=1, lty=2)
             lines(timep, cup, col=4, lwd=1, lty=2)
-            points(inp$timepredc, Crc[2], pch=21, bg='yellow')
+            #points(inp$timepredc, Crc[2], pch=21, bg='yellow')
         }
         #if(min(inp$dtc) == 1 & plot.legend) legend('topleft',c(paste(tail(inp$timeCpred,1),'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
-        if(min(inp$dtc) == 1 & inp$dtpredc > 0 & plot.legend & Crc[2] > ylim[1] & Crc[2] < ylim[2]) legend('topright', 'C at Fmsy', pch=21, pt.bg=c('yellow'), bg='white')
+        #if(min(inp$dtc) == 1 & inp$dtpredc > 0 & plot.legend & Crc[2] > ylim[1] & Crc[2] < ylim[2]) legend('topright', 'C at Fmsy', pch=21, pt.bg=c('yellow'), bg='white')
         box(lwd=1.5)
     }
 }
@@ -1207,7 +1213,7 @@ plot.spictcls <- function(rep, logax=FALSE){
             # F/Fmsy
             plotspict.ffmsy(rep, logax=logax)
             # F versus B
-            plotspict.fb(rep, logax=logax)
+            plotspict.fb(rep, logax=logax, plot.legend=TRUE)
         } else {
             if('osar' %in% names(rep)){
                 par(mfrow=c(3, 2), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2,3.5))
@@ -1480,7 +1486,8 @@ plotspict.ci <- function(inp){
         abline(h=0, lty=2, col='gray')
     }
     plot(inp$timeC, y, typ='l', ylab='Catch', xlab='Time', main=paste('MSY guess:', round(MSY, 2)))
-    plot.col(inp$timeC, y, do.line=FALSE, cex=0.6, add=TRUE, add.legend=TRUE)
+    add.legend <- inp$nseasons > 1
+    plot.col(inp$timeC, y, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
     abline(h=MSY, lty=2)
     grid()
     for(i in 1:inp$nindex){
