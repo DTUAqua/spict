@@ -91,16 +91,13 @@ plot.col <- function(time, obs, pch=1, add=FALSE, typ='p', do.line=TRUE, ...){
     cols <- rep(c(4, 3, 2, 5, 1, 6, 7, 'orange'), 10) # Make sure we have enough colors
     nintv <- 4
     intvs <- seq(0, length=nintv, by=1/nintv)
+    mods <- time%%1
     if(!add) plot(time, obs, xlab='Time', typ='n', ...)
-    if(typ=='p'){
-        if(do.line) lines(time, obs, col='lightgray')
-        mods <- time%%1
-        for(i in 1:nintv){
-            inds <- which(mods >= intvs[i] & mods < (intvs[i]+1/nintv))
-            points(time[inds], obs[inds], col=1, pch=20+pch, bg=cols[i])
-        }
-    }
-    if(typ=='l'){
+    if(typ=='p' & do.line) lines(time, obs, col='lightgray')
+    for(i in 1:nintv){
+        inds <- which(mods >= intvs[i] & mods < (intvs[i]+1/nintv))
+        if(typ=='p') points(time[inds], obs[inds], col=1, pch=20+pch, bg=cols[i])
+        if(typ=='l') lines(time[inds], obs[inds], col=cols[i], lty=1)
     }
     if(!add) box(lwd=1.5)
 }
@@ -1097,16 +1094,17 @@ plotspict.season <- function(rep){
         covmat <- rep$cov.fixed[inds, inds]
         require(MASS)
         nunc <- 200
+        set.seed(1234)
         a <- mvrnorm(nunc, mu=logphi[, 2], Sigma=covmat)
         seasonsplineest <- get.spline(logphi[, 2], order=rep$inp$splineorder, dtfine=rep$inp$dteuler)
         #seasonsplineest <- c(seasonsplineest, seasonsplineest[1])
         test <- seq(0, 1, length=length(seasonsplineest))
         yest <- exp(meanlogF + seasonsplineest)
         seasonsplinesmoo <- get.spline(logphi[, 2], order=rep$inp$splineorder)
+        nsss <- length(seasonsplinesmoo)
         t <- seq(0, 1, length=nsss)
         y <- exp(meanlogF + seasonsplinesmoo)
         #seasonsplinesmoo <- c(seasonsplinesmoo, seasonsplinesmoo[1])
-        nsss <- length(seasonsplinesmoo)
         yunc <- matrix(0, nunc, nsss)
         for(i in 1:nunc) yunc[i, ] <- exp(get.spline(a[i, ], order=rep$inp$splineorder) + meanlogF)
         #yunc <- exp(meanlogF + seasonsplinesmoo)        
@@ -1446,10 +1444,6 @@ plotspict.ci <- function(inp){
     inp <- check.inp(inp)
     y <- inp$obsC
     z <- inp$obsI[[1]]
-    #x <- y/z
-    #mod0 <- lm(z ~ x)
-    #a <- mod0$coefficients[1]
-    #b <- mod0$coefficients[2]
     c <- guess.m(inp, all=TRUE)
     if(class(c) == 'list'){
         MSY <- c$MSY
@@ -1465,20 +1459,32 @@ plotspict.ci <- function(inp){
         par(mfrow=c(3, 2))
     } else {
         MSY <- c
-        par(mfrow=c(2, 1))
+        par(mfrow=c(2, 2))
+    }
+    plot.seasondiff <- function(time, obs, ylab='Obs'){
+        dt <- time[-length(time)]
+        dy <- diff(log(obs))
+        plot(dt, dy, typ='n', col='lightgray', ylab=ylab, xlab='Time')
+        plot.col(dt, dy, do.line=FALSE, add=TRUE, typ='l')
+        abline(h=0, lty=2, col='gray')
     }
     plot(inp$timeC, y, typ='l', ylab='Catch', xlab='Time', main=paste('MSY guess:', round(MSY, 2)))
-    plot.col(inp$timeC, inp$obsC, do.line=FALSE, cex=0.6, add=TRUE)
+    plot.col(inp$timeC, y, do.line=FALSE, cex=0.6, add=TRUE)
     abline(h=MSY, lty=2)
     grid()
-    plot(inp$timeI[[1]], z, typ='l', ylab='Index', xlab='Time')
-    for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
+    for(i in 1:inp$nindex){
+        plot(inp$timeI[[1]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time')
+        plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
+    }
     grid()
+    if(inp$nseasons > 1){
+        plot.seasondiff(inp$timeC, y, ylab='diff log catch')
+        plot.seasondiff(inp$timeI[[1]], inp$obsI[[1]], ylab='diff log index 1')
+    }
     if(class(c) == 'list'){    
         plot(x, z, typ='b', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
         lines(xp$x, yp0, col=4)
         plot(x, y, typ='b', xlim=xlim, ylim=range(0, y), ylab='Catch', xlab='Catch/Index (E, effort proxy)', main=paste('Emsy guess:', round(Emsy, 3)))
-        #abline(v=Emsy, col='green')
         abline(h=MSY, lty=2)
         lines(xp$x, yp, col=4)
         plot(z, y, typ='b', ylab='Catch', xlab='Index')
