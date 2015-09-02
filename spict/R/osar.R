@@ -17,69 +17,73 @@ calc.osa.resid <- function(rep, dbg=0){
     if(rep$inp$osar.method == 'none'){
         rep$inp$osar.method <- 'oneStepGaussian'
     }
-    osar <- oneStepPredict(rep$obj, observation.name = "obssrt", data.term.indicator='keep', method=rep$inp$osar.method, discrete=FALSE, subset=rep$inp$osar.subset, trace=inp$osar.trace, parallel=inp$osar.parallel)
-    osar <- cbind(id=inp$obsidsrt[inp$osar.subset], osar)
-    # Store catch residuals separately
-    inds <- match(inp$obsidC, osar$id)
-    inds <- inds[!is.na(inds)]
-    rep$osarC <- osar[inds, ]
-    inds2 <- match(osar$id, inp$obsidC)
-    inds2 <- inds2[!is.na(inds2)]
-    timeC <- inp$timeC[inds2]
-    # Store index residuals separately
-    rep$osarI <- list()
-    timeI <- list()
-    for(i in 1:rep$inp$nindex){
-        inds <- match(inp$obsidI[[i]], osar$id)
+    osar <- try(oneStepPredict(rep$obj, observation.name = "obssrt", data.term.indicator='keep', method=rep$inp$osar.method, discrete=FALSE, subset=rep$inp$osar.subset, trace=inp$osar.trace, parallel=inp$osar.parallel))
+    if(class(osar) != 'try-error'){
+        osar <- cbind(id=inp$obsidsrt[inp$osar.subset], osar)
+        # Store catch residuals separately
+        inds <- match(inp$obsidC, osar$id)
         inds <- inds[!is.na(inds)]
-        rep$osarI[[i]] <- osar[inds,]
-        inds2 <- match(osar$id, inp$obsidI[[i]])
+        rep$osarC <- osar[inds, ]
+        inds2 <- match(osar$id, inp$obsidC)
         inds2 <- inds2[!is.na(inds2)]
-        timeI[[i]] <- inp$timeI[[i]][inds2]
-    }
+        timeC <- inp$timeC[inds2]
+        # Store index residuals separately
+        rep$osarI <- list()
+        timeI <- list()
+        for(i in 1:rep$inp$nindex){
+            inds <- match(inp$obsidI[[i]], osar$id)
+            inds <- inds[!is.na(inds)]
+            rep$osarI[[i]] <- osar[inds,]
+            inds2 <- match(osar$id, inp$obsidI[[i]])
+            inds2 <- inds2[!is.na(inds2)]
+            timeI[[i]] <- inp$timeI[[i]][inds2]
+        }
 
-    npar <- length(rep$opt$par)
-    # Catches
-    logCpres <- rep$osarC$residual
-    logCpres[1] <- NA # Always omit first residual because it can be difficult to calculate
-    lblag <- npar+1 # Lags to check with LB test
-    logCpboxtest <- Box.test(logCpres, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
-    logCpp5boxtest <- Box.test(logCpres, lag=lblag+4, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
-    logCpsqboxtest <- Box.test(logCpres^2, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
-    logCpshapiro <- shapiro.test(logCpres) # Test for normality of residuals
-    logCpbias <- t.test(logCpres) # Test for bias of residuals
-    if(!'stats' %in% names(rep)) rep$stats <- list()
-    #rep$stats$ljungboxC.p <- logCpboxtest$p.value
-    #rep$stats$ljungboxCp5.p <- logCpp5boxtest$p.value
-    #rep$stats$ljungboxCsq.p <- logCpsqboxtest$p.value
-    rep$stats$shapiroC.p <- logCpshapiro$p.value
-    rep$stats$biasC.p <- logCpbias$p.value
-    # Indices
-    logIpres <- list()
-    logIpboxtest <- list()
-    logIpp5boxtest <- list()
-    logIpsqboxtest <- list()
-    logIpshapiro <- list()
-    logIpbias <- list()
-    for(i in 1:inp$nindex){
-        logIpres[[i]] <- rep$osarI[[i]]$residual
-        logIpres[[i]][1] <- NA # Always omit first residual because it can be difficult to calculate
-        #logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=lblag, type='Ljung-Box', fitdf=npar)
-        #logIpp5boxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag+4, type='Ljung-Box', fitdf=npar)
-        #logIpsqboxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag, type='Ljung-Box', fitdf=npar)
-        logIpshapiro[[i]] <- shapiro.test(logIpres[[i]])
-        logIpbias[[i]] <- t.test(logIpres[[i]])
-        nam <- paste0('ljungboxI', i, '.p')
-        #rep$stats[[nam]] <- logIpboxtest[[i]]$p.value
-        nam <- paste0('ljungboxIp5', i, '.p')
-        #rep$stats[[nam]] <- logIpp5boxtest[[i]]$p.value
-        nam <- paste0('ljungboxIsq', i, '.p')
-        #rep$stats[[nam]] <- logIpsqboxtest[[i]]$p.value
-        nam <- paste0('shapiroI', i, '.p')
-        rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
-        nam <- paste0('biasI', i, '.p')
-        rep$stats[[nam]] <- logIpbias[[i]]$p.value
+        npar <- length(rep$opt$par)
+        # Catches
+        logCpres <- rep$osarC$residual
+        logCpres[1] <- NA # Always omit first residual because it can be difficult to calculate
+        lblag <- npar+1 # Lags to check with LB test
+        logCpboxtest <- Box.test(logCpres, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
+        logCpp5boxtest <- Box.test(logCpres, lag=lblag+4, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
+        logCpsqboxtest <- Box.test(logCpres^2, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
+        logCpshapiro <- shapiro.test(logCpres) # Test for normality of residuals
+        logCpbias <- t.test(logCpres) # Test for bias of residuals
+        if(!'stats' %in% names(rep)) rep$stats <- list()
+        #rep$stats$ljungboxC.p <- logCpboxtest$p.value
+        #rep$stats$ljungboxCp5.p <- logCpp5boxtest$p.value
+        #rep$stats$ljungboxCsq.p <- logCpsqboxtest$p.value
+        rep$stats$shapiroC.p <- logCpshapiro$p.value
+        rep$stats$biasC.p <- logCpbias$p.value
+        # Indices
+        logIpres <- list()
+        logIpboxtest <- list()
+        logIpp5boxtest <- list()
+        logIpsqboxtest <- list()
+        logIpshapiro <- list()
+        logIpbias <- list()
+        for(i in 1:inp$nindex){
+            logIpres[[i]] <- rep$osarI[[i]]$residual
+            logIpres[[i]][1] <- NA # Always omit first residual because it can be difficult to calculate
+            #logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=lblag, type='Ljung-Box', fitdf=npar)
+            #logIpp5boxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag+4, type='Ljung-Box', fitdf=npar)
+            #logIpsqboxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag, type='Ljung-Box', fitdf=npar)
+            logIpshapiro[[i]] <- shapiro.test(logIpres[[i]])
+            logIpbias[[i]] <- t.test(logIpres[[i]])
+            nam <- paste0('ljungboxI', i, '.p')
+            #rep$stats[[nam]] <- logIpboxtest[[i]]$p.value
+            nam <- paste0('ljungboxIp5', i, '.p')
+            #rep$stats[[nam]] <- logIpp5boxtest[[i]]$p.value
+            nam <- paste0('ljungboxIsq', i, '.p')
+            #rep$stats[[nam]] <- logIpsqboxtest[[i]]$p.value
+            nam <- paste0('shapiroI', i, '.p')
+            rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
+            nam <- paste0('biasI', i, '.p')
+            rep$stats[[nam]] <- logIpbias[[i]]$p.value
+        }
+        rep$osar <- list(timeC=timeC, logCpres=logCpres, logCpbias=logCpbias, logCpshapiro=logCpshapiro, timeI=timeI, logIpres=logIpres, logIpshapiro=logIpshapiro, logIpbias=logIpbias)
+    } else {
+        cat('Error: Could not calculate OSA residuals.\n')
     }
-    rep$osar <- list(timeC=timeC, logCpres=logCpres, logCpbias=logCpbias, logCpshapiro=logCpshapiro, timeI=timeI, logIpres=logIpres, logIpshapiro=logIpshapiro, logIpbias=logIpbias)
     return(rep)
 }

@@ -1473,10 +1473,18 @@ plotspict.ci <- function(inp){
         xp <- data.frame('x'=seq(xlim[1], xlim[2], length=100))
         yp <- a*xp$x + b*xp$x^2 # Dome
         yp0 <- predict(mod0, xp)
-        par(mfrow=c(3, 2))
+        if(inp$nseasons > 1){
+            par(mfrow=c(4, 2))
+        } else {
+            par(mfrow=c(3, 2))
+        }
     } else {
         MSY <- c
-        par(mfrow=c(2, 2))
+        if(inp$nseasons > 1){
+            par(mfrow=c(2, 2))
+        } else {
+            par(mfrow=c(1, 2))
+        }
     }
     plot.seasondiff <- function(time, obs, ylab='Obs'){
         dt <- time[-length(time)]
@@ -1484,17 +1492,20 @@ plotspict.ci <- function(inp){
         plot(dt, dy, typ='n', col='lightgray', ylab=ylab, xlab='Time')
         plot.col(dt, dy, do.line=FALSE, add=TRUE, typ='l')
         abline(h=0, lty=2, col='gray')
+        box(lwd=1.5)
     }
     plot(inp$timeC, y, typ='l', ylab='Catch', xlab='Time', main=paste('MSY guess:', round(MSY, 2)))
     add.legend <- inp$nseasons > 1
     plot.col(inp$timeC, y, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
     abline(h=MSY, lty=2)
     grid()
+    box(lwd=1.5)
     for(i in 1:inp$nindex){
         plot(inp$timeI[[1]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time')
         plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
     }
     grid()
+    box(lwd=1.5)
     if(inp$nseasons > 1){
         plot.seasondiff(inp$timeC, y, ylab='diff log catch')
         plot.seasondiff(inp$timeI[[1]], inp$obsI[[1]], ylab='diff log index 1')
@@ -1502,14 +1513,18 @@ plotspict.ci <- function(inp){
     if(class(c) == 'list'){    
         plot(x, z, typ='b', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
         lines(xp$x, yp0, col=4)
+        box(lwd=1.5)
         plot(x, y, typ='b', xlim=xlim, ylim=range(0, y), ylab='Catch', xlab='Catch/Index (E, effort proxy)', main=paste('Emsy guess:', round(Emsy, 3)))
         abline(h=MSY, lty=2)
         lines(xp$x, yp, col=4)
+        box(lwd=1.5)
         plot(z, y, typ='b', ylab='Catch', xlab='Index')
         abline(h=MSY, lty=2)
+        box(lwd=1.5)
         plot(y[-length(y)], diff(z)/z[-length(z)], typ='b', xlab='Catch', ylab='Proportional increase in index')
         abline(h=0, lty=2)
         abline(v=MSY, lty=2)
+        box(lwd=1.5)
     }
 }
 
