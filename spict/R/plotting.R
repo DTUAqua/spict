@@ -87,7 +87,7 @@ make.ellipse <- function(inds, rep){
 #' @param typ Plot type.
 #' @param ... Additional plotting arguments.
 #' @return Nothing.
-plot.col <- function(time, obs, pch=1, add=FALSE, typ='p', do.line=TRUE, ...){
+plot.col <- function(time, obs, pch=1, add=FALSE, typ='p', do.line=TRUE, add.legend=FALSE, ...){
     cols <- rep(c(4, 3, 2, 5, 1, 6, 7, 'orange'), 10) # Make sure we have enough colors
     nintv <- 4
     intvs <- seq(0, length=nintv, by=1/nintv)
@@ -98,6 +98,17 @@ plot.col <- function(time, obs, pch=1, add=FALSE, typ='p', do.line=TRUE, ...){
         inds <- which(mods >= intvs[i] & mods < (intvs[i]+1/nintv))
         if(typ=='p') points(time[inds], obs[inds], col=1, pch=20+pch, bg=cols[i])
         if(typ=='l') lines(time[inds], obs[inds], col=cols[i], lty=1)
+    }
+    if(add.legend){
+        par(xpd=TRUE)
+        xx <- par()$usr[1] - 0.15*diff(par()$usr[1:2])
+        yy <- par()$usr[4] + 0.2*diff(par()$usr[3:4])
+        dy <- 0.06*diff(par()$usr[3:4])
+        for(i in 1:nintv){
+            points(xx, yy-(i-1)*dy, pch=20+pch, col=1, bg=cols[i])
+            text(xx, yy-(i-1)*dy, paste0('Q', i), pos=4)
+        }
+        par(xpd=FALSE)
     }
     if(!add) box(lwd=1.5)
 }
@@ -1469,7 +1480,7 @@ plotspict.ci <- function(inp){
         abline(h=0, lty=2, col='gray')
     }
     plot(inp$timeC, y, typ='l', ylab='Catch', xlab='Time', main=paste('MSY guess:', round(MSY, 2)))
-    plot.col(inp$timeC, y, do.line=FALSE, cex=0.6, add=TRUE)
+    plot.col(inp$timeC, y, do.line=FALSE, cex=0.6, add=TRUE, add.legend=TRUE)
     abline(h=MSY, lty=2)
     grid()
     for(i in 1:inp$nindex){
