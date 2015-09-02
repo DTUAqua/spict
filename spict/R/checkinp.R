@@ -142,8 +142,13 @@ check.inp <- function(inp){
     }
     # -- MODEL OPTIONS --
     if(!"osar.method" %in% names(inp)){
-        #inp$osar.method <- 'oneStepGaussianOffMode'
         inp$osar.method <- 'none'
+    }
+    if(!"osar.trace" %in% names(inp)){
+        inp$osar.trace <- FALSE
+    }
+    if(!"osar.parallel" %in% names(inp)){
+        inp$osar.parallel <- TRUE
     }
     if(!"msytype" %in% names(inp)){
         inp$msytype <- 's'
@@ -293,7 +298,7 @@ check.inp <- function(inp){
     inp$obsidsrt <- obsid[srt$ix]
     inp$isc <- match(1:inp$nobsC, srt$ix)
     inp$isi <- match((inp$nobsC+1):(inp$nobsC+sum(inp$nobsI)), srt$ix)
-    if(!"subset" %in% names(inp)) inp$subset <- (max(inp$isc[1], inp$isi[1])+1):length(inp$obssrt)
+    if(!"osar.subset" %in% names(inp)) inp$osar.subset <- (max(inp$isc[1], inp$isi[1])+1):length(inp$obssrt)
 
     # -- PRIORS --
     # Priors are assumed Gaussian and specified in a vector of length 3: c(log(mean), stdev in log, useflag).
@@ -340,6 +345,12 @@ check.inp <- function(inp){
         inp$priors$logm <- c(log(mean(inp$obsC)), 0.2, 0)
     } else {
         inp$priors$logm <- check.prior(inp$priors, 'logm')
+    }
+    
+    if(!"logq" %in% names(inp$priors)){
+        inp$priors$logq <- c(log(max(inp$obsI[[1]]) / max(inp$obsC)), 0.2, 0)
+    } else {
+        inp$priors$logq <- check.prior(inp$priors, 'logq')
     }
     if(!"logbkfrac" %in% names(inp$priors)){
         inp$priors$logbkfrac <- c(log(0.8), 0.2, 0)

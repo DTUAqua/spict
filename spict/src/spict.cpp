@@ -64,8 +64,9 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(robflagi);       // Index Degrees of freedom of t-distribution (only used if tdf < 25)
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
   DATA_VECTOR(priorr);         // Prior vector for r, [log(mean), stdev in log, useflag]
-  DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorq);         // Prior vector for q, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorbkfrac);    // Prior vector for B0/K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorB);         // Prior vector for B, [log(mean), stdev in log, useflag, year, ib]
   DATA_SCALAR(dbg);            // Debug flag, if == 1 then print stuff.
@@ -207,7 +208,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> r(nm);
   vector<Type> logr(nm);
   for(int i=0; i<nm; i++){ 
-    //r(i) = sign * gamma * m(i) / K;  // For some reason this doesnt work....
+    //r(i) = sign * gamma * m(i) / K;  // For some reason this doesnt work for n<0
     r(i) =  abs(gamma * m(i) / K);
     logr(i) = log(r(i)); 
     //std::cout << "sign: " << sign << " -- n: " << n << " -- gamma: " << gamma << n << " -- m(i): " << m(i)<< n << " -- K: " << K << " -- r(i): " << r(i) << " -- logr(i): " << logr(i) << std::endl;
@@ -216,17 +217,21 @@ Type objective_function<Type>::operator() ()
   // PRIORS
   if(dbg > 0){
     std::cout << "PRIOR: priorr(0): " << priorr(0) << " -- priorr(1): " << priorr(1) << " -- priorr(2): " << priorr(2) << std::endl;
-    std::cout << "PRIOR: priorm(0): " << priorm(0) << " -- priorm(1): " << priorm(1) << " -- priorm(2): " << priorm(2) << std::endl;
     std::cout << "PRIOR: priorK(0): " << priorK(0) << " -- priorK(1): " << priorK(1) << " -- priorK(2): " << priorK(2) << std::endl;
+    std::cout << "PRIOR: priorm(0): " << priorm(0) << " -- priorm(1): " << priorm(1) << " -- priorm(2): " << priorm(2) << std::endl;
+    std::cout << "PRIOR: priorq(0): " << priorq(0) << " -- priorq(1): " << priorq(1) << " -- priorq(2): " << priorq(2) << std::endl;
   }
   if(priorr(2) == 1 & nm == 1){
     ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
   }
+  if(priorK(2) == 1){
+    ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
+  }
   if(priorm(2) == 1 & nm == 1){
     ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
   }
-  if(priorK(2) == 1){
-    ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
+  if(priorq(2) == 1 & nq == 1){
+    ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq
   }
   if(priorbkfrac(2) == 1){
     ans-= dnorm(logB(0) - logK, priorbkfrac(0), priorbkfrac(1), 1); // Prior for logbkfrac
