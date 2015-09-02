@@ -283,7 +283,7 @@ sim.spict <- function(input, nobs=100){
 #' \itemize{
 #'  \item{"osarpvals"}{ P-values of the Ljung-Box test for uncorrelated one-step-ahead residuals.}
 #'  \item{"*msyci"}{Logical. TRUE if the true value of B/Fmsy was inside the 95\% confidence interval for the estimate, otherwise FALSE}
-#'  \item{"*msyciw"}{ Width of the 95\% confidence interval of the estimate of B/Fmsy.}
+#'  \item{"*msyciw"}{ Width of the 95\% confidence interval of the estimate of Bmsy/Fmsy.}
 #' }
 #' @examples
 #' data(pol)
@@ -306,7 +306,6 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
         rep <- try(fit.spict(sim))
         s <- NA
         if(!class(rep)=='try-error'){
-            #rep <- calc.osa.resid(rep)
             s <- extract.simstats(rep)
         }
         return(s)

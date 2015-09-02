@@ -71,8 +71,9 @@ fit.spict <- function(inp, dbg=0){
                   robflagi=inp$robflagi,
                   stochmsy=ifelse(inp$msytype=='s', 1, 0),
                   priorr=inp$priors$logr,
-                  priorm=inp$priors$logm,
                   priorK=inp$priors$logK,
+                  priorm=inp$priors$logm,
+                  priorq=inp$priors$logq,
                   priorbkfrac=inp$priors$logbkfrac,
                   priorB=inp$priors$logB,
                   dbg=dbg)

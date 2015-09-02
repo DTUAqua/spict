@@ -17,8 +17,8 @@ calc.osa.resid <- function(rep, dbg=0){
     if(rep$inp$osar.method == 'none'){
         rep$inp$osar.method <- 'oneStepGaussian'
     }
-    osar <- oneStepPredict(rep$obj, observation.name = "obssrt", data.term.indicator='keep', method=rep$inp$osar.method, discrete=FALSE, subset=rep$inp$subset, trace=FALSE, parallel=TRUE)
-    osar <- cbind(id=inp$obsidsrt[inp$subset], osar)
+    osar <- oneStepPredict(rep$obj, observation.name = "obssrt", data.term.indicator='keep', method=rep$inp$osar.method, discrete=FALSE, subset=rep$inp$osar.subset, trace=inp$osar.trace, parallel=inp$osar.parallel)
+    osar <- cbind(id=inp$obsidsrt[inp$osar.subset], osar)
     # Store catch residuals separately
     inds <- match(inp$obsidC, osar$id)
     inds <- inds[!is.na(inds)]

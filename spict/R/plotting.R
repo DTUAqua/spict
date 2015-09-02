@@ -1457,11 +1457,11 @@ plotspict.ci <- function(inp){
         par(mfrow=c(2, 1))
     }
     plot(inp$timeC, y, typ='l', ylab='Catch', xlab='Time', main=paste('MSY guess:', round(MSY, 2)))
-    points(inp$timeC, y, pch=20, cex=0.7)
+    plot.col(inp$timeC, inp$obsC, do.line=FALSE, cex=0.6, add=TRUE)
     abline(h=MSY, lty=2)
     grid()
     plot(inp$timeI[[1]], z, typ='l', ylab='Index', xlab='Time')
-    points(inp$timeI[[1]], z, pch=20, cex=0.7)
+    for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
     grid()
     if(class(c) == 'list'){    
         plot(x, z, typ='b', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
