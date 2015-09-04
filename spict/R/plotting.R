@@ -713,6 +713,8 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         inds <- c(max(which(names(rep$value)=='logBmsy')), max(which(names(rep$value)=='logFmsy')))
         cl <- make.ellipse(inds, rep)
         if(min(inp$dtc) < 1){
+            alb <- annual(inp$time, logBest[, 2])
+            alf <- annual(inp$time, logFest[, 2])
             aind <- which(inp$time[inp$dtprediind] == alb$anntime)
             bbb <- exp(alb$annvec)/bscal
             fff <- exp(alf$annvec)/fscal
@@ -728,7 +730,6 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         if(length(xlim)!=2){
             xlim <- range(c(exp(cl[,1]), Best[,2], EBinf)/bscal, na.rm=TRUE)
             if(min(inp$dtc) < 1){
-                alb <- annual(inp$time, logBest[, 2])
                 # New annual limits
                 xlim <- range(c(exp(alb$annvec), exp(cl[, 1]), EBinf)/bscal, na.rm=TRUE)
             }
@@ -737,7 +738,6 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         if(length(ylim)!=2){
             ylim <- range(c(exp(cl[,2]), Fest[,2])/fscal, na.rm=TRUE)
             if(min(inp$dtc) < 1){
-                alf <- annual(inp$time, logFest[, 2])
                 # New annual limits
                 ylim <- range(c(exp(alf$annvec)/fscal, exp(cl[, 2])/fscal), na.rm=TRUE)
             }
