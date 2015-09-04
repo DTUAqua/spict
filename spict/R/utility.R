@@ -127,7 +127,7 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                             nc <- rep$inp$nc
                             B0 <- B[ic, 2]
                             B1 <- B[ic+nc, 2]
-                            est <- B1 - B0 + C[, 2]
+                            est <- (B1 - B0 + C[, 2]) / (rep$inp$dteuler*rep$inp$nc) # Get annual average
                             #if(rep$inp$dtpredc <= 0) C <- C[-dim(C)[1], ]
                             #nn <- 1/rep$inp$dteuler
                             #mm <- dim(C)[1]

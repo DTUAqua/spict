@@ -325,30 +325,30 @@ plotspict.osar <- function(rep, collapse.I=TRUE){
         # Catches
         pval <- round(rep$osar$logCpbias$p.value, 4)
         colmain <- ifelse(pval<0.05, 'red', 'forestgreen')
-        fun(rep$inp$timeC, rep$osar$logCpres, ylab='Catch OSAR', main=paste0('Bias p-val: ', pval), col.main=colmain)
+        fun(rep$osar$timeC, rep$osar$logCpres, ylab='Catch OSAR', main=paste0('Bias p-val: ', pval), col.main=colmain)
         abline(h=0, lty=3)
         # Indices
         pval <- round(rep$osar$logIpbias[[1]]$p.value, 4)
         colmain <- ifelse(pval<0.05, 'red', 'forestgreen')
         if(collapse.I){
             ylim <- range(unlist(rep$osar$logIpres), na.rm=TRUE)
-            xlim <- range(unlist(rep$inp$timeI))
+            xlim <- range(unlist(rep$osar$timeI))
         } else {
             ylim <- range(rep$osar$logIpres[[1]], na.rm=TRUE)
-            xlim <- range(rep$inp$timeI[[1]])
+            xlim <- range(rep$osar$timeI[[1]])
         }
-        fun(rep$inp$timeI[[1]], rep$osar$logIpres[[1]], ylab='Index OSAR', col=1, xlim=xlim, ylim=ylim, main=paste0('I1 bias p-val: ', pval), col.main=colmain)
+        fun(rep$osar$timeI[[1]], rep$osar$logIpres[[1]], ylab='Index OSAR', col=1, xlim=xlim, ylim=ylim, main=paste0('I1 bias p-val: ', pval), col.main=colmain)
         abline(h=0, lty=3)
         if(rep$inp$nindex>1){
             for(i in 2:rep$inp$nindex){
                 ylim <- range(rep$osar$logIpres[[i]])
-                xlim <- range(unlist(rep$inp$timeI[[i]]))
+                xlim <- range(unlist(rep$osar$timeI[[i]]))
                 if(!collapse.I){
                     pval <- round(rep$osar$logIpbias[[i]]$p.value, 4)
                     colmain <- ifelse(pval<0.05, 'red', 'forestgreen')
                     main <- paste0('I', i, ' bias p-val: ', pval)
                 } else { main <- '' }
-                fun(rep$inp$timeI[[i]], rep$osar$logIpres[[i]], add=collapse.I, ylab='Index OSAR', col=1, pch=i, xlim=xlim, ylim=ylim, main=main, col.main=colmain)
+                fun(rep$osar$timeI[[i]], rep$osar$logIpres[[i]], add=collapse.I, ylab='Index OSAR', col=1, pch=i, xlim=xlim, ylim=ylim, main=main, col.main=colmain)
                 if(!collapse.I){
                     abline(h=0, lty=3)
                 }
@@ -406,12 +406,12 @@ plotspict.diagnostic <- function(rep){
     if('osar' %in% names(rep)){
         plotspict.osar(rep, collapse.I=FALSE)
         resC <- rep$osar$logCpres[!is.na(rep$osar$logCpres)]
-        acf(resC, main='ACF of catch OSAR')
+        acf(resC, main='ACF of catch OSAR', lag.max=10)
         box(lwd=1.5)
         resI <- list()
         for(i in 1:inp$nindex){
             resI[[i]] <- rep$osar$logIpres[[i]][!is.na(rep$osar$logIpres[[i]])]
-            acf(resI[[i]], main=paste('ACF of index', i, 'OSAR'))
+            acf(resI[[i]], main=paste('ACF of index', i, 'OSAR'), lag.max=10)
             box(lwd=1.5)
         }
         pval <- round(rep$osar$logCpshapiro$p.value, 4)
@@ -641,7 +641,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         cicol2 <- rgb(0, 0, 1, 0.1)
         if(!flag) polygon(c(timef[fininds], rev(timef[fininds])), c(clf[fininds], rev(cuf[fininds])), col=cicol2, border=cicol2)
         if(min(inp$dtc) < 1){ # Plot estimated sub annual F 
-            lines(inp$time, FF[, 2], col=rgb(0, 0, 0, 0.2))
+            lines(inp$time, FF[, 2], col=rgb(0, 0, 1, 0.4))
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
         if('true' %in% names(inp)){
@@ -978,7 +978,7 @@ plotspict.production <- function(rep){
             lines(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, lwd=1.5)
             points(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, pch=20, cex=0.7)
             par(xpd=TRUE)
-            text(Bvec/Kest[2], Pest[, 2]/Bmsy[2], labels=inp$time[inp$ic], cex=0.65, pos=4, offset=0.25)
+            if(length(inp$ic) < 25) text(Bvec/Kest[2], Pest[, 2]/Bmsy[2], labels=inp$time[inp$ic], cex=0.65, pos=4, offset=0.25)
             par(xpd=FALSE)
         }
         mx <- (1/n[2])^(1/(n[2]-1))

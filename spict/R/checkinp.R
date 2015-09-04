@@ -295,10 +295,17 @@ check.inp <- function(inp){
     obs <- log(c(inp$obsC, unlist(inp$obsI)))
     obsid <- c(inp$obsidC, unlist(inp$obsidI))
     inp$obssrt <- obs[srt$ix]
+    inp$timeobssrt <- timeobs[srt$ix]
     inp$obsidsrt <- obsid[srt$ix]
     inp$isc <- match(1:inp$nobsC, srt$ix)
     inp$isi <- match((inp$nobsC+1):(inp$nobsC+sum(inp$nobsI)), srt$ix)
-    if(!"osar.subset" %in% names(inp)) inp$osar.subset <- (max(inp$isc[1], inp$isi[1])+1):length(inp$obssrt)
+    if(!"osar.conditional" %in% names(inp)){
+        inp$osar.conditional <- which(inp$timeobssrt < inp$time[1]+1) # Condition on the first year of data.
+    }
+    if(!"osar.subset" %in% names(inp)){
+        #inp$osar.subset <- (max(inp$isc[1], inp$isi[1])+1):length(inp$obssrt)
+        inp$osar.subset <- setdiff(1:length(inp$obssrt), inp$osar.conditional)
+    }
 
     # -- PRIORS --
     # Priors are assumed Gaussian and specified in a vector of length 3: c(log(mean), stdev in log, useflag).

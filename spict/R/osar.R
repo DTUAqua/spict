@@ -17,7 +17,7 @@ calc.osa.resid <- function(rep, dbg=0){
     if(rep$inp$osar.method == 'none'){
         rep$inp$osar.method <- 'oneStepGaussian'
     }
-    osar <- try(oneStepPredict(rep$obj, observation.name = "obssrt", data.term.indicator='keep', method=rep$inp$osar.method, discrete=FALSE, subset=rep$inp$osar.subset, trace=inp$osar.trace, parallel=inp$osar.parallel))
+    osar <- try(oneStepPredict(rep$obj, observation.name = "obssrt", data.term.indicator='keep', method=rep$inp$osar.method, discrete=FALSE, conditional=rep$inp$osar.conditional, subset=rep$inp$osar.subset, trace=inp$osar.trace, parallel=inp$osar.parallel))
     if(class(osar) != 'try-error'){
         osar <- cbind(id=inp$obsidsrt[inp$osar.subset], osar)
         # Store catch residuals separately
@@ -42,7 +42,7 @@ calc.osa.resid <- function(rep, dbg=0){
         npar <- length(rep$opt$par)
         # Catches
         logCpres <- rep$osarC$residual
-        logCpres[1] <- NA # Always omit first residual because it can be difficult to calculate
+        #logCpres[1] <- NA # Always omit first residual because it can be difficult to calculate
         lblag <- npar+1 # Lags to check with LB test
         logCpboxtest <- Box.test(logCpres, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
         logCpp5boxtest <- Box.test(logCpres, lag=lblag+4, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
