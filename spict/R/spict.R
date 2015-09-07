@@ -1,17 +1,19 @@
+
+
 #' @name fit.spict
 #' @title Fit a continuous-time surplus production model to data.
 #' @details Fits the model using the TMB package and returns a result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
 #'
 #' Fixed effects:
 #' \itemize{
-#'   \item{"logr"}{ Log of intrinsic growth rate.}
+#'   \item{"logm"}{ Log of maximum sustainable yield.}
 #'   \item{"logK"}{ Log of carrying capacity.}
 #'   \item{"logq"}{ Log of catchability vector.}
 #'   \item{"logsdf"}{ Log of standard deviation of fishing mortality process noise.}
 #'   \item{"logsdb"}{ Log of standard deviation of biomass process noise.}
 #' }
 #'
-#' Optional fixed effects (which are normally not estimated):
+#' Optional parameters (which are normally not estimated):
 #' \itemize{
 #'   \item{"phi"}{ Used when inp$nseasons > 1 to specify the cyclic B spline representing seasonal variation.}
 #'   \item{"logalpha"}{ Proportionality factor for the observation noise of the indices and the biomass process noise: sdi = exp(logalpha)*sdb. (normally set to logalpha=0)}
@@ -27,12 +29,22 @@
 #'
 #' Derived parameters:
 #' \itemize{
+#'   \item{"logr"}{ Log of intrinsic growth rate (r = 4m/K).}
 #'   \item{"logBmsy"}{ Log of the equilibrium biomass (Bmsy) when fished at Fmsy.}
 #'   \item{"logFmsy"}{ Log of the fishing mortality (Fmsy) leading to the maximum sustainable yield.}
 #'   \item{"MSY"}{ The yield when the biomass is at Bmsy and the fishing mortality is at Fmsy, i.e. the maximum sustainable yield.}
 #' }
 #'
 #' The above parameter values can be extracted from the fit.spict() results using get.par().
+#'
+#' Model assumptions
+#' \itemize{
+#'   \item{"1"}{The intrinsic growth rate (r) represents a combination of natural mortality, growth, and recruitment.}
+#'   \item{"2"}{The biomass B_t refers to the exploitable part of the stock. Estimates in absolute numbers (K, Bmsy, etc.) should be interpreted in light of this.}
+#'   \item{"3"}{The stock is closed to migration.}
+#'   \item{"4"}{Age and size-distribution are stable in time.}
+#'   \item{"5"}{Constant catchability of the gear used to gather information for the biomass index.}
+#' }
 #' @param inp List of input variables as output by check.inp.
 #' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. Will print even more if set to 2.
 #' @return A result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
