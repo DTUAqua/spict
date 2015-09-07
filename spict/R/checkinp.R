@@ -155,6 +155,15 @@ check.inp <- function(inp){
     } else {
         if(!inp$msytype %in% c('s', 'd')) stop('inp$msytype must be either "s" (stochastic) or "d" (deterministic!')
     }
+    if("phases" %in% names(inp)){
+        if('logn' %in% names(inp$phases)){
+            if(inp$phases$logn > -1){
+                # Dangerous to use stochastic msys when estimating n because estimate of n could result in invalid reference points.
+                if(inp$msytype != 'd') cat('Using msytype = "d" because logn is estimated.\n')
+                inp$msytype <- 'd'
+            }
+        }
+    }
     if(!"reportall" %in% names(inp)) inp$reportall <- TRUE
     if(!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
     if(!"robflagc" %in% names(inp)) inp$robflagc <- 0
