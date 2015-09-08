@@ -95,7 +95,7 @@ fit.spict <- function(inp, dbg=0){
         if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
         # Create TMB object
         obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map[[i]])
-        config(trace.optimize=0, DLL=inp$scriptname)
+        TMB:::config(trace.optimize=0, DLL=inp$scriptname)
         verbose <- FALSE
         obj$env$tracemgc <- verbose
         obj$env$inner.control$trace <- verbose

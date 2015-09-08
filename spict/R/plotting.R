@@ -654,6 +654,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
             if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds], 0.95*Fmsy[1]/Fmsy[2], 1.05*Fmsy[3]/Fmsy[2]), na.rm=TRUE)
         }
         ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
+        ylim <- c(min(ylim[1], 1), max(ylim[2], 1)) # Ensure that 1 is included in ylim
         #main <- paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac)
         if(main==-1) main <- 'Relative fishing mortality'
         plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]), xlab='Time', xlim=range(c(inp$time, tail(inp$time,1)+1)))
@@ -777,10 +778,10 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             mtext(expression(F[t]/F[MSY]), side=4, las=0, line=2.5, cex=par('cex'))
         }
         alpha <- 0.15
-        polygon(c(Bmsy[2], Bmsy[2], xlim[2]*2, xlim[2]*2)/bscal, c(Fmsy[2], 0, 0, Fmsy[2])/fscal, col=rgb(0,0.8,0,alpha), border=NA) # Green
-        polygon(c(Bmsy[2], Bmsy[2], xlim[1]-xlim[2], xlim[1]-xlim[2])/bscal, c(Fmsy[2], 0, 0, Fmsy[2])/fscal, col=rgb(1,1,0,alpha), border=NA) # Yellow
-        polygon(c(Bmsy[2], Bmsy[2], xlim[2]*2, xlim[2]*2)/bscal, c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(1,1,0,alpha), border=NA) # Yellow
-        polygon(c(Bmsy[2], Bmsy[2], xlim[1]-xlim[2], xlim[1]-xlim[2])/bscal, c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(0.6,0,0,alpha), border=NA) # Red
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], -10, -10, Fmsy[2])/fscal, col=rgb(0,0.8,0,alpha), border=NA) # Green
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], -10, -10, Fmsy[2])/fscal, col=rgb(1,1,0,alpha), border=NA) # Yellow
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(1,1,0,alpha), border=NA) # Yellow
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(0.6,0,0,alpha), border=NA) # Red
         cicol2 <- 'gray'
         polygon(exp(cl[,1])/bscal, exp(cl[,2])/fscal, col=cicol, border=cicol2)
         #arrow.line(Best[,2]/bscal, Fest[,2], length=0.05, col='blue')
