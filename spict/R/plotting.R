@@ -726,10 +726,9 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         qest <- get.par('logq', rep, exp=TRUE)
         Fest <- get.par('logFs', rep, exp=TRUE)
         logFest <- get.par('logFs', rep)
-        K <- get.par('logK', rep, exp=TRUE)[2]
-        n <- get.par('logn', rep, exp=TRUE)[2]
-        sdb2 <- get.par('logsdb', rep, exp=TRUE)[2]^2
-        calc.EBinf <- function(K, n, Fl, Fmsy, sdb2) K*(1 - (n-1)/n * Fl/Fmsy)^(1/(n-1)) * (1 - n/2/(1 - (1-n*Fmsy + (n-1)*Fl))*sdb2)
+        #K <- get.par('logK', rep, exp=TRUE)[2] # Can perhaps be deleted only used in calc.EBinf?
+        #n <- get.par('logn', rep, exp=TRUE)[2] # Can perhaps be deleted only used in calc.EBinf?
+        #sdb2 <- get.par('logsdb', rep, exp=TRUE)[2]^2 # Can perhaps be deleted only used in calc.EBinf?
         ns <- dim(Best)[1]
         Fp <- Fest[ns,]
         inds <- c(max(which(names(rep$value)=='logBmsy')), max(which(names(rep$value)=='logFmsy')))
@@ -747,9 +746,10 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             pind <- rep$inp$dtprediind
             fbtime <- inp$time[inp$indest]
         }
-        Fl <- tail(unname(fff), 1)
-        Bl <- tail(unname(bbb), 1)
-        EBinf <- calc.EBinf(K, n, Fl, Fmsy[2], sdb2)
+        Fl <- tail(unname(fff), 1)*fscal
+        Bl <- tail(unname(bbb), 1)*bscal
+        #EBinf <- calc.EBinf(K, n, Fl, Fmsy[2], sdb2) # Can perhaps be deleted only used in calc.EBinf?
+        EBinf <- get.EBinf(rep) # Should be used instead of the above.
         # Limits
         if(length(xlim)!=2){
             xlim <- range(c(exp(cl[,1]), Best[,2], EBinf)/bscal, na.rm=TRUE)

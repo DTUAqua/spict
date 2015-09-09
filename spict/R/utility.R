@@ -279,3 +279,39 @@ guess.m <- function(inp, all.return=FALSE){
         return(mean(y))
     }
 }
+
+
+#' @name calc.EBinf
+#' @title Calculate E(Binfinity) the fished equilibrium.
+#' @details If a seasonal pattern in F is imposed the annual average F is used for calculating the expectation.
+#' @param K The carrying capacity.
+#' @param n Pella-Tomlinson exponent.
+#' @param Fl Average fishing mortality of the last year.
+#' @param Fmsy Fishing mortality at MSY.
+#' @param sdb2 Standard deviation squared (variance) of B process.
+#' @return E(Binf).
+calc.EBinf <- function(K, n, Fl, Fmsy, sdb2) K*(1 - (n-1)/n * Fl/Fmsy)^(1/(n-1)) * (1 - n/2/(1 - (1-n*Fmsy + (n-1)*Fl))*sdb2)
+
+
+#' @name get.EBinf
+#' @title Calculate E(Binfinity) the fished equilibrium.
+#' @details If a seasonal pattern in F is imposed the annual average F is used for calculating the expectation.
+#' @param rep A result of fit.spict.
+#' @return E(Binf).
+get.EBinf <- function(rep){
+    K <- get.par('logK', rep, exp=TRUE)[2]
+    n <- get.par('logn', rep, exp=TRUE)[2]
+    sdb2 <- get.par('logsdb', rep, exp=TRUE)[2]^2
+    Fmsyall <- get.par('logFmsy', rep, exp=TRUE)
+    Fmsy <- tail(Fmsyall, 1)
+    if(min(rep$inp$dtc) < 1){
+        logFest <- get.par('logFs', rep)
+        alf <- annual(rep$inp$time, logFest[, 2])
+        fff <- exp(alf$annvec)
+    } else {
+        Fest <- get.par('logFs', rep, exp=TRUE)
+        fff <- Fest[rep$inp$indest,2]
+    }
+    Fl <- tail(unname(fff), 1)
+    EBinf <- calc.EBinf(K, n, Fl, Fmsy[2], sdb2)
+}

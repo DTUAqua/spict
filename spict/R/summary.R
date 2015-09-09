@@ -161,24 +161,23 @@ summary.spictcls <- function(object, numdigits=8){
         cat('', paste(capture.output(stateout),' \n'))
         # Predictions
         cat(paste0('\nPredictions w 95% CI (inp$msytype: ', rep$inp$msytype, ')\n'))
+        EBinf <- get.EBinf(rep)
         predout <- rbind(
             get.par(parname='logBp', rep, exp=TRUE)[c(2,1,3,2)],
             get.par(parname='logFp', rep, exp=TRUE)[c(2,1,3,2)],
             get.par(parname='logBpBmsy', rep, exp=TRUE)[c(2,1,3,2)],
             get.par(parname='logFpFmsy', rep, exp=TRUE)[c(2,1,3,2)],
-            tail(get.par(parname='logCpred', rep, exp=TRUE),1)[c(2,1,3,2)])
-        #        get.par(parname='logCp', rep, exp=TRUE)[c(2,1,3,2)])
+            tail(get.par(parname='logCpred', rep, exp=TRUE),1)[c(2,1,3,2)],
+            c(EBinf, NA, NA, EBinf))
         predout[, 4] <- log(predout[, 4])
         predout <- round(predout, numdigits)
         colnames(predout) <- c('prediction', colnms[2:4])
         et <- rep$inp$time[rep$inp$dtprediind]
-        rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_',tail(rep$inp$timeCpred,1)))
+        rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_',tail(rep$inp$timeCpred,1)), 'B_inf')
         if(rep$inp$dtpredc == 0) predout <- predout[-dim(predout)[1], ]
         cat('', paste(capture.output(predout),' \n'))
     }
-    #if('osar' %in% names(rep)){
-    #    cat('\nOne-step-ahead residuals - Ljung-box test for independence of lag 1\n')
-    #    cat(paste(' Catches p-value:', round(rep$osar$logCpboxtest$p.value, numdigits), '\n'))
-    #    for(i in 1:rep$inp$nindex) cat(paste(' Index', i, 'p-value:', round(rep$osar$logIpboxtest[[i]]$p.value, numdigits), '\n'))
-    #}
 }
+
+
+
