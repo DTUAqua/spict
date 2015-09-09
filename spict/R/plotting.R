@@ -719,16 +719,12 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             xlab <- expression(B[t])
             ylab <- expression(F[t])
         }
-        cicol <- 'lightgray'
         Bp <- get.par('logBp', rep, exp=TRUE)
         Best <- get.par('logB', rep, exp=TRUE)
         logBest <- get.par('logB', rep)
         qest <- get.par('logq', rep, exp=TRUE)
         Fest <- get.par('logFs', rep, exp=TRUE)
         logFest <- get.par('logFs', rep)
-        #K <- get.par('logK', rep, exp=TRUE)[2] # Can perhaps be deleted only used in calc.EBinf?
-        #n <- get.par('logn', rep, exp=TRUE)[2] # Can perhaps be deleted only used in calc.EBinf?
-        #sdb2 <- get.par('logsdb', rep, exp=TRUE)[2]^2 # Can perhaps be deleted only used in calc.EBinf?
         ns <- dim(Best)[1]
         Fp <- Fest[ns,]
         inds <- c(max(which(names(rep$value)=='logBmsy')), max(which(names(rep$value)=='logFmsy')))
@@ -746,10 +742,9 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             pind <- rep$inp$dtprediind
             fbtime <- inp$time[inp$indest]
         }
-        Fl <- tail(unname(fff), 1)*fscal
-        Bl <- tail(unname(bbb), 1)*bscal
-        #EBinf <- calc.EBinf(K, n, Fl, Fmsy[2], sdb2) # Can perhaps be deleted only used in calc.EBinf?
-        EBinf <- get.EBinf(rep) # Should be used instead of the above.
+        Fl <- tail(unname(fff), 1)
+        Bl <- tail(unname(bbb), 1)
+        EBinf <- get.EBinf(rep)/bscal # Should be used instead of the above.
         # Limits
         if(length(xlim)!=2){
             xlim <- range(c(exp(cl[,1]), Best[,2], EBinf)/bscal, na.rm=TRUE)
@@ -769,7 +764,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         }
         # Plotting
         #par(mar=c(5,4,4,4))
-        plot(Bmsy[2]/bscal, Fmsy[2]/fscal, typ='p', xlim=xlim, xlab=xlab, ylab=ylab,  pch=24, bg='blue', ylim=ylim, log=log)
+        plot(Bmsy[2]/bscal, Fmsy[2]/fscal, typ='n', xlim=xlim, xlab=xlab, ylab=ylab, ylim=ylim, log=log)
         abline(v=0, col='red', lty=2)
         if(ext){
             axis(3, labels=pretty(xlim/Bmsy[2]), at=pretty(xlim/Bmsy[2])*Bmsy[2])
@@ -782,8 +777,13 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], -10, -10, Fmsy[2])/fscal, col=rgb(1,1,0,alpha), border=NA) # Yellow
         polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(1,1,0,alpha), border=NA) # Yellow
         polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(0.6,0,0,alpha), border=NA) # Red
+        cicol <- 'lightgray'
+        cicolrgb <- col2rgb(cicol)/255
+        cicoluse <- rgb(cicolrgb[1], cicolrgb[2], cicolrgb[3], 0.7)
         cicol2 <- 'gray'
-        polygon(exp(cl[,1])/bscal, exp(cl[,2])/fscal, col=cicol, border=cicol2)
+        cicol2rgb <- col2rgb(cicol2)/255
+        cicol2use <- rgb(cicol2rgb[1], cicol2rgb[2], cicol2rgb[3], 0.7)
+        polygon(exp(cl[,1])/bscal, exp(cl[,2])/fscal, col=cicoluse, border=cicol2use)
         #arrow.line(Best[,2]/bscal, Fest[,2], length=0.05, col='blue')
         if('true' %in% names(inp)){
             #lines(inp$true$B/bscal, inp$true$F, col='orange') # Plot true
