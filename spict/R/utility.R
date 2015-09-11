@@ -204,10 +204,10 @@ make.splinemat <- function(nseasons, order, dtfine=1/100){
 
 
 #' @name get.spline
-#' @title Get the values of the seasonal spline for F
-#' @param logphi Values of the phi vector
-#' @param order Order of the spline
-#' @param dtfine Time between points where spline is evaluated
+#' @title Get the values of the seasonal spline for F.
+#' @param logphi Values of the phi vector.
+#' @param order Order of the spline.
+#' @param dtfine Time between points where spline is evaluated.
 #' @return Spline values at the points between 0 and 1 with dtfine as time step.
 #' @export
 get.spline <- function(logphi, order, dtfine=1/100){

@@ -251,13 +251,7 @@ check.inp <- function(inp){
         inp$splineorder <- ifelse(inp$nseasons<4, 2, 3)
     }
     inp$splinemat <- make.splinemat(inp$nseasons, inp$splineorder, dtfine=inp$dteuler)
-    #if(inp$dteuler < 1){
-        #knots <- seq(0, 1, by=1/inp$nseasons)
-        #x <- seq(0, 1-inp$dteuler, by=inp$dteuler)
-        #inp$splinemat <- cSplineDes(x, knots, ord=inp$splineorder)
-    #} else {
-     #   inp$splinemat <- matrix(1, 1, 1)
-    #}
+    inp$splinematfine <- make.splinemat(inp$nseasons, inp$splineorder, dtfine=1/100)
     inp$seasonindex <- 1/inp$dteuler*(inp$time %% 1)
     inp$seasons <- rep(0, inp$ns)
     for(i in 1:inp$nseasons){

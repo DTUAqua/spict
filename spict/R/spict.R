@@ -77,6 +77,7 @@ fit.spict <- function(inp, dbg=0){
                   seasons=inp$seasons,
                   seasonindex=inp$seasonindex,
                   splinemat=inp$splinemat,
+                  splinematfine=inp$splinematfine,
                   ffac=inp$ffaceuler,
                   indpred=inp$indpred,
                   robflagc=inp$robflagc,

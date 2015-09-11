@@ -58,6 +58,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(seasons);        // A vector of length ns indicating to which season a state belongs
   DATA_VECTOR(seasonindex);    // A vector of length ns giving the number stepped within the current year
   DATA_MATRIX(splinemat);      // Design matrix for the seasonal spline
+  DATA_MATRIX(splinematfine);  // Design matrix for the seasonal spline on a fine time scale to get spline uncertainty
   DATA_SCALAR(ffac);           // Management factor each year multiply the predicted F with ffac
   DATA_VECTOR(indpred);        // A vector indicating when the management factor should be applied
   DATA_SCALAR(robflagc);       // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
@@ -107,6 +108,9 @@ Type objective_function<Type>::operator() ()
   vector<Type> temp = splinemat.col(0);
   vector<Type> seasonspline(temp.size());
   seasonspline = splinemat * logphipar;
+  vector<Type> tempfine = splinematfine.col(0);
+  vector<Type> seasonsplinefine(tempfine.size());
+  seasonsplinefine = splinematfine * logphipar;
   Type pp = 1.0/(1.0 + exp(-logitpp));
   Type robfac = 1.0 + exp(logp1robfac);
   int nm = logm.size();
@@ -510,6 +514,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(Emsy);
   ADREPORT(Emsy2);
   ADREPORT(logbkfrac);
+  ADREPORT(seasonsplinefine);
   // PREDICTIONS
   ADREPORT(Cp);
   ADREPORT(Crcsum);
