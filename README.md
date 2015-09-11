@@ -20,4 +20,4 @@ Windows
 
 2. From R run: ```source("install_windows.R")```
 
-This requires that Rtools is installed, which is probably the case if TMB is installed.
+This requires that Rtools is installed, which is probably the case if TMB is installed. When running install_windows.R remember to set your working directory to the spict directory containing install_windows.R.
