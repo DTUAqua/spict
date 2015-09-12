@@ -2,21 +2,21 @@
 % Please edit documentation in R/utility.R
 \name{get.spline}
 \alias{get.spline}
-\title{Get the values of the seasonal spline for F}
+\title{Get the values of the seasonal spline for F.}
 \usage{
 get.spline(logphi, order, dtfine = 1/100)
 }
 \arguments{
-\item{logphi}{Values of the phi vector}
+\item{logphi}{Values of the phi vector.}
 
-\item{order}{Order of the spline}
+\item{order}{Order of the spline.}
 
-\item{dtfine}{Time between points where spline is evaluated}
+\item{dtfine}{Time between points where spline is evaluated.}
 }
 \value{
 Spline values at the points between 0 and 1 with dtfine as time step.
 }
 \description{
-Get the values of the seasonal spline for F
+Get the values of the seasonal spline for F.
 }
 
