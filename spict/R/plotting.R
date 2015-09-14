@@ -84,27 +84,39 @@ make.ellipse <- function(inds, rep){
 season.cols <- function() rep(c(4, 3, 2, 5, 1, 6, 7, 'orange'), 10) # Make sure we have enough colors
 
 
+#' @name true.col
+#' @title Load color of true values.
+#' @return Color vector
+true.col <- function() rgb(1, 165/255, 0, alpha=0.7) # 'orange'
+
+
 #' @name plot.col
 #' @title Plot model points colored depending on the quarter to which they belong.
 #' @param time Time vector.
 #' @param obs Observation vector (or residual vector).
+#' @param obsx Second observation vector for use as independent variable instead of time.
 #' @param pch Point character.
 #' @param add If TRUE plot is added to the current plot.
 #' @param typ Plot type.
 #' @param ... Additional plotting arguments.
 #' @return Nothing.
-plot.col <- function(time, obs, pch=1, add=FALSE, typ='p', do.line=TRUE, add.legend=FALSE, ...){
+plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TRUE, add.legend=FALSE, ...){
+    if(is.null(obsx)){
+        x <- time
+    } else {
+        x <- obsx
+    }
     cols <- season.cols()
     mods <- time%%1
     nintv <- 4
     qs <- unique(mods)*nintv + 1
     intvs <- seq(0, length=nintv, by=1/nintv)
-    if(!add) plot(time, obs, xlab='Time', typ='n', ...)
-    if(typ=='p' & do.line) lines(time, obs, col='lightgray')
+    if(!add) plot(x, obs, typ='n', ...)
+    if(typ=='p' & do.line) lines(x, obs, col='lightgray')
     for(i in 1:nintv){
         inds <- which(mods >= intvs[i] & mods < (intvs[i]+1/nintv))
-        if(typ=='p') points(time[inds], obs[inds], col=1, pch=20+pch, bg=cols[i])
-        if(typ=='l') lines(time[inds], obs[inds], col=cols[i], lty=1)
+        if(typ=='p') points(x[inds], obs[inds], col=1, pch=20+pch, bg=cols[i])
+        if(typ=='l') lines(x[inds], obs[inds], col=cols[i], lty=1)
     }
     if(add.legend) add.col.legend(qs, cols, pch=1)
     if(!add) box(lwd=1.5)
@@ -202,8 +214,8 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
             }
         }
         if('true' %in% names(inp)){
-            lines(inp$true$time, inp$true$B/scal, col='orange') # Plot true
-            abline(h=inp$true$Bmsy, col='orange', lty=2)
+            lines(inp$true$time, inp$true$B/scal, col=true.col()) # Plot true
+            abline(h=inp$true$Bmsy, col=true.col(), lty=2)
         }
         lines(inp$time[inp$indest], Best[inp$indest,2]/scal, col='blue', lwd=1.5)
         lines(inp$time[inp$indpred], Best[inp$indpred,2]/scal, col='blue', lty=3)
@@ -298,7 +310,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
             }
         }
         if('true' %in% names(inp)){
-            lines(inp$true$time, inp$true$B/inp$true$Bmsy, col='orange') # Plot true
+            lines(inp$true$time, inp$true$B/inp$true$Bmsy, col=true.col()) # Plot true
         }
         lines(inp$time[inp$indest], BB[inp$indest,2], col='blue', lwd=1.5)
         lines(inp$time[inp$indpred], BB[inp$indpred,2], col='blue', lty=3)
@@ -558,8 +570,8 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
         if('true' %in% names(inp)){
-            lines(inp$true$time, inp$true$Fs, col='orange') # Plot true
-            abline(h=inp$true$Fmsy, col='orange', lty=2)
+            lines(inp$true$time, inp$true$Fs, col=true.col()) # Plot true
+            abline(h=inp$true$Fmsy, col=true.col(), lty=2)
         }
         maincol <- 'blue'
         if(!flag) lines(time, cl, col=maincol, lwd=1.5, lty=2)
@@ -668,8 +680,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
         if('true' %in% names(inp)){
-            lines(inp$true$time, inp$true$Fs, col='orange') # Plot true
-            abline(h=inp$true$Fmsy, col='orange', lty=2)
+            lines(inp$true$time, inp$true$Fs/inp$true$Fmsy, col=true.col()) # Plot true
         }
         maincol <- 'blue'
         lines(time, F, col=maincol, lwd=1.5)
@@ -787,8 +798,8 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         polygon(exp(cl[,1])/bscal, exp(cl[,2])/fscal, col=cicoluse, border=cicol2use)
         #arrow.line(Best[,2]/bscal, Fest[,2], length=0.05, col='blue')
         if('true' %in% names(inp)){
-            #lines(inp$true$B/bscal, inp$true$F, col='orange') # Plot true
-            points(inp$true$Bmsy/bscal, inp$true$Fmsy/fscal, pch=24, bg='orange')
+            #lines(inp$true$B/bscal, inp$true$F, col=true.col()) # Plot true
+            points(inp$true$Bmsy/bscal, inp$true$Fmsy/fscal, pch=25, bg=true.col())
         }
         maincol <- rgb(0,0,1,0.8)
         if(min(inp$dtc) < 1){
@@ -805,7 +816,11 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             points(Bmsyall[1:(nr-1), 2]/bscal, Fmsyall[1:(nr-1), 2]/fscal, pch=24, bg='magenta')
             if(plot.legend) legend('topright', c('Current MSY', 'Previous MSY'), pch=3, col=c('black', 'magenta'), bg='white')
         } else {
-            if(plot.legend) legend('topright', expression('E(B'[infinity]*')'), pch=24, pt.bg='yellow', bg='white')
+            if('true' %in% names(inp)){
+                if(plot.legend) legend('topright', c(expression('E(B'[infinity]*')'), 'True'), pch=c(24, 25), pt.bg=c('yellow', true.col()), bg='white')
+            } else {
+                if(plot.legend) legend('topright', expression('E(B'[infinity]*')'), pch=24, pt.bg='yellow', bg='white')
+            }
             #if(plot.legend) legend('topright', c('Estimated MSY'), pch=3, col=c('black'), bg='white')
         }
         points(Bl, Fl, pch=22, bg='magenta')
@@ -932,7 +947,7 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL, qlegend=T
             inds <- which(cols>0)
             points(inp$timeC[inds], inp$obsC[inds]/Cscal, pch=21, cex=0.9, bg=cols[inds])
         }
-        if('true' %in% names(inp)) abline(h=inp$true$MSY, col='orange', lty=2)
+        if('true' %in% names(inp)) abline(h=inp$true$MSY, col=true.col(), lty=2)
         #abline(h=MSY[2]/Cscal)
         lines(inp$time, MSYvec$msy)
         lines(time, c, col=4, lwd=1.5)
@@ -1159,7 +1174,7 @@ plotspict.season <- function(rep){
         lines(t, y, lwd=1, col='green')
         lines(test, yest, lwd=1.5, col=4, typ='s')
         if("true" %in% names(rep$inp)){
-            lines(ttrue, ytrue, lwd=1, col='orange', typ='s')            
+            lines(ttrue, ytrue, lwd=1, col=true.col(), typ='s')            
         }
         axis(1, at=ats, labels=lab)
         box(lwd=1.5)
@@ -1475,6 +1490,7 @@ plotspict.retro <- function(rep){
 #' @export
 plotspict.ci <- function(inp){
     inp <- check.inp(inp)
+    time <- inp$timeC
     y <- inp$obsC
     z <- inp$obsI[[1]]
     c <- guess.m(inp, all=TRUE)
@@ -1510,15 +1526,15 @@ plotspict.ci <- function(inp){
         abline(h=0, lty=2, col='gray')
         box(lwd=1.5)
     }
-    plot(inp$timeC, y, typ='l', ylab='Catch', xlab='Time', main=paste('MSY guess:', round(MSY, 2)))
+    plot(time, y, typ='l', ylab='Catch', xlab='Time', main=paste('MSY guess:', round(MSY, 2)))
     add.legend <- inp$nseasons > 1
-    plot.col(inp$timeC, y, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
+    plot.col(time, y, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
     abline(h=MSY, lty=2)
     grid()
     box(lwd=1.5)
     for(i in 1:inp$nindex){
-        plot(inp$timeI[[1]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time')
-        plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
+        plot(time, inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time')
+        plot.col(time, inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
     }
     grid()
     box(lwd=1.5)
@@ -1526,18 +1542,26 @@ plotspict.ci <- function(inp){
         plot.seasondiff(inp$timeC, y, ylab='diff log catch')
         plot.seasondiff(inp$timeI[[1]], inp$obsI[[1]], ylab='diff log index 1')
     }
-    if(class(c) == 'list'){    
-        plot(x, z, typ='b', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
+    if(class(c) == 'list'){
+        #
+        plot(x, z, typ='l', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
+        plot.col(time, z, obsx=x, do.line=FALSE, add=TRUE)
         lines(xp$x, yp0, col=4)
         box(lwd=1.5)
-        plot(x, y, typ='b', xlim=xlim, ylim=range(0, y), ylab='Catch', xlab='Catch/Index (E, effort proxy)', main=paste('Emsy guess:', round(Emsy, 3)))
+        #
+        plot(x, y, typ='l', xlim=xlim, ylim=range(0, y, yp), ylab='Catch', xlab='Catch/Index (E, effort proxy)', main=paste('Emsy guess:', round(Emsy, 3)))
+        plot.col(time, y, obsx=x, do.line=FALSE, add=TRUE)
         abline(h=MSY, lty=2)
         lines(xp$x, yp, col=4)
         box(lwd=1.5)
+        #
         plot(z, y, typ='b', ylab='Catch', xlab='Index')
+        plot.col(time, y, obsx=z, do.line=FALSE, add=TRUE)
         abline(h=MSY, lty=2)
         box(lwd=1.5)
-        plot(y[-length(y)], diff(z)/z[-length(z)], typ='b', xlab='Catch', ylab='Proportional increase in index')
+        #
+        plot(y[-length(y)], diff(z)/z[-length(z)], typ='b', xlab='Catch', ylab='Prop. incr. in index')
+        plot.col(time, diff(z)/z[-length(z)], obsx=y[-length(y)], do.line=FALSE, add=TRUE)
         abline(h=0, lty=2)
         abline(v=MSY, lty=2)
         box(lwd=1.5)

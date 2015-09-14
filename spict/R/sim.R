@@ -10,7 +10,6 @@
 #' @param sdb Standard deviation of biomass process.
 #' @return Predicted biomass at the end of dt.
 predict.b <- function(B0, F0, gamma, m, K, n, dt, sdb){
-    #return(exp( log(B0) + (rate - r*(B0/K)^p)*dt )) # Euler
     exp( log(B0) + (gamma*m/K - gamma*m/K*(B0/K)^(n-1.0) - F0 - 0.5*sdb^2)*dt )
 }
 
@@ -137,12 +136,14 @@ sim.spict <- function(input, nobs=100){
     q <- exp(pl$logq)
     logphi <- pl$logphi
     sdb <- exp(pl$logsdb)
+    sdu <- exp(pl$logsdu)
     sdf <- exp(pl$logsdf)
     alpha <- exp(pl$logalpha)
     beta <- exp(pl$logbeta)
     sdi <- alpha * sdb
     sdc <- beta * sdf
-
+    A <- inp$A
+    
     # B[t] is biomass at the beginning of the time interval starting at time t
     # I[t] is an index of biomass (e.g. CPUE) at time t
     # P[t] is the accumulated biomass production over the interval starting at time t
@@ -150,19 +151,27 @@ sim.spict <- function(input, nobs=100){
     # C[t] is the catch removed during the interval starting at time t. 
     # obsC[j] is the catch removed over the interval starting at time j, this will typically be the accumulated catch over the year.
 
-    seasonspline <- get.spline(pl$logphi, order=inp$splineorder, dtfine=dt)
-    nseasonspline <- length(seasonspline)
+    if(inp$seasontype==1){ # Use spline to generate season
+        seasonspline <- get.spline(pl$logphi, order=inp$splineorder, dtfine=dt)
+        nseasonspline <- length(seasonspline)
+    }
     flag <- TRUE
     recount <- 0
     while(flag){
         # - Fishing mortality -
         ef <- arima.sim(inp$armalistF, nt-1) * sdf*sqrt(dt) # Used to simulate other than white noise in F
-        Fbase <- c(F0, exp(log(F0) + cumsum(ef))) # Fishing mortality
-        F <- numeric(length(Fbase))
-        for(i in 1:nseasonspline){
-            inds <- which(inp$seasonindex==(i-1))
-            F[inds] <- Fbase[inds] * exp(seasonspline[i])
+        logFbase <- c(log(F0), log(F0) + cumsum(ef)) # Fishing mortality
+        season <- numeric(length(logFbase))
+        if(inp$seasontype==1){
+            season <- seasonspline[inp$seasonindex+1]
         }
+        if(inp$seasontype==2){ # This one should not be used yet!
+            u <- matrix(0, 2, inp$ns)
+            u[, 1] <- rnorm(2, 0, sdu*sqrt(dt))
+            for(i in 2:inp$ns) u[, i] <- u[, i-1] + A %*% u[, i-1] * dt + rnorm(2, 0, sdu*sqrt(dt))
+            season <- u[1, ]
+        }
+        F <- exp(logFbase + season)
         # - Biomass -
         B <- rep(0,nt)
         B[1] <- B0
@@ -241,7 +250,7 @@ sim.spict <- function(input, nobs=100){
     sim$true$splineorder <- inp$splineorder
     sim$true$time <- time
     sim$true$B <- B
-    sim$true$F <- Fbase
+    sim$true$F <- exp(logFbase)
     sim$true$Fs <- F
     sim$true$gamma <- gamma
     
