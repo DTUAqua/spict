@@ -1,206 +1,226 @@
 library(shiny)
 library(spict)
+data(pol)
+polalb <- check.inp(pol$albacore)
+anms <- names(polalb)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
 
-  output$parvals <- renderText({ 
-      paste('r:', round(exp(input$logr), digits=3),
-            'K:', round(exp(input$logK), digits=3),
-            'q:', round(exp(input$logq), digits=3),
-            'sdb:', round(exp(input$logsdb), digits=3),
-            'sdf:', round(exp(input$logsdf), digits=3)
-            )
-  })
+    # Upload file
+    # input$file1 will be NULL initially. After the user selects
+    # and uploads a file, it will be a data frame with 'name',
+    # 'size', 'type', and 'datapath' columns. The 'datapath'
+    # column will contain the local filenames where the data can
+    # be found.
+    dataInput <- reactive({
+        inFile <- input$file
+        if(is.null(inFile)){
+            return(NULL)
+        } else {
+            sep <- input$inpsep
+            if(sep=='blank') sep <- ' '
+            return(read.csv(inFile$datapath, header=input$inphead, sep=sep, skip=input$inpskip))
+        }
+    })
 
-  dataInput <- reactive({
-      inFile <- input$file
-      if (is.null(inFile)){
-          return(NULL)
-      } else {
-          sep <- input$inpsep
-          if(sep=='blank') sep <- ' '
-          return(read.csv(inFile$datapath, header=input$inphead, sep=sep, skip=input$inpskip))
-      }
-  })
+    # Input textarea
+    make.inpout <- reactive({
+        a <- strsplit(input$input_text, '\n')[[1]]
+        inpp <- 'asdkj dtler alskjoie\ndteuler\n1\npoireut'
+        inpp <- ''
+        inpp <- 'hej'
+        #a <- strsplit(inpp, '\n')[[1]]
+        b <- NULL
+        nanms <- length(anms)
+        inpout <- list()
+        cls <- character(nanms)
+        if(length(a)>0){
+            for(i in 1:nanms){
+                cls[i] <- class(polalb[[anms[i]]])
+                b <- grep(paste0(anms[i], '$'), a)
+                if(length(b)==1){
+                    inpval <- a[b+1]
+                    class(inpval) <- cls[i]
+                    inpout[[anms[i]]] <- inpval
+                }
+            }
+        }
+        return(inpout)
+    })
 
-  makeinp <- reactive({
-      if(input$radio == 'own'){
-          dat <- dataInput()
-          if(is.null(dat)){
-              return(NULL)
-          } else {
-              inp <- list()
-              timecol <- as.numeric(input$timecol)
-              if(timecol>0) inp$timeC <- dat[, timecol]
-              inp$obsC <- dat[, as.numeric(input$catchcol)]
-              inp$obsI <- dat[, as.numeric(input$indexcol)]
-              inp$ini <- list()
-              inp$ini$logr <- input$logr
-              inp$ini$logK <- input$logK
-              inp$ini$logq <- input$logq
-              inp$ini$logsdb <- input$logsdb
-              inp$ini$logsdf <- input$logsdf
-              inp$ini$alpha <- input$alpha
-              inp$ini$beta <- input$beta
-          }
-      }
-      if(input$radio == 'demo'){
-          data(pol)
-          inp <- pol$albacore
-      }
-      return(inp)
-  })
+    # Make inp list
+    make.inp <- reactive({
+        inp <- make.inpout()
+        if(input$radio == 'own'){
+            dat <- dataInput()
+            if(is.null(dat)){
+                return(NULL)
+            } else {
+                #inp <- list()
+                timecol <- as.numeric(input$timecol)
+                if(timecol>0){
+                    inp$timeC <- dat[, timecol]
+                    inp$timeI <- dat[, timecol]
+                }
+                inp$obsC <- dat[, as.numeric(input$catchcol)]
+                inp$obsI <- dat[, as.numeric(input$indexcol)]
+            }
+        }
+        if(input$radio == 'demo'){
+            nms <- names(pol$albacore)
+            for(i in 1:length(nms)) inp[[nms[i]]] <- pol$albacore[[nms[i]]]
+            #inp <- pol$albacore
+        }
+        return(inp)
+    })
 
-  
-  spict <- reactive({
-      inp <- makeinp()
-      if(!is.null(inp)){
-          rep <- try(fit.spict(inp))
-          return(rep)
-      } else {
-          return(NULL)
-      }
-  })
+    # Translate input inp list to verbatim output
+    output$output_text <- renderPrint({
+        make.inpout()
+    })
 
-  output$text2 <- renderText({
-      input$runspict
-      isolate(input$file$datapath)
-  #    dataInput()
-  })
+    # Translate current inp list to verbatim output
+    output$inp <- renderPrint({
+        make.inp()
+    })
 
-  #output$text2 <- renderText({
-  #    input$radio
-  #})
+    # Translate input file to a table
+    output$contents <- renderTable({
+        dataInput()
+    })
 
-  # input$file1 will be NULL initially. After the user selects
-  # and uploads a file, it will be a data frame with 'name',
-  # 'size', 'type', and 'datapath' columns. The 'datapath'
-  # column will contain the local filenames where the data can
-  # be found.
-  output$contents <- renderTable({
-      #inFile <- input$file
-      #if (is.null(inFile)) return(NULL)
-      #read.csv(inFile$datapath, header=TRUE, sep=',')
-      dataInput()
-  })
+    # Fit spict
+    spict <- reactive({
+        inp <- make.inp()
+        if(!is.null(inp)){
+            rep <- try(fit.spict(inp))
+            return(rep)
+        } else {
+            return(NULL)
+        }
+    })
 
-  
-  output$dataplot <- renderPlot({
-      #dat <- dataInput()
-      #i <- as.numeric(input$ycol)+1
-      inp <- makeinp()
-      #if(!is.null(dat)) plot(dat[, 1], dat[, i], typ='l', ylab=names(dat)[i], xlab='Time')
-      if(!is.null(inp)){
-          if('timeC' %in% names(inp)){
-              time <- inp$timeC
-          } else {
-              time <- 1:length(inp$obsC)
-          }
-          if(input$ycol == 'Catch'){
-              plot(time, inp$obsC, typ='l', xlab='Time', ylab='Catch')
-              points(time, inp$obsC, pch=20, cex=0.7)
-          }
-          if(input$ycol == 'Index'){
-              plot(time, inp$obsI, typ='l', xlab='Time', ylab='Index')
-              points(time, inp$obsI, pch=20, cex=0.7)
-          }
-      }
-  })
+    # Capture summary of results
+    output$summary <- renderPrint({
+        # Take dependency on action button
+        if(input$runspict == 0) return()
+        isolate({
+            #sink(file='deleteme.txt')
+            msg.trap <- capture.output(rep <- spict())
+            #sink()
+            if(class(rep)=='try-error'){
+                cat(paste('There was an Error fitting the model!', rep, '\n'))
+            } else {
+                if(!is.null(rep)){
+                    summary(rep)
+                }
+            }
+        })
+    })
 
-  output$inp <- renderPrint({
-      makeinp()
-  })
+    ### --- PLOTS --- ###
+    # Data plot
+    output$dataplot <- renderPlot({
+        inp <- make.inp()
+        if(!is.null(inp)){
+            # dev.new(width=7, height=9) # This makes the plot a pop-up (may not work if R is not installed)
+            plotspict.ci(inp)
+        }
+    })
 
-  output$summary <- renderPrint({
-      # Take dependency on action button
-      if(input$runspict == 0) return()
-      isolate({
-          #sink(file='deleteme.txt')
-          msg.trap <- capture.output(rep <- spict())
-          #sink()
-          if(class(rep)=='try-error'){
-              cat(paste('There was an Error fitting the model!', rep, '\n'))
-          } else {
-              if(!is.null(rep)){
-                  summary(rep)
-              }
-          }
-      })
-  })
-
-  output$bplot <- renderPlot({
-      # Take dependency on action button
-      if(input$runspict == 0) return()
-
-      # Isolate to ensure spict only runs if button is pressed.
-      # For isolate to work it is important to fix the extends of the output such as setting the height and width of a plot.
-      isolate({
-          rep <- spict()
-          if(!is.null(rep)){
-              plotspict.biomass(rep)
-          }
-      })
-  })
-  output$fbplot <- renderPlot({
-      # Take dependency on action button
-      if(input$runspict == 0) return()
-      isolate({
-          rep <- spict()
-          if(!is.null(rep)){
-              plotspict.fb(rep)
-          }
-      })
-  })
-  output$fplot <- renderPlot({
-      # Take dependency on action button
-      if(input$runspict == 0) return()
-      isolate({
-          rep <- spict()
-          if(!is.null(rep)){
-              plotspict.f(rep)
-          }
-      })
-  })
-  output$osarplot <- renderPlot({
-      # Take dependency on action button
-      if(input$runspict == 0) return()
-      isolate({
-          rep <- spict()
-          osar <- calc.osa.resid(rep)
-          if(!is.null(osar)){
-              plotspict.osar(osar)
-          }
-      })
-  })
-  output$catchplot <- renderPlot({
-      # Take dependency on action button
-      if(input$runspict == 0) return()
-      isolate({
-          rep <- spict()
-          if(!is.null(rep)){
-              plotspict.catch(rep)
-          }
-      })
-  })
-  output$prodplot <- renderPlot({
-      # Take dependency on action button
-      if(input$runspict == 0) return()
-      isolate({
-          rep <- spict()
-          if(!is.null(rep)){
-              plotspict.production(rep)
-          }
-      })
-  })
-  output$tcplot <- renderPlot({
-      # Take dependency on action button
-      if(input$runspict == 0) return()
-      isolate({
-          rep <- spict()
-          if(!is.null(rep)){
-              plotspict.tc(rep)
-          }
-      })
-  })
+    # Result plots
+    output$bplot <- renderPlot({
+        # Take dependency on action button
+        if(input$runspict == 0) return()
+        # Isolate to ensure spict only runs if button is pressed.
+        # For isolate to work it is important to fix the extends of the output such as setting the height and width of a plot.
+        isolate({
+            rep <- spict()
+            if(!is.null(rep)){
+                plotspict.biomass(rep)
+            }
+        })
+    })
+    output$fplot <- renderPlot({
+        # Take dependency on action button
+        if(input$runspict == 0) return()
+        isolate({
+            rep <- spict()
+            if(!is.null(rep)){
+                plotspict.f(rep)
+            }
+        })
+    })
+    output$catchplot <- renderPlot({
+        # Take dependency on action button
+        if(input$runspict == 0) return()
+        isolate({
+            rep <- spict()
+            if(!is.null(rep)){
+                plotspict.catch(rep, qlegend=FALSE)
+            }
+        })
+    })
+    output$bbplot <- renderPlot({
+        # Take dependency on action button
+        if(input$runspict == 0) return()
+        isolate({
+            rep <- spict()
+            if(!is.null(rep)){
+                plotspict.bbmsy(rep, qlegend=FALSE)
+            }
+        })
+    })
+    output$ffplot <- renderPlot({
+        # Take dependency on action button
+        if(input$runspict == 0) return()
+        isolate({
+            rep <- spict()
+            if(!is.null(rep)){
+                plotspict.ffmsy(rep)
+            }
+        })
+    })
+    output$fbplot <- renderPlot({
+        # Take dependency on action button
+        if(input$runspict == 0) return()
+        isolate({
+            rep <- spict()
+            if(!is.null(rep)){
+                plotspict.fb(rep)
+            }
+        })
+    })
+    output$osarplot <- renderPlot({
+        # Take dependency on action button
+        if(input$runspict == 0) return()
+        isolate({
+            rep <- spict()
+            osar <- calc.osa.resid(rep)
+            if(!is.null(osar)){
+                plotspict.osar(osar)
+            }
+        })
+    })
+    output$prodplot <- renderPlot({
+        # Take dependency on action button
+        if(input$runspict == 0) return()
+        isolate({
+            rep <- spict()
+            if(!is.null(rep)){
+                plotspict.production(rep)
+            }
+        })
+    })
+    output$tcplot <- renderPlot({
+        # Take dependency on action button
+        if(input$runspict == 0) return()
+        isolate({
+            rep <- spict()
+            if(!is.null(rep)){
+                plotspict.tc(rep)
+            }
+        })
+    })
 })
