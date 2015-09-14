@@ -150,6 +150,14 @@ check.inp <- function(inp){
     if(!"osar.parallel" %in% names(inp)){
         inp$osar.parallel <- TRUE
     }
+    if(!"seasontype" %in% names(inp)){
+        inp$seasontype <- 1
+    }
+    if(!"A" %in% names(inp)){
+        epsilon <- 0.1
+        omega <- 2*pi
+        inp$A <- matrix(c(-epsilon, omega, -omega, -epsilon), 2, 2, byrow=TRUE)
+    }
     if(!"msytype" %in% names(inp)){
         inp$msytype <- 's'
     } else {
@@ -210,7 +218,7 @@ check.inp <- function(inp){
     } else {
         if(inp$timepredi < max(timeobs)) stop('inp$timepredi must be equal to or later than last observation!')
     }
-    if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB')
+    if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
     #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'logbkfrac')
     #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'Cpredcum')
     if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
@@ -244,6 +252,7 @@ check.inp <- function(inp){
     if("nseasons" %in% names(inp)){
        if(!inp$nseasons %in% c(1, 2, 4)) stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
     }
+    if(inp$nseasons == 1) inp$seasontype <- 0 # seasontype = 0 means seasons are disables.
     # Calculate seasonal spline
     if("splineorder" %in% names(inp)){
         if(inp$nseasons<4 & inp$splineorder>2) inp$splineorder <- 2
@@ -468,8 +477,9 @@ check.inp <- function(inp){
             }
         }
     }
-    if(!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
     if(!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
+    if(!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(0.1)
+    if(!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
     if(!"logm" %in% names(inp$ini)){
         gamma <- inp$ini$gamma
         r <- exp(inp$ini$logr)
@@ -499,8 +509,15 @@ check.inp <- function(inp){
             inp$ini$logF <- inp$ini$logF[1:inp$ns]
         }
     }
+    if(!"logu" %in% names(inp$ini)){
+        inp$ini$logu <- matrix(log(1), 2, inp$ns)
+    } else {
+        if(dim(inp$ini$logu)[1] != 2 & dim(inp$ini$logu)[2] != inp$ns){
+            cat('Wrong dimension of inp$ini$logu:', dim(inp$ini$logu)[1], 'x', dim(inp$ini$logu)[2], ' should be equal to 2 x inp$ns: 2 x', inp$ns,' Filling with log(0).\n')
+            inp$ini$logu <- matrix(log(1), 2, inp$ns)
+        }
+    }
     if(!"logB" %in% names(inp$ini)){
-        #inp$ini$logB <- log(rep(exp(inp$ini$logbkfrac)*exp(inp$ini$logK), inp$ns))
         inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
     } else {
         if(length(inp$ini$logB) != inp$ns){
@@ -520,14 +537,22 @@ check.inp <- function(inp){
                         logq=inp$ini$logq,
                         logn=inp$ini$logn,
                         logsdf=inp$ini$logsdf,
+                        logsdu=inp$ini$logsdu,
                         logsdb=inp$ini$logsdb,
                         logF=inp$ini$logF,
+                        logu=inp$ini$logu,
                         logB=inp$ini$logB)
     # Determine phases and fixed parameters
+    fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless specified    
     if(inp$nseasons==1){
-        fixpars <- c('logphi', 'logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless specified
-    } else {
-        fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless otherwise specified
+        fixpars <- c('logphi', 'logu', 'logsdu', fixpars)
+    } else {# OBSOBSOBS this needs to be fixed!!
+        if(inp$seasontype==1){ # Use spline
+            fixpars <- c('logu', 'logsdu', fixpars)
+        }
+        if(inp$seasontype==2){ # Use coupled SDEs
+            fixpars <- c('logphi', fixpars)
+        }
     }
     if(!"phases" %in% names(inp)){
         inp$phases <- list()

@@ -8,7 +8,7 @@
   do.line = TRUE, add.legend = FALSE, ...)
 }
 \arguments{
-\item{time}{Time vector}
+\item{time}{Time vector.}
 
 \item{obs}{Observation vector (or residual vector).}
 
