@@ -4,13 +4,15 @@
 \alias{plot.col}
 \title{Plot model points colored depending on the quarter to which they belong.}
 \usage{
-\method{plot}{col}(time, obs, pch = 1, add = FALSE, typ = "p",
-  do.line = TRUE, add.legend = FALSE, ...)
+\method{plot}{col}(time, obs, obsx = NULL, pch = 1, add = FALSE,
+  typ = "p", do.line = TRUE, add.legend = FALSE, ...)
 }
 \arguments{
 \item{time}{Time vector.}
 
 \item{obs}{Observation vector (or residual vector).}
+
+\item{obsx}{Second observation vector for use as independent variable instead of time.}
 
 \item{pch}{Point character.}
 
