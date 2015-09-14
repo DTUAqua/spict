@@ -218,7 +218,7 @@ check.inp <- function(inp){
     } else {
         if(inp$timepredi < max(timeobs)) stop('inp$timepredi must be equal to or later than last observation!')
     }
-    if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB')
+    if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
     #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'logbkfrac')
     #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'Cpredcum')
     if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
@@ -478,7 +478,7 @@ check.inp <- function(inp){
         }
     }
     if(!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
-    if(!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(1e-4)
+    if(!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(0.1)
     if(!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
     if(!"logm" %in% names(inp$ini)){
         gamma <- inp$ini$gamma

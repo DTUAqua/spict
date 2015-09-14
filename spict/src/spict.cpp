@@ -263,7 +263,8 @@ Type objective_function<Type>::operator() ()
     std::cout << "INPUT: logn: " << logn << std::endl;
     std::cout << "INPUT: logsdf: " << logsdf << std::endl;
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
-    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
+    std::cout << "INPUT: A: " << A << std::endl;
+    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << "  A.rows(): " << A.rows() << "  A.cols(): " << A.cols() << std::endl;
   }
   // Calculate mvec if multiple rs are used (rarely the case).
   for(int i=0; i<ns; i++){
@@ -339,8 +340,8 @@ Type objective_function<Type>::operator() ()
       for(int j=0; j<logupred.size(); j++){ likval += dnorm(logu(j, i), logupred(j), sqrt(dt(i-1))*sdu, 1); }
       ans-=likval;
       // DEBUGGING
-      if(dbg>1){
-	std::cout << "-- i: " << i << " -   logu.col(i-1): " << logu.col(i-1) << "  logu.col(i): " << logu.col(i) << "  sdu: " << sdu << "  likval: " << likval << "  ans:" << ans << std::endl;
+      if(dbg>0){
+	std::cout << "-- i: " << i << " -   logu(0,i): " << logu(0,i) << "  logupred(0): " << logupred(0) << " -   logu(1,i): " << logu(1,i) << "  logupred(1): " << logupred(1) << "  sdu: " << sdu << "  likval: " << likval << "  ans:" << ans << std::endl;
       }
     }
     //for(int i=0; i<ns; i++) logFs(i) = logF(i) + logu(0, i); // Sum diffusion and seasonal component
