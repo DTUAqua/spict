@@ -13,6 +13,7 @@ summary.spictcls <- function(object, numdigits=8){
     # Set number of decimals
     #options("scipen"=-100, "digits"=numdigits)
     #options("scipen"=-3)
+    order <- c(2,1,3,2)
     rep <- object
     cat(paste('Convergence: ', rep$opt$convergence, '  MSG: ', rep$opt$message, '\n', sep=''))
     if(rep$opt$convergence>0) cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and cannot be trusted.\n')
@@ -88,22 +89,21 @@ summary.spictcls <- function(object, numdigits=8){
     if(!'sderr' %in% names(rep)){
         # Derived estimates
         cat(paste0('\nDerived estimates w 95% CI\n'))
-        derout <- rbind(get.par(parname='logr', rep, exp=TRUE)[, c(2,1,3,2)])
-                        #get.par(parname='logq', rep, exp=TRUE)[c(2,1,3,2)])
+        derout <- rbind(get.par(parname='logr', rep, exp=TRUE)[, order])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- colnms
-        #rownames(derout) <- rep('r    ', dim(derout)[1])
         if(dim(derout)[1]>1 & 'yearsepgrowth' %in% names(rep$inp)){
             rownames(derout) <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
         } else {
             rownames(derout) <- paste0('r', each=paste0(1:dim(derout)[1], '    '))
         }
         cat('', paste(capture.output(derout),' \n'))
+        # Deterministic ref points
         cat(' Deterministic reference points\n')
-        derout <- rbind(get.par(parname='logBmsyd', rep, exp=TRUE)[,c(2,1,3,2)],
-                        get.par(parname='logFmsyd', rep, exp=TRUE)[,c(2,1,3,2)],
-                        get.par(parname='logMSYd', rep, exp=TRUE)[,c(2,1,3,2)])
+        derout <- rbind(get.par(parname='logBmsyd', rep, exp=TRUE)[,order],
+                        get.par(parname='logFmsyd', rep, exp=TRUE)[,order],
+                        get.par(parname='logMSYd', rep, exp=TRUE)[,order])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- colnms
@@ -115,18 +115,17 @@ summary.spictcls <- function(object, numdigits=8){
         }
         if('true' %in% names(rep$inp)){
             trueder <- c(rep$inp$true$Bmsyd, rep$inp$true$Fmsyd, rep$inp$true$MSYd)
-            cider <- rep(0, 3)
+            cider <- numeric(3)
             for(i in 1:3) cider[i] <- as.numeric(trueder[i] > derout[i, 2] & trueder[i] < derout[i, 3])
-            derout <- cbind(estimate=derout[, 1], true=round(trueder,numdigits), derout[, 2:3], true.in.ci=cider, est.in.log=derout[, 4])
             derout <- cbind(derout[, 1], round(trueder,numdigits), derout[, 2:3], cider, derout[, 4])
             colnames(derout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
         }
         cat('', paste(capture.output(derout),' \n'))
         # Stochastic derived estimates
         cat(' Stochastic reference points\n')
-        derout <- rbind(get.par(parname='logBmsys', rep, exp=TRUE)[,c(2,1,3,2)],
-                        get.par(parname='logFmsys', rep, exp=TRUE)[,c(2,1,3,2)],
-                        get.par(parname='logMSYs', rep, exp=TRUE)[,c(2,1,3,2)])
+        derout <- rbind(get.par(parname='logBmsys', rep, exp=TRUE)[,order],
+                        get.par(parname='logFmsys', rep, exp=TRUE)[,order],
+                        get.par(parname='logMSYs', rep, exp=TRUE)[,order])
         derout[, 4] <- log(derout[, 4])
         derout <- round(derout, numdigits)
         colnames(derout) <- colnms
@@ -139,19 +138,17 @@ summary.spictcls <- function(object, numdigits=8){
             trueder <- c(rep$inp$true$Bmsy, rep$inp$true$Fmsy, rep$inp$true$MSY)
             cider <- rep(0, 3)
             for(i in 1:3) cider[i] <- as.numeric(trueder[i] > derout[i, 2] & trueder[i] < derout[i, 3])
-            #derout <- cbind(estimate=derout[, 1], true=round(trueder,numdigits), derout[, 2:3], true.in.ci=cider, est.in.log=derout[, 4])
             derout <- cbind(derout[, 1], round(trueder,numdigits), derout[, 2:3], cider, derout[, 4])
             colnames(derout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
-
         }
         cat('', paste(capture.output(derout),' \n'))
         # States
         cat(paste0('\nStates w 95% CI (inp$msytype: ', rep$inp$msytype, ')\n'))
         stateout <- rbind(
-            get.par(parname='logBl', rep, exp=TRUE)[c(2,1,3,2)],
-            get.par(parname='logFl', rep, exp=TRUE)[c(2,1,3,2)],
-            get.par(parname='logBlBmsy', rep, exp=TRUE)[c(2,1,3,2)],
-            get.par(parname='logFlFmsy', rep, exp=TRUE)[c(2,1,3,2)])
+            get.par(parname='logBl', rep, exp=TRUE)[order],
+            get.par(parname='logFl', rep, exp=TRUE)[order],
+            get.par(parname='logBlBmsy', rep, exp=TRUE)[order],
+            get.par(parname='logFlFmsy', rep, exp=TRUE)[order])
         stateout[, 4] <- log(stateout[, 4])
         stateout <- round(stateout, numdigits)
         colnames(stateout) <- colnms
@@ -163,11 +160,11 @@ summary.spictcls <- function(object, numdigits=8){
         cat(paste0('\nPredictions w 95% CI (inp$msytype: ', rep$inp$msytype, ')\n'))
         EBinf <- get.EBinf(rep)
         predout <- rbind(
-            get.par(parname='logBp', rep, exp=TRUE)[c(2,1,3,2)],
-            get.par(parname='logFp', rep, exp=TRUE)[c(2,1,3,2)],
-            get.par(parname='logBpBmsy', rep, exp=TRUE)[c(2,1,3,2)],
-            get.par(parname='logFpFmsy', rep, exp=TRUE)[c(2,1,3,2)],
-            tail(get.par(parname='logCpred', rep, exp=TRUE),1)[c(2,1,3,2)],
+            get.par(parname='logBp', rep, exp=TRUE)[order],
+            get.par(parname='logFp', rep, exp=TRUE)[order],
+            get.par(parname='logBpBmsy', rep, exp=TRUE)[order],
+            get.par(parname='logFpFmsy', rep, exp=TRUE)[order],
+            tail(get.par(parname='logCpred', rep, exp=TRUE),1)[order],
             c(EBinf, NA, NA, EBinf))
         predout[, 4] <- log(predout[, 4])
         predout <- round(predout, numdigits)
