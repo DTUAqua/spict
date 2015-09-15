@@ -514,13 +514,14 @@ check.inp <- function(inp){
             inp$ini$logF <- inp$ini$logF[1:inp$ns]
         }
     }
-    if(!"logu" %in% names(inp$ini)){
-        inp$ini$logu <- matrix(log(1), 2, inp$ns)
-    } else {
-        if(dim(inp$ini$logu)[1] != 2 & dim(inp$ini$logu)[2] != inp$ns){
-            cat('Wrong dimension of inp$ini$logu:', dim(inp$ini$logu)[1], 'x', dim(inp$ini$logu)[2], ' should be equal to 2 x inp$ns: 2 x', inp$ns,' Filling with log(0).\n')
-            inp$ini$logu <- matrix(log(1), 2, inp$ns)
+    if("logu" %in% names(inp$ini)){
+        if(dim(inp$ini$logu)[1] != 2*length(inp$ini$logsdu) & dim(inp$ini$logu)[2] != inp$ns){
+            cat('Wrong dimension of inp$ini$logu:', dim(inp$ini$logu)[1], 'x', dim(inp$ini$logu)[2], ' should be equal to 2*length(inp$ini$logsdu) x inp$ns: ', 2*length(inp$ini$logsdu), 'x', inp$ns,', Filling with log(1).\n')
+            inp$ini$logu <- NULL
         }
+    }
+    if(!"logu" %in% names(inp$ini)){
+        inp$ini$logu <- matrix(log(1), 2*length(inp$ini$logsdu), inp$ns)
     }
     if(!"logB" %in% names(inp$ini)){
         inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)

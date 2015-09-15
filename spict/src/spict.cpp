@@ -88,7 +88,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logn);             // Pella-Tomlinson exponent
   PARAMETER(loglambda);        // Damping variable when using seasonal SDEs
   PARAMETER(logsdf);           // Standard deviation in diffusion component of F process
-  PARAMETER(logsdu);           // Standard deviation in seasonal component of F process
+  PARAMETER_VECTOR(logsdu);    // Standard deviation in seasonal component of F process
   PARAMETER(logsdb);           // Standard deviation in B process
   PARAMETER_VECTOR(logF);      // Diffusion component of F in log
   PARAMETER_MATRIX(logu);      // Seasonal component of F in log
@@ -137,7 +137,8 @@ Type objective_function<Type>::operator() ()
   Type p = n - 1.0;
   Type lambda = exp(loglambda);
   Type sdf = exp(logsdf);
-  Type sdu = exp(logsdu);
+  vector<Type> sdu = exp(logsdu);
+  int nsdu = sdu.size();
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
   Type sdi = exp(logalpha)*sdb;
@@ -342,23 +343,31 @@ Type objective_function<Type>::operator() ()
   if(seasontype == 2.0){
     // Coupled SDEs
     for(int i=1; i<ns; i++){
-      // Analytical expression for matrix exponential
-      matrix<Type> trigmat(2, 2);
-      trigmat(0, 0) = cos(omega*dt(i-1));
-      trigmat(0, 1) = -sin(omega*dt(i-1));
-      trigmat(1, 0) = sin(omega*dt(i-1));
-      trigmat(1, 1) = cos(omega*dt(i-1));
-      matrix<Type> expmAt = exp(-lambda*dt(i-1))*trigmat;
-      if(dbg>1){ std::cout << "-- expmAt: " << expmAt << std::endl; }
-      // Corrected standard deviation
-      Type sduana = sdu * sqrt(1.0/(2.0*lambda) * (1.0 - exp(-2.0*lambda*dt(i-1))));
-      vector<Type> logupred = expmAt * logu.col(i-1);
-      likval = 0.0;
-      for(int j=0; j<logupred.size(); j++){ likval += dnorm(logu(j, i), logupred(j), sduana, 1); }
-      ans-=likval;
-      // DEBUGGING
-      if(dbg>0){
-	std::cout << "-- i: " << i << " -   logu(0,i): " << logu(0,i) << "  logupred(0): " << logupred(0) << " -   logu(1,i): " << logu(1,i) << "  logupred(1): " << logupred(1) << "  sdu: " << sdu << "  sduana: " << sduana << "  likval: " << likval << "  ans:" << ans << std::endl;
+      for(int j=0; j<nsdu; j++){
+	Type per = j+1.0;
+	// Analytical expression for matrix exponential
+	matrix<Type> trigmat(2, 2);
+	trigmat(0, 0) = cos(per*omega*dt(i-1));
+	trigmat(0, 1) = -sin(per*omega*dt(i-1));
+	trigmat(1, 0) = sin(per*omega*dt(i-1));
+	trigmat(1, 1) = cos(per*omega*dt(i-1));
+	matrix<Type> expmAt = exp(-lambda*dt(i-1))*trigmat;
+	if(dbg>1){ std::cout << "-- expmAt: " << expmAt << std::endl; }
+	// Corrected standard deviation
+	Type sduana = sdu(j) * sqrt(1.0/(2.0*lambda) * (1.0 - exp(-2.0*lambda*dt(i-1))));
+	vector<Type> sublogumF = logu.col(i-1);
+	vector<Type> sublogum(2);
+	sublogum(0) = sublogumF(2*j);
+	sublogum(1) = sublogumF(2*j+1);
+	//vector<Type> logupred = expmAt * logu.col(i-1);
+	vector<Type> logupred = expmAt * sublogum;
+	likval = 0.0;
+	for(int k=0; k<logupred.size(); k++){ likval += dnorm(logu(2*j+k, i), logupred(k), sduana, 1); }
+	ans-=likval;
+	// DEBUGGING
+	if(dbg>0){
+	  std::cout << "-- i: " << i << " -   logu(0,i): " << logu(0,i) << "  logupred(0): " << logupred(0) << " -   logu(1,i): " << logu(1,i) << "  logupred(1): " << logupred(1) << "  sdu(j): " << sdu(j) << "  sduana: " << sduana << "  likval: " << likval << "  ans:" << ans << std::endl;
+	}
       }
     }
     for(int i=0; i<ns; i++) logFs(i) += logu(0, i); // Sum diffusion and seasonal component
