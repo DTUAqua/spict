@@ -59,8 +59,10 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(seasonindex);    // A vector of length ns giving the number stepped within the current year
   DATA_MATRIX(splinemat);      // Design matrix for the seasonal spline
   DATA_MATRIX(splinematfine);  // Design matrix for the seasonal spline on a fine time scale to get spline uncertainty
-  DATA_MATRIX(A);              // Matrix coupling u, the seasonal component of F (size: 2x2) <---
-  DATA_SCALAR(seasontype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs <---
+  //DATA_MATRIX(A);              // Matrix coupling u, the seasonal component of F (size: 2x2)
+  //DATA_SCALAR(lambda);         // Damping variable when using seasonal SDEs
+  DATA_SCALAR(omega);          // Period time of seasonal SDEs (2*pi = 1 year period)
+  DATA_SCALAR(seasontype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
   DATA_SCALAR(ffac);           // Management factor each year multiply the predicted F with ffac
   DATA_VECTOR(indpred);        // A vector indicating when the management factor should be applied
   DATA_SCALAR(robflagc);       // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
@@ -84,12 +86,16 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logK);             // Carrying capacity
   PARAMETER_VECTOR(logq);      // Catchability
   PARAMETER(logn);             // Pella-Tomlinson exponent
+  PARAMETER(loglambda);        // Damping variable when using seasonal SDEs
   PARAMETER(logsdf);           // Standard deviation in diffusion component of F process
-  PARAMETER(logsdu);           // Standard deviation in seasonal component of F process <---
+  PARAMETER(logsdu);           // Standard deviation in seasonal component of F process
   PARAMETER(logsdb);           // Standard deviation in B process
   PARAMETER_VECTOR(logF);      // Diffusion component of F in log
-  PARAMETER_MATRIX(logu);      // Seasonal component of F in log <---
+  PARAMETER_MATRIX(logu);      // Seasonal component of F in log
   PARAMETER_VECTOR(logB);      // Biomass in log
+
+  //std::cout << "expmosc: " << expmosc(lambda, omega, 0.1) << std::endl;
+  
 
   int ind;
   // Distribute sorted observations into obsC and I vectors
@@ -129,6 +135,7 @@ Type objective_function<Type>::operator() ()
   Type n = exp(logn);
   Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
   Type p = n - 1.0;
+  Type lambda = exp(loglambda);
   Type sdf = exp(logsdf);
   Type sdu = exp(logsdu);
   Type sdb = exp(logsdb);
@@ -263,8 +270,9 @@ Type objective_function<Type>::operator() ()
     std::cout << "INPUT: logn: " << logn << std::endl;
     std::cout << "INPUT: logsdf: " << logsdf << std::endl;
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
-    std::cout << "INPUT: A: " << A << std::endl;
-    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << "  A.rows(): " << A.rows() << "  A.cols(): " << A.cols() << std::endl;
+    std::cout << "INPUT: lambda: " << lambda << std::endl;
+    std::cout << "INPUT: omega: " << omega << std::endl;
+    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
   }
   // Calculate mvec if multiple rs are used (rarely the case).
   for(int i=0; i<ns; i++){
@@ -324,7 +332,6 @@ Type objective_function<Type>::operator() ()
     int ind2;
     for(int i=0; i<ns; i++){
       ind2 = CppAD::Integer(seasonindex(i));
-      //logFs(i) = seasonspline(ind2) + logF(i);
       logFs(i) += seasonspline(ind2);
       // DEBUGGING
       if(dbg>1){
@@ -335,21 +342,28 @@ Type objective_function<Type>::operator() ()
   if(seasontype == 2.0){
     // Coupled SDEs
     for(int i=1; i<ns; i++){
-      vector<Type> logupred = logu.col(i-1) +  A * logu.col(i-1) * dt(i-1);
+      // Analytical expression for matrix exponential
+      matrix<Type> trigmat(2, 2);
+      trigmat(0, 0) = cos(omega*dt(i-1));
+      trigmat(0, 1) = -sin(omega*dt(i-1));
+      trigmat(1, 0) = sin(omega*dt(i-1));
+      trigmat(1, 1) = cos(omega*dt(i-1));
+      matrix<Type> expmAt = exp(-lambda*dt(i-1))*trigmat;
+      if(dbg>1){ std::cout << "-- expmAt: " << expmAt << std::endl; }
+      // Corrected standard deviation
+      Type sduana = sdu * sqrt(1.0/(2.0*lambda) * (1.0 - exp(-2.0*lambda*dt(i-1))));
+      vector<Type> logupred = expmAt * logu.col(i-1);
       likval = 0.0;
-      for(int j=0; j<logupred.size(); j++){ likval += dnorm(logu(j, i), logupred(j), sqrt(dt(i-1))*sdu, 1); }
+      for(int j=0; j<logupred.size(); j++){ likval += dnorm(logu(j, i), logupred(j), sduana, 1); }
       ans-=likval;
       // DEBUGGING
       if(dbg>0){
-	std::cout << "-- i: " << i << " -   logu(0,i): " << logu(0,i) << "  logupred(0): " << logupred(0) << " -   logu(1,i): " << logu(1,i) << "  logupred(1): " << logupred(1) << "  sdu: " << sdu << "  likval: " << likval << "  ans:" << ans << std::endl;
+	std::cout << "-- i: " << i << " -   logu(0,i): " << logu(0,i) << "  logupred(0): " << logupred(0) << " -   logu(1,i): " << logu(1,i) << "  logupred(1): " << logupred(1) << "  sdu: " << sdu << "  sduana: " << sduana << "  likval: " << likval << "  ans:" << ans << std::endl;
       }
     }
-    //for(int i=0; i<ns; i++) logFs(i) = logF(i) + logu(0, i); // Sum diffusion and seasonal component
     for(int i=0; i<ns; i++) logFs(i) += logu(0, i); // Sum diffusion and seasonal component
   }
-
   vector<Type> F = exp(logFs);
-
 
   // BIOMASS PREDICTIONS
   for(int i=0; i<(ns-1); i++){

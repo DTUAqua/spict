@@ -349,7 +349,7 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
         fun <- function(time, res, add=FALSE, add.legend=FALSE, col=1, pch=1, ...){
             nrem <- length(time) - length(res)
             if(nrem>0) time <- time[-nrem]
-            plot.col(time, res, pch=pch, add=add, add.legend=add.legend, typ='p', ...)
+            plot.col(time, res, pch=pch, add=add, add.legend=add.legend, typ='p', xlab='Time', ...)
             dum <- rep(NA, length(res))
             dum[is.na(res)] <- 0
             text(time, dum, labels='NA', cex=0.8, col=col)
@@ -432,8 +432,8 @@ plotspict.diagnostic <- function(rep){
     par(mfrow=mfrow)
 
     # Plot data
-    plot.col(inp$timeC, log(inp$obsC), ylab='log catch data', main='Catch')
-    for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], log(inp$obsI[[i]]), ylab=paste('log index',i,'data'), main=paste('Index', i), pch=i)
+    plot.col(inp$timeC, log(inp$obsC), ylab='log catch data', main='Catch', xlab='Time')
+    for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], log(inp$obsI[[i]]), ylab=paste('log index',i,'data'), main=paste('Index', i), pch=i, xlab='Time')
    
     # OSAR plots
     if('osar' %in% names(rep)){
@@ -1139,6 +1139,7 @@ plotspict.season <- function(rep){
         oct <- jul+(31+31+30)*24*60*60
         logF <- get.par('logF', rep)
         meanlogF <- mean(logF[, 2])
+        meanlogF <- 0 # Don't add mean F
         logphi <- get.par('logphi', rep)
         inds <- which(colnames(rep$cov.fixed) == 'logphi')
         ssf <- get.par('seasonsplinefine', rep)
@@ -1155,13 +1156,15 @@ plotspict.season <- function(rep){
         y <- exp(meanlogF + seasonsplinesmoo)
         ylim <- range(yest, y, sssl, sssu)
         if("true" %in% names(rep$inp)){
-            seasonsplinetrue <- get.spline(rep$inp$true$logphi, order=rep$inp$true$splineorder, dtfine=rep$inp$true$dteuler)
-            seasonsplinetrue <- c(seasonsplinetrue, seasonsplinetrue[1])
-            ttrue <- seq(0, 1, length=length(seasonsplinetrue))
-            ytrue <- exp(mean(log(rep$inp$true$F)) + seasonsplinetrue)
-            ylim <- range(c(yest, y, ytrue))
+            if(rep$inp$true$seasontype==1){
+                seasonsplinetrue <- get.spline(rep$inp$true$logphi, order=rep$inp$true$splineorder, dtfine=rep$inp$true$dteuler)
+                ttrue <- seq(0, 1, length=length(seasonsplinetrue))
+                #ytrue <- exp(mean(log(rep$inp$true$F)) + seasonsplinetrue)
+                ytrue <- exp(seasonsplinetrue) # Don't add mean F
+                ylim <- range(c(yest, y, ytrue))
+            }
         }
-        plot(t, y, typ='n', xaxt='n', xlab='Time of year', ylab='Mean F cycle', main=paste('Spline order:',rep$inp$splineorder), ylim=ylim)
+        plot(t, y, typ='n', xaxt='n', xlab='Time of year', ylab='Seasonal spline', main=paste('Spline order:',rep$inp$splineorder), ylim=ylim)
         cicol2 <- rgb(0, 0, 1, 0.1)
         cicol3 <- rgb(0, 0, 1, 0.2)
         polygon(c(t, rev(t)), c(sssl, rev(sssu)), col=cicol2, border=cicol2)
@@ -1174,7 +1177,9 @@ plotspict.season <- function(rep){
         lines(t, y, lwd=1, col='green')
         lines(test, yest, lwd=1.5, col=4, typ='s')
         if("true" %in% names(rep$inp)){
-            lines(ttrue, ytrue, lwd=1, col=true.col(), typ='s')            
+            if(rep$inp$true$seasontype==1){
+                lines(ttrue, ytrue, lwd=1, col=true.col(), typ='s')
+            }
         }
         axis(1, at=ats, labels=lab)
         box(lwd=1.5)
@@ -1224,7 +1229,7 @@ plotspict.btrend <- function(rep){
 #' plot(rep)
 #' @export
 plot.spictcls <- function(rep, logax=FALSE){
-    if('inp' %in% names(rep)){
+    if('par.fixed' %in% names(rep)){
         inp <- rep$inp
         if(inp$reportall){
             #dev.new(width=10, height=10)
@@ -1255,7 +1260,7 @@ plot.spictcls <- function(rep, logax=FALSE){
         # Production curve
         plotspict.production(rep)
         # Seasonal F
-        if(inp$nseasons > 1) plotspict.season(rep)
+        if(inp$nseasons > 1 & inp$seasontype==1) plotspict.season(rep)
         # Time constant
         if(inp$nseasons == 1) plotspict.tc(rep)
         # Priors
@@ -1279,9 +1284,8 @@ plot.spictcls <- function(rep, logax=FALSE){
             #plotspict.btrend(rep)
         }
     } else {
-        if('obsC' %in% names(rep)){
-            inp <- check.inp(rep)
-            plotspict.diagnostic(inp)
+        if('inp' %in% names(rep)){
+            plotspict.ci(inp)
         } else {
             stop('Nothing to plot!')
         }
@@ -1533,8 +1537,8 @@ plotspict.ci <- function(inp){
     grid()
     box(lwd=1.5)
     for(i in 1:inp$nindex){
-        plot(time, inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time')
-        plot.col(time, inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
+        plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time')
+        plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
     }
     grid()
     box(lwd=1.5)

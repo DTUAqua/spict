@@ -142,7 +142,9 @@ sim.spict <- function(input, nobs=100){
     beta <- exp(pl$logbeta)
     sdi <- alpha * sdb
     sdc <- beta * sdf
-    A <- inp$A
+    #A <- inp$A
+    lambda <- exp(pl$loglambda)
+    omega <- inp$omega
     
     # B[t] is biomass at the beginning of the time interval starting at time t
     # I[t] is an index of biomass (e.g. CPUE) at time t
@@ -166,9 +168,14 @@ sim.spict <- function(input, nobs=100){
             season <- seasonspline[inp$seasonindex+1]
         }
         if(inp$seasontype==2){ # This one should not be used yet!
+            # These expressions are based on analytical results
+            # Derivations etc. can be found in Uffe's SDE notes on p. 132
+            expmosc <- function(lambda, omega, t) exp(-lambda*t) * matrix(c(cos(omega*t), -sin(omega*t), sin(omega*t), cos(omega*t)), 2, 2, byrow=TRUE)
             u <- matrix(0, 2, inp$ns)
-            u[, 1] <- rnorm(2, 0, sdu*sqrt(dt))
-            for(i in 2:inp$ns) u[, i] <- u[, i-1] + A %*% u[, i-1] * dt + rnorm(2, 0, sdu*sqrt(dt))
+            sduana <- sqrt(sdu^2/(2*lambda)*(1-exp(-2*lambda*dt)))
+            u[, 1] <- c(0.5, 0) # Set an initial state different from zero to get some action!
+            for(i in 2:inp$ns) u[, i] <- rnorm(2, expmosc(lambda, omega, dt) %*% u[, i-1], sduana)
+            #for(i in 2:inp$ns) u[, i] <- u[, i-1] + A %*% u[, i-1] * dt + rnorm(2, 0, sdu*sqrt(dt))
             season <- u[1, ]
         }
         F <- exp(logFbase + season)
@@ -253,6 +260,7 @@ sim.spict <- function(input, nobs=100){
     sim$true$F <- exp(logFbase)
     sim$true$Fs <- F
     sim$true$gamma <- gamma
+    sim$true$seasontype <- inp$seasontype
     
     sign <- 1
     R <- (n-1)/n*gamma*mean(m[inp$ir])/K

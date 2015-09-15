@@ -78,7 +78,9 @@ fit.spict <- function(inp, dbg=0){
                   seasonindex=inp$seasonindex,
                   splinemat=inp$splinemat,
                   splinematfine=inp$splinematfine,
-                  A=inp$A,
+                  #A=inp$A,
+                  #lambda=inp$lambda,
+                  omega=inp$omega,
                   seasontype=inp$seasontype,
                   ffac=inp$ffaceuler,
                   indpred=inp$indpred,
@@ -111,6 +113,7 @@ fit.spict <- function(inp, dbg=0){
         }
     }
     rep <- list()
+    rep$inp <- inp
     if(dbg<1){
         if(class(opt)!='try-error'){
             if(inp$do.sd.report){

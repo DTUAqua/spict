@@ -153,11 +153,8 @@ check.inp <- function(inp){
     if(!"seasontype" %in% names(inp)){
         inp$seasontype <- 1
     }
-    if(!"A" %in% names(inp)){
-        epsilon <- 0.1
-        omega <- 2*pi
-        inp$A <- matrix(c(-epsilon, omega, -omega, -epsilon), 2, 2, byrow=TRUE)
-    }
+    if(!"omega" %in% names(inp)) inp$omega <- 2*pi # Annual cycle
+    #if(!"A" %in% names(inp)) inp$A <- matrix(c(-inp$lambda, -inp$omega, inp$omega, -inp$lambda), 2, 2, byrow=TRUE)
     if(!"msytype" %in% names(inp)){
         inp$msytype <- 's'
     } else {
@@ -492,6 +489,14 @@ check.inp <- function(inp){
         }
     }
     # Fill in unspecified (more rarely user defined) model parameter values
+    if(!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
+    #if("lambda" %in% names(inp)) if(inp$lambda <= 0) cat('Error: lambda must be positive!')
+    if("logphi" %in% names(inp$ini)){
+        if(length(inp$ini$logphi)+1 != dim(inp$splinemat)[2]){
+            cat('Mismatch between length of ini$logphi and number of columns of splinemat! removing prespecified ini$logphi and setting default.\n')
+            inp$ini$logphi <- NULL
+        }
+    }
     if(!"logphi" %in% names(inp$ini)) inp$ini$logphi <- rep(0, inp$nseasons-1)
     if(!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
     if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(20-1)
@@ -536,6 +541,7 @@ check.inp <- function(inp){
                         logK=inp$ini$logK,
                         logq=inp$ini$logq,
                         logn=inp$ini$logn,
+                        loglambda=inp$ini$loglambda,
                         logsdf=inp$ini$logsdf,
                         logsdu=inp$ini$logsdu,
                         logsdb=inp$ini$logsdb,
@@ -543,12 +549,12 @@ check.inp <- function(inp){
                         logu=inp$ini$logu,
                         logB=inp$ini$logB)
     # Determine phases and fixed parameters
-    fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless specified    
+    fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac', 'loglambda') # These are fixed unless otherwise specified
     if(inp$nseasons==1){
         fixpars <- c('logphi', 'logu', 'logsdu', fixpars)
     } else {# OBSOBSOBS this needs to be fixed!!
         if(inp$seasontype==1){ # Use spline
-            fixpars <- c('logu', 'logsdu', fixpars)
+            fixpars <- c('logu', 'logsdu', 'loglambda', fixpars)
         }
         if(inp$seasontype==2){ # Use coupled SDEs
             fixpars <- c('logphi', fixpars)
