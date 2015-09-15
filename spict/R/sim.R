@@ -171,12 +171,17 @@ sim.spict <- function(input, nobs=100){
             # These expressions are based on analytical results
             # Derivations etc. can be found in Uffe's SDE notes on p. 132
             expmosc <- function(lambda, omega, t) exp(-lambda*t) * matrix(c(cos(omega*t), -sin(omega*t), sin(omega*t), cos(omega*t)), 2, 2, byrow=TRUE)
-            u <- matrix(0, 2, inp$ns)
-            sduana <- sqrt(sdu^2/(2*lambda)*(1-exp(-2*lambda*dt)))
-            u[, 1] <- c(0.5, 0) # Set an initial state different from zero to get some action!
-            for(i in 2:inp$ns) u[, i] <- rnorm(2, expmosc(lambda, omega, dt) %*% u[, i-1], sduana)
-            #for(i in 2:inp$ns) u[, i] <- u[, i-1] + A %*% u[, i-1] * dt + rnorm(2, 0, sdu*sqrt(dt))
-            season <- u[1, ]
+            nu <- length(sdu)
+            for(j in 1:nu){
+                u <- matrix(0, 2, inp$ns)
+                sduana <- sqrt(sdu[j]^2/(2*lambda)*(1-exp(-2*lambda*dt)))
+                u[, 1] <- c(0.5, 0) # Set an initial state different from zero to get some action!
+                omegain <- omega*j
+                for(i in 2:inp$ns) u[, i] <- rnorm(2, expmosc(lambda, omegain, dt) %*% u[, i-1], sduana)
+                season <- season + u[1, ]
+                #if(j==1) plot(season, typ='l', ylim=c(-3, 3))
+                #if(j>1) lines(season, col=j)
+            }
         }
         F <- exp(logFbase + season)
         # - Biomass -
