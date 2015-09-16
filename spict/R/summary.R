@@ -60,7 +60,17 @@ summary.spictcls <- function(object, numdigits=8){
         unms <- unique(nms)
         nupar <- length(unms)
         truepar <- NULL
-        for(i in 1:nupar) truepar <- c(truepar, rep$inp$true[[unms[i]]])
+        parnotest <- NULL
+        for(i in 1:nupar){
+            tp <- rep$inp$true[[unms[i]]]
+            nestpar <- sum(names(est) == unms[i])
+            truepar <- c(truepar, tp[1:nestpar])
+            if(nestpar < length(tp)){
+                inds <- (nestpar+1):length(tp)
+                parnotest <- c(parnotest, tp[inds])
+                names(parnotest) <- c(names(parnotest), paste0(unms[i], inds))
+            }
+        }
         truepar[loginds] <- exp(truepar[loginds])
         truepar[logitinds] <- invlogit(truepar[logitinds])
         truepar[logp1inds] <- invlogp1(truepar[logp1inds])
@@ -86,6 +96,9 @@ summary.spictcls <- function(object, numdigits=8){
     rownames(resout) <- nms
     colnms <- c('estimate', 'cilow', 'ciupp', 'est.in.log')
     cat('', paste(capture.output(resout),' \n'))
+    if('true' %in% names(rep$inp)){
+        #if(!is.null(parnotest)) cat(paste('\nPars not estimated:', paste(names(parnotest), collapse=', '), '\n'))
+    }
     if(!'sderr' %in% names(rep)){
         # Derived estimates
         cat(paste0('\nDerived estimates w 95% CI\n'))

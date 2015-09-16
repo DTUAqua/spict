@@ -326,6 +326,7 @@ Type objective_function<Type>::operator() ()
   }
 
   // Seasonal components
+  if(dbg>0){ std::cout << "-- seasontype: " << seasontype << std::endl; }
   vector<Type> logFs = logF;
   //vector<Type> logFs(ns);
   if(seasontype == 1.0){
@@ -342,35 +343,43 @@ Type objective_function<Type>::operator() ()
   }
   if(seasontype == 2.0){
     // Coupled SDEs
-    for(int i=1; i<ns; i++){
-      for(int j=0; j<nsdu; j++){
-	Type per = j+1.0;
-	// Analytical expression for matrix exponential
+    for(int j=0; j<nsdu; j++){
+      Type per = j+1.0;
+      if(dbg>0){ std::cout << "-- j:" << j << "- per:" << per << "- omega:" << omega << std::endl; } 
+      for(int i=1; i<ns; i++){
+ 	// Analytical expression for matrix exponential
 	matrix<Type> trigmat(2, 2);
 	trigmat(0, 0) = cos(per*omega*dt(i-1));
 	trigmat(0, 1) = -sin(per*omega*dt(i-1));
 	trigmat(1, 0) = sin(per*omega*dt(i-1));
 	trigmat(1, 1) = cos(per*omega*dt(i-1));
+	if(dbg>0){ std::cout << "-- trigmat: " << trigmat << std::endl; }
 	matrix<Type> expmAt = exp(-lambda*dt(i-1))*trigmat;
-	if(dbg>1){ std::cout << "-- expmAt: " << expmAt << std::endl; }
+	if(dbg>0){ std::cout << "-- expmAt: " << expmAt << std::endl; }
 	// Corrected standard deviation
 	Type sduana = sdu(j) * sqrt(1.0/(2.0*lambda) * (1.0 - exp(-2.0*lambda*dt(i-1))));
+	if(dbg>0){ std::cout << "-- sduana: " << sduana << std::endl; }
 	vector<Type> sublogumF = logu.col(i-1);
 	vector<Type> sublogum(2);
 	sublogum(0) = sublogumF(2*j);
 	sublogum(1) = sublogumF(2*j+1);
+	if(dbg>0){ std::cout << "-- sublogumF: " << sublogumF << "-- sublogum: " << sublogum << std::endl; }
 	//vector<Type> logupred = expmAt * logu.col(i-1);
 	vector<Type> logupred = expmAt * sublogum;
+	if(dbg>0){ std::cout << "-- logupred: " << logupred << std::endl; }
 	likval = 0.0;
-	for(int k=0; k<logupred.size(); k++){ likval += dnorm(logu(2*j+k, i), logupred(k), sduana, 1); }
+	for(int k=0; k<logupred.size(); k++){ 
+	  if(dbg>0){ std::cout << "-- k: " << k << "- 2*j+k: " << 2*j+k << " - logu(2*j+k, i): " << logu(2*j+k, i) << std::endl; }
+	  likval += dnorm(logu(2*j+k, i), logupred(k), sduana, 1); 
+	}
 	ans-=likval;
 	// DEBUGGING
 	if(dbg>0){
 	  std::cout << "-- i: " << i << " -   logu(0,i): " << logu(0,i) << "  logupred(0): " << logupred(0) << " -   logu(1,i): " << logu(1,i) << "  logupred(1): " << logupred(1) << "  sdu(j): " << sdu(j) << "  sduana: " << sduana << "  likval: " << likval << "  ans:" << ans << std::endl;
 	}
       }
+      for(int i=0; i<ns; i++) logFs(i) += logu(2*j, i); // Sum diffusion and seasonal component
     }
-    for(int i=0; i<ns; i++) logFs(i) += logu(0, i); // Sum diffusion and seasonal component
   }
   vector<Type> F = exp(logFs);
 

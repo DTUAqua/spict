@@ -521,7 +521,7 @@ check.inp <- function(inp){
         }
     }
     if(!"logu" %in% names(inp$ini)){
-        inp$ini$logu <- matrix(log(1), 2*length(inp$ini$logsdu), inp$ns)
+        inp$ini$logu <- matrix(log(1)+1e-3, 2*length(inp$ini$logsdu), inp$ns)
     }
     if(!"logB" %in% names(inp$ini)){
         inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
@@ -550,25 +550,28 @@ check.inp <- function(inp){
                         logu=inp$ini$logu,
                         logB=inp$ini$logB)
     # Determine phases and fixed parameters
-    fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac', 'loglambda') # These are fixed unless otherwise specified
+    fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless otherwise specified
+    forcefixpars <- c() # Parameters that are forced to be fixed.
     if(inp$nseasons==1){
-        fixpars <- c('logphi', 'logu', 'logsdu', fixpars)
-    } else {# OBSOBSOBS this needs to be fixed!!
+        forcefixpars <- c('logphi', 'logu', 'logsdu', 'loglambda', forcefixpars)
+    } else {
         if(inp$seasontype==1){ # Use spline
-            fixpars <- c('logu', 'logsdu', 'loglambda', fixpars)
+            forcefixpars <- c('logu', 'logsdu', 'loglambda', forcefixpars)
         }
         if(inp$seasontype==2){ # Use coupled SDEs
-            fixpars <- c('logphi', fixpars)
+            forcefixpars <- c('logphi', forcefixpars)
         }
     }
     if(!"phases" %in% names(inp)){
         inp$phases <- list()
-        for(i in 1:length(fixpars)) inp$phases[[fixpars[i]]] <- -1
     } else {
         if("logr" %in% names(inp$phases)){
             inp$phases$logm <- inp$phases$logr
             inp$phases$logr <- NULL
         }
+    }
+    if("phases" %in% names(inp)){
+        for(i in 1:length(forcefixpars)) inp$phases[[forcefixpars[i]]] <- -1
         for(i in 1:length(fixpars)) if(!fixpars[i] %in% names(inp$phases)) inp$phases[[fixpars[i]]] <- -1
     }
     # If robust flags are set to 1 then set phases for robust parameters to 1

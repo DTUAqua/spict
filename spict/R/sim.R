@@ -175,7 +175,7 @@ sim.spict <- function(input, nobs=100){
             for(j in 1:nu){
                 u <- matrix(0, 2, inp$ns)
                 sduana <- sqrt(sdu[j]^2/(2*lambda)*(1-exp(-2*lambda*dt)))
-                u[, 1] <- c(0.5, 0) # Set an initial state different from zero to get some action!
+                u[, 1] <- c(0.1, 0) # Set an initial state different from zero to get some action!
                 omegain <- omega*j
                 for(i in 2:inp$ns) u[, i] <- rnorm(2, expmosc(lambda, omegain, dt) %*% u[, i-1], sduana)
                 season <- season + u[1, ]
