@@ -81,7 +81,7 @@ make.ellipse <- function(inds, rep){
 #' @name season.cols
 #' @title Load season colors.
 #' @return Vector containing season colors.
-season.cols <- function() rep(c(4, 3, 2, 'yellow', 1, 6, 7, 'orange'), 10) # Make sure we have enough colors
+season.cols <- function() rep(c(4, 3, 2, 'gold', 1, 6, 7, 'orange'), 10) # Make sure we have enough colors
 
 
 #' @name true.col

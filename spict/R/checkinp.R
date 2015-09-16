@@ -148,7 +148,7 @@ check.inp <- function(inp){
         inp$osar.trace <- FALSE
     }
     if(!"osar.parallel" %in% names(inp)){
-        inp$osar.parallel <- TRUE
+        inp$osar.parallel <- FALSE
     }
     if(!"seasontype" %in% names(inp)){
         inp$seasontype <- 1
