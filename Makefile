@@ -18,6 +18,7 @@ build-package:
 install:
 	make build-package
 	R CMD INSTALL --preclean --no-multiarch $(TARBALL)
+	date
 
 unexport TEXINPUTS
 pdf:
