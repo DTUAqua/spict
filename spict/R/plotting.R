@@ -1510,7 +1510,7 @@ plotspict.ci <- function(inp){
         yp <- a*xp$x + b*xp$x^2 # Dome
         yp0 <- predict(mod0, xp)
         if(inp$nseasons > 1){
-            par(mfrow=c(4, 2))
+            par(mfrow=c(2, 2))
         } else {
             par(mfrow=c(3, 2))
         }
@@ -1546,7 +1546,7 @@ plotspict.ci <- function(inp){
         plot.seasondiff(inp$timeC, y, ylab='diff log catch')
         plot.seasondiff(inp$timeI[[1]], inp$obsI[[1]], ylab='diff log index 1')
     }
-    if(class(c) == 'list'){
+    if(class(c) == 'list' & inp$nseasons == 1){
         #
         plot(x, z, typ='l', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
         plot.col(time, z, obsx=x, do.line=FALSE, add=TRUE)
