@@ -317,7 +317,7 @@ sim.spict <- function(input, nobs=100){
 #' set.seed(1234)
 #' validate.spict(inp, nsim=10, nobsvec=c(30, 60), backup='validate.RData')
 #' @export
-validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, backup=NULL){
+validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, backup=NULL, df.out=FALSE){
     nnobsvec <- length(nobsvec)
     if('logF' %in% names(inp$ini)) inp$ini$logF <- NULL
     if('logB' %in% names(inp$ini)) inp$ini$logB <- NULL
@@ -340,6 +340,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
         ss[[j]] <- mclapply(1:nsim, fun, inp, nobs, estinp, backup, mc.cores=8)
         if(!is.null(backup)) save(ss, file=backup)
     }
+    if(df.out) ss <- validation.data.frame(ss)
     return(ss)
 }
 
@@ -417,4 +418,47 @@ extract.simstats <- function(rep, inp){
     } else {
         stop('These results do not come from the estimation of a simulated data set!')
     }
+}
+
+
+
+#' @name validation.data.frame
+#' @title Collect results from the output of running validate.spict.
+#' @param ss Output from validation.spict.
+#' @return A data frame containing the formatted validation results.
+#' @export
+validation.data.frame <- function(ss){
+    nna <- length(ss)
+    nsima <- length(ss[[1]])
+    i <- 0
+    flag <- TRUE
+    while(flag){
+        i <- i+1        
+        flag <- is.null(ss[[1]][[i]])
+        if(!flag){
+            usso <- unlist(ss[[1]][[i]])
+            nms <- names(usso)
+            flag <- length(nms)<12
+        }
+    }
+    usso <- unlist(ss[[1]][[i]])
+    nms <- names(usso)
+    nnms <- length(nms)
+    v <- list()
+    for(k in 1:nnms){
+        v[[nms[k]]] <- matrix(NA, nsima, nna)
+    }
+    for(i in 1:nna){
+        nsimt <- length(ss[[i]])
+        for(j in 1:nsimt){
+            uss <- unlist(ss[[i]][[j]])
+            if(!is.null(uss)){
+                for(k in 1:nnms){
+                    v[[nms[k]]][j, i] <- uss[k]
+                }
+            }
+        }
+    }
+    v[['convall']][is.na(v[['convall']])] <- 1
+    return(data.frame(v))
 }
