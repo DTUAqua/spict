@@ -5,7 +5,7 @@
 \title{Simulate data and reestimate parameters}
 \usage{
 validate.spict(inp, nsim = 50, nobsvec = c(15, 60, 240), estinp = NULL,
-  backup = NULL)
+  backup = NULL, df.out = FALSE)
 }
 \arguments{
 \item{inp}{An inp list with an ini key (see ?check.inp). If you want to use estimated parameters for the simulation create the inp$ini from the pl key of a result of fit.spict().}
