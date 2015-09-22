@@ -7,7 +7,7 @@
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
-#' rep <- calc.osa.resid(rep)
+#' rep <- calc.osa.resid(rep) # This step is required
 #' rep <- calc.influence(rep)
 #' @export
 calc.influence <- function(rep){
@@ -15,12 +15,12 @@ calc.influence <- function(rep){
     if(!'osar' %in% names(rep)) stop('Need to calculate one-step-ahead residuals before calculating influence statistics. Use the calc.osa.resid() function.')
     inp <- rep$inp
     #parnams <- c('logFmsy', 'MSY')
-    parnams <- c('logr', 'logK', 'logq', 'logsdf', 'logsdb', 'MSY')
+    parnams <- c('logm', 'logBmsy', 'logFmsy', 'logsdf', 'logsdb')
     parnamsnolog <- sub('log', '', parnams)
     np <- length(parnams)
     doexp <- rep(0, np)
     doexp[grep('log', parnams)] <- 1
-    parmat <- matrix(0, np, 4)
+    parmat <- matrix(0, np, 5)
     rownames(parmat) <- parnamsnolog
     for(k in 1:np) parmat[k, ] <- get.par(parnams[k], rep)
     detcov <- unlist(determinant(rep$cov.fixed, logarithm=TRUE))[1]
@@ -41,6 +41,7 @@ calc.influence <- function(rep){
     inflfun <- function(c, inp, parnams){
         #cat(c, '.. ')
         inp2 <- inp
+        inp2$osar.trace <- FALSE
         if(c <= inp$nobsC){
             # Loop over catches
             inp2$obsC <- inp$obsC[-c]
@@ -60,10 +61,10 @@ calc.influence <- function(rep){
             }
         }
         rep2 <- fit.spict(inp2)
-        rep2 <- calc.osa.resid(rep2)
+        #rep2 <- calc.osa.resid(rep2)
         # Calculate diagnostics
         np <- length(parnams)
-        parmat <- matrix(0, np, 4)
+        parmat <- matrix(0, np, 5)
         for(k in 1:np) parmat[k, ] <- get.par(parnams[k], rep2)
         detcov <- unlist(determinant(rep2$cov.fixed, logarithm=TRUE))[1]
         dosarpvals <- get.osar.pvals(rep2)

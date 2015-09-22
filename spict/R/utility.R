@@ -315,3 +315,47 @@ get.EBinf <- function(rep){
     Fl <- tail(unname(fff), 1)
     EBinf <- calc.EBinf(K, n, Fl, Fmsy[2], sdb2)
 }
+
+
+#' @name acf.signf
+#' @title Check whether ACF of residuals is significant in any lags.
+#' @details This corresponds to plotting the ACF using acf() and checking whether any lags has an acf value above the CI limit.
+#' @param resid Vector of residuals.
+#' @param lag.max Only check from lag 1 until lag.max.
+#' @param return.p Return the smallest p-value of the calculated lags.
+#' @return If any significant lags are present TRUE is returned otherwise FALSE. If return.p is TRUE then the smallest of the calculated p-values is returned instead.
+acf.signf <- function(resid, lag.max=4, return.p=FALSE){
+    calc.pval <- function(corval, acf) 2-2*pnorm(abs(corval)*sqrt(acf$n.used))
+    calc.limval <- function(p, acf) qnorm((2-p)/2)/sqrt(acf$n.used)
+    inds <- which(is.na(resid))
+    if(length(inds)>0){
+        cat('Warning: ', length(inds), 'NAs in residuals!\n')
+        resid <- resid[-inds]
+    }
+    acfC <- acf(resid, plot=FALSE, lag.max=lag.max)
+    if(return.p){
+        corvals <- acfC$acf[-1]
+        #out <- paste(round(calc.pval(corvals, acfC), 3), collapse=', ')
+        out <- round(min(calc.pval(corvals, acfC)), 3)
+    } else {
+        p <- 0.05
+        acflim <- calc.limval(p, acfC)
+        out <- any(abs(acfC$acf[-1]) > acflim)
+    }
+    return(out)
+}
+
+
+#' @name get.osar.pvals
+#' @title Check whether ACF of catch and index residuals is significant in any lags.
+#' @param rep Result of fit.spict(), but requires that also residuals have been calculated using calc.osa.resic().
+#' @return Vector of p-values of length equal to the number of data series.
+get.osar.pvals <- function(rep){
+    pvals <- c()
+    if('osarC' %in% names(rep)) pvals <- c(pvals, acf.signf(rep$osarC$residual, return.p=TRUE))
+    if('osarI' %in% names(rep)){
+        ni <- length(rep$osarI)
+        for(i in 1:ni) pvals <- c(pvals, acf.signf(rep$osarI[[i]]$residual, return.p=TRUE))
+    }
+    return(pvals)
+}
