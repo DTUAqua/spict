@@ -93,6 +93,7 @@ fit.spict <- function(inp, dbg=0){
                   priorq=inp$priors$logq,
                   priorbkfrac=inp$priors$logbkfrac,
                   priorB=inp$priors$logB,
+                  simple=inp$simple,
                   dbg=dbg)
     pl <- inp$parlist
     # Cycle through phases
@@ -108,8 +109,15 @@ fit.spict <- function(inp, dbg=0){
         obj$fn(obj$par)
         if(dbg<1){
             # Do estimation
-            opt <- try(nlminb(obj$par, obj$fn, obj$gr))
-            pl <- obj$env$parList(opt$par)
+            if(inp$optimiser == 'nlminb'){
+                opt <- try(nlminb(obj$par, obj$fn, obj$gr))
+                pl <- obj$env$parList(opt$par)
+            }
+            if(inp$optimiser == 'optim'){
+                opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method='BFGS'))
+                opt$objective <- opt$value
+                pl <- obj$env$parList(opt$par)
+            }
         }
     }
     rep <- list()

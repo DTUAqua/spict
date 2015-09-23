@@ -16,7 +16,14 @@ summary.spictcls <- function(object, numdigits=8){
     order <- c(2,1,3,2)
     rep <- object
     cat(paste('Convergence: ', rep$opt$convergence, '  MSG: ', rep$opt$message, '\n', sep=''))
-    if(rep$opt$convergence>0) cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and cannot be trusted.\n')
+    if(rep$opt$convergence>0){
+        cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and cannot be trusted.\n')
+        grad <- rep$obj$gr()
+        names(grad) <- names(rep$par.fixed)
+        cat('Gradient at current parameter vector\n')
+        cat('', paste(capture.output(grad),' \n'))
+        cat('\n')
+    }
     if('sderr' %in% names(rep)) cat('WARNING: Could not calculate standard deviations. The optimum found may be invalid. Proceed with caution.\n')
     cat(paste('Negative log likelihood: ', round(rep$opt$objective, numdigits), '\n', sep=''))
     cat('\nFit statistics\n')

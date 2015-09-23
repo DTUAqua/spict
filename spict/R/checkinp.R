@@ -141,6 +141,32 @@ check.inp <- function(inp){
         if(length(inp$obsI[[i]])>0) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
     }
     # -- MODEL OPTIONS --
+    if(!"simple" %in% names(inp)){
+        inp$simple <- 0
+    }
+    if(inp$simple==1){ # Set parameters for the simple model (catch assumed known, no F process).
+        umodtimeC <- unique(inp$timeC%%1)
+        if(length(umodtimeC) != 1) stop('When inp$simple = 1, inp$timeC must have a fixed regular time step of 1 year!')
+        if(umodtimeC != 0) inp$timeC <- floor(inp$timeC)
+        for(i in 1:inp$nindex){
+            umodtimeI <- unique(inp$timeI[[i]]%%1)
+            if(length(umodtimeI) != 1) stop('When inp$simple = 1, inp$timeI must have a fixed regular time step of 1 year!')
+            if(umodtimeI != 0) inp$timeI[[i]] <- floor(inp$timeI[[i]])
+        }
+        inp$dteuler <- 1
+        # Fix parameters
+        inp$phases <- list()
+        inp$phases$logF <- -1
+        inp$phases$logsdf <- -1
+        inp$phases$logbeta <- -1
+        # Prediction not possible
+        inp$dtpredc <- NULL
+        inp$timepredc <- max(inp$timeC)
+        inp$timepredi <- max(unlist(inp$timeI))
+    }
+    if(!"optimiser" %in% names(inp)){
+        inp$optimiser <- 'nlminb'
+    }
     if(!"osar.method" %in% names(inp)){
         inp$osar.method <- 'none'
     }
@@ -208,12 +234,12 @@ check.inp <- function(inp){
     if(!"timepredc" %in% names(inp)){
         inp$timepredc <- max(timeobs)
     } else {
-        if(inp$timepredc < max(timeobs)) stop('inp$timepredc must be equal to or later than last observation!')
+        if(inp$timepredc < max(inp$timeC)) stop('inp$timepredc must be equal to or later than last catch observation!')
     }
     if(!"timepredi" %in% names(inp)){
         inp$timepredi <- max(timeobs)
     } else {
-        if(inp$timepredi < max(timeobs)) stop('inp$timepredi must be equal to or later than last observation!')
+        if(inp$timepredi < max(unlist(inp$timeI))) stop('inp$timepredi must be equal to or later than last index observation!')
     }
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
     #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'logbkfrac')
