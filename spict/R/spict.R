@@ -111,12 +111,16 @@ fit.spict <- function(inp, dbg=0){
             # Do estimation
             if(inp$optimiser == 'nlminb'){
                 opt <- try(nlminb(obj$par, obj$fn, obj$gr))
-                pl <- obj$env$parList(opt$par)
+                if(class(opt)!='try-error'){
+                    pl <- obj$env$parList(opt$par)
+                }
             }
             if(inp$optimiser == 'optim'){
                 opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method='BFGS'))
-                opt$objective <- opt$value
-                pl <- obj$env$parList(opt$par)
+                if(class(opt)!='try-error'){
+                    opt$objective <- opt$value
+                    pl <- obj$env$parList(opt$par)
+                }
             }
         }
     }
@@ -171,6 +175,12 @@ fit.spict <- function(inp, dbg=0){
             rep$inp <- inp
             rep$opt <- opt
         } else {
+            cat('obj$par:\n')
+            print(obj$par)
+            cat('obj$fn:\n')
+            print(obj$fn())
+            cat('obj$gr:\n')
+            print(obj$gr())
             stop('Could not fit model, try changing the initial parameter guess in inp$ini. Error msg:', opt)
         }
     }

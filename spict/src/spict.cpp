@@ -255,7 +255,8 @@ Type objective_function<Type>::operator() ()
   Type likval;
 
   if(dbg > 0){
-    std::cout << "--- DEBUG: script start ---" << std::endl;
+    std::cout << "" << std::endl;
+    std::cout << "--- DEBUG: script start --- ans: " << ans << std::endl;
     for(int i=0; i<nm; i++){ std::cout << "INPUT: logm(i): " << logm(i) << " -- i: " << i << std::endl; }
     for(int i=0; i<logphi.size(); i++){ std::cout << "INPUT: logphi(i): " << logphi(i) << " -- i: " << i << std::endl; }
     for(int i=0; i<logphipar.size(); i++){ std::cout << "INPUT: logphipar(i): " << logphipar(i) << " -- i: " << i << std::endl; }
@@ -306,13 +307,14 @@ Type objective_function<Type>::operator() ()
   vector<Type> logFs = logF;
   if(simple==0){
     if(dbg>0){
-      std::cout << "--- DEBUG: F loop start" << std::endl;
+      std::cout << "--- DEBUG: F loop start --- ans: " << ans << std::endl;
     }
     // Diffusion component of F
     for(int i=1; i<ns; i++){
       Type logFpred = log(ffacvec(i)) + logF(i-1);
       likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf, 1);
       ans-=likval;
+      if(isnan(ans)) dbg = 2.0;
       // DEBUGGING
       if(dbg>1){
 	std::cout << "-- i: " << i << " -   logF(i-1): " << logF(i-1) << "  logF(i): " << logF(i) << "  ffacvec(i): " << ffacvec(i) << "  sdf: " << sdf << "  likval: " << likval << "  ans:" << ans << std::endl;
@@ -366,6 +368,7 @@ Type objective_function<Type>::operator() ()
 	    likval += dnorm(logu(2*j+k, i), logupred(k), sduana, 1); 
 	  }
 	  ans-=likval;
+	  if(isnan(ans)) dbg = 2.0;
 	  // DEBUGGING
 	  if(dbg>0){
 	    std::cout << "-- i: " << i << " -   logu(0,i): " << logu(0,i) << "  logupred(0): " << logupred(0) << " -   logu(1,i): " << logu(1,i) << "  logupred(1): " << logupred(1) << "  sdu(j): " << sdu(j) << "  sduana: " << sduana << "  likval: " << likval << "  ans:" << ans << std::endl;
@@ -380,6 +383,9 @@ Type objective_function<Type>::operator() ()
   vector<Type> F = exp(logFs);
 
   // BIOMASS PREDICTIONS
+  if(dbg>0){
+    std::cout << "--- DEBUG: B loop start --- ans: " << ans << std::endl;
+  }
   vector<Type> logBpred(ns);
   for(int i=0; i<(ns-1); i++){
     // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
@@ -388,17 +394,21 @@ Type objective_function<Type>::operator() ()
     } else {
       //logBpred(i+1) = log(exp(predictlogB(B(i), 0.0, gamma, mvec(i), K, dt(i), n, sdb2)) - exp(logobsC(i)));
       Type Ftmp = 0.0;
-      logBpred(i+1) = log(exp(predictlogB(B(i), Ftmp, gamma, mvec(i), K, dt(i), n, sdb2)) - exp(logobsC(i)));
+      Type Bpredtmp = exp(predictlogB(B(i), Ftmp, gamma, mvec(i), K, dt(i), n, sdb2)) - exp(logobsC(i));
+      if(Bpredtmp < 0) Bpredtmp = 1e-8; // Ugly ugly ugly hack to avoid taking log of negative
+      logBpred(i+1) = log(Bpredtmp);
       //logBpred(i+1) = log(exp(logBpred(i+1)) - exp(logobsC(i)));
-      logFs(i) = logobsC(i) - logB(i);
+      logFs(i) = logobsC(i) - logB(i); // Calculate fishing mortality
     }
     likval = dnorm(logBpred(i+1), logB(i+1), sqrt(dt(i))*sdb, 1);
     ans-=likval;
+    if(isnan(ans)) dbg = 2.0;
     // DEBUGGING
     if(dbg>1){
       std::cout << "-- i: " << i << " -   logB(i+1): " << logB(i+1) << "  logBpred(i+1): " << logBpred(i+1) << "  sdb: " << sdb << "  likval: " << likval << "  ans:" << ans << std::endl;
     }
   }
+  if(simple==1){ logFs(ns-1) = logFs(ns-2);}
 
   // CATCH PREDICTIONS
   vector<Type> Cpredsub(ns);
@@ -437,7 +447,7 @@ Type objective_function<Type>::operator() ()
   // CATCHES
   if(simple==0){
     if(dbg>0){
-      std::cout << "--- DEBUG: Cpred loop start" << std::endl;
+      std::cout << "--- DEBUG: Cpred loop start --- ans: " << ans << std::endl;
     }
     // fac and pp are used for the outlier robust Gaussian mixture.
     for(int i=0; i<nobsC; i++){
@@ -450,6 +460,7 @@ Type objective_function<Type>::operator() ()
 	likval = dnorm(logCpred(i), logobsC(i), sdc, 1);
       }
       ans-= keep(inds) * likval;
+      if(isnan(ans)) dbg = 2.0;
       // DEBUGGING
       if(dbg>1){
 	std::cout << "-- i: " << i << " -   logobsC(i): " << logobsC(i)<< "  sdc: " << sdc << "  likval: " << likval << "  ans:" << ans << std::endl;
@@ -459,29 +470,27 @@ Type objective_function<Type>::operator() ()
 
   // BIOMASS INDEX
   if(dbg>0){
-    std::cout << "--- DEBUG: Ipred loop start" << std::endl;
-    std::cout << " logobsI.size(): " << logobsI.size() << "  iq.size(): " << iq.size() << "  ii.size(): " << ii.size() << "  logq.size(): " << logq.size() << std::endl;
+    std::cout << "--- DEBUG: Ipred loop start --- ans: " << ans << std::endl;
+    std::cout << " logobsI.size(): " << logobsI.size() << "  iq.size(): " << iq.size() << "  ii.size(): " << ii.size() << "  logq.size(): " << logq.size() << "  nobsI: " << nobsI << std::endl;
   }
   int indq;
   for(int i=0; i<nobsI; i++){
-    if(logobsI(i)>0){
-      ind = CppAD::Integer(ii(i)-1);
-      indq = CppAD::Integer(iq(i)-1);
-      inds = CppAD::Integer(isi(i)-1);
-      logIpred(i) = logq(indq) + log(B(ind));
-      if(robflagi==1.0){
-	likval = log(pp*dnorm(logobsI(i), logIpred(i), sdi, 0) + (1.0-pp)*dnorm(logobsI(i), logIpred(i), robfac*sdi, 0));
-      } else {
-	likval = dnorm(logobsI(i), logIpred(i), sdi, 1);
-      }
-      ans-= keep(inds) * likval;
-      // DEBUGGING
-      if(dbg>1){
-	std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -   logobsI(i): " << logobsI(i) << "  logIpred(i): " << logIpred(i) << "  sdi: " << sdi << "  likval: " << likval << "  ans:" << ans << std::endl;
-      }
+    ind = CppAD::Integer(ii(i)-1);
+    indq = CppAD::Integer(iq(i)-1);
+    inds = CppAD::Integer(isi(i)-1);
+    logIpred(i) = logq(indq) + log(B(ind));
+    if(robflagi==1.0){
+      likval = log(pp*dnorm(logobsI(i), logIpred(i), sdi, 0) + (1.0-pp)*dnorm(logobsI(i), logIpred(i), robfac*sdi, 0));
+    } else {
+      likval = dnorm(logobsI(i), logIpred(i), sdi, 1);
+    }
+    ans-= keep(inds) * likval;
+    if(isnan(ans)) dbg = 2.0;
+    // DEBUGGING
+    if(dbg>1){
+      std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -  inds: " << inds << " -   logobsI(i): " << logobsI(i) << "  logIpred(i): " << logIpred(i) << "  likval: " << likval << "  sdi: " << sdi << "  ans:" << ans << std::endl;
     }
   }
-
 
 
   /*
@@ -489,7 +498,7 @@ Type objective_function<Type>::operator() ()
   */
 
   if(dbg>0){
-    std::cout << "--- DEBUG: ONE-STEP-AHEAD PREDICTIONS" << std::endl;
+    std::cout << "--- DEBUG: ONE-STEP-AHEAD PREDICTIONS --- ans: " << ans << std::endl;
     std::cout << "-- dtpredcnsteps: " << dtpredcnsteps << "  dtpredcinds.size(): " << dtpredcinds.size() <<std::endl;
   }
   Type Cp = 0.0;
