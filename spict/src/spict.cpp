@@ -314,7 +314,6 @@ Type objective_function<Type>::operator() ()
       Type logFpred = log(ffacvec(i)) + logF(i-1);
       likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf, 1);
       ans-=likval;
-      if(isnan(ans)) dbg = 2.0;
       // DEBUGGING
       if(dbg>1){
 	std::cout << "-- i: " << i << " -   logF(i-1): " << logF(i-1) << "  logF(i): " << logF(i) << "  ffacvec(i): " << ffacvec(i) << "  sdf: " << sdf << "  likval: " << likval << "  ans:" << ans << std::endl;
@@ -368,7 +367,6 @@ Type objective_function<Type>::operator() ()
 	    likval += dnorm(logu(2*j+k, i), logupred(k), sduana, 1); 
 	  }
 	  ans-=likval;
-	  if(isnan(ans)) dbg = 2.0;
 	  // DEBUGGING
 	  if(dbg>0){
 	    std::cout << "-- i: " << i << " -   logu(0,i): " << logu(0,i) << "  logupred(0): " << logupred(0) << " -   logu(1,i): " << logu(1,i) << "  logupred(1): " << logupred(1) << "  sdu(j): " << sdu(j) << "  sduana: " << sduana << "  likval: " << likval << "  ans:" << ans << std::endl;
@@ -402,7 +400,6 @@ Type objective_function<Type>::operator() ()
     }
     likval = dnorm(logBpred(i+1), logB(i+1), sqrt(dt(i))*sdb, 1);
     ans-=likval;
-    if(isnan(ans)) dbg = 2.0;
     // DEBUGGING
     if(dbg>1){
       std::cout << "-- i: " << i << " -   logB(i+1): " << logB(i+1) << "  logBpred(i+1): " << logBpred(i+1) << "  sdb: " << sdb << "  likval: " << likval << "  ans:" << ans << std::endl;
@@ -460,7 +457,6 @@ Type objective_function<Type>::operator() ()
 	likval = dnorm(logCpred(i), logobsC(i), sdc, 1);
       }
       ans-= keep(inds) * likval;
-      if(isnan(ans)) dbg = 2.0;
       // DEBUGGING
       if(dbg>1){
 	std::cout << "-- i: " << i << " -   logobsC(i): " << logobsC(i)<< "  sdc: " << sdc << "  likval: " << likval << "  ans:" << ans << std::endl;
@@ -485,7 +481,6 @@ Type objective_function<Type>::operator() ()
       likval = dnorm(logobsI(i), logIpred(i), sdi, 1);
     }
     ans-= keep(inds) * likval;
-    if(isnan(ans)) dbg = 2.0;
     // DEBUGGING
     if(dbg>1){
       std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -  inds: " << inds << " -   logobsI(i): " << logobsI(i) << "  logIpred(i): " << logIpred(i) << "  likval: " << likval << "  sdi: " << sdi << "  ans:" << ans << std::endl;
