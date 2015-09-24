@@ -10,12 +10,16 @@ all:
 	make pdf
 
 doc-update:
-	echo "library(roxygen2);roxygenize(\"$(PACKAGE)\",roclets = c(\"collate\", \"rd\"))" | R --slave
+	cd spict
+	echo "roxygen2::roxygenize('spict/', roclets=c('rd', 'collate', 'namespace'))" | R --slave
+	cd ..
+#echo "library(roxygen2);roxygenize(\"$(PACKAGE)\",roclets = c(\"collate\", \"rd\"))" | R --slave	
 
 build-package:
 	R CMD build --resave-data=no $(PACKAGE)
 
 install:
+	make doc-update
 	make build-package
 	R CMD INSTALL --preclean --no-multiarch $(TARBALL)
 	date
