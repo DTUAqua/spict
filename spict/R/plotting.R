@@ -1530,18 +1530,9 @@ plotspict.ci <- function(inp){
         abline(h=0, lty=2, col='gray')
         box(lwd=1.5)
     }
-    plot(time, y, typ='l', ylab='Catch', xlab='Time', main=paste('MSY guess:', round(MSY, 2)))
-    add.legend <- inp$nseasons > 1
-    plot.col(time, y, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
-    abline(h=MSY, lty=2)
-    grid()
-    box(lwd=1.5)
-    for(i in 1:inp$nindex){
-        plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time')
-        plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
-    }
-    grid()
-    box(lwd=1.5)
+    # Plot data
+    plotspict.data(inp, MSY=MSY)
+    # Plot seasonal patterns
     if(inp$nseasons > 1){
         plot.seasondiff(inp$timeC, y, ylab='diff log catch')
         plot.seasondiff(inp$timeI[[1]], inp$obsI[[1]], ylab='diff log index 1')
@@ -1611,3 +1602,37 @@ plotspict.priors <- function(rep, do.plot=4){
         }
     }
 }
+
+
+#' @name plotspict.data
+#' @title Plot input data
+#' @param inp An input list containing data.
+#' @return Nothing
+#' @export
+plotspict.data <- function(inpin, MSY=NULL){
+    inp <- check.inp(inpin)
+    if(dev.cur()==1) par(mfrow=c(2, 1))
+    main <- ''
+    if(!is.null(MSY)) main <- paste('MSY guess:', round(MSY, 2))
+    # Plot catch
+    plot(inp$timeC, inp$obsC, typ='l', ylab='Catch', xlab='Time', main=main)
+    add.legend <- inp$nseasons > 1
+    plot.col(inp$timeC, inp$obsC, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
+    if(!is.null(MSY)) abline(h=MSY, lty=2)
+    grid()
+    box(lwd=1.5)
+    # Plot index
+    i <- 1
+    plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time')
+    plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
+    if(inp$nindex>1){
+        for(i in 2:inp$nindex){
+            plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', col=i)
+            plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
+        }
+    }
+    grid()
+    box(lwd=1.5)
+}
+
+
