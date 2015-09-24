@@ -10,9 +10,7 @@ all:
 	make pdf
 
 doc-update:
-	cd spict
 	echo "roxygen2::roxygenize('spict/', roclets=c('rd', 'collate', 'namespace'))" | R --slave
-	cd ..
 #echo "library(roxygen2);roxygenize(\"$(PACKAGE)\",roclets = c(\"collate\", \"rd\"))" | R --slave	
 
 build-package:
