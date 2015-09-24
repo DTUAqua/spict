@@ -88,11 +88,13 @@ fit.spict <- function(inp, dbg=0){
                   robflagi=inp$robflagi,
                   stochmsy=ifelse(inp$msytype=='s', 1, 0),
                   priorr=inp$priors$logr,
+                  priorn=inp$priors$logn,
                   priorK=inp$priors$logK,
                   priorm=inp$priors$logm,
                   priorq=inp$priors$logq,
                   priorbkfrac=inp$priors$logbkfrac,
                   priorB=inp$priors$logB,
+                  priorF=inp$priors$logF,
                   simple=inp$simple,
                   dbg=dbg)
     pl <- inp$parlist

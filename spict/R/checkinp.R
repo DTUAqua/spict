@@ -349,7 +349,7 @@ check.inp <- function(inp){
     # useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
     check.prior <- function(priors, priorname){
         priorvec <- priors[[priorname]]
-        if(priorname == 'logB'){
+        if(priorname == 'logB' | priorname == 'logF'){
             if(!length(priorvec) %in% 4:5){
                 priorvec <- rep(0, 5)
                 cat(paste('WARNING: invalid prior length specified for', priorname, '(must be 4). Not using this prior.\n'))
@@ -372,12 +372,16 @@ check.inp <- function(inp){
     if(!"priors" %in% names(inp)){
         inp$priors <- list()
     }
+    if(!"logn" %in% names(inp$priors)){
+        inp$priors$logn <- c(log(2), 0.2, 0)
+    } else {
+         inp$priors$logn <- check.prior(inp$priors, 'logn')
+    }
     if(!"logr" %in% names(inp$priors)){
         inp$priors$logr <- c(log(0.8), 0.2, 0)
     } else {
          inp$priors$logr <- check.prior(inp$priors, 'logr')
     }
-    
     if(!"logK" %in% names(inp$priors)){
         inp$priors$logK <- c(log(4*max(inp$obsC)), 0.2, 0)
     } else {
@@ -388,7 +392,6 @@ check.inp <- function(inp){
     } else {
         inp$priors$logm <- check.prior(inp$priors, 'logm')
     }
-    
     if(!"logq" %in% names(inp$priors)){
         inp$priors$logq <- c(log(max(inp$obsI[[1]]) / max(inp$obsC)), 0.2, 0)
     } else {
@@ -411,6 +414,20 @@ check.inp <- function(inp){
                 cat(paste0('WARNING: year for prior on logB (', inp$priors$logB[3], ') did not match times where B is estimated. Not using this prior. To fix this use a year where an observation is available. \n'))                
             }
             inp$priors$logB <- c(inp$priors$logB, ib)
+        }
+    }
+    if(!"logF" %in% names(inp$priors)){
+        inp$priors$logF <- c(log(0.3), 0.2, 0, 0, 0)
+    } else {
+        inp$priors$logF <- check.prior(inp$priors, 'logF')
+        if(inp$priors$logF[3] == 1 & length(inp$priors$logF)==4){
+            iff <- match(inp$priors$logF[4], inp$time)
+            if(is.na(iff)){
+                iff <- 0
+                inp$priors$logB[3] <- 0
+                cat(paste0('WARNING: year for prior on logF (', inp$priors$logF[3], ') did not match times where F is estimated. Not using this prior. To fix this use a year where an observation is available. \n'))                
+            }
+            inp$priors$logF <- c(inp$priors$logF, iff)
         }
     }
     npriors <- length(inp$priors)

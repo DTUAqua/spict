@@ -1586,7 +1586,7 @@ plotspict.priors <- function(rep, do.plot=4){
             nm <- names(inp$priors)[j]
             nmpl <- sub('log', '', nm)
             par <- get.par(nm, rep, exp=FALSE)
-            if(nm == 'logB'){
+            if(nm == 'logB' | nm == 'logF'){
                 par <- par[priorvec[5], ]
                 nmpl <- paste0(nmpl, round(priorvec[4]))
             }
