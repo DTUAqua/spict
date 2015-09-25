@@ -322,8 +322,8 @@ get.EBinf <- function(rep){
 #' @details This corresponds to plotting the ACF using acf() and checking whether any lags has an acf value above the CI limit.
 #' @param resid Vector of residuals.
 #' @param lag.max Only check from lag 1 until lag.max.
-#' @param return.p Return the smallest p-value of the calculated lags.
-#' @return If any significant lags are present TRUE is returned otherwise FALSE. If return.p is TRUE then the smallest of the calculated p-values is returned instead.
+#' @param return.p Return p-values of the calculated lags.
+#' @return Vector of TRUE and FALSE indicating whether significant lags were present. If return.p is TRUE then p-values are returned instead.
 acf.signf <- function(resid, lag.max=4, return.p=FALSE){
     calc.pval <- function(corval, acf) 2-2*pnorm(abs(corval)*sqrt(acf$n.used))
     calc.limval <- function(p, acf) qnorm((2-p)/2)/sqrt(acf$n.used)
@@ -336,11 +336,11 @@ acf.signf <- function(resid, lag.max=4, return.p=FALSE){
     if(return.p){
         corvals <- acfC$acf[-1]
         #out <- paste(round(calc.pval(corvals, acfC), 3), collapse=', ')
-        out <- round(min(calc.pval(corvals, acfC)), 3)
+        out <- calc.pval(corvals, acfC)
     } else {
         p <- 0.05
         acflim <- calc.limval(p, acfC)
-        out <- any(abs(acfC$acf[-1]) > acflim)
+        out <- abs(acfC$acf[-1]) > acflim
     }
     return(out)
 }
@@ -351,11 +351,11 @@ acf.signf <- function(resid, lag.max=4, return.p=FALSE){
 #' @param rep Result of fit.spict(), but requires that also residuals have been calculated using calc.osa.resic().
 #' @return Vector of p-values of length equal to the number of data series.
 get.osar.pvals <- function(rep){
-    pvals <- c()
-    if('osarC' %in% names(rep)) pvals <- c(pvals, acf.signf(rep$osarC$residual, return.p=TRUE))
+    pvals <- numeric(rep$inp$nindex+1)
+    if('osarC' %in% names(rep)) pvals[1] <- round(min(acf.signf(rep$osarC$residual, return.p=TRUE)), 3)
     if('osarI' %in% names(rep)){
         ni <- length(rep$osarI)
-        for(i in 1:ni) pvals <- c(pvals, acf.signf(rep$osarI[[i]]$residual, return.p=TRUE))
+        for(i in 1:ni) pvals[i+1] <- round(min(acf.signf(rep$osarI[[i]]$residual, return.p=TRUE)), 3)
     }
     return(pvals)
 }
