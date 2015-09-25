@@ -42,6 +42,10 @@ summary.spictcls <- function(object, numdigits=8){
         }
         cat(paste('\nPriors on:', paste(usepriors, collapse=', '), '\n'))
     }
+    # Catch/biomass unit
+    if(rep$inp$catchunit != ''){
+        cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n'))
+    }
     # Model parameters
     cat('\nModel parameter estimates w 95% CI \n')
     sd <- sqrt(diag(rep$cov.fixed))

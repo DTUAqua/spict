@@ -58,7 +58,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     # Diagnostic plot
     if('osar' %in% names(rep)){
         figfile2 <- 'diag.pdf'
-        pdf(figfile2, width=9, height=10)
+        pdf(figfile2, width=7, height=9)
         plotspict.diagnostic(rep)
         dev.off()
         latex.figure(figfile2, reportfile, caption='Model diagnostics.')

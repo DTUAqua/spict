@@ -141,6 +141,9 @@ check.inp <- function(inp){
         if(length(inp$obsI[[i]])>0) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
     }
     # -- MODEL OPTIONS --
+    if(!"catchunit" %in% names(inp)){
+        inp$catchunit <- ''
+    }
     if(!"simple" %in% names(inp)){
         inp$simple <- 0
     }
