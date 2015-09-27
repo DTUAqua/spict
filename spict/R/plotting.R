@@ -442,6 +442,7 @@ plotspict.diagnostic <- function(rep, lag.max=10){
     if('osar' %in% names(rep)){
         plotspict.osar(rep, collapse.I=FALSE)
         resC <- rep$osar$logCpres[!is.na(rep$osar$logCpres)]
+        
         inds <- which(acf.signf(resC, lag.max=lag.max))
         main <- 'Catch'
         if(length(inds)>0) main <- paste0(main, ', lag.signf: ', paste0(inds, collapse=','))
@@ -463,13 +464,15 @@ plotspict.diagnostic <- function(rep, lag.max=10){
         pval <- round(rep$osar$logCpshapiro$p.value, 4)
         colmain <- ifelse(pval<0.05, 'red', 'forestgreen')
         qqnorm(resC, main=paste0('Catch, Shapiro p-val: ', pval), col.main=colmain)
-        abline(0,1)
+        qqline(resC)
+        #abline(0,1)
         box(lwd=1.5)
         for(i in 1:inp$nindex){
             pval <- round(rep$osar$logIpshapiro[[i]]$p.value, 4)
             colmain <- ifelse(pval<0.05, 'red', 'forestgreen')
             qqnorm(resI[[i]], main=paste0('I', i, ', Shapiro p-val: ', pval), col.main=colmain, pch=20+i)
-            abline(0,1)
+            qqline(resI[[i]])
+            #abline(0,1)
             box(lwd=1.5)
         }
     } else {

@@ -545,7 +545,7 @@ check.inp <- function(inp){
     }
     if(!"logphi" %in% names(inp$ini)) inp$ini$logphi <- rep(0, inp$nseasons-1)
     if(!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
-    if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(20-1)
+    if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(15-1)
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
     if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
@@ -616,14 +616,14 @@ check.inp <- function(inp){
             inp$phases$logr <- NULL
         }
     }
+    # If robust flags are set to 1 then set phases for robust parameters to 1
+    if(inp$robflagc==1 | inp$robflagi==1){
+        if(!"logitpp" %in% names(inp$phases)) inp$phases$logitpp <- 1
+        if(!"logp1robfac" %in% names(inp$phases)) inp$phases$logp1robfac <- 1
+    }
     if("phases" %in% names(inp)){
         for(i in 1:length(forcefixpars)) inp$phases[[forcefixpars[i]]] <- -1
         for(i in 1:length(fixpars)) if(!fixpars[i] %in% names(inp$phases)) inp$phases[[fixpars[i]]] <- -1
-    }
-    # If robust flags are set to 1 then set phases for robust parameters to 1
-    if(inp$robflagc==1 | inp$robflagi==1){
-        inp$phases$logitpp <- 1
-        inp$phases$logp1robfac <- 1
     }
     # Assign phase 1 to parameters without a phase
     nms <- names(inp$parlist)

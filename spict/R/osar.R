@@ -44,7 +44,8 @@ calc.osa.resid <- function(rep, dbg=0){
         npar <- length(rep$opt$par)
         # Catches
         logCpres <- rep$osarC$residual
-        #logCpres[1] <- NA # Always omit first residual because it can be difficult to calculate
+        nna <- sum(is.na(logCpres))
+        if(nna > 5) cat('Warning:', nna, 'NAs found in catch residuals\n')
         lblag <- npar+1 # Lags to check with LB test
         logCpboxtest <- Box.test(logCpres, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
         logCpp5boxtest <- Box.test(logCpres, lag=lblag+4, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
@@ -67,6 +68,8 @@ calc.osa.resid <- function(rep, dbg=0){
         for(i in 1:inp$nindex){
             logIpres[[i]] <- rep$osarI[[i]]$residual
             logIpres[[i]][1] <- NA # Always omit first residual because it can be difficult to calculate
+            nna <- sum(is.na(logIpres[[i]]))
+            if(nna > 5) cat('Warning:', nna, 'NAs found in index', i, 'residuals\n')
             #logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=lblag, type='Ljung-Box', fitdf=npar)
             #logIpp5boxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag+4, type='Ljung-Box', fitdf=npar)
             #logIpsqboxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag, type='Ljung-Box', fitdf=npar)
