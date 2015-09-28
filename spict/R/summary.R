@@ -26,7 +26,8 @@ summary.spictcls <- function(object, numdigits=8){
     }
     if('sderr' %in% names(rep)) cat('WARNING: Could not calculate standard deviations. The optimum found may be invalid. Proceed with caution.\n')
     cat(paste('Negative log likelihood: ', round(rep$opt$objective, numdigits), '\n', sep=''))
-    cat('\nFit statistics\n')
+    cat(paste0('\nNobs C: ', rep$inp$nobsC, paste0(paste0(',  Nobs I', 1:rep$inp$nindex), ': ', rep$inp$nobsI, collapse=''), '\n'))
+    cat('Fit statistics\n')
     statout <- unlist(rep$stats)
     inds <- grep('.p', names(statout))
     sig <- which(statout[inds]<0.05)
