@@ -1162,6 +1162,7 @@ plotspict.season <- function(rep){
         meanlogF <- mean(logF[, 2])
         meanlogF <- 0 # Don't add mean F
         logphi <- get.par('logphi', rep)
+        naflag <- any(is.na(logphi[, 1]))
         inds <- which(colnames(rep$cov.fixed) == 'logphi')
         ssf <- get.par('seasonsplinefine', rep)
         covmat <- rep$cov.fixed[inds, inds]
@@ -1175,7 +1176,8 @@ plotspict.season <- function(rep){
         nsss <- length(seasonsplinesmoo)
         t <- seq(0, 1, length=nsss)
         y <- exp(meanlogF + seasonsplinesmoo)
-        ylim <- range(yest, y, sssl, sssu)
+        ylim <- range(yest, y)
+        if(!naflag) ylim <- range(yest, y, sssl, sssu)
         if("true" %in% names(rep$inp)){
             if(rep$inp$true$seasontype==1){
                 seasonsplinetrue <- get.spline(rep$inp$true$logphi, order=rep$inp$true$splineorder, dtfine=rep$inp$true$dteuler)
@@ -1189,8 +1191,10 @@ plotspict.season <- function(rep){
         cicol2 <- rgb(0, 0, 1, 0.1)
         cicol3 <- rgb(0, 0, 1, 0.2)
         polygon(c(t, rev(t)), c(sssl, rev(sssu)), col=cicol2, border=cicol2)
-        lines(t, sssl, col=cicol3)
-        lines(t, sssu, col=cicol3)
+        if(!naflag){
+            lines(t, sssl, col=cicol3)
+            lines(t, sssu, col=cicol3)
+        }
         lab <- strftime(c(jan, apr, jul, oct, jan), format='%b')
         ats <- c(0, 0.25, 0.5, 0.75, 1)
         abline(v=ats, lty=3, col='lightgray')
