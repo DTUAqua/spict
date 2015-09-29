@@ -1162,6 +1162,7 @@ plotspict.season <- function(rep){
         meanlogF <- mean(logF[, 2])
         meanlogF <- 0 # Don't add mean F
         logphi <- get.par('logphi', rep)
+        naflag <- any(is.na(logphi[, 1]))
         inds <- which(colnames(rep$cov.fixed) == 'logphi')
         ssf <- get.par('seasonsplinefine', rep)
         covmat <- rep$cov.fixed[inds, inds]
@@ -1175,7 +1176,8 @@ plotspict.season <- function(rep){
         nsss <- length(seasonsplinesmoo)
         t <- seq(0, 1, length=nsss)
         y <- exp(meanlogF + seasonsplinesmoo)
-        ylim <- range(yest, y, sssl, sssu)
+        ylim <- range(yest, y)
+        if(!naflag) ylim <- range(yest, y, sssl, sssu)
         if("true" %in% names(rep$inp)){
             if(rep$inp$true$seasontype==1){
                 seasonsplinetrue <- get.spline(rep$inp$true$logphi, order=rep$inp$true$splineorder, dtfine=rep$inp$true$dteuler)
@@ -1189,8 +1191,10 @@ plotspict.season <- function(rep){
         cicol2 <- rgb(0, 0, 1, 0.1)
         cicol3 <- rgb(0, 0, 1, 0.2)
         polygon(c(t, rev(t)), c(sssl, rev(sssu)), col=cicol2, border=cicol2)
-        lines(t, sssl, col=cicol3)
-        lines(t, sssu, col=cicol3)
+        if(!naflag){
+            lines(t, sssl, col=cicol3)
+            lines(t, sssu, col=cicol3)
+        }
         lab <- strftime(c(jan, apr, jul, oct, jan), format='%b')
         ats <- c(0, 0.25, 0.5, 0.75, 1)
         abline(v=ats, lty=3, col='lightgray')
@@ -1519,7 +1523,8 @@ plotspict.ci <- function(inp){
     y <- inp$obsC
     z <- inp$obsI[[1]]
     c <- guess.m(inp, all=TRUE)
-    if(class(c) == 'list'){ 
+    mfrow <- c(3, 2)
+    if(class(c) == 'list'){ # A regression line could be fitted
         MSY <- c$MSY
         Emsy <- c$Emsy
         a <- c$a
@@ -1530,19 +1535,16 @@ plotspict.ci <- function(inp){
         xp <- data.frame('x'=seq(xlim[1], xlim[2], length=100))
         yp <- a*xp$x + b*xp$x^2 # Dome
         yp0 <- predict(mod0, xp)
-        if(inp$nseasons > 1){
-            par(mfrow=c(2, 2))
-        } else {
-            par(mfrow=c(3, 2))
-        }
     } else {
         MSY <- c
-        if(inp$nseasons > 1){
-            par(mfrow=c(2, 2))
-        } else {
-            par(mfrow=c(1, 2))
-        }
+        mfrow <- c(1, 2)
     }
+    if(inp$nseasons > 1){
+        if(inp$nindex %in% 1) mfrow <- c(2, 2)
+        if(inp$nindex %in% 2:3) mfrow <- c(2, 3)
+        if(inp$nindex %in% 4:5) mfrow <- c(2, 4)
+    }
+    par(mfrow=mfrow)
     plot.seasondiff <- function(time, obs, ylab='Obs'){
         dt <- time[-length(time)]
         dy <- diff(log(obs))
@@ -1556,7 +1558,7 @@ plotspict.ci <- function(inp){
     # Plot seasonal patterns
     if(inp$nseasons > 1){
         plot.seasondiff(inp$timeC, y, ylab='diff log catch')
-        plot.seasondiff(inp$timeI[[1]], inp$obsI[[1]], ylab='diff log index 1')
+        for(i in 1:inp$nindex) plot.seasondiff(inp$timeI[[i]], inp$obsI[[i]], ylab='diff log index 1')
     }
     if(class(c) == 'list' & inp$nseasons == 1){
         #
