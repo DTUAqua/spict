@@ -1631,6 +1631,7 @@ plotspict.priors <- function(rep, do.plot=4){
 #' @name plotspict.data
 #' @title Plot input data
 #' @param inp An input list containing data.
+#' @param MSY Value of MSY.
 #' @return Nothing
 #' @export
 plotspict.data <- function(inpin, MSY=NULL){
@@ -1640,8 +1641,8 @@ plotspict.data <- function(inpin, MSY=NULL){
     } else {
         if(sum(par()$mfrow)==2) par(mfrow=c(2, 1))
     }
-    main <- ''
-    if(!is.null(MSY)) main <- paste('MSY guess:', round(MSY, 2))
+    main <- paste0('Nobs C: ', inp$nobsC)
+    #if(!is.null(MSY)) main <- paste('MSY guess:', round(MSY, 2))
     # Plot catch
     ylab <- 'Catch'
     if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
@@ -1653,7 +1654,8 @@ plotspict.data <- function(inpin, MSY=NULL){
     box(lwd=1.5)
     # Plot index
     i <- 1
-    plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time')
+    main <- paste0('Nobs I: ', inp$nobsI[i])
+    plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
     plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
     if(inp$nindex>1){
         for(i in 2:inp$nindex){
