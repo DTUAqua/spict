@@ -328,11 +328,11 @@ acf.signf <- function(resid, lag.max=4, return.p=FALSE){
     calc.pval <- function(corval, acf) 2-2*pnorm(abs(corval)*sqrt(acf$n.used))
     calc.limval <- function(p, acf) qnorm((2-p)/2)/sqrt(acf$n.used)
     inds <- which(is.na(resid))
-    if(length(inds)>0){
-        cat('Warning: ', length(inds), 'NAs in residuals!\n')
-        resid <- resid[-inds]
+    if(length(inds)>0) resid <- resid[-inds]
+    if(length(inds)>1){
+        cat('Warning: ', length(inds), 'NAs in residuals! this could create problems with the calculated ACF.\n')
     }
-    acfC <- acf(resid, plot=FALSE, lag.max=lag.max)
+    acfC <- acf(resid, plot=FALSE, lag.max=lag.max, na.action=na.pass)
     if(return.p){
         corvals <- acfC$acf[-1]
         #out <- paste(round(calc.pval(corvals, acfC), 3), collapse=', ')

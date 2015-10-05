@@ -53,6 +53,7 @@ calc.osa.resid <- function(rep, dbg=0){
         logCpshapiro <- shapiro.test(logCpres) # Test for normality of residuals
         logCpbias <- t.test(logCpres) # Test for bias of residuals
         if(!'stats' %in% names(rep)) rep$stats <- list()
+        rep$stats$acfC.p <- min(acf.signf(logCpres, lag.max=4, return.p=TRUE))
         #rep$stats$ljungboxC.p <- logCpboxtest$p.value
         #rep$stats$ljungboxCp5.p <- logCpp5boxtest$p.value
         #rep$stats$ljungboxCsq.p <- logCpsqboxtest$p.value
@@ -68,6 +69,8 @@ calc.osa.resid <- function(rep, dbg=0){
         for(i in 1:inp$nindex){
             logIpres[[i]] <- rep$osarI[[i]]$residual
             logIpres[[i]][1] <- NA # Always omit first residual because it can be difficult to calculate
+            nam <- paste0('acfI', i, '.p')
+            rep$stats[[nam]] <- min(acf.signf(logIpres[[i]], lag.max=4, return.p=TRUE))
             nna <- sum(is.na(logIpres[[i]]))
             if(nna > 5) cat('Warning:', nna, 'NAs found in index', i, 'residuals\n')
             #logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=lblag, type='Ljung-Box', fitdf=npar)

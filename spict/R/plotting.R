@@ -1635,7 +1635,11 @@ plotspict.priors <- function(rep, do.plot=4){
 #' @export
 plotspict.data <- function(inpin, MSY=NULL){
     inp <- check.inp(inpin)
-    if(dev.cur()==1) par(mfrow=c(2, 1))
+    if(dev.cur()==1){
+        par(mfrow=c(2, 1))
+    } else {
+        if(sum(par()$mfrow)==2) par(mfrow=c(2, 1))
+    }
     main <- ''
     if(!is.null(MSY)) main <- paste('MSY guess:', round(MSY, 2))
     # Plot catch
