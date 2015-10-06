@@ -67,7 +67,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     # Data plot
     figfile3 <- 'data.pdf'
     pdf(figfile3, width=9, height=10)
-    plotspict.ci(inp)
+    plotspict.ci(rep$inp)
     dev.off()
     latex.figure(figfile3, reportfile, caption='Data.')
 
@@ -85,8 +85,8 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     if(!keep.txtfiles) file.remove(summaryoutfile)
     if(!keep.figurefiles){
         file.remove(figfile1)
-        file.remove(figfile1b)
-        file.remove(figfile2)
+        if('retro' %in% names(rep)) file.remove(figfile1b)
+        if('osar' %in% names(rep)) file.remove(figfile2)
         file.remove(figfile3)
     }
 }
