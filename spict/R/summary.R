@@ -27,27 +27,41 @@ summary.spictcls <- function(object, numdigits=8){
     if('sderr' %in% names(rep)) cat('WARNING: Could not calculate standard deviations. The optimum found may be invalid. Proceed with caution.\n')
     cat(paste('Negative log likelihood: ', round(rep$opt$objective, numdigits), '\n', sep=''))
     cat(paste0('\nNobs C: ', rep$inp$nobsC, paste0(paste0(',  Nobs I', 1:rep$inp$nindex), ': ', rep$inp$nobsI, collapse=''), '\n'))
-    cat('Fit statistics\n')
-    statout <- unlist(rep$stats)
-    inds <- grep('.p', names(statout))
-    sig <- which(statout[inds]<0.05)
-    names(statout)[inds][sig] <- paste0('*', names(statout)[inds][sig])
-    cat('', paste(capture.output(statout),' \n'))
-    # Priors
-    inds <- which(rep$inp$priorsuseflag==1)
-    if(length(inds)>0){
-        usepriors <- names(rep$inp$priors)[inds]
-        if('logB' %in% usepriors){
-            inds <- which(usepriors == 'logB')
-            for(i in 1:length(inds)) usepriors[inds[i]] <- paste0(usepriors[inds[i]], rep$inp$priors[[i]][4])
-        }
-        cat(paste('\nPriors on:', paste(usepriors, collapse=', '), '\n'))
-    }
-    # Catch/biomass unit
+    # -- Catch/biomass unit --
     if(rep$inp$catchunit != ''){
         cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n'))
     }
-    # Model parameters
+    # -- Fit statistics --
+    statout <- unlist(rep$stats)[-(1:2)]
+    if(length(statout)>0){
+        cat('\nResidual diagnostics\n')
+        inds <- grep('.p', names(statout))
+        sig <- which(statout[inds]<0.05)
+        names(statout)[inds][sig] <- paste0('*', names(statout)[inds][sig])
+        cat('', paste(capture.output(statout),' \n'))
+    }
+    # -- Priors --
+    indso <- which(rep$inp$priorsuseflag==1)
+    if(length(indso)>0){
+        usepriors <- names(rep$inp$priors)[indso]
+        npriors <- length(usepriors)
+        logFB <- c('logB', 'logF')
+        if(any(logFB %in% usepriors)){
+            inds <- match(logFB, usepriors)
+            inds <- inds[!is.na(inds)]
+            for(i in 1:length(inds)) usepriors[inds[i]] <- paste0(usepriors[inds[i]], rep$inp$priors[[inds[i]]][4])
+        }
+        #cat(paste('\nPriors on:', paste(usepriors, collapse=', '), '\n'))
+        str <- character(npriors)
+        cat(paste('\nPriors\n'))
+        maxchar <- max(nchar(usepriors))
+        for(i in 1:npriors){
+            str[i] <- paste0('~  N[log(', round(exp(rep$inp$priors[[indso[i]]][1]), 3), '), ', round(rep$inp$priors[[indso[i]]][2], 3), '^2]')
+            usepriors[i] <- formatC(usepriors[i], width = maxchar, flag = 0)
+            cat(paste0(' ', usepriors[i], '  ', str[i], '\n'))
+        }
+    }
+    # -- Model parameters --
     cat('\nModel parameter estimates w 95% CI \n')
     sd <- sqrt(diag(rep$cov.fixed))
     nms <- names(rep$par.fixed)
