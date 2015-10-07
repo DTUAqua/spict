@@ -76,7 +76,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logphi);    // Season levels of F.
   PARAMETER(logitpp);          // 
   PARAMETER(logp1robfac);      // 
-  PARAMETER(logalpha);         // sdi = alpha*sdb
+  PARAMETER_VECTOR(logalpha);  // sdi = alpha*sdb
   PARAMETER(logbeta);          // sdc = beta*sdf
   PARAMETER_VECTOR(logm);      // m following the Fletcher formulation (see Prager 2002)
   PARAMETER(logK);             // Carrying capacity
@@ -139,9 +139,9 @@ Type objective_function<Type>::operator() ()
   int nsdu = sdu.size();
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
-  Type sdi = exp(logalpha)*sdb;
+  vector<Type> sdi = exp(logalpha)*sdb;
   Type sdc = exp(logbeta)*sdf;
-  Type logsdi = log(sdi);
+  vector<Type> logsdi = log(sdi);
   Type logsdc = log(sdc);
   int nobsCp = ic.size();
   int ns = logF.size();
@@ -488,9 +488,9 @@ Type objective_function<Type>::operator() ()
     inds = CppAD::Integer(isi(i)-1);
     logIpred(i) = logq(indq) + log(B(ind));
     if(robflagi==1.0){
-      likval = log(pp*dnorm(logobsI(i), logIpred(i), sdi, 0) + (1.0-pp)*dnorm(logobsI(i), logIpred(i), robfac*sdi, 0));
+      likval = log(pp*dnorm(logobsI(i), logIpred(i), sdi(indq), 0) + (1.0-pp)*dnorm(logobsI(i), logIpred(i), robfac*sdi(indq), 0));
     } else {
-      likval = dnorm(logobsI(i), logIpred(i), sdi, 1);
+      likval = dnorm(logobsI(i), logIpred(i), sdi(indq), 1);
     }
     ans-= keep(inds) * likval;
     // DEBUGGING

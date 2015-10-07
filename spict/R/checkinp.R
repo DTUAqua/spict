@@ -554,6 +554,15 @@ check.inp <- function(inp){
     if(!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
     if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(15-1)
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
+    if('logalpha' %in% names(inp$ini)){
+        if(length(inp$ini$logalpha) != inp$nindex){
+            if(length(inp$ini$logalpha) == 1){
+                inp$ini$logalpha <- rep(inp$ini$logalpha, inp$nindex)
+            } else {
+                stop('The length of inp$ini$logalpha (', length(inp$ini$logalpha), ') does not fit with the number of index series (', inp$nindex, ')')
+            }
+        }
+    }
     if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
     if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
     #if(!"logp" %in% names(inp$ini)) inp$ini$logp <- log(1.0)
