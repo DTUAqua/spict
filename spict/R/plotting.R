@@ -118,7 +118,7 @@ plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TR
         if(typ=='p') points(x[inds], obs[inds], col=1, pch=20+pch, bg=cols[i])
         if(typ=='l') lines(x[inds], obs[inds], col=cols[i], lty=1)
     }
-    if(add.legend) add.col.legend(qs, cols, pch=1)
+    if(add.legend) add.col.legend(qs, cols, pch=pch)
     if(!add) box(lwd=1.5)
 }
 
@@ -135,10 +135,12 @@ add.col.legend <- function(qs, cols, pch=1){
     xx <- grconvertX(sp, 'nfc', 'user')
     spyy <- 1-2*sp
     dy <- 0.04
+    j <- 1
     for(i in qs){
-        yy <- grconvertY(spyy-(i-1)*dy, 'nfc', 'user')
+        yy <- grconvertY(spyy-(j-1)*dy, 'nfc', 'user')
         points(xx, yy, pch=20+pch, col=1, bg=cols[i])
         text(xx, yy, paste0('Q', i), pos=4)
+        j <- j+1
     }
     par(xpd=FALSE)
 }
@@ -200,7 +202,11 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         if(!'yearsepgrowth' %in% names(inp)) polygon(c(inp$time[BBfininds], rev(inp$time[BBfininds])), c(BB[BBfininds,1], rev(BB[BBfininds,3]))/scal*Bmsy[2], col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
         if(plot.obs){
-            for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], inp$obsI[[i]]/qest[i, 2], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=qlegend)
+            for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], inp$obsI[[i]]/qest[i, 2], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
+            if(qlegend){
+                subyears <- unique(unlist(inp$timeI)%%1)
+                plot.col(subyears, numeric(length(subyears)), typ='n', add=TRUE, add.legend=TRUE) # Only plot legend
+            }
             # Highlight influential index observations
             if('infl' %in% names(rep)){
                 infl <- rep$infl$infl
@@ -376,7 +382,7 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
         abline(h=0, lty=3)
         if(rep$inp$nindex>1){
             for(i in 2:rep$inp$nindex){
-                ylim <- range(rep$osar$logIpres[[i]])
+                ylim <- range(rep$osar$logIpres[[i]], na.rm=TRUE)
                 xlim <- range(unlist(rep$osar$timeI[[i]]))
                 if(!collapse.I){
                     pval <- round(rep$osar$logIpbias[[i]]$p.value, 4)
@@ -389,8 +395,6 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
                 }
             }
         }
-
-
     } else {
         stop('Could not find "osar" key in rep list! did you run calc.osa.resid?')
     }
@@ -411,7 +415,7 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
 plotspict.diagnostic <- function(rep, lag.max=10){
     repflag <- FALSE
     add.legend <- FALSE
-    if('obsC' %in% names(rep)){
+    if('obsC' %in% names(rep)){ # rep in an input list
         inp <- check.inp(rep)
         if(inp$nindex==1) mfrow <- c(2, 1)
         if(inp$nindex==2) mfrow <- c(3, 1)
@@ -419,7 +423,7 @@ plotspict.diagnostic <- function(rep, lag.max=10){
         if(inp$nindex %in% 4:5) mfrow <- c(3, 2)
         if(inp$nindex > 5) mfrow <- c(4, 4)
     }
-    if('inp' %in% names(rep)){
+    if('inp' %in% names(rep)){ # rep is a results list
         repflag <- TRUE
         inp <- rep$inp
         if(inp$nindex %in% 1:2) mfrow <- c(2, 2)
@@ -1636,10 +1640,15 @@ plotspict.priors <- function(rep, do.plot=4){
 #' @export
 plotspict.data <- function(inpin, MSY=NULL){
     inp <- check.inp(inpin)
+    nseries <- inp$nindex+1
+    if(nseries == 2) mfrow <- c(2, 1)
+    if(nseries %in% 3:4) mfrow <- c(2, 2)
+    if(nseries %in% 5:6) mfrow <- c(2, 3)
+    if(nseries %in% 7:9) mfrow <- c(3, 3)
     if(dev.cur()==1){
-        par(mfrow=c(2, 1))
+        par(mfrow=mfrow)
     } else {
-        if(sum(par()$mfrow)==2) par(mfrow=c(2, 1))
+        if(sum(par()$mfrow)==2) par(mfrow=mfrow)
     }
     main <- paste0('Nobs C: ', inp$nobsC)
     #if(!is.null(MSY)) main <- paste('MSY guess:', round(MSY, 2))
@@ -1656,11 +1665,12 @@ plotspict.data <- function(inpin, MSY=NULL){
     i <- 1
     main <- paste0('Nobs I: ', inp$nobsI[i])
     plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
-    plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
+    plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
     if(inp$nindex>1){
         for(i in 2:inp$nindex){
-            plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', col=i)
-            plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE)
+            main <- paste0('Nobs I: ', inp$nobsI[i])
+            plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
+            plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
         }
     }
     grid()
