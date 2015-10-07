@@ -91,7 +91,9 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logB);      // Biomass in log
 
   //std::cout << "expmosc: " << expmosc(lambda, omega, 0.1) << std::endl;
-  
+   if(dbg > 0){
+     std::cout << "==== DATA read, now calculating derived quantities ====" << std::endl;
+   }
 
   int ind;
   // Distribute sorted observations into obsC and I vectors
