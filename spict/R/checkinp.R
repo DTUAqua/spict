@@ -217,15 +217,16 @@ check.inp <- function(inp){
     }
     if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
     if(length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
-    if(!"dteuler" %in% names(inp)){
-        if(length(inp$dtc)>0){
-            inp$dteuler <- min(inp$dtc)
-        } else {
-            inp$dteuler <- diff(inp$timeI[[1]])
-        }
-    }
-    inp$ffaceuler <- inp$ffac^inp$dteuler
     timeobs <- c(inp$timeC, inp$timeC + inp$dtc, unlist(inp$timeI))
+    timesteps <- diff(sort(timeobs))
+    timesteps <- timesteps[timesteps > 0]
+    if("dteuler" %in% names(inp)) if(inp$dteuler > min(timesteps)){
+        cat('inp$dteuler is', inp$dteuler, 'while the minimum time step of observations is', min(timesteps), 'inp$dteuler will be changed!')
+        inp$dteuler <- NULL
+    }
+    if(!"dteuler" %in% names(inp)) inp$dteuler <- min(timesteps) * 0.5 # half because often a time step finer than obs is required
+    inp$ffaceuler <- inp$ffac^inp$dteuler
+
     if(!"dtpredc" %in% names(inp)){
         if(length(inp$dtc)>0){
             inp$dtpredc <- max(inp$dtc)
@@ -272,7 +273,13 @@ check.inp <- function(inp){
     inp$indpred <- which(inp$time >= inp$timerange[2])
     # Seasons
     if(!"nseasons" %in% names(inp)){
-        inp$nseasons <- length(unique(timeobs %% 1))
+        expnseasons <- 1/min(inp$dtc)
+        if(expnseasons >= 4){
+            inp$nseasons <- 4
+        } else {
+            inp$nseasons <- 1
+        }
+        #inp$nseasons <- length(unique(timeobs %% 1))
         #if(inp$seasons>4) inp$seasons <- 4
     }
     if("nseasons" %in% names(inp)){
