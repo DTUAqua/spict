@@ -139,7 +139,12 @@ Type objective_function<Type>::operator() ()
   int nsdu = sdu.size();
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
-  vector<Type> sdi = exp(logalpha)*sdb;
+  vector<Type> sdi(nq);
+  if(logalpha.size()==1){
+    for(int i=0; i<nq; i++){ sdi(i) = exp(logalpha(0))*sdb; } // Same alpha for all indices
+  } else {
+    sdi = exp(logalpha)*sdb;
+  }
   Type sdc = exp(logbeta)*sdf;
   vector<Type> logsdi = log(sdi);
   Type logsdc = log(sdc);

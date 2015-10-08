@@ -141,6 +141,9 @@ check.inp <- function(inp){
         if(length(inp$obsI[[i]])>0) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
     }
     # -- MODEL OPTIONS --
+    if(!"onealpha" %in% names(inp)){
+        inp$onealpha <- TRUE
+    }
     if(!"catchunit" %in% names(inp)){
         inp$catchunit <- ''
     }
@@ -553,13 +556,19 @@ check.inp <- function(inp){
     if(!"logphi" %in% names(inp$ini)) inp$ini$logphi <- rep(0, inp$nseasons-1)
     if(!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
     if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(15-1)
-    if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
+    if(!"logalpha" %in% names(inp$ini)){
+        inp$ini$logalpha <- log(1)
+    }
     if('logalpha' %in% names(inp$ini)){
-        if(length(inp$ini$logalpha) != inp$nindex){
-            if(length(inp$ini$logalpha) == 1){
-                inp$ini$logalpha <- rep(inp$ini$logalpha, inp$nindex)
-            } else {
-                stop('The length of inp$ini$logalpha (', length(inp$ini$logalpha), ') does not fit with the number of index series (', inp$nindex, ')')
+        if(inp$onealpha){
+               if(length(inp$ini$logalpha) != 1) inp$ini$logalpha <- log(1)
+        } else {
+            if(length(inp$ini$logalpha) != inp$nindex){
+                if(length(inp$ini$logalpha) == 1){
+                    inp$ini$logalpha <- rep(inp$ini$logalpha, inp$nindex)
+                } else {
+                    stop('The length of inp$ini$logalpha (', length(inp$ini$logalpha), ') does not fit with the number of index series (', inp$nindex, ')')
+                }
             }
         }
     }

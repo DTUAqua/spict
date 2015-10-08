@@ -302,7 +302,11 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3])), col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
         if(plot.obs){
-            for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=qlegend)
+            for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
+            if(qlegend){
+                subyears <- unique(unlist(inp$timeI)%%1)
+                plot.col(subyears, numeric(length(subyears)), typ='n', add=TRUE, add.legend=TRUE) # Only plot legend
+            }
             # Highlight influential index observations
             if('infl' %in% names(rep)){
                 infl <- rep$infl$infl
@@ -412,7 +416,7 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
 #' rep <- calc.osa.resid(rep)
 #' plotspict.diagnostic(rep)
 #' @export
-plotspict.diagnostic <- function(rep, lag.max=10){
+plotspict.diagnostic <- function(rep, lag.max=4){
     repflag <- FALSE
     add.legend <- FALSE
     if('obsC' %in% names(rep)){ # rep in an input list
@@ -446,7 +450,6 @@ plotspict.diagnostic <- function(rep, lag.max=10){
     if('osar' %in% names(rep)){
         plotspict.osar(rep, collapse.I=FALSE)
         resC <- rep$osar$logCpres[!is.na(rep$osar$logCpres)]
-        
         inds <- which(acf.signf(resC, lag.max=lag.max))
         main <- 'Catch'
         if(length(inds)>0) main <- paste0(main, ', lag.signf: ', paste0(inds, collapse=','))
