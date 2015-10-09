@@ -30,3 +30,6 @@ pdf:
 check:
 	R CMD check $(PACKAGE)
 
+test:
+	echo 'source("../work/production_model/spict/testing/src/maketest.R")' | R --vanilla
+
