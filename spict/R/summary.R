@@ -31,7 +31,7 @@ summary.spictcls <- function(object, numdigits=8){
     if(rep$inp$catchunit != ''){
         cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n'))
     }
-    # -- Fit statistics --
+    # -- Residual diagnostics --
     statout <- unlist(rep$stats)[-(1:2)]
     if(length(statout)>0){
         cat('\nResidual diagnostics\n')
