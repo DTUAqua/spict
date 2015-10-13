@@ -319,6 +319,10 @@ sim.spict <- function(input, nobs=100){
 #' @export
 validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, backup=NULL, df.out=FALSE){
     nnobsvec <- length(nobsvec)
+    inp$timeC <- NULL
+    inp$timeI <- NULL
+    inp$obsC <- NULL
+    inp$obsI <- NULL
     if('logF' %in% names(inp$ini)) inp$ini$logF <- NULL
     if('logB' %in% names(inp$ini)) inp$ini$logB <- NULL
     ss <- list()
@@ -422,12 +426,12 @@ extract.simstats <- function(rep, inp){
 
 
 
-#' @name validation.data.frame
-#' @title Collect results from the output of running validate.spict.
+#' @name validation.data.frame.old
+#' @title Collect results from the output of running validate.spict (this function is outdated).
 #' @param ss Output from validation.spict.
 #' @return A data frame containing the formatted validation results.
 #' @export
-validation.data.frame <- function(ss){
+validation.data.frame.old <- function(ss){
     nna <- length(ss)
     nsima <- length(ss[[1]])
     i <- 0
@@ -461,4 +465,42 @@ validation.data.frame <- function(ss){
     }
     v[['convall']][is.na(v[['convall']])] <- 1
     return(data.frame(v))
+}
+
+
+
+#' @name validation.data.frame
+#' @title Collect results from the output of running validate.spict.
+#' @param ss Output from validation.spict.
+#' @return A data frame containing the formatted validation results.
+#' @export
+validation.data.frame <- function(ss){
+    uss <- unlist(ss)
+    allnms <- names(uss)
+    nms <- unique(allnms)
+    inds <- -which(nms=='')
+    if(length(inds)>0) nms <- nms[-inds]
+    nnms <- length(nms)
+    nna <- length(ss)
+    nobsvec <- numeric(nna)
+    df <- data.frame(matrix(0, 1, nnms+1))
+    colnames(df) <- c(nms, 'nobs')
+    for(i in 1:nna){ # nna is length of nobsvec
+        nsim <- length(ss[[i]])
+        nobsvec[i] <- ss[[i]][[1]]$nobs[1]
+        nobs <- rep(nobsvec[i], nsim)
+        mat <- cbind(matrix(NA, nsim, nnms), nobs)
+        colnames(mat) <- c(nms, 'nobs')
+        for(j in 1:nsim){ # nsim is number of simulations for each nobs
+            vals <- unlist(ss[[i]][[j]])
+            namvals <- names(vals)
+            for(k in 1:nnms){ # nnms is number of names
+                ind <- which(namvals==nms[k])
+                if(length(ind)==1) mat[j, k] <- vals[ind]
+            }
+        }
+        df <- rbind(df, mat)
+    }
+    df <- df[-1, ] # Remove dummy first line
+    return(df)
 }
