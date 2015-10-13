@@ -700,10 +700,10 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         flag <- length(cu)==0 | all(!is.finite(cu))
         if(flag){
             fininds <- which(is.finite(Ff))
-            if(length(ylim)!=2) ylim <- range(c(Ff[fininds], 0.95*Fmsy[1]/Fmsy[2], 1.05*Fmsy[3]/Fmsy[2]), na.rm=TRUE)
+            if(length(ylim)!=2) ylim <- range(c(Ff[fininds]), na.rm=TRUE)
         } else {
             fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
-            if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds], 0.95*Fmsy[1]/Fmsy[2], 1.05*Fmsy[3]/Fmsy[2]), na.rm=TRUE)
+            if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds]), na.rm=TRUE)
         }
         ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         ylim <- c(min(ylim[1], 1), max(ylim[2], 1)) # Ensure that 1 is included in ylim
@@ -882,9 +882,10 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.catch(rep)
 #' @export
-plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL, qlegend=TRUE){
+plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL, qlegend=TRUE, lcol='blue'){
     if(!'sderr' %in% names(rep)){
         inp <- rep$inp
+        ylimflag <- !is.null(ylim)
         Cscal <- 1
         cicol <- 'lightgray'
         MSY <- get.par('logMSY', rep, exp=TRUE)
@@ -960,11 +961,13 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL, qlegend=T
             cuf <- Cpredest[, 3]
         }
         fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
-        if(length(ylim)!=2){
-            ylim <- range(c(cl, cu, 0.9*MSY[1], 1.07*MSY[3]), na.rm=TRUE)/Cscal
-            if(inp$dtpredc > 0) ylim <- range(ylim, clf[fininds], cuf[fininds])
+        if(!ylimflag){
+            if(length(ylim)!=2){
+                ylim <- range(c(cl, cu, 0.9*MSY[1], 1.07*MSY[3]), na.rm=TRUE)/Cscal
+                if(inp$dtpredc > 0) ylim <- range(ylim, clf[fininds], cuf[fininds])
+            }
+            ylim[2] <- min(c(ylim[2], 3*max(cf[fininds]))) # Limit upper limit
         }
-        ylim[2] <- min(c(ylim[2], 3*max(cf[fininds]))) # Limit upper limit
         if(main==-1) main <- 'Catch'
         ylab <- 'Catch'
         if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
@@ -975,8 +978,8 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL, qlegend=T
         #polygon(c(timef, rev(timef)), c(clf, rev(cuf)), col=cicol2, border=cicol2)
         #lines(timef, clf, col=rgb(0, 0, 1, 0.2))
         #lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
-        lines(time, cl, col=4, lwd=1.5, lty=2)
-        lines(time, cu, col=4, lwd=1.5, lty=2)
+        lines(time, cl, col=lcol, lwd=1.5, lty=2)
+        lines(time, cu, col=lcol, lwd=1.5, lty=2)
         abline(v=tail(inp$timeC,1), col='gray')
         #points(timeo, obs/Cscal, cex=0.7)
         plot.col(timeo, obs/Cscal, cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
@@ -992,11 +995,11 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL, qlegend=T
         if('true' %in% names(inp)) abline(h=inp$true$MSY, col=true.col(), lty=2)
         #abline(h=MSY[2]/Cscal)
         lines(inp$time, MSYvec$msy)
-        lines(time, c, col=4, lwd=1.5)
+        lines(time, c, col=lcol, lwd=1.5)
         if(inp$dtpredc > 0){
-            lines(timep, cp, col=4, lty=3)
-            lines(timep, clp, col=4, lwd=1, lty=2)
-            lines(timep, cup, col=4, lwd=1, lty=2)
+            lines(timep, cp, col=lcol, lty=3)
+            lines(timep, clp, col=lcol, lwd=1, lty=2)
+            lines(timep, cup, col=lcol, lwd=1, lty=2)
             #points(inp$timepredc, Crc[2], pch=21, bg='yellow')
         }
         #if(min(inp$dtc) == 1 & plot.legend) legend('topleft',c(paste(tail(inp$timeCpred,1),'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
