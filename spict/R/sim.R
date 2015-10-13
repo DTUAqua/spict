@@ -416,7 +416,7 @@ extract.simstats <- function(rep, inp){
             return(list(ci=ci, ciw=ciw, cv=cv))
         }
         # sdu estimate
-        if('logsdu' %in% names(inp$ini)) ss$sdu <- calc.simstats('logsdu', rep, exp=FALSE, rep$inp$true$logsdu)
+        if('logsdu' %in% names(inp$ini) & rep$inp$phases$logsdu > 0) ss$sdu <- calc.simstats('logsdu', rep, exp=FALSE, rep$inp$true$logsdu)
         # Fmsy estimate
         ss$Fmsy <- calc.simstats('logFmsy', rep, exp=TRUE, rep$inp$true$Fmsy)
         # Bmsy estimate
@@ -495,7 +495,7 @@ validation.data.frame <- function(ss){
     uss <- unlist(ss)
     allnms <- names(uss)
     nms <- unique(allnms)
-    inds <- -which(nms=='')
+    inds <- which(nms=='')
     if(length(inds)>0) nms <- nms[-inds]
     nnms <- length(nms)
     nna <- length(ss)
