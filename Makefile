@@ -1,5 +1,5 @@
 PACKAGE=spict
-VERSION=0.1
+VERSION=0.2
 TARBALL=${PACKAGE}_${VERSION}.tar.gz
 ZIPFILE=${PACKAGE}_${VERSION}.zip
 
@@ -29,4 +29,7 @@ pdf:
 
 check:
 	R CMD check $(PACKAGE)
+
+test:
+	echo 'source("../work/production_model/spict/testing/src/maketest.R")' | R --vanilla
 

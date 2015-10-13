@@ -1,3 +1,20 @@
+# Stochastic surplus Production model in Continuous-Time (SPiCT)
+#    Copyright (C) 2015  Martin Waever Pedersen, mawp@dtu.dk or wpsgodd@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
 #' @name summary.spictcls
 #' @title Output a summary of a fit.spict() run.
 #' @details The output includes, the convergence message from the optimiser, the likelihood value of the parameters, the parameter estimates with 95% confidence intervals, estimates of derived parameters (BMsy, Fmsy, MSY) with 95% confidence intervals, and predictions of biomass, fishing mortality, and catch for the value of inp$dtpred.
@@ -31,7 +48,7 @@ summary.spictcls <- function(object, numdigits=8){
     if(rep$inp$catchunit != ''){
         cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n'))
     }
-    # -- Fit statistics --
+    # -- Residual diagnostics --
     statout <- unlist(rep$stats)[-(1:2)]
     if(length(statout)>0){
         cat('\nResidual diagnostics\n')

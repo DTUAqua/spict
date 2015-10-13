@@ -1,3 +1,19 @@
+# Stochastic surplus Production model in Continuous-Time (SPiCT)
+#    Copyright (C) 2015  Martin Waever Pedersen, mawp@dtu.dk or wpsgodd@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 
 #' @name arrow.line
 #' @title Draw a line with arrow heads.
@@ -302,7 +318,11 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3])), col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
         if(plot.obs){
-            for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=qlegend)
+            for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
+            if(qlegend){
+                subyears <- unique(unlist(inp$timeI)%%1)
+                plot.col(subyears, numeric(length(subyears)), typ='n', add=TRUE, add.legend=TRUE) # Only plot legend
+            }
             # Highlight influential index observations
             if('infl' %in% names(rep)){
                 infl <- rep$infl$infl
@@ -412,7 +432,7 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
 #' rep <- calc.osa.resid(rep)
 #' plotspict.diagnostic(rep)
 #' @export
-plotspict.diagnostic <- function(rep, lag.max=10){
+plotspict.diagnostic <- function(rep, lag.max=4){
     repflag <- FALSE
     add.legend <- FALSE
     if('obsC' %in% names(rep)){ # rep in an input list
@@ -446,7 +466,6 @@ plotspict.diagnostic <- function(rep, lag.max=10){
     if('osar' %in% names(rep)){
         plotspict.osar(rep, collapse.I=FALSE)
         resC <- rep$osar$logCpres[!is.na(rep$osar$logCpres)]
-        
         inds <- which(acf.signf(resC, lag.max=lag.max))
         main <- 'Catch'
         if(length(inds)>0) main <- paste0(main, ', lag.signf: ', paste0(inds, collapse=','))
@@ -1656,15 +1675,16 @@ plotspict.data <- function(inpin, MSY=NULL){
     ylab <- 'Catch'
     if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
     plot(inp$timeC, inp$obsC, typ='l', ylab=ylab, xlab='Time', main=main)
+    grid()
     add.legend <- inp$nseasons > 1
     plot.col(inp$timeC, inp$obsC, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
     if(!is.null(MSY)) abline(h=MSY, lty=2)
-    grid()
     box(lwd=1.5)
     # Plot index
     i <- 1
     main <- paste0('Nobs I: ', inp$nobsI[i])
     plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
+    grid()
     plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
     if(inp$nindex>1){
         for(i in 2:inp$nindex){
@@ -1673,7 +1693,6 @@ plotspict.data <- function(inpin, MSY=NULL){
             plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
         }
     }
-    grid()
     box(lwd=1.5)
 }
 
