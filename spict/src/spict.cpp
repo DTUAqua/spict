@@ -69,8 +69,6 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(seasonindex);    // A vector of length ns giving the number stepped within the current year
   DATA_MATRIX(splinemat);      // Design matrix for the seasonal spline
   DATA_MATRIX(splinematfine);  // Design matrix for the seasonal spline on a fine time scale to get spline uncertainty
-  //DATA_MATRIX(A);              // Matrix coupling u, the seasonal component of F (size: 2x2)
-  //DATA_SCALAR(lambda);         // Damping variable when using seasonal SDEs
   DATA_SCALAR(omega);          // Period time of seasonal SDEs (2*pi = 1 year period)
   DATA_SCALAR(seasontype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
   DATA_SCALAR(ffac);           // Management factor each year multiply the predicted F with ffac
@@ -113,7 +111,7 @@ Type objective_function<Type>::operator() ()
    }
 
   int ind;
-  // Distribute sorted observations into obsC and I vectors
+  // Distribute sorted observations into logobsC and logobsI vectors
   int nobsC = isc.size();
   vector<Type> logobsC(nobsC);
   for(int i=0; i<nobsC; i++){ 
@@ -176,7 +174,6 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<ns; i++){ ffacvec(i) = 1.0; }
   vector<Type> Cpred(nobsCp);
   for(int i=0; i<nobsCp; i++){ Cpred(i) = 0.0; }
-
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
 
@@ -285,7 +282,6 @@ Type objective_function<Type>::operator() ()
     ans-= dnorm(logF(ind), priorF(0), priorF(1), 1); // Prior for logF
   }
 
-
   Type likval;
 
   if(dbg > 0){
@@ -392,7 +388,6 @@ Type objective_function<Type>::operator() ()
 	  sublogum(0) = sublogumF(2*j);
 	  sublogum(1) = sublogumF(2*j+1);
 	  if(dbg>0){ std::cout << "-- sublogumF: " << sublogumF << "-- sublogum: " << sublogum << std::endl; }
-	  //vector<Type> logupred = expmAt * logu.col(i-1);
 	  vector<Type> logupred = expmAt * sublogum;
 	  if(dbg>0){ std::cout << "-- logupred: " << logupred << std::endl; }
 	  likval = 0.0;
@@ -424,12 +419,10 @@ Type objective_function<Type>::operator() ()
     if(simple==0){
       logBpred(i+1) = predictlogB(B(i), F(i), gamma, mvec(i), K, dt(i), n, sdb2);
     } else {
-      //logBpred(i+1) = log(exp(predictlogB(B(i), 0.0, gamma, mvec(i), K, dt(i), n, sdb2)) - exp(logobsC(i)));
       Type Ftmp = 0.0;
       Type Bpredtmp = exp(predictlogB(B(i), Ftmp, gamma, mvec(i), K, dt(i), n, sdb2)) - exp(logobsC(i));
       if(Bpredtmp < 0) Bpredtmp = 1e-8; // Ugly ugly ugly hack to avoid taking log of negative
       logBpred(i+1) = log(Bpredtmp);
-      //logBpred(i+1) = log(exp(logBpred(i+1)) - exp(logobsC(i)));
       logFs(i) = logobsC(i) - logB(i); // Calculate fishing mortality
     }
     likval = dnorm(logBpred(i+1), logB(i+1), sqrt(dt(i))*sdb, 1);
