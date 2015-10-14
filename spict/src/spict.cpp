@@ -344,12 +344,12 @@ Type objective_function<Type>::operator() ()
     }
     // Diffusion component of F
     for(int i=1; i<ns; i++){
-      Type logFpred = log(ffacvec(i)) + logF(i-1);
+      Type logFpred = log( ffacvec(i) * exp(logF(i-1)) + fconvec(i) );
       likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf, 1);
       ans-=likval;
       // DEBUGGING
       if(dbg>1){
-	std::cout << "-- i: " << i << " -   logF(i-1): " << logF(i-1) << "  logF(i): " << logF(i) << "  ffacvec(i): " << ffacvec(i) << "  sdf: " << sdf << "  likval: " << likval << "  ans:" << ans << std::endl;
+	std::cout << "-- i: " << i << " -   logF(i-1): " << logF(i-1) << "  logF(i): " << logF(i) << "  ffacvec(i): " << ffacvec(i) << "  fconvec(i): " << fconvec(i) << "  sdf: " << sdf << "  likval: " << likval << "  ans:" << ans << std::endl;
       }
     }
 
