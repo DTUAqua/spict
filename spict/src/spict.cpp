@@ -60,6 +60,8 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR_INDICATOR(keep, obssrt);
   DATA_VECTOR(isc);            // 
   DATA_VECTOR(isi);            // 
+  DATA_INTEGER(nobsC);
+  DATA_INTEGER(nobsI);
   DATA_VECTOR(ic);             // Vector such that B(ic(i)) is the state at the start of obsC(i)
   DATA_VECTOR(nc);             // nc(i) gives the number of time intervals obsC(i) spans
   DATA_VECTOR(ii);             // A vector such that B(ii(i)) is the state corresponding to I(i)
@@ -71,7 +73,8 @@ Type objective_function<Type>::operator() ()
   DATA_MATRIX(splinematfine);  // Design matrix for the seasonal spline on a fine time scale to get spline uncertainty
   DATA_SCALAR(omega);          // Period time of seasonal SDEs (2*pi = 1 year period)
   DATA_SCALAR(seasontype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
-  DATA_SCALAR(ffac);           // Management factor each year multiply the predicted F with ffac
+  DATA_VECTOR(ffacvec);        // Management factor each year multiply the predicted F with ffac
+  DATA_VECTOR(fconvec);        // Management factor each year add this constant to the predicted F
   DATA_VECTOR(indpred);        // A vector indicating when the management factor should be applied
   DATA_SCALAR(robflagc);       // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
   DATA_SCALAR(robflagi);       // Index Degrees of freedom of t-distribution (only used if tdf < 25)
@@ -112,13 +115,13 @@ Type objective_function<Type>::operator() ()
 
   int ind;
   // Distribute sorted observations into logobsC and logobsI vectors
-  int nobsC = isc.size();
+  //int nobsC = isc.size();
   vector<Type> logobsC(nobsC);
   for(int i=0; i<nobsC; i++){ 
     ind = CppAD::Integer(isc(i)-1);
     logobsC(i) = obssrt(ind); 
   }
-  int nobsI = isi.size();
+  //int nobsI = isi.size();
   vector<Type> logobsI(nobsI);
   for(int i=0; i<nobsI; i++){ 
     ind = CppAD::Integer(isi(i)-1);
@@ -170,8 +173,8 @@ Type objective_function<Type>::operator() ()
   vector<Type> mvec(ns);
   vector<Type> logBmsyvec(ns);
   vector<Type> logFmsyvec(ns);
-  vector<Type> ffacvec(ns);
-  for(int i=0; i<ns; i++){ ffacvec(i) = 1.0; }
+  //vector<Type> ffacvec(ns);
+  //for(int i=0; i<ns; i++){ ffacvec(i) = 1.0; }
   vector<Type> Cpred(nobsCp);
   for(int i=0; i<nobsCp; i++){ Cpred(i) = 0.0; }
   vector<Type> logIpred(nobsI);
@@ -297,25 +300,25 @@ Type objective_function<Type>::operator() ()
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
     std::cout << "INPUT: lambda: " << lambda << std::endl;
     std::cout << "INPUT: omega: " << omega << std::endl;
-    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
+    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  ir.size(): " << ir.size() << "  logFmsy.size(): " << logFmsy.size() << "  logFmsyvec.size(): " << logFmsyvec.size() << "  logBmsy.size(): " << logBmsy.size() << "  logBmsyvec.size(): " << logBmsyvec.size() << "  m.size(): " << m.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
   }
   // Calculate mvec if multiple rs are used (rarely the case).
   for(int i=0; i<ns; i++){
     ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
+    if(dbg>1){
+      std::cout << "-- i: " << i << " -- ind: " << ind << " -   mvec(i): " << mvec(i) << std::endl;
+    }
     mvec(i) = m(ind);
     logFmsyvec(i) = logFmsy(ind);
     logBmsyvec(i) = logBmsy(ind);
-    if(dbg>1){
-      std::cout << "-- i: " << i << "-- ind: " << ind << " -   mvec(i): " << mvec(i) << std::endl;
-    }
   }
-  for(int i=1; i<indpred.size(); i++){ // don't use i=0 because this is only for plotting
-    ind = CppAD::Integer(indpred(i)-1); // minus 1 because R starts at 1 and c++ at 0
-    ffacvec(ind) = ffac;
-    if(dbg>1){
-      std::cout << "-- i: " << i << "-- ind: " << ind << " -   ffacvec(i): " << ffacvec(i) << std::endl;
-    }
-  }
+  //for(int i=1; i<indpred.size(); i++){ // don't use i=0 because this is only for plotting
+  //  ind = CppAD::Integer(indpred(i)-1); // minus 1 because R starts at 1 and c++ at 0
+  //  if(dbg>1){
+  //    std::cout << "-- i: " << i << " -- ind: " << ind << " -   ffacvec(i): " << ffacvec(i) << std::endl;
+  //  }
+  //  ffacvec(ind) = ffac;
+  //}
 
   /*
   dt[i] is the length of the time interval between t_i and t_i+1
