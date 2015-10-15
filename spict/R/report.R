@@ -43,6 +43,11 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     latexend <- '\\end{document}\n'
     cat(reporttitle, file=summaryoutfile)
     summaryout <- capture.output(summary(rep), file=summaryoutfile, append=TRUE)
+    if('man' %in% names(rep)){
+        mansummaryoutfile <- 'mansummaryout.txt'
+        cat('Management results\n\n', file=mansummaryoutfile)
+        mansummaryout <- capture.output(mansummary(rep), file=mansummaryoutfile, append=TRUE)
+    }
 
     # -- Write tex file -- #
     cat(latexstart, file=reportfile)
@@ -57,10 +62,10 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     # Summary
     cat('\\scriptsize\n', file=reportfile, append=TRUE)
     cat(paste0('\\verbatiminput{', summaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
-    #cat('\\begin{verbatim}\n', file=reportfile, append=TRUE)
-    #cat(reporttitle, file=reportfile, append=TRUE)
-    #cat(summaryout, sep='\n', file=reportfile, append=TRUE)
-    #cat('\\end{verbatim}\n', file=reportfile, append=TRUE)
+
+    # Management summary
+    cat('\\scriptsize\n', file=reportfile, append=TRUE)
+    cat(paste0('\\verbatiminput{', mansummaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
 
     # Retrospective analysis plot
     if('retro' %in% names(rep)){
@@ -98,7 +103,10 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     #file.remove(paste0('../res/', substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.log'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
-    if(!keep.txtfiles) file.remove(summaryoutfile)
+    if(!keep.txtfiles){
+        file.remove(summaryoutfile)
+        if('man' %in% names(rep)) file.remove(mansummaryoutfile)
+    }
     if(!keep.figurefiles){
         file.remove(figfile1)
         if('retro' %in% names(rep)) file.remove(figfile1b)
