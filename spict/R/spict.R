@@ -189,7 +189,6 @@ make.datin <- function(inp, dbg=0){
                   splinematfine=inp$splinematfine,
                   omega=inp$omega,
                   seasontype=inp$seasontype,
-                  #ffac=inp$ffaceuler,
                   ffacvec=inp$ffacvec,
                   fconvec=inp$fconvec,
                   indpred=inp$indpred,
