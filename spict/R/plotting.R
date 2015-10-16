@@ -304,7 +304,12 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         #inds <- which(is.na(Binf) | Binf<0)
         cicol <- 'lightgray'
         obsI <- list()
-        for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]/Bmsy[1,2]
+        if(plot.obs) {
+            for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]/Bmsy[1,2]
+        } else {
+            # Since obs are not plottet set a value that doesn't affect ylim
+            obsI <- mean(BB[, 2]) 
+        }
         #par(mar=c(5,4,4,4))
         fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
         #if(length(ylim)!=2) ylim <- range(c(BB[fininds, 1:3], unlist(obsI), 0.95*Bmsy[1]/Bmsy[2], 1.05*Bmsy[3]/Bmsy[2]), na.rm=TRUE)
@@ -750,7 +755,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.fb(rep)
 #' @export
-plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE, xlim=NULL, ylim=NULL){
+plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE, xlim=NULL, ylim=NULL, labpos=c(4, 4)){
     if(!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'xy', '')
         inp <- rep$inp
@@ -863,10 +868,10 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             }
             #if(plot.legend) legend('topright', c('Estimated MSY'), pch=3, col=c('black'), bg='white')
         }
-        points(Bl, Fl, pch=22, bg='magenta')
-        text(Bl, Fl, tail(fbtime, 1), pos=4, cex=0.65, offset=0.25)
         points(bbb[1], fff[1], pch=21, bg='white')
-        text(bbb[1], fff[1], fbtime[1], pos=4, cex=0.65, offset=0.25)
+        text(bbb[1], fff[1], fbtime[1], pos=labpos[1], cex=0.65, offset=0.25)
+        points(Bl, Fl, pch=22, bg='magenta')
+        text(Bl, Fl, tail(fbtime, 1), pos=labpos[2], cex=0.65, offset=0.25)
         box(lwd=1.5)
     }
 }
