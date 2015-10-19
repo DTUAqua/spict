@@ -125,7 +125,6 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                 if('phases' %in% names(rep$inp)){
                     if(parname %in% names(rep$inp$phases)){
                         if(rep$inp$phases[[parname]] == -1){
-                            #cat(paste('WARNING: did not estimate', parname, 'extracting fixed initial value.\n'))
                             est <- rep$inp$parlist[[parname]]
                             ll <- est
                             ul <- est
@@ -138,13 +137,8 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                             nc <- rep$inp$nc
                             B0 <- B[ic, 2]
                             B1 <- B[ic+nc, 2]
-                            est <- (B1 - B0 + C[, 2]) / (rep$inp$dteuler*rep$inp$nc) # Get annual average
-                            #if(rep$inp$dtpredc <= 0) C <- C[-dim(C)[1], ]
-                            #nn <- 1/rep$inp$dteuler
-                            #mm <- dim(C)[1]
-                            #inds <- 1:(nn*mm+1)
-                            #Bs <- apply(matrix(diff(B[inds, 2]), nn, mm), 2, sum)
-                            #est <- Bs + C[, 2]
+                            # Get annual average
+                            est <- (B1 - B0 + C[, 2]) / (rep$inp$dteuler*rep$inp$nc) 
                         }
                     }
                 } else {
@@ -158,10 +152,12 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
             cv <- sd/est
         }
         if(exp){
-            return(cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd, cv))
+            out <- cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd, cv)
         } else {
-            return(cbind(ll, est, ul, sd, cv))
+            out <- cbind(ll, est, ul, sd, cv)
         }
+        if(parname %in% c('logB', 'logF', 'logBBmsy', 'logFFmsy')) rownames(out) <- rep$inp$time
+        return(out)
     }
 }
 
