@@ -42,12 +42,6 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     latexstart <- '\\documentclass[12pt]{article}\n\\usepackage{graphicx}\n\\usepackage{verbatim}\n\\begin{document}\n'
     latexend <- '\\end{document}\n'
     cat(reporttitle, file=summaryoutfile)
-    summaryout <- capture.output(summary(rep), file=summaryoutfile, append=TRUE)
-    if('man' %in% names(rep)){
-        mansummaryoutfile <- 'mansummaryout.txt'
-        cat('Management results\n\n', file=mansummaryoutfile)
-        mansummaryout <- capture.output(mansummary(rep), file=mansummaryoutfile, append=TRUE)
-    }
 
     # -- Write tex file -- #
     cat(latexstart, file=reportfile)
@@ -60,13 +54,19 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     latex.figure(figfile1, reportfile, caption='Results.')
 
     # Summary
+    summaryout <- capture.output(summary(rep), file=summaryoutfile, append=TRUE)
     cat('\\scriptsize\n', file=reportfile, append=TRUE)
     cat(paste0('\\verbatiminput{', summaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
 
     # Management summary
-    cat('\\scriptsize\n', file=reportfile, append=TRUE)
-    cat(paste0('\\verbatiminput{', mansummaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
-
+    if('man' %in% names(rep)){
+        mansummaryoutfile <- 'mansummaryout.txt'
+        cat('Management results\n\n', file=mansummaryoutfile)
+        mansummaryout <- capture.output(mansummary(rep), file=mansummaryoutfile, append=TRUE)
+        cat('\\scriptsize\n', file=reportfile, append=TRUE)
+        cat(paste0('\\verbatiminput{', mansummaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
+    }
+    
     # Retrospective analysis plot
     if('retro' %in% names(rep)){
         figfile1b <- 'retro.pdf'
