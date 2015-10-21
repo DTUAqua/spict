@@ -327,7 +327,7 @@ check.inp <- function(inp){
     if("nseasons" %in% names(inp)){
        if(!inp$nseasons %in% c(1, 2, 4)) stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
     }
-    if(inp$nseasons == 1) inp$seasontype <- 0 # seasontype = 0 means seasons are disables.
+    if(inp$nseasons == 1) inp$seasontype <- 0 # seasontype = 0 means seasons are disabled.
     # Calculate seasonal spline
     if("splineorder" %in% names(inp)){
         if(inp$nseasons<4 & inp$splineorder>2) inp$splineorder <- 2

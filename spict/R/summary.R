@@ -213,22 +213,26 @@ summary.spictcls <- function(object, numdigits=8){
         rownames(stateout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'))
         cat('', paste(capture.output(stateout),' \n'))
         # Predictions
-        cat(paste0('\nPredictions w 95% CI (inp$msytype: ', rep$inp$msytype, ')\n'))
-        EBinf <- get.EBinf(rep)
-        predout <- rbind(
-            get.par(parname='logBp', rep, exp=TRUE)[order],
-            get.par(parname='logFp', rep, exp=TRUE)[order],
-            get.par(parname='logBpBmsy', rep, exp=TRUE)[order],
-            get.par(parname='logFpFmsy', rep, exp=TRUE)[order],
-            tail(get.par(parname='logCpred', rep, exp=TRUE),1)[order],
-            c(EBinf, NA, NA, EBinf))
-        predout[, 4] <- log(predout[, 4])
-        predout <- round(predout, numdigits)
-        colnames(predout) <- c('prediction', colnms[2:4])
-        et <- rep$inp$time[rep$inp$dtprediind]
-        rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_',tail(rep$inp$timeCpred,1)), 'B_inf')
-        if(rep$inp$dtpredc == 0) predout <- predout[-dim(predout)[1], ]
-        cat('', paste(capture.output(predout),' \n'))
+        if(rep$inp$reportall){
+            cat(paste0('\nPredictions w 95% CI (inp$msytype: ', rep$inp$msytype, ')\n'))
+            EBinf <- get.EBinf(rep)
+            predout <- rbind(
+                get.par(parname='logBp', rep, exp=TRUE)[order],
+                get.par(parname='logFp', rep, exp=TRUE)[order],
+                get.par(parname='logBpBmsy', rep, exp=TRUE)[order],
+                get.par(parname='logFpFmsy', rep, exp=TRUE)[order],
+                tail(get.par(parname='logCpred', rep, exp=TRUE),1)[order],
+                c(EBinf, NA, NA, EBinf))
+            predout[, 4] <- log(predout[, 4])
+            predout <- round(predout, numdigits)
+            colnames(predout) <- c('prediction', colnms[2:4])
+            et <- rep$inp$time[rep$inp$dtprediind]
+            rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_',tail(rep$inp$timeCpred,1)), 'B_inf')
+            if(rep$inp$dtpredc == 0) predout <- predout[-dim(predout)[1], ]
+            cat('', paste(capture.output(predout),' \n'))
+        } else {
+            cat(paste0('\nPredictions omitted because inp$reportall = FALSE\n'))
+        }
     }
 }
 

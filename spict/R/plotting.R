@@ -1239,7 +1239,8 @@ plotspict.season <- function(rep){
         lab <- strftime(c(jan, apr, jul, oct, jan), format='%b')
         ats <- c(0, 0.25, 0.5, 0.75, 1)
         abline(v=ats, lty=3, col='lightgray')
-        abline(h=pretty(c(sssl, sssu)), lty=3, col='lightgray')
+        ats2 <- pretty(c(sssl, sssu, ytrue))
+        abline(h=ats2, lty=3, col='lightgray')
         lines(t, y, lwd=1, col='green')
         lines(test, yest, lwd=1.5, col=4, typ='s')
         if("true" %in% names(rep$inp)){
@@ -1317,6 +1318,7 @@ plot.spictcls <- function(rep, logax=FALSE){
             # F versus B
             plotspict.fb(rep, logax=logax, plot.legend=TRUE)
         } else {
+            cat('inp$reportall = FALSE so not much to plot.\n')
             if('osar' %in% names(rep)){
                 par(mfrow=c(3, 2), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2,3.5))
             } else {
