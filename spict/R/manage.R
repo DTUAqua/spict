@@ -37,7 +37,8 @@
 #' repman <- manage(rep)
 manage <- function(repin, scenarios='all', dbg=0){
     if(scenarios == 'all') scenarios <- 1:5
-    
+
+    # inpin is a list containing only observations (later prediction horizons are added)
     inpin <- list()
     inpin$timeC <- repin$inp$timeC
     inpin$obsC <- repin$inp$obsC
@@ -141,8 +142,10 @@ take.c <- function(catch, inpin, repin, dbg=0){
     inpt$timeC <- c(inpt$timeC, timecatch)
     inpt$obsC <- c(inpt$obsC, obscatch)
     inpt <- check.inp(inpt)
+    # Make TMB data and object
     datint <- make.datin(inpt, dbg=dbg)
     objt <- make.obj(datint, plt, inpt, phase=1)
+    # Get updated sd report
     objt$fn(repin$opt$par)
     repmant <- sdreport(objt)
     repmant$inp <- inpt
