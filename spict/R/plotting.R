@@ -872,7 +872,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             lines(Best[inp$indpred,2]/bscal, Fest[inp$indpred,2]/fscal, col=maincol, lty=3)
         }
         lines(c(Bl, EBinf), c(Fl, Fl), lwd=1.5, lty=3, col='blue')
-        points(EBinf, Fl, pch=24, bg='yellow')
+        points(EBinf, Fl, pch=24, bg='gold')
         points(Bmsy[2]/bscal, Fmsy[2]/fscal, pch=3)
         nr <- length(inp$ini$logr)
         if(nr > 1){
@@ -880,15 +880,15 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             if(plot.legend) legend('topright', c('Current MSY', 'Previous MSY'), pch=3, col=c('black', 'magenta'), bg='white')
         } else {
             if('true' %in% names(inp)){
-                if(plot.legend) legend('topright', c(expression('E(B'[infinity]*')'), 'True'), pch=c(24, 25), pt.bg=c('yellow', true.col()), bg='white')
+                if(plot.legend) legend('topright', c(expression('E(B'[infinity]*')'), 'True'), pch=c(24, 25), pt.bg=c('gold', true.col()), bg='white')
             } else {
-                if(plot.legend) legend('topright', expression('E(B'[infinity]*')'), pch=24, pt.bg='yellow', bg='white')
+                if(plot.legend) legend('topright', expression('E(B'[infinity]*')'), pch=24, pt.bg='gold', bg='white')
             }
             #if(plot.legend) legend('topright', c('Estimated MSY'), pch=3, col=c('black'), bg='white')
         }
         points(bbb[1], fff[1], pch=21, bg='white')
         text(bbb[1], fff[1], fbtime[1], pos=labpos[1], cex=0.75, offset=0.25, xpd=TRUE)
-        points(Bl, Fl, pch=22, bg='magenta')
+        points(Bl, Fl, pch=22, bg='white')
         text(Bl, Fl, tail(fbtime, 1), pos=labpos[2], cex=0.75, offset=0.25, xpd=TRUE)
         box(lwd=1.5)
     }
@@ -1153,6 +1153,7 @@ plotspict.tc <- function(rep){
         if(do.flag){
             if(B0cur < Bmsy[2]) facvec <- c(0, 0.75, 0.95, 1)
             if(B0cur > Bmsy[2]) facvec <- c(2, 1.25, 1.05, 1)
+            cols <- c('green3', 'blue', 'red', 'orange', 5:8)
             Fvec <- round(facvec*Fmsy[2], digits=4)
             nFvec <- length(Fvec)
             g <- function(F, K, m, n, sdb, B0, dt){
@@ -1177,17 +1178,17 @@ plotspict.tc <- function(rep){
             ylim <- range(Bsim[nFvec, ], na.rm=TRUE)
             xlim <- range(time[nFvec, inds])
             xlim[2] <- min(xlim[2], 15) # Max 15 years ahead
-            plot(time[1, ], Bsim[1, ], typ='l', xlim=xlim, ylim=ylim, col=3, ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy', lwd=1.5)
+            plot(time[1, ], Bsim[1, ], typ='l', xlim=xlim, ylim=ylim, col=cols[1], ylab='Proportion of Bmsy', xlab='Years to Bmsy', main='Time to Bmsy', lwd=1.5)
             abline(h=c(frac, 1/frac), lty=1, col='lightgray')
             abline(h=1, lty=3)
-            for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=i+2, lwd=1.5)
+            for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=cols[i], lwd=1.5)
             vt <- rep(0, nFvec)
             if(B0cur < Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(Bsim[i, ]<frac))]
             if(B0cur > Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(1/Bsim[i, ]<frac))]
-            for(i in 1:nFvec) abline(v=vt[i], col=i+2, lty=2)
+            for(i in 1:nFvec) abline(v=vt[i], col=cols[i], lty=2)
             lgnplace <- 'bottomright'
             if(B0cur > Bmsy[2]) lgnplace <- 'topright'
-            legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=2+(1:nFvec), lwd=rep(1.5,nFvec), bg='white')
+            legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=cols[1:nFvec], lwd=rep(1.5,nFvec), bg='white')
             points(vt, rep(par('usr')[3], nFvec), col=3:(nFvec+2), pch=4)
         }
         box(lwd=1.5)
