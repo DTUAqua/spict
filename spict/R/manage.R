@@ -55,7 +55,8 @@ manage <- function(repin, scenarios='all', dbg=0){
         if(1 %in% scenarios){
             #at('Scenario 1: Take specific catch = MSY...')
             # 1. Specify the catch, which will be taken each year in the prediction period
-            catch <- get.par('MSY', repin)[2]
+            #catch <- get.par('MSY', repin)[2]
+            catch <- tail(inpin$obsC, 1)
             repman[[1]] <- take.c(catch, inpin, repin, dbg=0)
             #at('done!\n')
         }
@@ -182,11 +183,11 @@ mansummary <- function(rep, ypred=1){
             Bnextyear[i] <- get.par('logB', repman[[i]], exp=TRUE)[indnext, 2]
             Fnextyear[i] <- get.par('logF', repman[[i]], exp=TRUE)[indnext, 2]
         }
-        Cn <- paste0('C', curtime+ypred-1)
-        Bn <- paste0('B', curtime+ypred)
-        Fn <- paste0('F', curtime+ypred)
-        BBn <- paste0('B/Bmsy', curtime+ypred)
-        FFn <- paste0('F/Fmsy', curtime+ypred)
+        Cn <- paste0('C')
+        Bn <- paste0('B')
+        Fn <- paste0('F')
+        BBn <- paste0('BqBmsy') # Should use / instead of q, but / is not accepted in varnames
+        FFn <- paste0('FqFmsy')
         df <- list()
         df[[Cn]] <- Cnextyear
         df[[Bn]] <- round(Bnextyear, 1)
@@ -196,8 +197,17 @@ mansummary <- function(rep, ypred=1){
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
         df[[FFn]] <- round(Fnextyear/Fmsy, 2)
         df <- cbind(as.data.frame(df), perc.dB, perc.dF)
-        rn <- c('1: Specify catch (MSY)', '2: Fish at Fmsy', '3: No fishing', '4: reduce F X% (25)', '5: increase F X% (25)')
+        rn <- c(paste0('1: Keep catch of ', rep$inp$time[rep$inp$indlastobs]), '2: Fish at Fmsy', '3: No fishing', '4: Reduce F 25%', '5: Increase F 25%')
         rownames(df) <- rn
+        colnames(df)[4:5] <- sub('q', '/', colnames(df)[4:5]) # Replace q with /
+        #cat('Management summary\n')
+        timerangeI <- range(unlist(rep$inp$timeI))
+        timerangeC <- range(rep$inp$timeC)
+        lastcatchseen <- tail(rep$inp$timeC+rep$inp$dtc, 1)
+        cat(paste0('Observed interval, index:  ', timerangeI[1], ' - ', timerangeI[2], '\n'))
+        cat(paste0('Observed interval, catch:  ', timerangeC[1], ' - ', timerangeC[2], ' (', lastcatchseen, ')\n'))
+        cat(paste0('Catch prediction interval: ', curtime, ' - ', curtime+ypred, '\n'))
+        cat(paste0('B and F point predictions: ', curtime+ypred, '\n\n'))
         print(df)
         invisible(df)
     } else {
