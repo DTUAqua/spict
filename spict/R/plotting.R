@@ -1606,7 +1606,7 @@ plotspict.ci <- function(inp){
         box(lwd=1.5)
     }
     # Plot data
-    plotspict.data(inp, MSY=MSY)
+    plotspict.data(inp, MSY=MSY, one.index=1)
     # Plot seasonal patterns
     if(inp$nseasons > 1){
         plot.seasondiff(inp$timeC, y, ylab='diff log catch')
@@ -1684,9 +1684,10 @@ plotspict.priors <- function(rep, do.plot=4){
 #' @title Plot input data
 #' @param inp An input list containing data.
 #' @param MSY Value of MSY.
+#' @param one.index Integer indicating the number of the index to plot.
 #' @return Nothing
 #' @export
-plotspict.data <- function(inpin, MSY=NULL){
+plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     inp <- check.inp(inpin)
     nseries <- inp$nindex+1
     if(nseries == 2) mfrow <- c(2, 1)
@@ -1715,7 +1716,7 @@ plotspict.data <- function(inpin, MSY=NULL){
     plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
     grid()
     plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
-    if(inp$nindex>1){
+    if(inp$nindex>1 & is.null(one.index)){
         for(i in 2:inp$nindex){
             main <- paste0('Nobs I: ', inp$nobsI[i])
             plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)

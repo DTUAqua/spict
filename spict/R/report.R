@@ -41,14 +41,14 @@ latex.figure <- function(figfile, reportfile, caption=''){
 make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryoutfile='summaryout.txt', keep.figurefiles=FALSE, keep.txtfiles=FALSE){
     latexstart <- '\\documentclass[12pt]{article}\n\\usepackage{graphicx}\n\\usepackage{verbatim}\n\\begin{document}\n'
     latexend <- '\\end{document}\n'
-    cat(reporttitle, file=summaryoutfile)
+    cat(reporttitle, '- report compiled', as.character(Sys.time()), '\n', file=summaryoutfile)
 
     # -- Write tex file -- #
     cat(latexstart, file=reportfile)
 
     # Results plot
     figfile1 <- 'res.pdf'
-    pdf(figfile1, width=9, height=10)
+    pdf(figfile1, width=8, height=9)
     plot(rep)
     dev.off()
     latex.figure(figfile1, reportfile, caption='Results.')
@@ -87,7 +87,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
 
     # Data plot
     figfile3 <- 'data.pdf'
-    pdf(figfile3, width=9, height=10)
+    pdf(figfile3, width=7, height=9)
     plotspict.ci(rep$inp)
     dev.off()
     latex.figure(figfile3, reportfile, caption='Data.')
