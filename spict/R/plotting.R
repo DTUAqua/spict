@@ -765,8 +765,15 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.fb(rep)
 #' @export
-plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE, xlim=NULL, ylim=NULL, labpos=c(4, 4)){
+plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE, xlim=NULL, ylim=NULL, labpos=c(1, 1)){
     if(!'sderr' %in% names(rep)){
+        mar <- c(5.1, 4.3, 4.1, 4.1)
+        if(dev.cur()==1){ # If plot is not open
+            par(mar=mar)
+        }
+        if(dev.cur()==2){ # If plot is open, check if it is a 1x1 plot
+            if(all(par()$mfrow == c(1, 1))) par(mar=mar)
+        }
         log <- ifelse(logax, 'xy', '')
         inp <- rep$inp
         Bmsyall <- get.par('logBmsy', rep, exp=TRUE)
@@ -840,10 +847,11 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             mtext(expression(F[t]/F[MSY]), side=4, las=0, line=2.5, cex=par('cex'))
         }
         alpha <- 0.15
-        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], -10, -10, Fmsy[2])/fscal, col=rgb(0,0.8,0,alpha), border=NA) # Green
-        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], -10, -10, Fmsy[2])/fscal, col=rgb(1,1,0,alpha), border=NA) # Yellow
-        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(1,1,0,alpha), border=NA) # Yellow
-        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(0.6,0,0,alpha), border=NA) # Red
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], -10, -10, Fmsy[2])/fscal, col=rgb(0.5,0.8,0.4,1), border=NA) # Green
+        yel <- rgb(1,0.925,0.55,1) # Yellow
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], -10, -10, Fmsy[2])/fscal, col=yel, border=NA) 
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=yel, border=NA) # Yellow
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(1,0.188,0.188,1), border=NA) # Red
         cicol <- 'lightgray'
         cicolrgb <- col2rgb(cicol)/255
         cicoluse <- rgb(cicolrgb[1], cicolrgb[2], cicolrgb[3], 0.7)
@@ -879,9 +887,9 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             #if(plot.legend) legend('topright', c('Estimated MSY'), pch=3, col=c('black'), bg='white')
         }
         points(bbb[1], fff[1], pch=21, bg='white')
-        text(bbb[1], fff[1], fbtime[1], pos=labpos[1], cex=0.65, offset=0.25)
+        text(bbb[1], fff[1], fbtime[1], pos=labpos[1], cex=0.75, offset=0.25, xpd=TRUE)
         points(Bl, Fl, pch=22, bg='magenta')
-        text(Bl, Fl, tail(fbtime, 1), pos=labpos[2], cex=0.65, offset=0.25)
+        text(Bl, Fl, tail(fbtime, 1), pos=labpos[2], cex=0.75, offset=0.25, xpd=TRUE)
         box(lwd=1.5)
     }
 }
