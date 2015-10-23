@@ -478,8 +478,8 @@ Type objective_function<Type>::operator() ()
     }
     // fac and pp are used for the outlier robust Gaussian mixture.
     for(int i=0; i<nobsC; i++){
-      int j = CppAD::Integer(nc(i)-1);
-      ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
+      //int j = CppAD::Integer(nc(i)-1); <-- NOT USED?
+      //ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0 <- NOT USED?
       inds = CppAD::Integer(isc(i)-1);
       if(robflagc==1.0){
 	likval = log(pp*dnorm(logCpred(i), logobsC(i), sdc, 0) + (1.0-pp)*dnorm(logCpred(i), logobsC(i), robfac*sdc, 0));

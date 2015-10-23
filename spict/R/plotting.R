@@ -803,7 +803,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         Fp <- Fest[ns,]
         inds <- c(max(which(names(rep$value)=='logBmsy')), max(which(names(rep$value)=='logFmsy')))
         cl <- make.ellipse(inds, rep)
-        if(min(inp$dtc) < 1){
+        if(min(inp$dtc) < 1){ # Quarterly
             alb <- annual(inp$time, logBest[, 2])
             alf <- annual(inp$time, logFest[, 2])
             aind <- which(inp$time[inp$dtprediind] == alb$anntime)
@@ -820,21 +820,23 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         Bl <- tail(unname(bbb), 1)
         EBinf <- get.EBinf(rep)/bscal # Should be used instead of the above.
         # Limits
-        if(length(xlim)!=2){
+        if(is.null(xlim)){
             xlim <- range(c(exp(cl[,1]), Best[,2], EBinf)/bscal, na.rm=TRUE)
             if(min(inp$dtc) < 1){
                 # New annual limits
                 xlim <- range(c(exp(alb$annvec), exp(cl[, 1]), EBinf)/bscal, na.rm=TRUE)
             }
-            xlim[2] <- min(c(xlim[2], 8*Bmsy[2]/bscal))
+            xlim[2] <- min(c(xlim[2], 8*Bmsy[2]/bscal), 2.2*max(bbb))
+            xlim[2] <- max(c(xlim[2], Bmsy[2]/bscal))
         }
-        if(length(ylim)!=2){
+        if(is.null(ylim)){
             ylim <- range(c(exp(cl[,2]), Fest[,2])/fscal, na.rm=TRUE)
             if(min(inp$dtc) < 1){
                 # New annual limits
                 ylim <- range(c(exp(alf$annvec)/fscal, exp(cl[, 2])/fscal), na.rm=TRUE)
             }
-            ylim[2] <- min(c(ylim[2], 8*Fmsy[2]/fscal))
+            ylim[2] <- min(c(ylim[2], 8*Fmsy[2]/fscal), 2.2*max(fff))
+            ylim[2] <- max(c(ylim[2], Fmsy[2]/fscal))
         }
         # Plotting
         #par(mar=c(5,4,4,4))
@@ -873,7 +875,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         }
         lines(c(Bl, EBinf), c(Fl, Fl), lwd=1.5, lty=3, col='blue')
         points(EBinf, Fl, pch=24, bg='gold')
-        points(Bmsy[2]/bscal, Fmsy[2]/fscal, pch=3)
+        #points(Bmsy[2]/bscal, Fmsy[2]/fscal, pch=3) # MSY cross point
         nr <- length(inp$ini$logr)
         if(nr > 1){
             points(Bmsyall[1:(nr-1), 2]/bscal, Fmsyall[1:(nr-1), 2]/fscal, pch=24, bg='magenta')
@@ -887,9 +889,9 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             #if(plot.legend) legend('topright', c('Estimated MSY'), pch=3, col=c('black'), bg='white')
         }
         points(bbb[1], fff[1], pch=21, bg='white')
-        text(bbb[1], fff[1], fbtime[1], pos=labpos[1], cex=0.75, offset=0.25, xpd=TRUE)
+        text(bbb[1], fff[1], fbtime[1], pos=labpos[1], cex=0.75, offset=0.5, xpd=TRUE)
         points(Bl, Fl, pch=22, bg='white')
-        text(Bl, Fl, tail(fbtime, 1), pos=labpos[2], cex=0.75, offset=0.25, xpd=TRUE)
+        text(Bl, Fl, tail(fbtime, 1), pos=labpos[2], cex=0.75, offset=0.5, xpd=TRUE)
         box(lwd=1.5)
     }
 }
@@ -1081,7 +1083,11 @@ plotspict.production <- function(rep, n.plotyears=40){
             lines(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, lwd=1.5)
             points(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, pch=20, cex=0.7)
             par(xpd=TRUE)
-            if(length(inp$ic) < n.plotyears) text(Bvec/Kest[2], Pest[, 2]/Bmsy[2], labels=inp$time[inp$ic], cex=0.65, pos=4, offset=0.25)
+            if(length(inp$ic) < n.plotyears){
+                inds <- c(1, length(Bvec), seq(1, length(Bvec), by=2))
+                labs <- inp$time[inp$ic]
+                text(Bvec[inds]/Kest[2], Pest[inds, 2]/Bmsy[2], labels=labs[inds], cex=0.75, pos=4, offset=0.25)
+            }
             par(xpd=FALSE)
         }
         mx <- (1/n[2])^(1/(n[2]-1))

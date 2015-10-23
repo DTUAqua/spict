@@ -139,7 +139,7 @@ sim.spict <- function(input, nobs=100){
     if('logbkfrac' %in% names(inp$ini)){
         B0 <- exp(inp$ini$logbkfrac)*exp(pl$logK)
     } else {
-        B0 <- 0.8*exp(pl$logK)
+        B0 <- 0.5*exp(pl$logK)
     }
     if('logF0' %in% names(inp$ini)){
         F0 <- exp(inp$ini$logF0)
@@ -180,8 +180,9 @@ sim.spict <- function(input, nobs=100){
         # - Fishing mortality -
         ef <- arima.sim(inp$armalistF, nt-1) * sdf*sqrt(dt) # Used to simulate other than white noise in F
         logFbase <- c(log(F0), log(F0) + cumsum(ef)) # Fishing mortality
+        # Impose seasons
         season <- numeric(length(logFbase))
-        if(inp$seasontype==1){
+        if(inp$seasontype==1){ # Spline-based seasonality
             season <- seasonspline[inp$seasonindex+1]
         }
         if(inp$seasontype==2){ # This one should not be used yet!
