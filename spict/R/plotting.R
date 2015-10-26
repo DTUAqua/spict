@@ -841,7 +841,6 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         # Plotting
         #par(mar=c(5,4,4,4))
         plot(Bmsy[2]/bscal, Fmsy[2]/fscal, typ='n', xlim=xlim, xlab=xlab, ylab=ylab, ylim=ylim, log=log)
-        abline(v=0, col='red', lty=2)
         if(ext){
             axis(3, labels=pretty(xlim/Bmsy[2]), at=pretty(xlim/Bmsy[2])*Bmsy[2])
             mtext(expression(B[t]/B[MSY]), side=3, las=0, line=2, cex=par('cex'))
@@ -854,6 +853,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], -10, -10, Fmsy[2])/fscal, col=yel, border=NA) 
         polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=yel, border=NA) # Yellow
         polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(1,0.188,0.188,1), border=NA) # Red
+        abline(v=0, col='darkred', lty=2)
         cicol <- 'lightgray'
         cicolrgb <- col2rgb(cicol)/255
         cicoluse <- rgb(cicolrgb[1], cicolrgb[2], cicolrgb[3], 0.7)
