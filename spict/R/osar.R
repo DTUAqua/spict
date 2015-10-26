@@ -63,19 +63,26 @@ calc.osa.resid <- function(rep, dbg=0){
         logCpres <- rep$osarC$residual
         nna <- sum(is.na(logCpres))
         if(nna > 5) cat('Warning:', nna, 'NAs found in catch residuals\n')
-        lblag <- npar+1 # Lags to check with LB test
-        logCpboxtest <- Box.test(logCpres, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
-        logCpp5boxtest <- Box.test(logCpres, lag=lblag+4, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
-        logCpsqboxtest <- Box.test(logCpres^2, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
-        logCpshapiro <- shapiro.test(logCpres) # Test for normality of residuals
-        logCpbias <- t.test(logCpres) # Test for bias of residuals
-        if(!'stats' %in% names(rep)) rep$stats <- list()
-        rep$stats$acfC.p <- min(acf.signf(logCpres, lag.max=4, return.p=TRUE))
-        #rep$stats$ljungboxC.p <- logCpboxtest$p.value
-        #rep$stats$ljungboxCp5.p <- logCpp5boxtest$p.value
-        #rep$stats$ljungboxCsq.p <- logCpsqboxtest$p.value
-        rep$stats$shapiroC.p <- logCpshapiro$p.value
-        rep$stats$biasC.p <- logCpbias$p.value
+        nnotna <- sum(!is.na(logCpres))
+        if(nnotna > 5){
+            lblag <- npar+1 # Lags to check with LB test
+            logCpboxtest <- Box.test(logCpres, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
+            logCpp5boxtest <- Box.test(logCpres, lag=lblag+4, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
+            logCpsqboxtest <- Box.test(logCpres^2, lag=lblag, type='Ljung-Box', fitdf=npar) # Test for independence of residuals
+            logCpshapiro <- shapiro.test(logCpres) # Test for normality of residuals
+            logCpbias <- t.test(logCpres) # Test for bias of residuals
+            if(!'stats' %in% names(rep)) rep$stats <- list()
+            rep$stats$acfC.p <- min(acf.signf(logCpres, lag.max=4, return.p=TRUE))
+            #rep$stats$ljungboxC.p <- logCpboxtest$p.value
+            #rep$stats$ljungboxCp5.p <- logCpp5boxtest$p.value
+            #rep$stats$ljungboxCsq.p <- logCpsqboxtest$p.value
+            rep$stats$shapiroC.p <- logCpshapiro$p.value
+            rep$stats$biasC.p <- logCpbias$p.value
+        } else {
+            cat('Warning: only', nnotna, 'non-NAs found in catch residuals\n')
+            logCpbias <- NA
+            logCpshapiro <- NA
+        }
         # Indices
         logIpres <- list()
         logIpboxtest <- list()
@@ -90,21 +97,28 @@ calc.osa.resid <- function(rep, dbg=0){
             rep$stats[[nam]] <- min(acf.signf(logIpres[[i]], lag.max=4, return.p=TRUE))
             nna <- sum(is.na(logIpres[[i]]))
             if(nna > 5) cat('Warning:', nna, 'NAs found in index', i, 'residuals\n')
-            #logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=lblag, type='Ljung-Box', fitdf=npar)
-            #logIpp5boxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag+4, type='Ljung-Box', fitdf=npar)
-            #logIpsqboxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag, type='Ljung-Box', fitdf=npar)
-            logIpshapiro[[i]] <- shapiro.test(logIpres[[i]])
-            logIpbias[[i]] <- t.test(logIpres[[i]])
-            nam <- paste0('ljungboxI', i, '.p')
-            #rep$stats[[nam]] <- logIpboxtest[[i]]$p.value
-            nam <- paste0('ljungboxIp5', i, '.p')
-            #rep$stats[[nam]] <- logIpp5boxtest[[i]]$p.value
-            nam <- paste0('ljungboxIsq', i, '.p')
-            #rep$stats[[nam]] <- logIpsqboxtest[[i]]$p.value
-            nam <- paste0('shapiroI', i, '.p')
-            rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
-            nam <- paste0('biasI', i, '.p')
-            rep$stats[[nam]] <- logIpbias[[i]]$p.value
+            nnotna <- sum(!is.na(logIpres[[i]]))
+            if(nnotna > 5){
+                #logIpboxtest[[i]] <- Box.test(logIpres[[i]], lag=lblag, type='Ljung-Box', fitdf=npar)
+                #logIpp5boxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag+4, type='Ljung-Box', fitdf=npar)
+                #logIpsqboxtest[[i]] <- Box.test(logIpres[[i]]^2, lag=lblag, type='Ljung-Box', fitdf=npar)
+                logIpshapiro[[i]] <- shapiro.test(logIpres[[i]])
+                logIpbias[[i]] <- t.test(logIpres[[i]])
+                nam <- paste0('ljungboxI', i, '.p')
+                #rep$stats[[nam]] <- logIpboxtest[[i]]$p.value
+                nam <- paste0('ljungboxIp5', i, '.p')
+                #rep$stats[[nam]] <- logIpp5boxtest[[i]]$p.value
+                nam <- paste0('ljungboxIsq', i, '.p')
+                #rep$stats[[nam]] <- logIpsqboxtest[[i]]$p.value
+                nam <- paste0('shapiroI', i, '.p')
+                rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
+                nam <- paste0('biasI', i, '.p')
+                rep$stats[[nam]] <- logIpbias[[i]]$p.value
+            } else {
+                cat('Warning: only', nnotna, 'non-NAs found in index', i, 'residuals\n')
+                logIpshapiro[[i]] <- NA
+                logIpbias[[i]] <- NA
+            }
         }
         rep$osar <- list(timeC=timeC, logCpres=logCpres, logCpbias=logCpbias, logCpshapiro=logCpshapiro, timeI=timeI, logIpres=logIpres, logIpshapiro=logIpshapiro, logIpbias=logIpbias)
     } else {
