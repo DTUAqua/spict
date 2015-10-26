@@ -15,6 +15,11 @@ export(guess.m)
 export(likprof.spict)
 export(make.report)
 export(make.splinemat)
+<<<<<<< HEAD
+=======
+export(manage)
+export(mansummary)
+>>>>>>> dev
 export(plotspict.bbmsy)
 export(plotspict.biomass)
 export(plotspict.btrend)

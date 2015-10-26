@@ -21,5 +21,5 @@
 }
 
 .onAttach <- function(lib, pkg) {
-   packageStartupMessage("Welcome to a Surplus Production model in Continuous Time (SPiCT).")
+   packageStartupMessage("Welcome to a Stochastic surplus Production model in Continuous Time (SPiCT).")
  }

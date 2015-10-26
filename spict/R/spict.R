@@ -73,57 +73,13 @@
 fit.spict <- function(inp, dbg=0){
     # Check input list
     inp <- check.inp(inp)
-    datin <- list(reportall=as.numeric(inp$reportall),
-                  dt=inp$dt,
-                  dtpredcinds=inp$dtpredcinds,
-                  dtpredcnsteps=inp$dtpredcnsteps,
-                  dtprediind=inp$dtprediind,
-                  indlastobs=inp$indlastobs,
-                  obssrt=inp$obssrt,
-                  isc=inp$isc,
-                  isi=inp$isi,
-                  #obsC=inp$obsC,
-                  ic=inp$ic,
-                  nc=inp$nc,
-                  #I=inp$obsIin,
-                  ii=inp$iiin,
-                  iq=inp$iqin,
-                  ir=inp$ir,
-                  seasons=inp$seasons,
-                  seasonindex=inp$seasonindex,
-                  splinemat=inp$splinemat,
-                  splinematfine=inp$splinematfine,
-                  #A=inp$A,
-                  #lambda=inp$lambda,
-                  omega=inp$omega,
-                  seasontype=inp$seasontype,
-                  ffac=inp$ffaceuler,
-                  indpred=inp$indpred,
-                  robflagc=inp$robflagc,
-                  robflagi=inp$robflagi,
-                  stochmsy=ifelse(inp$msytype=='s', 1, 0),
-                  priorr=inp$priors$logr,
-                  priorn=inp$priors$logn,
-                  priorK=inp$priors$logK,
-                  priorm=inp$priors$logm,
-                  priorq=inp$priors$logq,
-                  priorbkfrac=inp$priors$logbkfrac,
-                  priorB=inp$priors$logB,
-                  priorF=inp$priors$logF,
-                  simple=inp$simple,
-                  dbg=dbg)
+    datin <- make.datin(inp, dbg)
     pl <- inp$parlist
     # Cycle through phases
     for(i in 1:inp$nphases){
         if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
         # Create TMB object
-        obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map[[i]])
-        TMB:::config(trace.optimize=0, DLL=inp$scriptname)
-        verbose <- FALSE
-        obj$env$tracemgc <- verbose
-        obj$env$inner.control$trace <- verbose
-        obj$env$silent <- ! verbose
-        obj$fn(obj$par)
+        obj <- make.obj(datin, pl, inp, phase=i)
         if(dbg<1){
             # Do estimation
             if(inp$optimiser == 'nlminb'){
@@ -181,7 +137,6 @@ fit.spict <- function(inp, dbg=0){
                         if(!inp$osar.method == 'none'){
                             rep <- calc.osa.resid(rep)
                         }
-
                     }
                 }
             }
@@ -203,4 +158,72 @@ fit.spict <- function(inp, dbg=0){
     }
     if(!is.null(rep)) class(rep) <- "spictcls"
     return(rep)
+}
+
+
+#' @name make.datin
+#' @title Create data list.
+#' @param inp List of input variables as output by check.inp.
+#' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. 
+#' @return List to be used as data input to TMB.
+make.datin <- function(inp, dbg=0){
+    datin <- list(reportall=as.numeric(inp$reportall),
+                  dt=inp$dt,
+                  dtpredcinds=inp$dtpredcinds,
+                  dtpredcnsteps=inp$dtpredcnsteps,
+                  dtprediind=inp$dtprediind,
+                  indlastobs=inp$indlastobs,
+                  obssrt=inp$obssrt,
+                  isc=inp$isc,
+                  isi=inp$isi,
+                  nobsC=inp$nobsC,
+                  nobsI=sum(inp$nobsI),
+                  ic=inp$ic,
+                  nc=inp$nc,
+                  ii=inp$iiin,
+                  iq=inp$iqin,
+                  ir=inp$ir,
+                  seasons=inp$seasons,
+                  seasonindex=inp$seasonindex,
+                  splinemat=inp$splinemat,
+                  splinematfine=inp$splinematfine,
+                  omega=inp$omega,
+                  seasontype=inp$seasontype,
+                  ffacvec=inp$ffacvec,
+                  fconvec=inp$fconvec,
+                  indpred=inp$indpred,
+                  robflagc=inp$robflagc,
+                  robflagi=inp$robflagi,
+                  stochmsy=ifelse(inp$msytype=='s', 1, 0),
+                  priorr=inp$priors$logr,
+                  priorn=inp$priors$logn,
+                  priorK=inp$priors$logK,
+                  priorm=inp$priors$logm,
+                  priorq=inp$priors$logq,
+                  priorbkfrac=inp$priors$logbkfrac,
+                  priorB=inp$priors$logB,
+                  priorF=inp$priors$logF,
+                  simple=inp$simple,
+                  dbg=dbg)
+    return(datin)
+}
+
+
+#' @name make.obj
+#' @title Create TMB obj.
+#' @param datin Data list.
+#' @param pl Parameter list.
+#' @param inp List of input variables as output by check.inp.
+#' @param phase Estimation phase, integer.
+#' @return List to be used as data input to TMB.
+#' @import TMB
+make.obj <- function(datin, pl, inp, phase=1){
+    obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map[[phase]])
+    TMB:::config(trace.optimize=0, DLL=inp$scriptname)
+    verbose <- FALSE
+    obj$env$tracemgc <- verbose
+    obj$env$inner.control$trace <- verbose
+    obj$env$silent <- ! verbose
+    obj$fn(obj$par)
+    return(obj)
 }

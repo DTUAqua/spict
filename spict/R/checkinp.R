@@ -222,7 +222,6 @@ check.inp <- function(inp){
     inp$robflagc <- as.numeric(inp$robflagc)
     if(!"robflagi" %in% names(inp)) inp$robflagi <- 0
     inp$robflagi <- as.numeric(inp$robflagi)
-    if(!"ffac" %in% names(inp)) inp$ffac <- 1
     if(!"dtc" %in% names(inp)){
         dtc <- diff(inp$timeC)
         if(length(dtc)>0){
@@ -230,7 +229,7 @@ check.inp <- function(inp){
             #cat(paste('Catch interval (dtc) not specified. Assuming an interval of:', inp$dtc, 'year.\n'))
         } else {
             inp$dtc <- 1
-            cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 1. Assuming an interval of 1 year.\n'))
+            cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 2. Assuming an interval of 1 year.\n'))
         }
     }
     if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
@@ -243,7 +242,6 @@ check.inp <- function(inp){
         inp$dteuler <- NULL
     }
     if(!"dteuler" %in% names(inp)) inp$dteuler <- min(timesteps) * 0.5 # half because often a time step finer than obs is required
-    inp$ffaceuler <- inp$ffac^inp$dteuler
 
     if(!"dtpredc" %in% names(inp)){
         if(length(inp$dtc)>0){
@@ -289,6 +287,32 @@ check.inp <- function(inp){
     inp$indlastobs <- which(inp$time == max(c(inp$timeC, unlist(inp$timeI))))
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
+    # Management
+    if(!"ffac" %in% names(inp)) inp$ffac <- 1
+    if("ffac" %in% names(inp)){
+        if(inp$ffac < 0){
+            cat('Warning: ffac < 0, which is not allowed, setting ffac = 0.')
+            inp$ffac <- 0
+        }
+    }
+    if(!"fcon" %in% names(inp)) inp$fcon <- 0
+    if("fcon" %in% names(inp)){
+        if(inp$fcon < 0){
+            cat('Warning: fcon < 0, which is not allowed, setting fcon = 0.')
+            inp$fcon <- 0
+        }
+    }
+    if(!"ffacvec" %in% names(inp)){
+        inp$ffacvec <- numeric(inp$ns) + 1
+        # -1 in indpred because 1 is for plotting
+        inp$ffacvec[inp$indpred[-1]] <- inp$ffac + 1e-8 # Add small to avoid taking log of 0
+    }
+    if(!"fconvec" %in% names(inp)){
+        inp$fconvec <- numeric(inp$ns)
+        # -1 in indpred because 1 is for plotting
+        inp$fconvec[inp$indpred[-1]] <- inp$fcon + 1e-8 # Add small to avoid taking log of 0
+    }
+    inp$ffaceuler <- inp$ffac^inp$dteuler
     # Seasons
     if(!"nseasons" %in% names(inp)){
         expnseasons <- 1/min(inp$dtc)
@@ -303,7 +327,7 @@ check.inp <- function(inp){
     if("nseasons" %in% names(inp)){
        if(!inp$nseasons %in% c(1, 2, 4)) stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
     }
-    if(inp$nseasons == 1) inp$seasontype <- 0 # seasontype = 0 means seasons are disables.
+    if(inp$nseasons == 1) inp$seasontype <- 0 # seasontype = 0 means seasons are disabled.
     # Calculate seasonal spline
     if("splineorder" %in% names(inp)){
         if(inp$nseasons<4 & inp$splineorder>2) inp$splineorder <- 2
@@ -362,13 +386,11 @@ check.inp <- function(inp){
     inp$obsidsrt <- obsid[srt$ix]
     inp$isc <- match(1:inp$nobsC, srt$ix)
     inp$isi <- match((inp$nobsC+1):(inp$nobsC+sum(inp$nobsI)), srt$ix)
-    #if(!"osar.conditional" %in% names(inp)){
-        inp$osar.conditional <- which(inp$timeobssrt < inp$time[1]+1) # Condition on the first year of data.
-    #}
-    #if(!"osar.subset" %in% names(inp)){
-        #inp$osar.subset <- (max(inp$isc[1], inp$isi[1])+1):length(inp$obssrt)
-        inp$osar.subset <- setdiff(1:length(inp$obssrt), inp$osar.conditional)
-    #}
+    if(sum(inp$nobsI) != length(inp$isi)){
+        cat('Warning: Mismatch between length(inp$isi)', length(inp$isi), 'and sum(inp$nobsI)', sum(inp$nobsI), '\n')
+    }
+    inp$osar.conditional <- which(inp$timeobssrt < inp$time[1]+1) # Condition on the first year of data.
+    inp$osar.subset <- setdiff(1:length(inp$obssrt), inp$osar.conditional)
 
     # -- PRIORS --
     # Priors are assumed Gaussian and specified in a vector of length 3: c(log(mean), stdev in log, useflag).

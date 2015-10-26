@@ -41,27 +41,32 @@ latex.figure <- function(figfile, reportfile, caption=''){
 make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryoutfile='summaryout.txt', keep.figurefiles=FALSE, keep.txtfiles=FALSE){
     latexstart <- '\\documentclass[12pt]{article}\n\\usepackage{graphicx}\n\\usepackage{verbatim}\n\\begin{document}\n'
     latexend <- '\\end{document}\n'
-    cat(reporttitle, file=summaryoutfile)
-    summaryout <- capture.output(summary(rep), file=summaryoutfile, append=TRUE)
+    cat(reporttitle, '- report compiled', as.character(Sys.time()), '\n', file=summaryoutfile)
 
     # -- Write tex file -- #
     cat(latexstart, file=reportfile)
 
     # Results plot
     figfile1 <- 'res.pdf'
-    pdf(figfile1, width=9, height=10)
+    pdf(figfile1, width=8, height=9)
     plot(rep)
     dev.off()
     latex.figure(figfile1, reportfile, caption='Results.')
 
     # Summary
+    summaryout <- capture.output(summary(rep), file=summaryoutfile, append=TRUE)
     cat('\\scriptsize\n', file=reportfile, append=TRUE)
     cat(paste0('\\verbatiminput{', summaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
-    #cat('\\begin{verbatim}\n', file=reportfile, append=TRUE)
-    #cat(reporttitle, file=reportfile, append=TRUE)
-    #cat(summaryout, sep='\n', file=reportfile, append=TRUE)
-    #cat('\\end{verbatim}\n', file=reportfile, append=TRUE)
 
+    # Management summary
+    if('man' %in% names(rep)){
+        mansummaryoutfile <- 'mansummaryout.txt'
+        cat('Management results\n\n', file=mansummaryoutfile)
+        mansummaryout <- capture.output(mansummary(rep), file=mansummaryoutfile, append=TRUE)
+        cat('\\scriptsize\n', file=reportfile, append=TRUE)
+        cat(paste0('\\verbatiminput{', mansummaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
+    }
+    
     # Retrospective analysis plot
     if('retro' %in% names(rep)){
         figfile1b <- 'retro.pdf'
@@ -82,7 +87,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
 
     # Data plot
     figfile3 <- 'data.pdf'
-    pdf(figfile3, width=9, height=10)
+    pdf(figfile3, width=7, height=9)
     plotspict.ci(rep$inp)
     dev.off()
     latex.figure(figfile3, reportfile, caption='Data.')
@@ -98,7 +103,10 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     #file.remove(paste0('../res/', substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.log'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
-    if(!keep.txtfiles) file.remove(summaryoutfile)
+    if(!keep.txtfiles){
+        file.remove(summaryoutfile)
+        if('man' %in% names(rep)) file.remove(mansummaryoutfile)
+    }
     if(!keep.figurefiles){
         file.remove(figfile1)
         if('retro' %in% names(rep)) file.remove(figfile1b)
