@@ -505,7 +505,14 @@ validation.data.frame <- function(ss){
     colnames(df) <- c(nms, 'nobs')
     for(i in 1:nna){ # nna is length of nobsvec
         nsim <- length(ss[[i]])
-        nobsvec[i] <- ss[[i]][[1]]$nobs[1]
+        # While loop to avoid taking nobs from a NA run.
+        c <- 1
+        flag <- TRUE
+        while(flag){
+            flag <- all(is.na(ss[[i]][[c]])) & length(ss[[i]][[c]])==1
+            c <- c+1
+        }
+        nobsvec[i] <- ss[[i]][[c]]$nobs[1]
         nobs <- rep(nobsvec[i], nsim)
         mat <- cbind(matrix(NA, nsim, nnms), nobs)
         colnames(mat) <- c(nms, 'nobs')
