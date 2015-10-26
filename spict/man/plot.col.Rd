@@ -20,6 +20,10 @@
 
 \item{typ}{Plot type.}
 
+\item{do.line}{If TRUE draw a line between points.}
+
+\item{add.legend}{If TRUE add legend containing information on quarters.}
+
 \item{...}{Additional plotting arguments.}
 }
 \value{

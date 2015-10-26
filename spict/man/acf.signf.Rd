@@ -11,10 +11,10 @@ acf.signf(resid, lag.max = 4, return.p = FALSE)
 
 \item{lag.max}{Only check from lag 1 until lag.max.}
 
-\item{return.p}{Return the smallest p-value of the calculated lags.}
+\item{return.p}{Return p-values of the calculated lags.}
 }
 \value{
-If any significant lags are present TRUE is returned otherwise FALSE. If return.p is TRUE then the smallest of the calculated p-values is returned instead.
+Vector of TRUE and FALSE indicating whether significant lags were present. If return.p is TRUE then p-values are returned instead.
 }
 \description{
 Check whether ACF of residuals is significant in any lags.
