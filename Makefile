@@ -5,9 +5,9 @@ ZIPFILE=${PACKAGE}_${VERSION}.zip
 
 all:
 	make doc-update
-	make build-package
 	make install
 	make pdf
+	make test
 
 doc-update:
 	echo "roxygen2::roxygenize('spict/', roclets=c('rd', 'collate', 'namespace'))" | R --slave
@@ -17,7 +17,6 @@ build-package:
 	R CMD build --resave-data=no $(PACKAGE)
 
 install:
-	make doc-update
 	make build-package
 	R CMD INSTALL --preclean --no-multiarch $(TARBALL)
 	date
