@@ -1257,7 +1257,8 @@ plotspict.season <- function(rep){
         lab <- strftime(c(jan, apr, jul, oct, jan), format='%b')
         ats <- c(0, 0.25, 0.5, 0.75, 1)
         abline(v=ats, lty=3, col='lightgray')
-        ats2 <- pretty(c(sssl, sssu, ytrue))
+        ats2 <- pretty(c(sssl, sssu))
+        if("true" %in% names(rep$inp)) ats2 <- pretty(c(sssl, sssu, ytrue))
         abline(h=ats2, lty=3, col='lightgray')
         lines(t, y, lwd=1, col='green')
         lines(test, yest, lwd=1.5, col=4, typ='s')
@@ -1579,6 +1580,7 @@ plotspict.retro <- function(rep){
 #' @return Nothing
 #' @export
 plotspict.ci <- function(inp){
+    op <- par()
     inp <- check.inp(inp)
     time <- inp$timeC
     y <- inp$obsC
@@ -1645,6 +1647,7 @@ plotspict.ci <- function(inp){
         abline(v=MSY, lty=2)
         box(lwd=1.5)
     }
+    par(op)
 }
 
 
