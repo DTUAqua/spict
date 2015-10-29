@@ -22,11 +22,12 @@ Calculate predictions under different management scenarios
 \details{
 Scenarios that are currently implemented include:
 \itemize{
-  \item{"1"}{ Take a specific catch. Default catch: MSY.}
-  \item{"2"}{ Fish at Fmsy.}
-  \item{"3"}{ No fishing, reduce to 5\% of last F.}
-  \item{"4"}{ Reduce F by X\%. Default X = 25.}
-  \item{"5"}{ Increase F by X\%. Default X = 25.}
+  \item{"1"}{ Keep the catch of the current year (i.e. the last observed catch).}
+  \item{"2"}{ Keep the F of the current year.}
+  \item{"3"}{ Fish at Fmsy i.e. F=Fmsy.}
+  \item{"4"}{ No fishing, reduce to 1\% of current F.}
+  \item{"5"}{ Reduce F by X\%. Default X = 25.}
+  \item{"6"}{ Increase F by X\%. Default X = 25.}
 }
 }
 \examples{
