@@ -200,9 +200,12 @@ sumspict.parest <- function(rep, numdigits=8){
         }
     }
     rownames(resout) <- nms
+    # Derived variables
     derout <- rbind(get.par(parname='logr', rep, exp=TRUE)[, order])
     derout[, 4] <- log(derout[, 4])
     derout <- round(derout, numdigits)
+    nr <- dim(derout)[1]
+    if('true' %in% names(rep$inp)) derout <- cbind(est=derout[, 1], true=rep(-9, nr), ll=derout[, 2], ul=derout[, 3], tic=rep(-9, nr), eil=derout[, 4])
     #colnames(derout) <- colnms
     if(dim(derout)[1]>1 & 'yearsepgrowth' %in% names(rep$inp)){
         rownames(derout) <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
@@ -210,8 +213,11 @@ sumspict.parest <- function(rep, numdigits=8){
         rownames(derout) <- paste0('r', each=paste0(1:dim(derout)[1], '    '))
     }
     resout <- rbind(resout, derout)
-
-    colnames(resout) <- colnms
+    if('true' %in% names(rep$inp)){
+        colnames(resout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
+    } else {
+        colnames(resout) <- colnms
+    }
     return(resout)
 }
 

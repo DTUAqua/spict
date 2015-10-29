@@ -188,6 +188,9 @@ check.inp <- function(inp){
     if(!"optimiser" %in% names(inp)){
         inp$optimiser <- 'nlminb'
     }
+    if(!"optimiser.control" %in% names(inp)){
+        inp$optimiser.control <- list()
+    }
     if(!"osar.method" %in% names(inp)){
         inp$osar.method <- 'none'
     }

@@ -83,13 +83,13 @@ fit.spict <- function(inp, dbg=0){
         if(dbg<1){
             # Do estimation
             if(inp$optimiser == 'nlminb'){
-                opt <- try(nlminb(obj$par, obj$fn, obj$gr))
+                opt <- try(nlminb(obj$par, obj$fn, obj$gr, control=inp$optimiser.control))
                 if(class(opt)!='try-error'){
                     pl <- obj$env$parList(opt$par)
                 }
             }
             if(inp$optimiser == 'optim'){
-                opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method='BFGS'))
+                opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method='BFGS', control=inp$optimiser.control))
                 if(class(opt)!='try-error'){
                     opt$objective <- opt$value
                     pl <- obj$env$parList(opt$par)
