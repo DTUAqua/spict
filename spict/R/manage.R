@@ -20,11 +20,12 @@
 #' @title Calculate predictions under different management scenarios
 #' @details Scenarios that are currently implemented include:
 #' \itemize{
-#'   \item{"1"}{ Take a specific catch. Default catch: MSY.}
-#'   \item{"2"}{ Fish at Fmsy.}
-#'   \item{"3"}{ No fishing, reduce to 5\% of last F.}
-#'   \item{"4"}{ Reduce F by X\%. Default X = 25.}
-#'   \item{"5"}{ Increase F by X\%. Default X = 25.}
+#'   \item{"1"}{ Keep the catch of the current year (i.e. the last observed catch).}
+#'   \item{"2"}{ Keep the F of the current year.}
+#'   \item{"3"}{ Fish at Fmsy i.e. F=Fmsy.}
+#'   \item{"4"}{ No fishing, reduce to 1\% of current F.}
+#'   \item{"5"}{ Reduce F by X\%. Default X = 25.}
+#'   \item{"6"}{ Increase F by X\%. Default X = 25.}
 #' }
 #' @param repin Result list from fit.spict().
 #' @param scenarios Vector of integers specifying which scenarios to run. Default: 'all'.
@@ -36,7 +37,7 @@
 #' rep <- fit.spict(pol$albacore)
 #' repman <- manage(rep)
 manage <- function(repin, scenarios='all', dbg=0){
-    if(scenarios == 'all') scenarios <- 1:5
+    if(scenarios == 'all') scenarios <- 1:6
 
     # inpin is a list containing only observations (later prediction horizons are added)
     inpin <- list()
@@ -54,42 +55,37 @@ manage <- function(repin, scenarios='all', dbg=0){
         repman <- list() # Output list
 
         if(1 %in% scenarios){
-            #at('Scenario 1: Take specific catch = MSY...')
             # 1. Specify the catch, which will be taken each year in the prediction period
             #catch <- get.par('MSY', repin)[2]
             catch <- tail(inpin$obsC, 1)
             repman[[1]] <- take.c(catch, inpin, repin, dbg=0)
-            #at('done!\n')
         }
         if(2 %in% scenarios){
-            #at('Scenario 2: Fish at Fmsy...')
+            # Keep current F
+            fac2 <- 1.0
+            repman[[2]] <- prop.F(fac2, inpin, repin, dbg=dbg)
+        }
+        if(3 %in% scenarios){
             # Fish at Fmsy
             Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
             Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indpred[1], 2]
-            fac2 <- Fmsy / Flast
-            repman[[2]] <- prop.F(fac2, inpin, repin, dbg=dbg)
-            #at('done!\n')
-        }
-        if(3 %in% scenarios){
-            #at('Scenario 3: No fishing (reduce to 5% of last F)...')
-            # No fishing, reduce to 5% of last F
-            fac3 <- 0.01
+            fac3 <- Fmsy / Flast
             repman[[3]] <- prop.F(fac3, inpin, repin, dbg=dbg)
-            #at('done!\n')
         }
         if(4 %in% scenarios){
-            #at('Scenario 4: Reduce F by 25%...')
-            # Reduce F by X%
-            fac4 <- 0.75
+            # No fishing, reduce to 5% of last F
+            fac4 <- 0.01
             repman[[4]] <- prop.F(fac4, inpin, repin, dbg=dbg)
-            #at('done!\n')
         }
         if(5 %in% scenarios){
-            #at('Scenario 5: Increase F by 25%...')
-            # Increase F by X%
-            fac5 <- 1.25
+            # Reduce F by X%
+            fac5 <- 0.75
             repman[[5]] <- prop.F(fac5, inpin, repin, dbg=dbg)
-            #at('done!\n')
+        }
+        if(6 %in% scenarios){
+            # Increase F by X%
+            fac6 <- 1.25
+            repman[[6]] <- prop.F(fac6, inpin, repin, dbg=dbg)
         }
         repin$man <- repman
     } else {
@@ -121,6 +117,7 @@ prop.F <- function(fac, inpin, repin, dbg=0){
     repmant <- sdreport(objt)
     repmant$inp <- inpt
     repmant$obj <- objt
+    if(!is.null(repmant)) class(repmant) <- "spictcls"
     return(repmant)
 }
 
@@ -150,6 +147,7 @@ take.c <- function(catch, inpin, repin, dbg=0){
     repmant <- sdreport(objt)
     repmant$inp <- inpt
     repmant$obj <- objt
+    if(!is.null(repmant)) class(repmant) <- "spictcls"
     return(repmant)
 }
 
@@ -200,17 +198,20 @@ mansummary <- function(rep, ypred=1){
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
         df[[FFn]] <- round(Fnextyear/Fmsy, 2)
         df <- cbind(as.data.frame(df), perc.dB, perc.dF)
-        rn <- c(paste0('1: Keep catch of ', rep$inp$time[rep$inp$indlastobs]), '2: Fish at Fmsy', '3: No fishing', '4: Reduce F 25%', '5: Increase F 25%')
+        rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy', '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')
         rownames(df) <- rn
         colnames(df)[4:5] <- sub('q', '/', colnames(df)[4:5]) # Replace q with /
         #cat('Management summary\n')
         timerangeI <- range(unlist(rep$inp$timeI))
         timerangeC <- range(rep$inp$timeC)
         lastcatchseen <- tail(rep$inp$timeC+rep$inp$dtc, 1)
-        cat(paste0('Observed interval, index:  ', timerangeI[1], ' - ', timerangeI[2], '\n'))
-        cat(paste0('Observed interval, catch:  ', timerangeC[1], ' - ', timerangeC[2], ' (', lastcatchseen, ')\n'))
-        cat(paste0('Catch prediction interval: ', curtime, ' - ', curtime+ypred, '\n'))
-        cat(paste0('B and F point predictions: ', curtime+ypred, '\n\n'))
+        fd <- function(d) sprintf('%4.2f', d)
+        cat(paste0('Observed interval, index:  ', fd(timerangeI[1]), ' - ', fd(timerangeI[2]), '\n'))
+        cat(paste0('Observed interval, catch:  ', fd(timerangeC[1]), ' - ', fd(lastcatchseen), '\n\n'))
+        cat(paste0('Fishing mortality (F) prediction: ', fd(curtime+ypred), '\n'))
+        cat(paste0('Biomass (B) prediction:           ', fd(curtime+ypred), '\n'))
+        cat(paste0('Catch (C) prediction interval:    ', fd(curtime), ' - ', fd(curtime+ypred), '\n\n'))
+        cat('Predictions\n')
         print(df)
         invisible(df)
     } else {
