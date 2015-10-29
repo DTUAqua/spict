@@ -444,6 +444,7 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
 #' @export
 plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, mfcol=FALSE){
     repflag <- FALSE
+    op <- par()
     if('obsC' %in% names(rep)){ # rep in an input list
         inp <- check.inp(rep)
         if(inp$nindex==1) mfrow <- c(2, 1)
@@ -530,6 +531,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
             #}
         }
     }
+    par(op)
 }
 
 
@@ -1209,7 +1211,8 @@ plotspict.tc <- function(rep){
 #' @return Nothing.
 #' @export
 plotspict.season <- function(rep){
-    if(!'sderr' %in% names(rep)){
+    if(!'par.fixed' %in% names(rep)) stop('Input object was not a valid output from fit.spict()!')
+    if(!'sderr' %in% names(rep) & 'logphi' %in% names(rep$par.fixed)){
         jan <- as.POSIXct("2015-01-01 00:00:01 UTC", tz='UTC')
         apr <- jan+(31+28+31)*24*60*60
         jul <- apr+(30+31+30)*24*60*60
