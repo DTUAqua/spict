@@ -244,6 +244,7 @@ check.inp <- function(inp){
         cat('inp$dteuler is', inp$dteuler, 'while the minimum time step of observations is', min(timesteps), 'inp$dteuler will be changed!')
         inp$dteuler <- NULL
     }
+    #if(!"dteuler" %in% names(inp)) inp$dteuler <- 0.5*min(timesteps) # half because often a time step finer than obs is required
     if(!"dteuler" %in% names(inp)) inp$dteuler <- min(1/16, 0.5*min(timesteps)) # half because often a time step finer than obs is required
 
     if(!"dtpredc" %in% names(inp)){

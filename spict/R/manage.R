@@ -41,6 +41,7 @@ manage <- function(repin, scenarios='all', dbg=0){
 
     # inpin is a list containing only observations (later prediction horizons are added)
     inpin <- list()
+    inpin$dteuler <- repin$inp$dteuler
     inpin$timeC <- repin$inp$timeC
     inpin$obsC <- repin$inp$obsC
     inpin$timeI <- repin$inp$timeI
@@ -50,22 +51,24 @@ manage <- function(repin, scenarios='all', dbg=0){
         # Always predict at least two years
         inpin$timepredc <- repin$inp$timepredc
         inpin$timepredi <- repin$inp$timepredi
-
         inp <- list()
         repman <- list() # Output list
 
         if(1 %in% scenarios){
+            #cat('1\n')
             # 1. Specify the catch, which will be taken each year in the prediction period
             #catch <- get.par('MSY', repin)[2]
             catch <- tail(inpin$obsC, 1)
-            repman[[1]] <- take.c(catch, inpin, repin, dbg=0)
+            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg)
         }
         if(2 %in% scenarios){
+            #cat('1\n')
             # Keep current F
             fac2 <- 1.0
             repman[[2]] <- prop.F(fac2, inpin, repin, dbg=dbg)
         }
         if(3 %in% scenarios){
+            #cat('1\n')
             # Fish at Fmsy
             Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
             Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indpred[1], 2]
@@ -73,16 +76,19 @@ manage <- function(repin, scenarios='all', dbg=0){
             repman[[3]] <- prop.F(fac3, inpin, repin, dbg=dbg)
         }
         if(4 %in% scenarios){
+            #cat('1\n')
             # No fishing, reduce to 5% of last F
             fac4 <- 0.01
             repman[[4]] <- prop.F(fac4, inpin, repin, dbg=dbg)
         }
         if(5 %in% scenarios){
+            #cat('1\n')
             # Reduce F by X%
             fac5 <- 0.75
             repman[[5]] <- prop.F(fac5, inpin, repin, dbg=dbg)
         }
         if(6 %in% scenarios){
+            #cat('1\n')
             # Increase F by X%
             fac6 <- 1.25
             repman[[6]] <- prop.F(fac6, inpin, repin, dbg=dbg)
