@@ -176,7 +176,7 @@ mansummary <- function(rep, ypred=1){
     curtime <- rep$inp$time[indstart] # We are at 1 January this year
     indnext <- which(rep$inp$time == curtime+ypred) # Current time + 1 year
     if(length(indnext)==1){
-        indnextC <- which(rep$inp$timeCpred == curtime+ypred-1)
+        indnextC <- which((rep$inp$timeCpred+rep$inp$dtcp) == curtime+ypred)
         nsc <- length(repman)
         Cnextyear <- numeric(nsc)
         Bnextyear <- numeric(nsc)
@@ -211,12 +211,15 @@ mansummary <- function(rep, ypred=1){
         timerangeI <- range(unlist(rep$inp$timeI))
         timerangeC <- range(rep$inp$timeC)
         lastcatchseen <- tail(rep$inp$timeC+rep$inp$dtc, 1)
-        fd <- function(d) sprintf('%4.2f', d)
+        fd <- function(d) sprintf('%4.2f', d) # Format date function
         cat(paste0('Observed interval, index:  ', fd(timerangeI[1]), ' - ', fd(timerangeI[2]), '\n'))
         cat(paste0('Observed interval, catch:  ', fd(timerangeC[1]), ' - ', fd(lastcatchseen), '\n\n'))
         cat(paste0('Fishing mortality (F) prediction: ', fd(curtime+ypred), '\n'))
         cat(paste0('Biomass (B) prediction:           ', fd(curtime+ypred), '\n'))
-        cat(paste0('Catch (C) prediction interval:    ', fd(curtime), ' - ', fd(curtime+ypred), '\n\n'))
+        cat(paste0('Catch (C) prediction interval:    ', fd(rep$inp$timeCpred[indnextC]), ' - ', fd(rep$inp$timeCpred[indnextC]+rep$inp$dtcp[indnextC]), '\n\n'))
+        if(rep$inp$catchunit != ''){
+            cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n\n'))
+        }
         cat('Predictions\n')
         print(df)
         invisible(df)
