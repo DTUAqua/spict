@@ -291,7 +291,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.bbmsy(rep)
 #' @export
-plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL, plot.obs=TRUE, qlegend=TRUE){
+plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL, plot.obs=TRUE, qlegend=TRUE, lineat=1){
     if(!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
@@ -315,7 +315,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         #par(mar=c(5,4,4,4))
         fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
         #if(length(ylim)!=2) ylim <- range(c(BB[fininds, 1:3], unlist(obsI), 0.95*Bmsy[1]/Bmsy[2], 1.05*Bmsy[3]/Bmsy[2]), na.rm=TRUE)
-        if(length(ylim)!=2) ylim <- range(c(BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
+        if(length(ylim)!=2) ylim <- range(c(lineat, BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
         ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
         if(main==-1) main <- 'Relative biomass'
         plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main=main)
@@ -356,7 +356,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         lines(inp$time[inp$indpred], BB[inp$indpred,3], col=cicol3, lty=1, lwd=1)
         #tp <- inp$time[rep$inp$dtprediind]
         #points(tp, BB[rep$inp$dtprediind, 2], pch=21, bg='yellow')
-        abline(h=1)
+        abline(h=lineat)
         #if(plot.legend) legend('topleft',c(paste(tp,'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
         box(lwd=1.5)
     }
@@ -659,7 +659,7 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.ffmsy(rep)
 #' @export
-plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
+plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL, lineat=1){
     if(!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
@@ -717,13 +717,13 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         flag <- length(cu)==0 | all(!is.finite(cu))
         if(flag){
             fininds <- which(is.finite(Ff))
-            if(length(ylim)!=2) ylim <- range(c(Ff[fininds]), na.rm=TRUE)
+            if(length(ylim)!=2) ylim <- range(c(lineat, Ff[fininds]), na.rm=TRUE)
         } else {
             fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
-            if(length(ylim)!=2) ylim <- range(c(cl[fininds], cu[fininds]), na.rm=TRUE)
+            if(length(ylim)!=2) ylim <- range(c(lineat, cl[fininds], cu[fininds]), na.rm=TRUE)
         }
         ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
-        ylim <- c(min(ylim[1], 1), max(ylim[2], 1)) # Ensure that 1 is included in ylim
+        ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat)) # Ensure that lineat is included in ylim
         #main <- paste('Fmsy:',round(Fmsy[2],3),' ffac:',inp$ffac)
         if(main==-1) main <- 'Relative fishing mortality'
         plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]), xlab='Time', xlim=range(c(inp$time, tail(inp$time,1)+1)))
@@ -745,7 +745,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         if(!flag) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         #tp <- inp$time[inp$dtprediind]
         #points(tp, Fest[inp$dtprediind, 2], pch=21, bg='yellow')
-        abline(h=1, col='black')
+        abline(h=lineat, col='black')
         #abline(h=rest[2], col='red')
         #if(plot.legend) legend('topleft',c(paste(tp,'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
         box(lwd=1.5)
