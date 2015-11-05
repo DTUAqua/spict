@@ -33,7 +33,8 @@ calc.osa.resid <- function(rep, dbg=0){
     inp <- rep$inp
     # - Built-in OSAR -
     if(rep$inp$osar.method == 'none'){
-        rep$inp$osar.method <- 'oneStepGaussian'
+        #rep$inp$osar.method <- 'oneStepGaussian'
+        rep$inp$osar.method <- 'oneStepGaussianOffMode' # New default
     }
     if(inp$osar.trace) cat('Number of OSAR steps:', length(rep$inp$osar.subset), '\n')
     osar <- try(oneStepPredict(rep$obj, observation.name = "obssrt", data.term.indicator='keep', method=rep$inp$osar.method, discrete=FALSE, conditional=rep$inp$osar.conditional, subset=rep$inp$osar.subset, trace=inp$osar.trace, parallel=inp$osar.parallel))
