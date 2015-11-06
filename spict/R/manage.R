@@ -166,12 +166,12 @@ take.c <- function(catch, inpin, repin, dbg=0){
 #' @export
 mansummary <- function(rep, ypred=1){
     repman <- rep$man
-    get.pdelta <- function(rep, repman, parname='logB'){
+    # Calculate percent difference.
+    get.pdelta <- function(rep, repman, indstart, indnext, parname='logB'){
         val <- get.par(parname, rep, exp=TRUE)[indstart, 2]
         val1 <- get.par(parname, repman, exp=TRUE)[indnext, 2]
         return(round((val1 - val)/val*100, 1))
     }
-    #ypred <- 2
     indstart <- rep$inp$indpred[1] # Current time
     curtime <- rep$inp$time[indstart] # We are at 1 January this year
     indnext <- which(rep$inp$time == curtime+ypred) # Current time + 1 year
@@ -184,8 +184,8 @@ mansummary <- function(rep, ypred=1){
         perc.dB <- numeric(nsc)
         perc.dF <- numeric(nsc)
         for(i in 1:nsc){
-            perc.dB[i] <- get.pdelta(rep, repman[[i]], parname='logB')
-            perc.dF[i] <- get.pdelta(rep, repman[[i]], parname='logF')
+            perc.dB[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logB')
+            perc.dF[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logF')
             Cnextyear[i] <- round(get.par('logCpred', repman[[i]], exp=TRUE)[indnextC, 2], 1)
             Bnextyear[i] <- get.par('logB', repman[[i]], exp=TRUE)[indnext, 2]
             Fnextyear[i] <- get.par('logF', repman[[i]], exp=TRUE)[indnext, 2]
