@@ -97,16 +97,32 @@ make.ellipse <- function(inds, rep){
 #' @name season.cols
 #' @title Load season colors.
 #' @return Vector containing season colors.
-season.cols <- function() rep(c(4, 3, 2, 'gold', 1, 6, 7, 'orange'), 10) # Make sure we have enough colors
+season.cols <- function(modin){
+    # Make colors
+    seasons <- colorRamp(c('blue', 'green', 'gold', 'red', 'blue'))
+    ncols <- 13
+    cols <- seasons(seq(0, 1, length=ncols))
+    rgbcols <- rgb(cols[, 1]/255, cols[, 2]/255, cols[, 3]/255) # Color no 13 = color no 1, only use 1:12
+    # Find colors corresponding to modin
+    breaks <- seq(0, 1, length=ncols) # Monthly breaks
+    ind <- cut(modin, breaks, right=FALSE, labels=FALSE)
+    ind[is.na(ind)] <- 1
+    return(rgbcols[ind])
+    #return(seasons)
+}
+
+
+season.cols.old <- function() rep(c(4, 3, 2, 'gold', 1, 6, 7, 'orange'), 10) # Make sure we have enough colors
+
 
 
 #' @name true.col
-#' @title Load color of true values.
+#' @title Load color of true values from simulation.
 #' @return Color vector
 true.col <- function() rgb(1, 165/255, 0, alpha=0.7) # 'orange'
 
 
-#' @name plot.col
+#' @name plot.col.old
 #' @title Plot model points colored depending on the quarter to which they belong.
 #' @param time Time vector.
 #' @param obs Observation vector (or residual vector).
@@ -118,7 +134,7 @@ true.col <- function() rgb(1, 165/255, 0, alpha=0.7) # 'orange'
 #' @param add.legend If TRUE add legend containing information on quarters.
 #' @param ... Additional plotting arguments.
 #' @return Nothing.
-plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TRUE, add.legend=FALSE, ...){
+plot.col.old <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TRUE, add.legend=FALSE, ...){
     if(is.null(obsx)){
         x <- time
     } else {
@@ -141,19 +157,50 @@ plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TR
 }
 
 
-#' @name add.col.legend
+#' @name plot.col
+#' @title Plot model points colored depending on the quarter to which they belong.
+#' @param time Time vector.
+#' @param obs Observation vector (or residual vector).
+#' @param obsx Second observation vector for use as independent variable instead of time.
+#' @param pch Point character.
+#' @param add If TRUE plot is added to the current plot.
+#' @param typ Plot type.
+#' @param do.line If TRUE draw a line between points.
+#' @param add.legend If TRUE add legend containing information on quarters.
+#' @param ... Additional plotting arguments.
+#' @return Nothing.
+plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TRUE, add.legend=FALSE, ...){
+    if(is.null(obsx)){
+        x <- time
+    } else {
+        x <- obsx
+    }
+    nobs <- length(obs)
+    mods <- time%%1
+    cols <- season.cols(mods)
+    if(!add) plot(x, obs, typ='n', ...)
+    if(typ=='p' & do.line) lines(x, obs, col='lightgray')
+    if(typ=='p') points(x, obs, col=1, pch=20+pch, bg=cols)
+    if(typ=='l') lines(x, obs, col=cols[i], lty=1)
+    if(add.legend) add.col.legend()
+    if(!add) box(lwd=1.5)
+}
+
+
+#' @name add.col.legend.old
 #' @title Add a legend indicating point colors of quarters.
 #' @param qs Quarters to plot legend for.
 #' @param cols Vector containing colors.
 #' @param pch Point character.
 #' @return Nothing.
-add.col.legend <- function(qs, cols, pch=1){
+add.col.legend.old <- function(qs, cols, pch=1){
     par(xpd=TRUE)        
     sp <- 0.02
     xx <- grconvertX(sp, 'nfc', 'user')
     spyy <- 1-2*sp
     dy <- 0.04
     j <- 1
+    qs <- round(qs, 3)
     for(i in qs){
         yy <- grconvertY(spyy-(j-1)*dy, 'nfc', 'user')
         points(xx, yy, pch=20+pch, col=1, bg=cols[i])
@@ -161,6 +208,63 @@ add.col.legend <- function(qs, cols, pch=1){
         j <- j+1
     }
     par(xpd=FALSE)
+}
+
+#' @name add.col.legend.hor
+#' @title Add a legend explaining colors of points (horizontal orientation)
+#' @return Nothing.
+add.col.legend.hor <- function(){
+    pusr <- par('usr')
+    mods <- seq(0, 1, length=13)
+    rgbcols <- season.cols(mods)
+    nbar <- length(rgbcols)-1
+    barwidth <- diff(pusr[1:2])
+    dbw <- barwidth/nbar
+    pxmax <- pusr[2]
+    pymax <- pusr[4]
+    barheight <- 0.05*diff(pusr[3:4])
+    barx <- pxmax-barwidth
+    bary <- pymax-barheight
+    for(i in 1:nbar){
+        xst <- barx+(i-1)*dbw
+        rect(xst,bary,xst+dbw,pymax,col=rgbcols[i],lty=0)
+    }
+    rect(barx,bary,pxmax,pymax)
+    labx <- seq(barx, barx+barwidth, length=5)
+    laby <- pusr[4]-barheight
+    text(labx[1:4]+dbw/2, laby, c('Jan', 'Apr', 'Jul', 'Oct'), pos=1)
+}
+
+
+#' @name add.col.legend
+#' @title Add a legend explaining colors of points (vertical orientation)
+#' @return Nothing.
+add.col.legend <- function(){
+    xpd <- par()$xpd
+    rel <- (par()$fin/par()$pin)[2]
+    yfac <- 3*rel - 3
+    par(xpd=TRUE)
+    pusr <- par('usr')
+    mods <- seq(0, 1, length=13)
+    rgbcols <- season.cols(mods)
+    nbar <- length(rgbcols)-1
+    barwidth <- 0.05*diff(pusr[1:2])
+    barheight <- 0.1*yfac*diff(pusr[3:4])
+    dbh <- barheight/nbar
+    pxmax <- pusr[2]
+    pymax <- pusr[4]
+    barx <- pxmax-barwidth
+    bary <- pymax+barheight
+    for(i in 1:nbar){
+        #xst <- barx+(i-1)*dbw
+        yst <- bary - (i-1)*dbh
+        rect(barx, yst, pxmax, yst+dbh, col=rgbcols[i], lty=0)
+    }
+    #rect(barx, bary, pxmax, pymax)
+    laby <- seq(bary, pymax, length=5)
+    labx <- pxmax
+    text(labx, laby[1:4], c('Jan', 'Apr', 'Jul', 'Oct'), pos=4, cex=0.8)
+    par(xpd=xpd)
 }
 
 
@@ -177,6 +281,14 @@ add.col.legend <- function(qs, cols, pch=1){
 #' @export
 plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL, plot.obs=TRUE, qlegend=TRUE){
     if(!'sderr' %in% names(rep)){
+        omar <- par()$mar
+        mar <- c(5.1, 4.3, 4.1, 4.1)
+        if(dev.cur()==1){ # If plot is not open
+            par(mar=mar)
+        }
+        if(dev.cur()==2){ # If plot is open, check if it is a 1x1 plot
+            if(all(par()$mfrow == c(1, 1))) par(mar=mar)
+        }
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         # Biomass plot
@@ -241,7 +353,8 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         }
         if('true' %in% names(inp)){
             lines(inp$true$time, inp$true$B/scal, col=true.col()) # Plot true
-            abline(h=inp$true$Bmsy, col=true.col(), lty=2)
+            abline(h=inp$true$Bmsy, col=true.col(), lty=1)
+            abline(h=inp$true$Bmsy, col='black', lty=3)
         }
         lines(inp$time[inp$indest], Best[inp$indest,2]/scal, col='blue', lwd=1.5)
         lines(inp$time[inp$indpred], Best[inp$indpred,2]/scal, col='blue', lty=3)
@@ -276,6 +389,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         #legend('topright', legend=c(paste(tp,'Pred.')), pch=c(21), col=c(1), pt.bg=c('yellow'), bg='white')
         if('yearsepgrowth' %in% names(inp)) abline(v=inp$yearsepgrowth, col=3)
         box(lwd=1.5)
+        par(mar=omar)
     }
 }
 
@@ -548,6 +662,14 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
 #' @export
 plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
     if(!'sderr' %in% names(rep)){
+        omar <- par()$mar
+        mar <- c(5.1, 4.3, 4.1, 4.1)
+        if(dev.cur()==1){ # If plot is not open
+            par(mar=mar)
+        }
+        if(dev.cur()==2){ # If plot is open, check if it is a 1x1 plot
+            if(all(par()$mfrow == c(1, 1))) par(mar=mar)
+        }
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         cicol <- 'lightgray'
@@ -627,7 +749,8 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
         abline(v=inp$time[inp$indlastobs], col='gray')
         if('true' %in% names(inp)){
             lines(inp$true$time, inp$true$Fs, col=true.col()) # Plot true
-            abline(h=inp$true$Fmsy, col=true.col(), lty=2)
+            abline(h=inp$true$Fmsy, col=true.col(), lty=1)
+            abline(h=inp$true$Fmsy, col='black', lty=3)
         }
         maincol <- 'blue'
         if(!flag) lines(time, cl, col=maincol, lwd=1.5, lty=2)
@@ -645,6 +768,7 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
         #abline(h=rest[2], col='red')
         #if(plot.legend) legend('topleft',c(paste(tp,'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
         box(lwd=1.5)
+        par(mar=omar)
     }
 }
 
@@ -769,6 +893,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
 #' @export
 plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE, xlim=NULL, ylim=NULL, labpos=c(1, 1)){
     if(!'sderr' %in% names(rep)){
+        omar <- par()$mar
         mar <- c(5.1, 4.3, 4.1, 4.1)
         if(dev.cur()==1){ # If plot is not open
             par(mar=mar)
@@ -895,6 +1020,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         points(Bl, Fl, pch=22, bg='white')
         text(Bl, Fl, tail(fbtime, 1), pos=labpos[2], cex=0.75, offset=0.5, xpd=TRUE)
         box(lwd=1.5)
+        par(mar=omar)
     }
 }
 
@@ -1019,7 +1145,10 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL, qlegend=T
             inds <- which(cols>0)
             points(inp$timeC[inds], inp$obsC[inds]/Cscal, pch=21, cex=0.9, bg=cols[inds])
         }
-        if('true' %in% names(inp)) abline(h=inp$true$MSY, col=true.col(), lty=2)
+        if('true' %in% names(inp)){
+            abline(h=inp$true$MSY, col=true.col(), lty=1)
+            abline(h=inp$true$MSY, col='black', lty=3)
+        }
         #abline(h=MSY[2]/Cscal)
         lines(inp$time, MSYvec$msy)
         lines(time, c, col=lcol, lwd=1.5)
@@ -1320,9 +1449,9 @@ plot.spictcls <- function(rep, logax=FALSE){
         if(inp$reportall){
             #dev.new(width=10, height=10)
             if('osar' %in% names(rep)){
-                par(mfrow=c(4, 3), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2,3.5))
+                par(mfrow=c(4, 3), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
             } else {
-                par(mfrow=c(3, 3), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2,3.5))
+                par(mfrow=c(3, 3), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
             }
             # Biomass
             plotspict.biomass(rep, logax=logax)
