@@ -207,10 +207,11 @@ sumspict.parest <- function(rep, numdigits=8){
     nr <- dim(derout)[1]
     if('true' %in% names(rep$inp)) derout <- cbind(est=derout[, 1], true=rep(-9, nr), ll=derout[, 2], ul=derout[, 3], tic=rep(-9, nr), eil=derout[, 4])
     #colnames(derout) <- colnms
-    if(dim(derout)[1]>1 & 'yearsepgrowth' %in% names(rep$inp)){
+    if(nr>1 & 'yearsepgrowth' %in% names(rep$inp)){
         rownames(derout) <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
     } else {
-        rownames(derout) <- paste0('r', each=paste0(1:dim(derout)[1], '    '))
+        #rownames(derout) <- paste0('r', each=paste0(1:dim(derout)[1], '    '))
+        rownames(derout) <- 'r    '
     }
     resout <- rbind(resout, derout)
     if('true' %in% names(rep$inp)){
@@ -301,7 +302,7 @@ sumspict.states <- function(rep, numdigits=8){
     stateout <- round(stateout, numdigits)
     colnames(stateout) <- colnms
     #et <- tail(rep$inp$time[rep$inp$indest],1)
-    et <- rep$inp$time[rep$inp$indlastobs]
+    et <- fd(rep$inp$time[rep$inp$indlastobs])
     rownames(stateout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'))
     return(stateout)
 }
@@ -326,8 +327,8 @@ sumspict.predictions <- function(rep, numdigits=8){
     predout[, 4] <- log(predout[, 4])
     predout <- round(predout, numdigits)
     colnames(predout) <- c('prediction', colnms[2:4])
-    et <- rep$inp$time[rep$inp$dtprediind]
-    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_',tail(rep$inp$timeCpred,1)), 'B_inf')
+    et <- fd(rep$inp$time[rep$inp$dtprediind])
+    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_', fd(tail(rep$inp$timeCpred,1))), 'B_inf')
     if(rep$inp$dtpredc == 0) predout <- predout[-dim(predout)[1], ]
     return(predout)
 }

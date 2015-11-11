@@ -18,6 +18,12 @@
 #' @exportClass spictcls
 setClass("spictcls")
 
+#' @name fd
+#' @title Format date
+#' @param d Point in time in years as decimal number.
+#' @param dec Number of decimals.
+#' @return Correctly formatted date.
+fd <- function(d, dec=2) sprintf('%4.2f', round(d, dec)) # Format date function
 
 #' @name pol
 #' @title Fisheries data included in Polacheck et al. (1993).
@@ -137,8 +143,11 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                             nc <- rep$inp$nc
                             B0 <- B[ic, 2]
                             B1 <- B[ic+nc, 2]
+                            T0 <- rep$inp$time[ic]
+                            T1 <- rep$inp$time[ic+nc]
                             # Get annual average
-                            est <- (B1 - B0 + C[, 2]) / (rep$inp$dteuler*rep$inp$nc) 
+                            #est <- (B1 - B0 + C[, 2]) / (rep$inp$dteuler*rep$inp$nc) 
+                            est <- (B1 - B0 + C[, 2]) / (T1-T0)
                         }
                     }
                 } else {

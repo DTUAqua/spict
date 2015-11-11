@@ -208,7 +208,7 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
         df[[BBn]] <- round(Bnextyear/Bmsy, 2)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
         df[[FFn]] <- round(Fnextyear/Fmsy, 2)
-        if(include.EBinf) df[[EBinfBn]] <- round(EBinf/Bmsy, 2)
+        if(include.EBinf & rep$inp$nseasons==1) df[[EBinfBn]] <- round(EBinf/Bmsy, 2)
         df <- cbind(as.data.frame(df), perc.dB, perc.dF)
         rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy', '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')
         rownames(df) <- rn
@@ -217,7 +217,6 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
         timerangeI <- range(unlist(rep$inp$timeI))
         timerangeC <- range(rep$inp$timeC)
         lastcatchseen <- tail(rep$inp$timeC+rep$inp$dtc, 1)
-        fd <- function(d) sprintf('%4.2f', d) # Format date function
         cat(paste0('Observed interval, index:  ', fd(timerangeI[1]), ' - ', fd(timerangeI[2]), '\n'))
         cat(paste0('Observed interval, catch:  ', fd(timerangeC[1]), ' - ', fd(lastcatchseen), '\n\n'))
         cat(paste0('Fishing mortality (F) prediction: ', fd(curtime+ypred), '\n'))
