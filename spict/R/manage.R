@@ -139,7 +139,8 @@ take.c <- function(catch, inpin, repin, dbg=0){
     inpc <- check.inp(inpin)
     inpt <- inpin
     plt <- repin$obj$env$parList(repin$opt$par)
-    timecatch <- annual(inpc$time[inpc$indpred], numeric(length(inpc$indpred)))$anntime
+    npred <- length(inpc$indpred)
+    timecatch <- annual(inpc$time[inpc$indpred[-npred]], numeric(length(inpc$indpred[-npred])))$anntime
     ncatch <- length(timecatch)
     obscatch <- rep(catch, ncatch)
     inpt$timeC <- c(inpt$timeC, timecatch)
@@ -162,9 +163,10 @@ take.c <- function(catch, inpin, repin, dbg=0){
 #' @title Print management summary.
 #' @param rep Result list as output from manage().
 #' @param ypred Show results for ypred years into the future.
+#' @param include.EBinf Include EBinf/Bmsy in the output.
 #' @return Data frame containing management summary.
 #' @export
-mansummary <- function(rep, ypred=1){
+mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
     repman <- rep$man
     # Calculate percent difference.
     get.pdelta <- function(rep, repman, indstart, indnext, parname='logB'){
@@ -183,7 +185,9 @@ mansummary <- function(rep, ypred=1){
         Fnextyear <- numeric(nsc)
         perc.dB <- numeric(nsc)
         perc.dF <- numeric(nsc)
+        EBinf <- numeric(nsc)
         for(i in 1:nsc){
+            EBinf[i] <- get.EBinf(repman[[i]])
             perc.dB[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logB')
             perc.dF[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logF')
             Cnextyear[i] <- round(get.par('logCpred', repman[[i]], exp=TRUE)[indnextC, 2], 1)
@@ -195,6 +199,7 @@ mansummary <- function(rep, ypred=1){
         Fn <- paste0('F')
         BBn <- paste0('BqBmsy') # Should use / instead of q, but / is not accepted in varnames
         FFn <- paste0('FqFmsy')
+        EBinfBn <- paste0('EBinfqBmsy')
         df <- list()
         df[[Cn]] <- Cnextyear
         df[[Bn]] <- round(Bnextyear, 1)
@@ -203,10 +208,11 @@ mansummary <- function(rep, ypred=1){
         df[[BBn]] <- round(Bnextyear/Bmsy, 2)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
         df[[FFn]] <- round(Fnextyear/Fmsy, 2)
+        if(include.EBinf) df[[EBinfBn]] <- round(EBinf/Bmsy, 2)
         df <- cbind(as.data.frame(df), perc.dB, perc.dF)
         rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy', '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')
         rownames(df) <- rn
-        colnames(df)[4:5] <- sub('q', '/', colnames(df)[4:5]) # Replace q with /
+        colnames(df)[4:6] <- sub('q', '/', colnames(df)[4:6]) # Replace q with /
         #cat('Management summary\n')
         timerangeI <- range(unlist(rep$inp$timeI))
         timerangeC <- range(rep$inp$timeC)
