@@ -1016,9 +1016,9 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             #if(plot.legend) legend('topright', c('Estimated MSY'), pch=3, col=c('black'), bg='white')
         }
         points(bbb[1], fff[1], pch=21, bg='white')
-        text(bbb[1], fff[1], fbtime[1], pos=labpos[1], cex=0.75, offset=0.5, xpd=TRUE)
+        text(bbb[1], fff[1], round(fbtime[1], 2), pos=labpos[1], cex=0.75, offset=0.5, xpd=TRUE)
         points(Bl, Fl, pch=22, bg='white')
-        text(Bl, Fl, tail(fbtime, 1), pos=labpos[2], cex=0.75, offset=0.5, xpd=TRUE)
+        text(Bl, Fl, round(tail(fbtime, 1), 2), pos=labpos[2], cex=0.75, offset=0.5, xpd=TRUE)
         box(lwd=1.5)
         par(mar=omar)
     }
@@ -1216,7 +1216,7 @@ plotspict.production <- function(rep, n.plotyears=40){
             par(xpd=TRUE)
             if(length(inp$ic) < n.plotyears){
                 inds <- c(1, length(Bvec), seq(1, length(Bvec), by=2))
-                labs <- inp$time[inp$ic]
+                labs <- round(inp$time[inp$ic], 2)
                 text(Bvec[inds]/Kest[2], Pest[inds, 2]/Bmsy[2], labels=labs[inds], cex=0.75, pos=4, offset=0.25)
             }
             par(xpd=FALSE)
