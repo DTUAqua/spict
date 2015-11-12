@@ -4,7 +4,7 @@
 \alias{season.cols}
 \title{Load season colors.}
 \usage{
-season.cols()
+season.cols(modin)
 }
 \value{
 Vector containing season colors.

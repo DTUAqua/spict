@@ -4,12 +4,14 @@
 \alias{mansummary}
 \title{Print management summary.}
 \usage{
-mansummary(rep, ypred = 1)
+mansummary(rep, ypred = 1, include.EBinf = FALSE)
 }
 \arguments{
 \item{rep}{Result list as output from manage().}
 
 \item{ypred}{Show results for ypred years into the future.}
+
+\item{include.EBinf}{Include EBinf/Bmsy in the output.}
 }
 \value{
 Data frame containing management summary.

@@ -166,6 +166,7 @@ fit.spict <- function(inp, dbg=0){
 #' @param inp List of input variables as output by check.inp.
 #' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. 
 #' @return List to be used as data input to TMB.
+#' @export
 make.datin <- function(inp, dbg=0){
     datin <- list(reportall=as.numeric(inp$reportall),
                   dt=inp$dt,
@@ -216,6 +217,7 @@ make.datin <- function(inp, dbg=0){
 #' @param inp List of input variables as output by check.inp.
 #' @param phase Estimation phase, integer.
 #' @return List to be used as data input to TMB.
+#' @export
 #' @import TMB
 make.obj <- function(datin, pl, inp, phase=1){
     obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map[[phase]])

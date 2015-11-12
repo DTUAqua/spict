@@ -2,21 +2,14 @@
 % Please edit documentation in R/plotting.R
 \name{add.col.legend}
 \alias{add.col.legend}
-\title{Add a legend indicating point colors of quarters.}
+\title{Add a legend explaining colors of points (vertical orientation)}
 \usage{
-add.col.legend(qs, cols, pch = 1)
-}
-\arguments{
-\item{qs}{Quarters to plot legend for.}
-
-\item{cols}{Vector containing colors.}
-
-\item{pch}{Point character.}
+add.col.legend()
 }
 \value{
 Nothing.
 }
 \description{
-Add a legend indicating point colors of quarters.
+Add a legend explaining colors of points (vertical orientation)
 }
 

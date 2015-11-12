@@ -108,6 +108,10 @@ Type objective_function<Type>::operator() ()
   PARAMETER_MATRIX(logu);      // Seasonal component of F in log
   PARAMETER_VECTOR(logB);      // Biomass in log
 
+  // Put a very wide prior on initial states to try and fix first residuals (this problem didn't occur with OffMode residuals)
+  //ans += dnorm(logB(0), Type(10.0), Type(10.0), 1);
+  //ans += dnorm(logF(0), Type(0.0), Type(10.0), 1);
+
   //std::cout << "expmosc: " << expmosc(lambda, omega, 0.1) << std::endl;
    if(dbg > 0){
      std::cout << "==== DATA read, now calculating derived quantities ====" << std::endl;

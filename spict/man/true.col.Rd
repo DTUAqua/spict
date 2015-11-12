@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotting.R
 \name{true.col}
 \alias{true.col}
-\title{Load color of true values.}
+\title{Load color of true values from simulation.}
 \usage{
 true.col()
 }
@@ -10,6 +10,6 @@ true.col()
 Color vector
 }
 \description{
-Load color of true values.
+Load color of true values from simulation.
 }
 
