@@ -80,6 +80,8 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(robflagi);       // Index Degrees of freedom of t-distribution (only used if tdf < 25)
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(prioralpha);     // Prior vector for alpha, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorbeta);      // Prior vector for beta, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorr);         // Prior vector for r, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
@@ -87,6 +89,8 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(priorbkfrac);    // Prior vector for B0/K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorB);         // Prior vector for B, [log(mean), stdev in log, useflag, year, ib]
   DATA_VECTOR(priorF);         // Prior vector for F, [log(mean), stdev in log, useflag, year, if]
+  DATA_VECTOR(priorBBmsy);     // Prior vector for B/Bmsy, [log(mean), stdev in log, useflag, year, ib]
+  DATA_VECTOR(priorFFmsy);     // Prior vector for F/Fmsy, [log(mean), stdev in log, useflag, year, if]
   DATA_SCALAR(simple);         // If simple=1 then use simple model (catch assumed known, no F process)
   DATA_SCALAR(dbg);            // Debug flag, if == 1 then print stuff.
 
@@ -161,9 +165,10 @@ Type objective_function<Type>::operator() ()
   int nsdu = sdu.size();
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
+  int nalpha = logalpha.size();
   vector<Type> sdi(nq);
-  if(logalpha.size()==1){
-    for(int i=0; i<nq; i++){ sdi(i) = exp(logalpha(0))*sdb; } // Same alpha for all indices
+  if(nalpha==1){
+    for(int i=0; i<nalpha; i++){ sdi(i) = exp(logalpha(0))*sdb; } // Same alpha for all indices
   } else {
     sdi = exp(logalpha)*sdb;
   }
@@ -254,40 +259,6 @@ Type objective_function<Type>::operator() ()
     //std::cout << "sign: " << sign << " -- n: " << n << " -- gamma: " << gamma << n << " -- m(i): " << m(i)<< n << " -- K: " << K << " -- r(i): " << r(i) << " -- logr(i): " << logr(i) << std::endl;
   }
 
-  // PRIORS
-  if(dbg > 0){
-    std::cout << "PRIOR: priorn(0): " << priorn(0) << " -- priorn(1): " << priorn(1) << " -- priorn(2): " << priorn(2) << std::endl;
-    std::cout << "PRIOR: priorr(0): " << priorr(0) << " -- priorr(1): " << priorr(1) << " -- priorr(2): " << priorr(2) << std::endl;
-    std::cout << "PRIOR: priorK(0): " << priorK(0) << " -- priorK(1): " << priorK(1) << " -- priorK(2): " << priorK(2) << std::endl;
-    std::cout << "PRIOR: priorm(0): " << priorm(0) << " -- priorm(1): " << priorm(1) << " -- priorm(2): " << priorm(2) << std::endl;
-    std::cout << "PRIOR: priorq(0): " << priorq(0) << " -- priorq(1): " << priorq(1) << " -- priorq(2): " << priorq(2) << std::endl;
-  }
-  if(priorn(2) == 1){
-    ans-= dnorm(logn, priorn(0), priorn(1), 1); // Prior for logn
-  }
-  if(priorr(2) == 1 & nm == 1){
-    ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
-  }
-  if(priorK(2) == 1){
-    ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
-  }
-  if(priorm(2) == 1 & nm == 1){
-    ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
-  }
-  if(priorq(2) == 1 & nq == 1){
-    ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq
-  }
-  if(priorbkfrac(2) == 1){
-    ans-= dnorm(logB(0) - logK, priorbkfrac(0), priorbkfrac(1), 1); // Prior for logbkfrac
-  }
-  if(priorB(2) == 1){
-    ind = CppAD::Integer(priorB(4)-1);
-    ans-= dnorm(logB(ind), priorB(0), priorB(1), 1); // Prior for logB
-  }
-  if(priorF(2) == 1){
-    ind = CppAD::Integer(priorF(4)-1);
-    ans-= dnorm(logF(ind), priorF(0), priorF(1), 1); // Prior for logF
-  }
 
   Type likval;
 
@@ -316,6 +287,56 @@ Type objective_function<Type>::operator() ()
     logFmsyvec(i) = logFmsy(ind);
     logBmsyvec(i) = logBmsy(ind);
   }
+
+  // PRIORS
+  if(dbg > 0){
+    std::cout << "PRIOR: priorn(0): " << priorn(0) << " -- priorn(1): " << priorn(1) << " -- priorn(2): " << priorn(2) << std::endl;
+    std::cout << "PRIOR: priorr(0): " << priorr(0) << " -- priorr(1): " << priorr(1) << " -- priorr(2): " << priorr(2) << std::endl;
+    std::cout << "PRIOR: priorK(0): " << priorK(0) << " -- priorK(1): " << priorK(1) << " -- priorK(2): " << priorK(2) << std::endl;
+    std::cout << "PRIOR: priorm(0): " << priorm(0) << " -- priorm(1): " << priorm(1) << " -- priorm(2): " << priorm(2) << std::endl;
+    std::cout << "PRIOR: priorq(0): " << priorq(0) << " -- priorq(1): " << priorq(1) << " -- priorq(2): " << priorq(2) << std::endl;
+  }
+  if(priorn(2) == 1){
+    ans-= dnorm(logn, priorn(0), priorn(1), 1); // Prior for logn
+  }
+  if(prioralpha(2) == 1){
+    for(int i=0; i<nalpha; i++){ ans-= dnorm(logalpha(i), prioralpha(0), prioralpha(1), 1); } // Prior for logalpha
+  }
+  if(priorbeta(2) == 1){
+    ans-= dnorm(logbeta, priorbeta(0), priorbeta(1), 1); // Prior for logbeta
+  }
+  if(priorr(2) == 1 & nm == 1){
+    ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
+  }
+  if(priorK(2) == 1){
+    ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
+  }
+  if(priorm(2) == 1 & nm == 1){
+    ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
+  }
+  if(priorq(2) == 1 & nq == 1){
+    ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq
+  }
+  if(priorbkfrac(2) == 1){
+    ans-= dnorm(logB(0) - logK, priorbkfrac(0), priorbkfrac(1), 1); // Prior for logbkfrac
+  }
+  if(priorB(2) == 1){
+    ind = CppAD::Integer(priorB(4)-1);
+    ans-= dnorm(logB(ind), priorB(0), priorB(1), 1); // Prior for logB
+  }
+  if(priorF(2) == 1){
+    ind = CppAD::Integer(priorF(4)-1);
+    ans-= dnorm(logF(ind), priorF(0), priorF(1), 1); // Prior for logF
+  }
+  if(priorBBmsy(2) == 1){
+    ind = CppAD::Integer(priorBBmsy(4)-1);
+    ans-= dnorm(logB(ind) - logBmsyvec(ind), priorBBmsy(0), priorBBmsy(1), 1); // Prior for logBBmsy
+  }
+  if(priorFFmsy(2) == 1){
+    ind = CppAD::Integer(priorFFmsy(4)-1);
+    ans-= dnorm(logF(ind) - logFmsyvec(ind), priorFFmsy(0), priorFFmsy(1), 1); // Prior for logFFmsy
+  }
+
   //for(int i=1; i<indpred.size(); i++){ // don't use i=0 because this is only for plotting
   //  ind = CppAD::Integer(indpred(i)-1); // minus 1 because R starts at 1 and c++ at 0
   //  if(dbg>1){
