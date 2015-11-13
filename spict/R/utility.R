@@ -381,3 +381,21 @@ get.osar.pvals <- function(rep){
     }
     return(pvals)
 }
+
+
+#' @name get.cov
+#' @title Get covariance matrix of two reported quantities not of fixed model parameters. Covariance of fixed model parameters can be found in rep$cov.fixed.
+#' @param rep Result of fit.spict().
+#' @param parname1 Name first parameter.
+#' @param parname2 Name second parameter.
+#' @param cor If TRUE correlation matrix is reported instead of covariance matrix
+#' @return Covariance matrix of specified parameters.
+#' @export
+get.cov <- function(rep, parname1, parname2, cor=FALSE){
+    inds <- match(c(parname1, parname2), names(rep$value))
+    if(cor){
+        return(cov2cor(rep$cov[inds, inds]))
+    } else {
+        return(rep$cov[inds, inds])
+    }
+}
