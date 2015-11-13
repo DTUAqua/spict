@@ -965,21 +965,39 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             ylim[2] <- min(c(ylim[2], 8*Fmsy[2]/fscal), 2.2*max(fff))
             ylim[2] <- max(c(ylim[2], Fmsy[2]/fscal))
         }
+        logminval <- 1e-4
+        if(logax){ # Ensure that zero is not in the limit if taking log
+            xlim[1] <- max(xlim[1], logminval)
+            ylim[1] <- max(ylim[1], logminval)
+        }
         # Plotting
         #par(mar=c(5,4,4,4))
         plot(Bmsy[2]/bscal, Fmsy[2]/fscal, typ='n', xlim=xlim, xlab=xlab, ylab=ylab, ylim=ylim, log=log)
         if(ext){
-            axis(3, labels=pretty(xlim/Bmsy[2]), at=pretty(xlim/Bmsy[2])*Bmsy[2])
+            if(logax){
+                expx <- pretty(log10(xlim/Bmsy[2]))
+                expy <- pretty(log10(ylim/Fmsy[2]))
+                labx <- 10^expx
+                laby <- 10^expy
+            } else {
+                labx <- pretty(xlim/Bmsy[2])
+                laby <- pretty(ylim/Fmsy[2])
+            }
+            atx <- labx*Bmsy[2] #expression(10^expx)
+            aty <- laby*Fmsy[2] #expression(10^expy)
+            axis(3, labels=labx, at=atx)
             mtext(expression(B[t]/B[MSY]), side=3, las=0, line=2, cex=par('cex'))
-            axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
+            axis(4, labels=laby, at=aty)
             mtext(expression(F[t]/F[MSY]), side=4, las=0, line=2.5, cex=par('cex'))
         }
         alpha <- 0.15
-        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], -10, -10, Fmsy[2])/fscal, col=rgb(0.5,0.8,0.4,1), border=NA) # Green
+        ymin <- ifelse(logax, logminval*1e-2, -10)
+        xmin <- ifelse(logax, logminval*1e-2, xlim[1]-xlim[2])
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], ymin, ymin, Fmsy[2])/fscal, col=rgb(0.5,0.8,0.4,1), border=NA) # Green
         yel <- rgb(1,0.925,0.55,1) # Yellow
-        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], -10, -10, Fmsy[2])/fscal, col=yel, border=NA) 
-        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=yel, border=NA) # Yellow
-        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[1]-xlim[2], xlim[1]-xlim[2]), c(Fmsy[2], ylim[2]*2, ylim[2]*2, Fmsy[2])/fscal, col=rgb(1,0.188,0.188,1), border=NA) # Red
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xmin, xmin), c(Fmsy[2], ymin, ymin, Fmsy[2])/fscal, col=yel, border=NA) # Yellow
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xlim[2]*2, xlim[2]*2), c(Fmsy[2], (ylim[2]+1)*2, (ylim[2]+1)*2, Fmsy[2])/fscal, col=yel, border=NA) # Yellow
+        polygon(c(Bmsy[2]/bscal, Bmsy[2]/bscal, xmin, xmin), c(Fmsy[2], (ylim[2]+1)*2, (ylim[2]+1)*2, Fmsy[2])/fscal, col=rgb(1,0.188,0.188,1), border=NA) # Red
         abline(v=0, col='darkred', lty=2)
         cicol <- 'lightgray'
         cicolrgb <- col2rgb(cicol)/255
