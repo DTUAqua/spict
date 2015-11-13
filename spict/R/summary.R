@@ -41,8 +41,9 @@ summary.spictcls <- function(object, numdigits=8){
         cat('\n')
     }
     if('sderr' %in% names(rep)) cat('WARNING: Could not calculate standard deviations. The optimum found may be invalid. Proceed with caution.\n')
-    cat(paste('Negative log likelihood: ', round(rep$opt$objective, numdigits), '\n', sep=''))
-    cat(paste0('\nNobs C: ', rep$inp$nobsC, paste0(paste0(',  Nobs I', 1:rep$inp$nindex), ': ', rep$inp$nobsI, collapse=''), '\n'))
+    cat(paste0('Negative log likelihood: ', round(rep$opt$objective, numdigits), '\n'))
+    cat(paste0('Euler time step: 1/', 1/rep$inp$dteuler, ' or ', rep$inp$dteuler, '\n'))
+    cat(paste0('Nobs C: ', rep$inp$nobsC, paste0(paste0(',  Nobs I', 1:rep$inp$nindex), ': ', rep$inp$nobsI, collapse=''), '\n'))
     # -- Catch/biomass unit --
     if(rep$inp$catchunit != ''){
         cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n'))
@@ -61,11 +62,11 @@ summary.spictcls <- function(object, numdigits=8){
     if(length(indso)>0){
         usepriors <- names(rep$inp$priors)[indso]
         npriors <- length(usepriors)
-        logFB <- c('logB', 'logF')
-        if(any(logFB %in% usepriors)){
-            inds <- match(logFB, usepriors)
+        repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
+        if(any(repriors %in% usepriors)){
+            inds <- match(repriors, usepriors)
             inds <- inds[!is.na(inds)]
-            for(i in 1:length(inds)) usepriors[inds[i]] <- paste0(usepriors[inds[i]], rep$inp$priors[[inds[i]]][4])
+            for(i in 1:length(inds)) usepriors[inds[i]] <- paste0(usepriors[inds[i]], fd(rep$inp$priors[[inds[i]]][4]))
         }
         #cat(paste('\nPriors on:', paste(usepriors, collapse=', '), '\n'))
         str <- character(npriors)
@@ -81,7 +82,7 @@ summary.spictcls <- function(object, numdigits=8){
     # -- Fixed parameters --
     cat('\nFixed parameter values\n')
     resout <- sumspict.fixedpars(rep, numdigits=numdigits)
-    cat('', paste(capture.output(resout),' \n'))
+    if(!is.null(resout)) cat('', paste(capture.output(resout),' \n'))
         
     # -- Model parameters --
     cat('\nModel parameter estimates w 95% CI \n')
@@ -102,12 +103,12 @@ summary.spictcls <- function(object, numdigits=8){
         #}
         #cat('', paste(capture.output(derout),' \n'))
         # Deterministic ref points
-        cat(' Deterministic reference points\n')
+        cat('Deterministic reference points\n')
         derout <- sumspict.drefpoints(rep, numdigits=numdigits)
         cat('', paste(capture.output(derout),' \n'))
         
         # Stochastic derived estimates
-        cat(' Stochastic reference points\n')
+        cat('Stochastic reference points\n')
         derout <- sumspict.srefpoints(rep, numdigits=numdigits)
         cat('', paste(capture.output(derout),' \n'))
 
@@ -335,11 +336,14 @@ sumspict.predictions <- function(rep, numdigits=8){
         get.par(parname='logFpFmsy', rep, exp=TRUE)[order],
         tail(get.par(parname='logCpred', rep, exp=TRUE),1)[order],
         c(EBinf, NA, NA, EBinf))
-    predout[, 4] <- log(predout[, 4])
+    inds <- predout[, 4] <= 0
+    predout[inds, 4] <- NA
+    inds <- predout[, 4] > 0 & !is.na(predout[, 4])
+    predout[inds, 4] <- log(predout[inds, 4])
     predout <- round(predout, numdigits)
     colnames(predout) <- c('prediction', colnms[2:4])
     et <- fd(rep$inp$time[rep$inp$dtprediind])
-    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_', fd(tail(rep$inp$timeCpred,1))), 'B_inf')
+    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_', fd(tail(rep$inp$timeCpred,1))), 'E(B_inf)')
     if(rep$inp$dtpredc == 0) predout <- predout[-dim(predout)[1], ]
     return(predout)
 }
@@ -381,33 +385,37 @@ sumspict.fixedpars <- function(rep, numdigits=8){
     }
     
     nnms <- length(nms)
-    vals <- numeric(0)
-    valnms <- character(0)
-    for(i in 1:nnms){
-        val <- get.par(parname=nms[i], rep)[2]
-        vals <- c(vals, val)
-        nval <- length(val)
-        if(nval>1){
-            valnms <- c(valnms, paste0(nms[i], 1:nval))
-        } else {
-            valnms <- c(valnms, nms[i])
+    if(nnms > 0){
+        vals <- numeric(0)
+        valnms <- character(0)
+        for(i in 1:nnms){
+            val <- get.par(parname=nms[i], rep)[2]
+            vals <- c(vals, val)
+            nval <- length(val)
+            if(nval>1){
+                valnms <- c(valnms, paste0(nms[i], 1:nval))
+            } else {
+                valnms <- c(valnms, nms[i])
+            }
         }
-    }
-    names(vals) <- valnms
+        names(vals) <- valnms
 
-    vals <- trans2real(vals, nms)
-    df <- data.frame(fixed.value=vals)
-    df <- round(df, numdigits)
-    
-    if('true' %in% names(rep$inp)){
-        alltrue <- unlist(rep$inp$true)
-        inds <- match(nms, names(alltrue))
-        truevals <- alltrue[inds]
-        truenms <- names(truevals)
-        truevals <- trans2real(truevals, truenms, chgnms=FALSE)
-        df <- cbind(df, true=truevals)
+        vals <- trans2real(vals, nms)
+        df <- data.frame(fixed.value=vals)
+        df <- round(df, numdigits)
+        
+        if('true' %in% names(rep$inp)){
+            alltrue <- unlist(rep$inp$true)
+            inds <- match(nms, names(alltrue))
+            truevals <- alltrue[inds]
+            truenms <- names(truevals)
+            truevals <- trans2real(truevals, truenms, chgnms=FALSE)
+            df <- cbind(df, true=truevals)
+        }
+        return(df)
+    } else {
+        return(NULL)
     }
-    return(df)
 }
 
 
