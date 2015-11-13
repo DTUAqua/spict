@@ -89,11 +89,11 @@ check.inp <- function(inp){
         }
         if(any(diff(inp$timeC)<=0)) stop('Catch times are not strictly increasing!')
         if(length(inp$obsC) != length(inp$timeC)) stop('Time and observation vector do not match in length for catch series')
-        neg <- which(inp$obsC<0 | is.na(inp$obsC))
+        neg <- which(inp$obsC<=0 | is.na(inp$obsC))
         if(length(neg)>0){
             inp$obsC <- inp$obsC[-neg]
             inp$timeC <- inp$timeC[-neg]
-            cat(paste('Removing negative and NAs in catch series\n'))
+            cat(paste('Removing zero, negative, and NAs in catch series\n'))
         }
         inp$nobsC <- length(inp$obsC)
         inp$obsidC <- 1:inp$nobsC
@@ -131,11 +131,11 @@ check.inp <- function(inp){
         for(i in 1:inp$nindex){
             if(length(inp$obsI[[i]]) != length(inp$timeI[[i]])) stop('Time and observation vector do not match in length for index series ',i)
             if(length(inp$obsI[[i]])>0){
-                neg <- which(inp$obsI[[i]]<0 | is.na(inp$obsI[[i]]))
+                neg <- which(inp$obsI[[i]]<=0 | is.na(inp$obsI[[i]]))
                 if(length(neg)>0){
                     inp$obsI[[i]] <- inp$obsI[[i]][-neg]
                     inp$timeI[[i]] <- inp$timeI[[i]][-neg]
-                    cat(paste('Removing negative and NAs in index series',i,'\n'))
+                    cat(paste('Removing zero, negative and NAs in index series',i,'\n'))
                 }
             }
             inp$nobsI[i] <- length(inp$obsI[[i]])
@@ -149,22 +149,46 @@ check.inp <- function(inp){
         stop('No index observations included. Please include them as a list in inp$obsI.')
     }
 
-    # -- MAX MIN RATIO --
+    # -- MAX MIN RATIO (used in simulation only) --
     inp$maxminratio <- rep(0, inp$nindex)
     names(inp$maxminratio) <- paste0('I', 1:inp$nindex)
     for(i in 1:inp$nindex){
         if(length(inp$obsI[[i]])>0) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
     }
+
     # -- MODEL OPTIONS --
-    if(!"onealpha" %in% names(inp)){
-        inp$onealpha <- TRUE
-    }
-    if(!"catchunit" %in% names(inp)){
-        inp$catchunit <- ''
-    }
-    if(!"simple" %in% names(inp)){
-        inp$simple <- 0
-    }
+    if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
+    if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
+    if(!"onealpha" %in% names(inp)) inp$onealpha <- TRUE
+    if(!"catchunit" %in% names(inp)) inp$catchunit <- ''
+    if(!"reportall" %in% names(inp)) inp$reportall <- TRUE
+    if(!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
+    # Simulation options
+    if(!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
+    # Optimiser options
+    if(!"optimiser" %in% names(inp)) inp$optimiser <- 'nlminb'
+    if(!"optimiser.control" %in% names(inp)) inp$optimiser.control <- list()
+    # OSAR options
+    if(!"osar.method" %in% names(inp)) inp$osar.method <- 'none'
+    if(!"osar.trace" %in% names(inp))  inp$osar.trace <- FALSE
+    if(!"osar.parallel" %in% names(inp)) inp$osar.parallel <- FALSE
+    # Season options
+    if(!"seasontype" %in% names(inp)) inp$seasontype <- 1
+    if(!"omega" %in% names(inp)) inp$omega <- 2*pi # Annual cycle of noisy oscillator
+    # Robust options
+    if(!"robflagc" %in% names(inp)) inp$robflagc <- 0
+    inp$robflagc <- as.numeric(inp$robflagc)
+    if(!"robflagi" %in% names(inp)) inp$robflagi <- 0
+    inp$robflagi <- as.numeric(inp$robflagi)
+    # ASPIC options 
+    if(!"aspic" %in% names(inp)) inp$aspic <- list()
+    if(!"mode" %in% names(inp$aspic)) inp$aspic$mode <- 'FIT'
+    if(!"verbosity" %in% names(inp$aspic)) inp$aspic$verbosity <- '102'
+    if(!"nboot" %in% names(inp$aspic)) inp$aspic$nboot <- 1000
+    if(!"ciperc" %in% names(inp$aspic)) inp$aspic$ciperc <- 95
+
+    # Options for simple model
+    if(!"simple" %in% names(inp)) inp$simple <- 0
     if(inp$simple==1){ # Set parameters for the simple model (catch assumed known, no F process).
         umodtimeC <- unique(inp$timeC%%1)
         if(length(umodtimeC) != 1) stop('When inp$simple = 1, inp$timeC must have a fixed regular time step of 1 year!')
@@ -185,46 +209,27 @@ check.inp <- function(inp){
         inp$timepredc <- max(inp$timeC)
         inp$timepredi <- max(unlist(inp$timeI))
     }
-    if(!"optimiser" %in% names(inp)){
-        inp$optimiser <- 'nlminb'
+    # MSY type options
+    if("phases" %in% names(inp)){
+        if('logn' %in% names(inp$phases)){
+            if(inp$phases$logn > -1){
+                if(!"msytype" %in% names(inp)){
+                    inp$msytype <- 'd'
+                    cat('Using msytype = "d" because logn is estimated. Force SPiCT to use msytype = "s" by manually specifying it.\n')
+                } else {
+                    # Dangerous to use stochastic msys when estimating n because estimate of n could result in invalid reference points.
+                    #if(inp$msytype != 'd') cat('Using msytype = "d" because logn is estimated.\n')
+                    if(inp$msytype != 'd') warning('Dangerous to use stochastic msys when estimating n because estimate of n could result in invalid reference points. Check difference between deterministic and stochastic reference points.')
+                }
+            }
+        }
     }
-    if(!"optimiser.control" %in% names(inp)){
-        inp$optimiser.control <- list()
-    }
-    if(!"osar.method" %in% names(inp)){
-        inp$osar.method <- 'none'
-    }
-    if(!"osar.trace" %in% names(inp)){
-        inp$osar.trace <- FALSE
-    }
-    if(!"osar.parallel" %in% names(inp)){
-        inp$osar.parallel <- FALSE
-    }
-    if(!"seasontype" %in% names(inp)){
-        inp$seasontype <- 1
-    }
-    if(!"omega" %in% names(inp)) inp$omega <- 2*pi # Annual cycle
-    #if(!"A" %in% names(inp)) inp$A <- matrix(c(-inp$lambda, -inp$omega, inp$omega, -inp$lambda), 2, 2, byrow=TRUE)
     if(!"msytype" %in% names(inp)){
         inp$msytype <- 's'
     } else {
         if(!inp$msytype %in% c('s', 'd')) stop('inp$msytype must be either "s" (stochastic) or "d" (deterministic!')
     }
-    if("phases" %in% names(inp)){
-        if('logn' %in% names(inp$phases)){
-            if(inp$phases$logn > -1){
-                # Dangerous to use stochastic msys when estimating n because estimate of n could result in invalid reference points.
-                if(inp$msytype != 'd') cat('Using msytype = "d" because logn is estimated.\n')
-                inp$msytype <- 'd'
-            }
-        }
-    }
-    if(!"reportall" %in% names(inp)) inp$reportall <- TRUE
-    if(!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
-    if(!"robflagc" %in% names(inp)) inp$robflagc <- 0
-    inp$robflagc <- as.numeric(inp$robflagc)
-    if(!"robflagi" %in% names(inp)) inp$robflagi <- 0
-    inp$robflagi <- as.numeric(inp$robflagi)
+    # Catch intervals (dtc)
     if(!"dtc" %in% names(inp)){
         dtc <- diff(inp$timeC)
         if(length(dtc)>0){
@@ -237,16 +242,10 @@ check.inp <- function(inp){
     }
     if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
     if(length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
-    timeobs <- c(inp$timeC, inp$timeC + inp$dtc, unlist(inp$timeI))
-    timesteps <- diff(sort(timeobs))
-    timesteps <- timesteps[timesteps > 0]
-    if("dteuler" %in% names(inp)) if(inp$dteuler > min(timesteps)){
-        cat('inp$dteuler is', inp$dteuler, 'while the minimum time step of observations is', min(timesteps), 'inp$dteuler will be changed!')
-        inp$dteuler <- NULL
-    }
-    #if(!"dteuler" %in% names(inp)) inp$dteuler <- 0.5*min(timesteps) # half because often a time step finer than obs is required
-    if(!"dteuler" %in% names(inp)) inp$dteuler <- min(1/16, 0.5*min(timesteps)) # half because often a time step finer than obs is required
 
+    # - Prediction horizons -
+    timeobsall <- sort(c(inp$timeC, inp$timeC + inp$dtc, unlist(inp$timeI)))
+    # Catch prediction time step (dtpredc)
     if(!"dtpredc" %in% names(inp)){
         if(length(inp$dtc)>0){
             inp$dtpredc <- max(inp$dtc)
@@ -255,40 +254,76 @@ check.inp <- function(inp){
             cat('Assuming a 1 year prediction interval for catch.\n')
         }
     }
+    # Time point to predict catches until
     if(!"timepredc" %in% names(inp)){
-        inp$timepredc <- max(timeobs)
+        inp$timepredc <- max(timeobsall)
     } else {
-        if(inp$timepredc < max(inp$timeC)) stop('inp$timepredc must be equal to or later than last catch observation!')
+        if(inp$timepredc < max(inp$timeC)) cat('inp$timepredc:', inp$timepredc, ' must be equal to or later than last catch observation: ', max(inp$timeC), '!')
     }
+    # Time point to predict indices until
     if(!"timepredi" %in% names(inp)){
-        inp$timepredi <- max(timeobs)
+        inp$timepredi <- max(timeobsall)
     } else {
         if(inp$timepredi < max(unlist(inp$timeI))) stop('inp$timepredi must be equal to or later than last index observation!')
     }
-    if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
-    #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'logbkfrac')
-    #if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logB', 'Cpredcum')
-    if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
 
-    # -- ASPIC SETTINGS --
-    if(!"aspic" %in% names(inp)) inp$aspic <- list()
-    if(!"mode" %in% names(inp$aspic)) inp$aspic$mode <- 'FIT'
-    if(!"verbosity" %in% names(inp$aspic)) inp$aspic$verbosity <- '102'
-    if(!"nboot" %in% names(inp$aspic)) inp$aspic$nboot <- 1000
-    if(!"ciperc" %in% names(inp$aspic)) inp$aspic$ciperc <- 95
-
-    # -- SIMULATION SETTINGS --
-    if(!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
+    # Numerical Euler discretisation time used by SDE solver
+    #timesteps <- diff(sort(timeobs))
+    #timesteps <- timesteps[timesteps > 0]
+    #if("dteuler" %in% names(inp)) if(inp$dteuler > min(timesteps)){
+    #    cat('inp$dteuler is', inp$dteuler, 'while the minimum time step of observations is', min(timesteps), 'inp$dteuler will be changed!')
+    #    inp$dteuler <- NULL
+    #}
+    #if(!"dteuler" %in% names(inp)) inp$dteuler <- 0.5*min(timesteps) # half because often a time step finer than obs is required
+    #if(!"dteuler" %in% names(inp)) inp$dteuler <- min(1/16, 0.5*min(timesteps)) # half because often a time step finer than obs is required
+    
+    # Euler time step
+    if(!"dteuler" %in% names(inp)) inp$dteuler <- 1/16
+    if("dteuler" %in% names(inp)){
+        alloweddteuler <- 1/2^(6:0)
+        if(!inp$dteuler %in% alloweddteuler){ # Check if dteuler is among the alloweddteuler
+            ind <- cut(inp$dteuler, alloweddteuler, right=FALSE, labels=FALSE)
+            if(is.na(ind)){
+                if(inp$dteuler > max(alloweddteuler)) inp$dteuler <- max(alloweddteuler)
+                if(inp$dteuler < min(alloweddteuler)) inp$dteuler <- min(alloweddteuler)
+            } else {
+                inp$dteuler <- alloweddteuler[ind]
+            }
+            cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
+        }
+    }
+    # Euler types:
+    # hard: time discretisation is equidistant with step length = dteuler. Observations are assigned to intervals
+    # soft: time discretisation is equidistant with step length = dteuler, but with time points of observations inserted such that they can be assigned accurately to a time point instead of an interval.
+    # Include dtc because a catch observation at time t includes information in the interval [t; t+dtc[
+    if(!"eulertype" %in% names(inp)){
+        inp$eulertype <- 'hard'
+    }
+    if("eulertype" %in% names(inp)){
+        if(inp$eulertype == 'hard'){
+            # Hard Euler discretisation
+            time <- seq(floor(min(timeobsall)), max(inp$timepredi, inp$timepredc+inp$dtpredc), by=inp$dteuler)
+            inp$time <- time
+        }
+        if(inp$eulertype == 'soft'){
+            # Include times of observations (including dtc)
+            time <- seq(ceiling(min(timeobsall)), max(inp$timepredi, inp$timepredc+inp$dtpredc), by=inp$dteuler)
+            inp$time <- sort(unique(c(timeobsall, time)))
+        }
+        if(!inp$eulertype %in% c('soft', 'hard'))
+            stop('inp$eulertype must be either "soft" or "hard"!')
+    }
+    # Calculate time steps
+    inp$dt <- c(diff(inp$time), inp$dteuler)
+    #inp$dt <- rep(inp$dteuler, inp$ns)
+    inp$ns <- length(inp$time)
 
     # -- DERIVED VARIABLES --
-    timeobsnodtc <- c(inp$timeC, unlist(inp$timeI))
-    # Include dtc because a catch observation at time t includes information in the interval [t; t+dtc[ 
-    inp$timerange <- range(timeobs)
-    time <- seq(min(timeobs), max(inp$timepredi, inp$timepredc+inp$dtpredc), by=inp$dteuler)
-    # Remove duplicate time points and store time in inp list
-    inp$time <- sort(unique(c(timeobs, time)))
-    inp$ns <- length(inp$time)
-    inp$indlastobs <- which(inp$time == max(c(inp$timeC, unlist(inp$timeI))))
+    #timeobsnodtc <- c(inp$timeC, unlist(inp$timeI))
+    
+    #inp$indlastobs <- which(inp$time == max(c(inp$timeC, unlist(inp$timeI))))
+    inp$timerange <- range(timeobsall)
+    inp$indlastobs <- cut(max(c(inp$timeC, unlist(inp$timeI))), inp$time, right=FALSE, labels=FALSE)
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
     # Management
@@ -358,19 +393,20 @@ check.inp <- function(inp){
     #inp$timeCp <- tail(inp$timeCpred, 1)
     inp$nobsCp <- length(inp$timeCpred)
     inp$dtcp <- c(inp$dtc, rep(dtcpred, inp$nobsCp-inp$nobsC))
-    inp$ic <- match(inp$timeCpred, inp$time)
+    #inp$ic <- match(inp$timeCpred, inp$time)
+    inp$ic <- cut(inp$timeCpred, inp$time, right=FALSE, labels=FALSE)
     # nc is number of states to integrate a catch observation over
     inp$nc <- rep(0, inp$nobsCp)
     for(i in 1:inp$nobsCp) inp$nc[i] <- sum(inp$time >= inp$timeCpred[i] & inp$time < (inp$timeCpred[i]+inp$dtcp[i]))
+    if(any(inp$nc == 0)) stop('Current inp$dteuler is too large to accommodate some catch intervals. Make inp$dteuler smaller!')
     # ii is the indices of inp$time to which index observations correspond
     inp$ii <- list()
-    for(i in 1:inp$nindex) inp$ii[[i]] <- match(inp$timeI[[i]], inp$time)
+    #for(i in 1:inp$nindex) inp$ii[[i]] <- match(inp$timeI[[i]], inp$time)
+    for(i in 1:inp$nindex) inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
     # Translate index observations from a list to a vector
     inp$obsIin <- unlist(inp$obsI)
     inp$iiin <- unlist(inp$ii)
     inp$iqin <- rep(1:inp$nindex, times=inp$nobsI)
-    # Calculate time steps
-    inp$dt <- diff(inp$time)
     # Add helper variable such that predicted catch can be calculated using small euler steps
     # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
     #inp$dtpredcinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpredc))
@@ -403,86 +439,71 @@ check.inp <- function(inp){
     # useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
     check.prior <- function(priors, priorname){
         priorvec <- priors[[priorname]]
-        if(priorname == 'logB' | priorname == 'logF'){
-            if(!length(priorvec) %in% 4:5){
+        if(priorname %in% repriors){ # RE priors
+            if(length(priorvec) < 3){
                 priorvec <- rep(0, 5)
-                cat(paste('WARNING: invalid prior length specified for', priorname, '(must be 4). Not using this prior.\n'))
+                warning('Invalid prior length specified for', priorname, ', must be 3 (without useflag or 4 (with useflag). Not using this prior.')
             }
-        } else {
-            if(!length(priorvec) == 3){
+            if(length(priorvec) == 3){
+                warning('Length of', priorname, ', is 3. Proceeding assuming useflag has not been specified.')
+                priorvec <- c(priorvec[1:2], 1, priorvec[3])
+            }
+            if(length(priorvec) == 4){
+                ib <- match(priorvec[4], inp$time)
+                if(is.na(ib)){
+                    ib <- 0
+                    priorvec[3] <- 0
+                    warning('Year for prior on ', priorname, ' (', priorvec[3], ') did not match times where this RE is estimated. Not using this prior. To fix this use a year where an observation is available.')
+                }
+                priorvec <- c(priorvec, ib) # Add index in time vec to which this year corresponds
+            }
+        } else { # FE priors
+            if(!length(priorvec) %in% 2:3){
                 priorvec <- rep(0, 3)
-                cat(paste('WARNING: invalid prior length specified for', priorname, '(must be 3). Not using this prior.\n'))
+                warning('Invalid prior length specified for', priorname, ', must be 2 (without useflag or 3 (with useflag). Not using this prior.')
+            }
+            if(length(priorvec) == 2){
+                warning('Length of', priorname, ', is 2. Proceeding assuming useflag has not been specified.')
+                priorvec <- c(priorvec, 1)
             }
         }
         if(priorvec[3] == 1){
             # Check st dev
             if(priorvec[2] <= 0){
-                cat(paste('WARNING: invalid standard deviation specified in prior for', priorname, '(must be > 0). Not using this prior.\n'))
+                warning('WARNING: invalid standard deviation specified in prior for', priorname, '(must be > 0). Not using this prior.')
                 priorvec[3] <- 0
             }
         }
         return(priorvec)
     }
+    possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq', 'logbkfrac', 'logB', 'logF', 'logBBmsy', 'logFFmsy')
+    repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
+    npossiblepriors <- length(possiblepriors)
     if(!"priors" %in% names(inp)){
         inp$priors <- list()
     }
-    if(!"logn" %in% names(inp$priors)){
-        inp$priors$logn <- c(log(2), 0.2, 0)
-    } else {
-         inp$priors$logn <- check.prior(inp$priors, 'logn')
-    }
-    if(!"logr" %in% names(inp$priors)){
-        inp$priors$logr <- c(log(0.8), 0.2, 0)
-    } else {
-         inp$priors$logr <- check.prior(inp$priors, 'logr')
-    }
-    if(!"logK" %in% names(inp$priors)){
-        inp$priors$logK <- c(log(4*max(inp$obsC)), 0.2, 0)
-    } else {
-        inp$priors$logK <- check.prior(inp$priors, 'logK')
-    }
-    if(!"logm" %in% names(inp$priors)){
-        inp$priors$logm <- c(log(mean(inp$obsC)), 0.2, 0)
-    } else {
-        inp$priors$logm <- check.prior(inp$priors, 'logm')
-    }
-    if(!"logq" %in% names(inp$priors)){
-        inp$priors$logq <- c(log(max(inp$obsI[[1]]) / max(inp$obsC)), 0.2, 0)
-    } else {
-        inp$priors$logq <- check.prior(inp$priors, 'logq')
-    }
-    if(!"logbkfrac" %in% names(inp$priors)){
-        inp$priors$logbkfrac <- c(log(0.8), 0.2, 0)
-    } else {
-        inp$priors$logbkfrac <- check.prior(inp$priors, 'logbkfrac')
-    }
-    if(!"logB" %in% names(inp$priors)){
-        inp$priors$logB <- c(log(4*max(inp$obsC)), 0.2, 0, 0, 0)
-    } else {
-        inp$priors$logB <- check.prior(inp$priors, 'logB')
-        if(inp$priors$logB[3] == 1 & length(inp$priors$logB)==4){
-            ib <- match(inp$priors$logB[4], inp$time)
-            if(is.na(ib)){
-                ib <- 0
-                inp$priors$logB[3] <- 0
-                cat(paste0('WARNING: year for prior on logB (', inp$priors$logB[3], ') did not match times where B is estimated. Not using this prior. To fix this use a year where an observation is available. \n'))                
-            }
-            inp$priors$logB <- c(inp$priors$logB, ib)
+    if("priors" %in% names(inp)){
+        # Remove wrong priors names
+        nms <- names(inp$priors)
+        inds <- which(is.na(match(nms, possiblepriors)))
+        if(length(inds)>0){
+            warning('Wrong prior names specified: ', nms[inds])
+            inp$priors[inds] <- NULL
         }
-    }
-    if(!"logF" %in% names(inp$priors)){
-        inp$priors$logF <- c(log(0.3), 0.2, 0, 0, 0)
-    } else {
-        inp$priors$logF <- check.prior(inp$priors, 'logF')
-        if(inp$priors$logF[3] == 1 & length(inp$priors$logF)==4){
-            iff <- match(inp$priors$logF[4], inp$time)
-            if(is.na(iff)){
-                iff <- 0
-                inp$priors$logB[3] <- 0
-                cat(paste0('WARNING: year for prior on logF (', inp$priors$logF[3], ') did not match times where F is estimated. Not using this prior. To fix this use a year where an observation is available. \n'))                
+        # Check priors
+        for(nm in possiblepriors){
+            if(!nm %in% names(inp$priors)){
+                # Set default prior values. These will not be used
+                if(nm %in% repriors){
+                    inp$priors[[nm]] <- c(log(1e-4), 0.2, 0, 2000, 0) # RE prior
+                } else {
+                    inp$priors[[nm]] <- c(log(1e-4), 0.2, 0) # FE priors
+                }
+            } else {
+                inp$priors[[nm]] <- check.prior(inp$priors, nm)
             }
-            inp$priors$logF <- c(inp$priors$logF, iff)
         }
+        
     }
     npriors <- length(inp$priors)
     inp$priorsuseflags <- numeric(npriors)
@@ -694,11 +715,16 @@ check.inp <- function(inp){
     # Assign phase 1 to parameters without a phase
     nms <- names(inp$parlist)
     nnms <- length(nms)
-    for(i in 1:nnms){
-        if(!nms[i] %in% names(inp$phases)){
-            inp$phases[[nms[i]]] <- 1
+    for(nm in nms){
+        if(!nm %in% names(inp$phases)){
+            inp$phases[[nm]] <- 1
         }
     }
+    # If a parameter is assigned a prior then estimate this parameter
+    inds <- which(inp$priorsuseflags == 1)
+    priornmsuse <- names(inp$priors)[inds]
+    for(nm in priornmsuse) if(nm %in% names(inp$phases)) inp$phases[[nm]] <- 1
+    
     nphasepars <- length(inp$phases)
     phasevec <- unlist(inp$phases)
     phases <- unique(unname(phasevec))

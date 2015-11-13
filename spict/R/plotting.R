@@ -1820,9 +1820,10 @@ plotspict.priors <- function(rep, do.plot=4){
             nm <- names(inp$priors)[j]
             nmpl <- sub('log', '', nm)
             par <- get.par(nm, rep, exp=FALSE)
-            if(nm == 'logB' | nm == 'logF'){
+            repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
+            if(nm %in% repriors){
                 par <- par[priorvec[5], ]
-                nmpl <- paste0(nmpl, round(priorvec[4]))
+                nmpl <- paste0(nmpl, fd(priorvec[4]))
                 if(inp$catchunit != '' & nm == 'logB') nmpl <- paste0(nmpl, ', ', inp$catchunit)
             }
             xmin <- par[2] - 3*par[4]
