@@ -79,35 +79,43 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(robflagc);       // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
   DATA_SCALAR(robflagi);       // Index Degrees of freedom of t-distribution (only used if tdf < 25)
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
+
+  // Priors
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
-  DATA_VECTOR(prioralpha);     // Prior vector for alpha, [log(mean), stdev in log, useflag]
-  DATA_VECTOR(priorbeta);      // Prior vector for beta, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorr);         // Prior vector for r, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorq);         // Prior vector for q, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorbkfrac);    // Prior vector for B0/K, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorsdb);       // Prior vector for sdb, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorsdf);       // Prior vector for sdf, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorsdi);       // Prior vector for sdi, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorsdc);       // Prior vector for sdc, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(prioralpha);     // Prior vector for alpha, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorbeta);      // Prior vector for beta, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorB);         // Prior vector for B, [log(mean), stdev in log, useflag, year, ib]
   DATA_VECTOR(priorF);         // Prior vector for F, [log(mean), stdev in log, useflag, year, if]
   DATA_VECTOR(priorBBmsy);     // Prior vector for B/Bmsy, [log(mean), stdev in log, useflag, year, ib]
   DATA_VECTOR(priorFFmsy);     // Prior vector for F/Fmsy, [log(mean), stdev in log, useflag, year, if]
+
+  // Options
   DATA_SCALAR(simple);         // If simple=1 then use simple model (catch assumed known, no F process)
   DATA_SCALAR(dbg);            // Debug flag, if == 1 then print stuff.
 
   // PARAMETERS
-  PARAMETER_VECTOR(logphi);    // Season levels of F.
-  PARAMETER(logitpp);          // 
-  PARAMETER(logp1robfac);      // 
-  PARAMETER_VECTOR(logalpha);  // sdi = alpha*sdb
-  PARAMETER(logbeta);          // sdc = beta*sdf
   PARAMETER_VECTOR(logm);      // m following the Fletcher formulation (see Prager 2002)
   PARAMETER(logK);             // Carrying capacity
   PARAMETER_VECTOR(logq);      // Catchability
   PARAMETER(logn);             // Pella-Tomlinson exponent
-  PARAMETER(loglambda);        // Damping variable when using seasonal SDEs
-  PARAMETER(logsdf);           // Standard deviation in diffusion component of F process
-  PARAMETER_VECTOR(logsdu);    // Standard deviation in seasonal component of F process
   PARAMETER(logsdb);           // Standard deviation in B process
+  PARAMETER_VECTOR(logsdu);    // Standard deviation in seasonal component of F process
+  PARAMETER(logsdf);           // Standard deviation in diffusion component of F process
+  PARAMETER_VECTOR(logsdi);    // sdi = alpha*sdb
+  PARAMETER(logsdc);           // sdc = beta*sdf
+  PARAMETER_VECTOR(logphi);    // Season levels of F.
+  PARAMETER(loglambda);        // Damping variable when using seasonal SDEs
+  PARAMETER(logitpp);          // 
+  PARAMETER(logp1robfac);      // 
   PARAMETER_VECTOR(logF);      // Diffusion component of F in log
   PARAMETER_MATRIX(logu);      // Seasonal component of F in log
   PARAMETER_VECTOR(logB);      // Biomass in log
@@ -165,16 +173,27 @@ Type objective_function<Type>::operator() ()
   int nsdu = sdu.size();
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
-  int nalpha = logalpha.size();
+  int nsdi = logsdi.size();
+  int nalpha = nsdi;
   vector<Type> sdi(nq);
-  if(nalpha==1){
-    for(int i=0; i<nalpha; i++){ sdi(i) = exp(logalpha(0))*sdb; } // Same alpha for all indices
+  if(nsdi==1){
+    for(int i=0; i<nq; i++){ // Same alpha for all indices
+      sdi(i) = exp(logsdi(0));
+	//alpha(i) = sdi(i)/sdb; 
+    } 
   } else {
-    sdi = exp(logalpha)*sdb;
+    sdi = exp(logsdi);
+    //alpha = sdi/sdb;
   }
-  Type sdc = exp(logbeta)*sdf;
-  vector<Type> logsdi = log(sdi);
-  Type logsdc = log(sdc);
+  //vector<Type> alpha(nq);
+  vector<Type> alpha = sdi/sdb;;
+  vector<Type> logalpha = log(alpha);;
+  Type sdc = exp(logsdc);
+  Type beta = sdc/sdf;
+  Type logbeta = log(beta);
+
+  //vector<Type> logsdi = log(sdi);
+  //Type logsdc = log(sdc);
   int nobsCp = ic.size();
   int ns = logF.size();
   vector<Type> P(ns-1);
@@ -296,30 +315,18 @@ Type objective_function<Type>::operator() ()
     std::cout << "PRIOR: priorm(0): " << priorm(0) << " -- priorm(1): " << priorm(1) << " -- priorm(2): " << priorm(2) << std::endl;
     std::cout << "PRIOR: priorq(0): " << priorq(0) << " -- priorq(1): " << priorq(1) << " -- priorq(2): " << priorq(2) << std::endl;
   }
-  if(priorn(2) == 1){
-    ans-= dnorm(logn, priorn(0), priorn(1), 1); // Prior for logn
-  }
-  if(prioralpha(2) == 1){
-    for(int i=0; i<nalpha; i++){ ans-= dnorm(logalpha(i), prioralpha(0), prioralpha(1), 1); } // Prior for logalpha
-  }
-  if(priorbeta(2) == 1){
-    ans-= dnorm(logbeta, priorbeta(0), priorbeta(1), 1); // Prior for logbeta
-  }
-  if(priorr(2) == 1 & nm == 1){
-    ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
-  }
-  if(priorK(2) == 1){
-    ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
-  }
-  if(priorm(2) == 1 & nm == 1){
-    ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
-  }
-  if(priorq(2) == 1 & nq == 1){
-    ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq
-  }
-  if(priorbkfrac(2) == 1){
-    ans-= dnorm(logB(0) - logK, priorbkfrac(0), priorbkfrac(1), 1); // Prior for logbkfrac
-  }
+  if(priorn(2) == 1) ans-= dnorm(logn, priorn(0), priorn(1), 1); // Prior for logn
+  if(priorr(2) == 1 & nm == 1) ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
+  if(priorK(2) == 1) ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
+  if(priorm(2) == 1 & nm == 1) ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
+  if(priorq(2) == 1 & nq == 1) ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq
+  if(priorbkfrac(2) == 1) ans-= dnorm(logB(0) - logK, priorbkfrac(0), priorbkfrac(1), 1); // Prior for logbkfrac
+  if(priorsdb(2) == 1) ans-= dnorm(logsdb, priorsdb(0), priorsdb(1), 1); // Prior for logsdb
+  if(priorsdf(2) == 1) ans-= dnorm(logsdf, priorsdf(0), priorsdf(1), 1); // Prior for logsdf
+  if(priorsdi(2) == 1) for(int i=0; i<nsdi; i++){ ans-= dnorm(logsdi(i), priorsdi(0), priorsdi(1), 1); } // Prior for logsdi
+  if(priorsdc(2) == 1) ans-= dnorm(logsdc, priorsdc(0), priorsdc(1), 1); // Prior for logsdc
+  if(prioralpha(2) == 1) for(int i=0; i<nalpha; i++){ ans-= dnorm(logalpha(i), prioralpha(0), prioralpha(1), 1); } // Prior for logalpha
+  if(priorbeta(2) == 1) ans-= dnorm(logbeta, priorbeta(0), priorbeta(1), 1); // Prior for logbeta
   if(priorB(2) == 1){
     ind = CppAD::Integer(priorB(4)-1);
     ans-= dnorm(logB(ind), priorB(0), priorB(1), 1); // Prior for logB
@@ -670,8 +677,8 @@ Type objective_function<Type>::operator() ()
   ADREPORT(sdc);
   ADREPORT(sdb);
   ADREPORT(sdi);
-  ADREPORT(logsdi);
-  ADREPORT(logsdc);
+  ADREPORT(logalpha);
+  ADREPORT(logbeta);
   if(reportall){ 
     // These reports are derived from the random effects and are therefore vectors. TMB calculates the covariance of all sdreports leading to a very large covariance matrix which may cause memory problems.
     // B

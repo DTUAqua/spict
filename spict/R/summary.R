@@ -41,7 +41,7 @@ summary.spictcls <- function(object, numdigits=8){
         cat('\n')
     }
     if('sderr' %in% names(rep)) cat('WARNING: Could not calculate standard deviations. The optimum found may be invalid. Proceed with caution.\n')
-    cat(paste0('Negative log likelihood: ', round(rep$opt$objective, numdigits), '\n'))
+    cat(paste0('Objective function at optimum: ', round(rep$opt$objective, numdigits), '\n'))
     cat(paste0('Euler time step: 1/', 1/rep$inp$dteuler, ' or ', rep$inp$dteuler, '\n'))
     cat(paste0('Nobs C: ', rep$inp$nobsC, paste0(paste0(',  Nobs I', 1:rep$inp$nindex), ': ', rep$inp$nobsI, collapse=''), '\n'))
     # -- Catch/biomass unit --
@@ -80,9 +80,11 @@ summary.spictcls <- function(object, numdigits=8){
     }
 
     # -- Fixed parameters --
-    cat('\nFixed parameter values\n')
     resout <- sumspict.fixedpars(rep, numdigits=numdigits)
-    if(!is.null(resout)) cat('', paste(capture.output(resout),' \n'))
+    if(!is.null(resout)){
+        cat('\nFixed parameters\n')
+        cat('', paste(capture.output(resout),' \n'))
+    }
         
     # -- Model parameters --
     cat('\nModel parameter estimates w 95% CI \n')
@@ -221,7 +223,7 @@ sumspict.parest <- function(rep, numdigits=8){
         #rownames(derout) <- paste0('r', each=paste0(1:dim(derout)[1], '    '))
         rownames(derout) <- 'r    '
     }
-    resout <- rbind(resout, derout)
+    resout <- rbind(derout, resout)
     if('true' %in% names(rep$inp)){
         colnames(resout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
     } else {

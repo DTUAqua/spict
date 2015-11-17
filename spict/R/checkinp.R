@@ -160,6 +160,7 @@ check.inp <- function(inp){
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
     if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
     if(!"onealpha" %in% names(inp)) inp$onealpha <- TRUE
+    if(!"onesdi" %in% names(inp)) inp$onesdi <- TRUE
     if(!"catchunit" %in% names(inp)) inp$catchunit <- ''
     if(!"reportall" %in% names(inp)) inp$reportall <- TRUE
     if(!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
@@ -445,7 +446,7 @@ check.inp <- function(inp){
                 warning('Invalid prior length specified for', priorname, ', must be 3 (without useflag or 4 (with useflag). Not using this prior.')
             }
             if(length(priorvec) == 3){
-                warning('Length of', priorname, ', is 3. Proceeding assuming useflag has not been specified.')
+                warning('Length of ', priorname, ' is 3. Proceeding assuming useflag has not been specified.')
                 priorvec <- c(priorvec[1:2], 1, priorvec[3])
             }
             if(length(priorvec) == 4){
@@ -463,7 +464,7 @@ check.inp <- function(inp){
                 warning('Invalid prior length specified for', priorname, ', must be 2 (without useflag or 3 (with useflag). Not using this prior.')
             }
             if(length(priorvec) == 2){
-                warning('Length of', priorname, ', is 2. Proceeding assuming useflag has not been specified.')
+                warning('Length of ', priorname, ' is 2. Proceeding assuming useflag has not been specified.')
                 priorvec <- c(priorvec, 1)
             }
         }
@@ -476,12 +477,16 @@ check.inp <- function(inp){
         }
         return(priorvec)
     }
-    possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq', 'logbkfrac', 'logB', 'logF', 'logBBmsy', 'logFFmsy')
+    possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq', 'logbkfrac', 'logB', 'logF', 'logBBmsy', 'logFFmsy', 'logsdb', 'logsdf', 'logsdi', 'logsdc')
     repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
     npossiblepriors <- length(possiblepriors)
     if(!"priors" %in% names(inp)){
         inp$priors <- list()
     }
+    # Default priors
+    if(!'logn' %in% names(inp$priors)) inp$priors$logn <- c(log(2), 1e-4)
+    if(!'logalpha' %in% names(inp$priors)) inp$priors$logalpha <- c(log(1), 1e-4) 
+    if(!'logbeta' %in% names(inp$priors)) inp$priors$logbeta <- c(log(1), 1e-4)
     if("priors" %in% names(inp)){
         # Remove wrong priors names
         nms <- names(inp$priors)
@@ -595,6 +600,32 @@ check.inp <- function(inp){
     if(!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
     if(!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(0.1)
     if(!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
+    if(!'logsdc' %in% names(inp$ini)) inp$ini$logsdc <- log(0.2)
+    if(!'logsdi' %in% names(inp$ini)) inp$ini$logsdi <- log(0.2)
+    if(!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- log(1)
+    if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
+    if('logsdi' %in% names(inp$ini) & 'logalpha' %in% names(inp$ini)){
+        if(inp$onealpha | inp$onesdi){
+               if(length(inp$ini$logsdi) != 1) inp$ini$logsdi <- log(0.2)
+               if(length(inp$ini$logalpha) != 1) inp$ini$logalpha <- log(1)
+        } else {
+            if(length(inp$ini$logsdi) != inp$nindex){
+                if(length(inp$ini$logsdi) == 1){
+                    inp$ini$logsdi <- rep(inp$ini$logsdi, inp$nindex)
+                } else {
+                    stop('The length of inp$ini$logsdi (', length(inp$ini$logsdi), ') does not fit with the number of index series (', inp$nindex, ')')
+                }
+            }
+            if(length(inp$ini$logalpha) != inp$nindex){
+                if(length(inp$ini$logalpha) == 1){
+                    inp$ini$logalpha <- rep(inp$ini$logalpha, inp$nindex)
+                } else {
+                    stop('The length of inp$ini$logalpha (', length(inp$ini$logalpha), ') does not fit with the number of index series (', inp$nindex, ')')
+                }
+            }
+        }
+    }
+
     if(!"logm" %in% names(inp$ini)){
         gamma <- inp$ini$gamma
         r <- exp(inp$ini$logr)
@@ -618,23 +649,6 @@ check.inp <- function(inp){
     if(!"logphi" %in% names(inp$ini)) inp$ini$logphi <- rep(0, inp$nseasons-1)
     if(!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
     if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(15-1)
-    if(!"logalpha" %in% names(inp$ini)){
-        inp$ini$logalpha <- log(1)
-    }
-    if('logalpha' %in% names(inp$ini)){
-        if(inp$onealpha){
-               if(length(inp$ini$logalpha) != 1) inp$ini$logalpha <- log(1)
-        } else {
-            if(length(inp$ini$logalpha) != inp$nindex){
-                if(length(inp$ini$logalpha) == 1){
-                    inp$ini$logalpha <- rep(inp$ini$logalpha, inp$nindex)
-                } else {
-                    stop('The length of inp$ini$logalpha (', length(inp$ini$logalpha), ') does not fit with the number of index series (', inp$nindex, ')')
-                }
-            }
-        }
-    }
-    if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
     if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
     #if(!"logp" %in% names(inp$ini)) inp$ini$logp <- log(1.0)
     #if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr[1]))
@@ -666,19 +680,21 @@ check.inp <- function(inp){
     }
 
     # Reorder parameter list
-    inp$parlist <- list(logphi=inp$ini$logphi,
-                        logitpp=inp$ini$logitpp,
-                        logp1robfac=inp$ini$logp1robfac,
-                        logalpha=inp$ini$logalpha,
-                        logbeta=inp$ini$logbeta,
-                        logm=inp$ini$logm,
+    inp$parlist <- list(logm=inp$ini$logm,
                         logK=inp$ini$logK,
                         logq=inp$ini$logq,
                         logn=inp$ini$logn,
-                        loglambda=inp$ini$loglambda,
-                        logsdf=inp$ini$logsdf,
-                        logsdu=inp$ini$logsdu,
                         logsdb=inp$ini$logsdb,
+                        logsdu=inp$ini$logsdu,
+                        logsdf=inp$ini$logsdf,
+                        logsdi=inp$ini$logsdi,
+                        logsdc=inp$ini$logsdc,
+                        #logalpha=inp$ini$logalpha,
+                        #logbeta=inp$ini$logbeta,
+                        logphi=inp$ini$logphi,
+                        loglambda=inp$ini$loglambda,
+                        logitpp=inp$ini$logitpp,
+                        logp1robfac=inp$ini$logp1robfac,
                         logF=inp$ini$logF,
                         logu=inp$ini$logu,
                         logB=inp$ini$logB)
@@ -740,7 +756,7 @@ check.inp <- function(inp){
                 phase <- inp$phases[[parnam]]
                 inp$map[[j]][[parnam]] <- factor(rep(NA, length(inp$parlist[[parnam]])))
             } else {
-                cat(paste('WARNING: Phase specified for an invalid parameter:', parnam, '\n'))
+                warning('Phase specified for an invalid parameter:', parnam)
             }
         }
     }
