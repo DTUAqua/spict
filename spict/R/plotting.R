@@ -310,7 +310,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         cicol <- 'lightgray'
         #cicol <- 'ivory2'
         obsI <- list()
-        for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]
+        for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]
         #par(mar=c(5,4,4,4))
         #fininds <- which(apply(Best, 1, function(x) all(abs(x) < 1e8)))
         fininds <- which(Best[, 5] < 5) # Use CV to check for large uncertainties
@@ -332,7 +332,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         if(!'yearsepgrowth' %in% names(inp)) polygon(c(inp$time[BBfininds], rev(inp$time[BBfininds])), c(BB[BBfininds,1], rev(BB[BBfininds,3]))/scal*Bmsy[2], col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
         if(plot.obs){
-            for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], inp$obsI[[i]]/qest[i, 2], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
+            for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], inp$obsI[[i]]/qest[inp$mapq[i], 2], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
             if(qlegend){
                 subyears <- unique(unlist(inp$timeI)%%1)
                 plot.col(subyears, numeric(length(subyears)), typ='n', add=TRUE, add.legend=TRUE) # Only plot legend
@@ -347,7 +347,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
                     cols <- apply(!is.na(infl2), 1, sum)
                     ncols <- length(unique(cols))
                     inds <- which(cols>0)
-                    points(inp$timeI[[i]][inds], inp$obsI[[i]][inds]/qest[i, 2], pch=21, cex=0.9, bg=cols[inds])
+                    points(inp$timeI[[i]][inds], inp$obsI[[i]][inds]/qest[inp$mapq[i], 2], pch=21, cex=0.9, bg=cols[inds])
                 }
             }
         }
@@ -421,7 +421,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         cicol <- 'lightgray'
         obsI <- list()
         if(plot.obs) {
-            for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[i, 2]/Bmsy[1,2]
+            for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]/Bmsy[1,2]
         } else {
             # Since obs are not plottet set a value that doesn't affect ylim
             obsI <- mean(BB[, 2]) 
@@ -454,7 +454,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
                     cols <- apply(!is.na(infl2), 1, sum)
                     ncols <- length(unique(cols))
                     inds <- which(cols>0)
-                    points(inp$timeI[[i]][inds], inp$obsI[[i]][inds]/qest[i, 2]/Bmsy[2], pch=21, cex=0.9, bg=cols[inds])
+                    points(inp$timeI[[i]][inds], inp$obsI[[i]][inds]/qest[inp$mapq[i], 2]/Bmsy[2], pch=21, cex=0.9, bg=cols[inds])
                 }
             }
         }
@@ -923,7 +923,6 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         Bp <- get.par('logBp', rep, exp=TRUE)
         Best <- get.par('logB', rep, exp=TRUE)
         logBest <- get.par('logB', rep)
-        qest <- get.par('logq', rep, exp=TRUE)
         Fest <- get.par('logFs', rep, exp=TRUE)
         logFest <- get.par('logFs', rep)
         ns <- dim(Best)[1]

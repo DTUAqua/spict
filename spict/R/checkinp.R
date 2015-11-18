@@ -159,8 +159,21 @@ check.inp <- function(inp){
     # -- MODEL OPTIONS --
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
     if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
-    if(!"onealpha" %in% names(inp)) inp$onealpha <- TRUE
-    if(!"onesdi" %in% names(inp)) inp$onesdi <- TRUE
+    if(!"onealpha" %in% names(inp)){
+        if(!"onesdi" %in% names(inp)){
+            inp$onealpha <- FALSE
+        } else {
+            inp$onealpha <- inp$onesdi
+        }
+    }
+    if(!"onesdi" %in% names(inp)) inp$onesdi <- inp$onealpha
+    if(!"mapsdi" %in% names(inp)){
+        inp$mapsdi <- 1:inp$nindex
+        if("onealpha" %in% names(inp)) if(inp$onealpha) inp$mapsdi <- rep(1, inp$nindex)
+    }
+    if("mapsdi" %in% names(inp)) inp$nsdi <- length(unique(inp$mapsdi))
+    if(!"mapq" %in% names(inp)) inp$mapq <- 1:inp$nindex
+    if("mapq" %in% names(inp)) inp$nq <- length(unique(inp$mapq))
     if(!"catchunit" %in% names(inp)) inp$catchunit <- ''
     if(!"reportall" %in% names(inp)) inp$reportall <- TRUE
     if(!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
@@ -407,7 +420,9 @@ check.inp <- function(inp){
     # Translate index observations from a list to a vector
     inp$obsIin <- unlist(inp$obsI)
     inp$iiin <- unlist(inp$ii)
-    inp$iqin <- rep(1:inp$nindex, times=inp$nobsI)
+    #inp$iqin <- rep(1:inp$nindex, times=inp$nobsI)
+    inp$iqin <- rep(inp$mapq, times=inp$nobsI)
+    inp$isdiin <- rep(inp$mapsdi, times=inp$nobsI)
     # Add helper variable such that predicted catch can be calculated using small euler steps
     # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
     #inp$dtpredcinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpredc))
@@ -446,7 +461,7 @@ check.inp <- function(inp){
                 warning('Invalid prior length specified for', priorname, ', must be 3 (without useflag or 4 (with useflag). Not using this prior.')
             }
             if(length(priorvec) == 3){
-                warning('Length of ', priorname, ' is 3. Proceeding assuming useflag has not been specified.')
+                #warning('Length of ', priorname, ' is 3. Proceeding assuming useflag has not been specified.')
                 priorvec <- c(priorvec[1:2], 1, priorvec[3])
             }
             if(length(priorvec) == 4){
@@ -464,14 +479,14 @@ check.inp <- function(inp){
                 warning('Invalid prior length specified for', priorname, ', must be 2 (without useflag or 3 (with useflag). Not using this prior.')
             }
             if(length(priorvec) == 2){
-                warning('Length of ', priorname, ' is 2. Proceeding assuming useflag has not been specified.')
+                #warning('Length of ', priorname, ' is 2. Proceeding assuming useflag has not been specified.')
                 priorvec <- c(priorvec, 1)
             }
         }
         if(priorvec[3] == 1){
             # Check st dev
             if(priorvec[2] <= 0){
-                warning('WARNING: invalid standard deviation specified in prior for', priorname, '(must be > 0). Not using this prior.')
+                warning('Invalid standard deviation specified in prior for', priorname, '(must be > 0). Not using this prior.')
                 priorvec[3] <- 0
             }
         }
@@ -622,11 +637,11 @@ check.inp <- function(inp){
     }
     if(!'logq' %in% names(inp$ini)) inp$ini$logq <- log(max(inp$obsI[[1]])) - inp$ini$logK
     if('logq' %in% names(inp$ini)){
-        if(length(inp$ini$logq) != inp$nindex){
+        if(length(inp$ini$logq) != inp$nq){ # nq is given by mapq
             if(length(inp$ini$logq) == 1){
-                inp$ini$logq <- rep(inp$ini$logq, inp$nindex)
+                inp$ini$logq <- rep(inp$ini$logq, inp$nq)
             } else {
-                stop('The length of inp$ini$logq (', length(inp$ini$logq), ') does not fit with the number of index series (', inp$nindex, ')')
+                stop('The length of inp$ini$logq (', length(inp$ini$logq), ') does not fit with the number of qs to be estimated (', inp$nq, ')')
             }
         }
     }
@@ -635,29 +650,48 @@ check.inp <- function(inp){
     if(!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
     if(!'logsdc' %in% names(inp$ini)) inp$ini$logsdc <- log(0.2)
     if(!'logsdi' %in% names(inp$ini)) inp$ini$logsdi <- log(0.2)
-    if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- logalpha
-    if(!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- logbeta
-    if('logsdi' %in% names(inp$ini) & 'logalpha' %in% names(inp$ini)){
-        if(inp$onealpha | inp$onesdi){
-               if(length(inp$ini$logsdi) != 1) inp$ini$logsdi <- log(0.2)
-               if(length(inp$ini$logalpha) != 1) inp$ini$logalpha <- log(1)
-        } else {
-            if(length(inp$ini$logsdi) != inp$nindex){
-                if(length(inp$ini$logsdi) == 1){
-                    inp$ini$logsdi <- rep(inp$ini$logsdi, inp$nindex)
-                } else {
-                    stop('The length of inp$ini$logsdi (', length(inp$ini$logsdi), ') does not fit with the number of index series (', inp$nindex, ')')
-                }
-            }
-            if(length(inp$ini$logalpha) != inp$nindex){
-                if(length(inp$ini$logalpha) == 1){
-                    inp$ini$logalpha <- rep(inp$ini$logalpha, inp$nindex)
-                } else {
-                    stop('The length of inp$ini$logalpha (', length(inp$ini$logalpha), ') does not fit with the number of index series (', inp$nindex, ')')
-                }
+    if('logsdi' %in% names(inp$ini)){
+        if(length(inp$ini$logsdi) != inp$nsdi){ # nsdi is given by mapsdi
+            if(length(inp$ini$logsdi) == 1){
+                inp$ini$logsdi <- rep(inp$ini$logsdi, inp$nsdi)
+            } else {
+                stop('The length of inp$ini$logsdi (', length(inp$ini$logsdi), ') does not fit with the number of sdis to be estimated (', inp$nsdi, ')')
             }
         }
     }
+    if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- logalpha
+    if('logalpha' %in% names(inp$ini)){
+        if(length(inp$ini$logalpha) != inp$nsdi){ # nsdi is given by mapsdi
+            if(length(inp$ini$logalpha) == 1){
+                inp$ini$logalpha <- rep(inp$ini$logalpha, inp$nsdi)
+            } else {
+                stop('The length of inp$ini$logalpha (', length(inp$ini$logalpha), ') does not fit with the number of sdis to be estimated (', inp$nsdi, ')')
+            }
+        }
+    }
+    if(!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- logbeta
+
+    #if('logsdi' %in% names(inp$ini) & 'logalpha' %in% names(inp$ini)){
+    #    if(inp$onealpha | inp$onesdi){
+    #           if(length(inp$ini$logsdi) != 1) inp$ini$logsdi <- log(0.2)
+    #           if(length(inp$ini$logalpha) != 1) inp$ini$logalpha <- log(1)
+    #    } else {
+    #        if(length(inp$ini$logsdi) != inp$nindex){
+    #            if(length(inp$ini$logsdi) == 1){
+    #                inp$ini$logsdi <- rep(inp$ini$logsdi, inp$nindex)
+    #            } else {
+    #                stop('The length of inp$ini$logsdi (', length(inp$ini$logsdi), ') does not fit with the number of index series (', inp$nindex, ')')
+    #            }
+    #        }
+    #        if(length(inp$ini$logalpha) != inp$nindex){
+    #            if(length(inp$ini$logalpha) == 1){
+    #                inp$ini$logalpha <- rep(inp$ini$logalpha, inp$nindex)
+    #            } else {
+    #                stop('The length of inp$ini$logalpha (', length(inp$ini$logalpha), ') does not fit with the number of index series (', inp$nindex, ')')
+    #            }
+    #        }
+    #    }
+    #}
 
     if(!"logm" %in% names(inp$ini)){
         gamma <- inp$ini$gamma

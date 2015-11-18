@@ -66,6 +66,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(nc);             // nc(i) gives the number of time intervals obsC(i) spans
   DATA_VECTOR(ii);             // A vector such that B(ii(i)) is the state corresponding to I(i)
   DATA_VECTOR(iq);             // A vector such that iq(i) is the index number corresponding to I_iq(i)
+  DATA_VECTOR(isdi);           // A vector such that isdi(i) is the index number corresponding to I_isdi(i)
   DATA_VECTOR(ir);             // A vector indicating when the different rs should be used
   DATA_VECTOR(seasons);        // A vector of length ns indicating to which season a state belongs
   DATA_VECTOR(seasonindex);    // A vector of length ns giving the number stepped within the current year
@@ -174,10 +175,11 @@ Type objective_function<Type>::operator() ()
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
   int nsdi = logsdi.size();
-  int nalpha = nsdi;
-  vector<Type> sdi(nq);
+  //int nalpha = nsdi;
+  vector<Type> sdi = exp(logsdi);
+  /*
   if(nsdi==1){
-    for(int i=0; i<nq; i++){ // Same alpha for all indices
+    for(int i=0; i<nsdi; i++){ // Same alpha for all indices
       sdi(i) = exp(logsdi(0));
 	//alpha(i) = sdi(i)/sdb; 
     } 
@@ -185,9 +187,11 @@ Type objective_function<Type>::operator() ()
     sdi = exp(logsdi);
     //alpha = sdi/sdb;
   }
+  */
   //vector<Type> alpha(nq);
-  vector<Type> alpha = sdi/sdb;;
-  vector<Type> logalpha = log(alpha);;
+  vector<Type> alpha = sdi/sdb;
+  vector<Type> logalpha = log(alpha);
+  int nalpha = logalpha.size();
   Type sdc = exp(logsdc);
   Type beta = sdc/sdf;
   Type logbeta = log(beta);
@@ -532,20 +536,22 @@ Type objective_function<Type>::operator() ()
     std::cout << " logobsI.size(): " << logobsI.size() << "  iq.size(): " << iq.size() << "  ii.size(): " << ii.size() << "  logq.size(): " << logq.size() << "  nobsI: " << nobsI << std::endl;
   }
   int indq;
+  int indsdi;
   for(int i=0; i<nobsI; i++){
     ind = CppAD::Integer(ii(i)-1);
     indq = CppAD::Integer(iq(i)-1);
+    indsdi = CppAD::Integer(isdi(i)-1);
     inds = CppAD::Integer(isi(i)-1);
     logIpred(i) = logq(indq) + log(B(ind));
     if(robflagi==1.0){
-      likval = log(pp*dnorm(logobsI(i), logIpred(i), sdi(indq), 0) + (1.0-pp)*dnorm(logobsI(i), logIpred(i), robfac*sdi(indq), 0));
+      likval = log(pp*dnorm(logobsI(i), logIpred(i), sdi(indsdi), 0) + (1.0-pp)*dnorm(logobsI(i), logIpred(i), robfac*sdi(indsdi), 0));
     } else {
-      likval = dnorm(logobsI(i), logIpred(i), sdi(indq), 1);
+      likval = dnorm(logobsI(i), logIpred(i), sdi(indsdi), 1);
     }
     ans-= keep(inds) * likval;
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -  inds: " << inds << " -   logobsI(i): " << logobsI(i) << "  logIpred(i): " << logIpred(i) << "  likval: " << likval << "  sdi: " << sdi << "  ans:" << ans << std::endl;
+      std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -  indsdi: " << indsdi << " -  inds: " << inds << " -   logobsI(i): " << logobsI(i) << "  logIpred(i): " << logIpred(i) << "  likval: " << likval << "  sdi: " << sdi << "  ans:" << ans << std::endl;
     }
   }
 

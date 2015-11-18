@@ -106,7 +106,7 @@ fit.spict <- function(inp, dbg=0){
                 rep <- try(TMB::sdreport(obj))
                 failflag <- class(rep)=='try-error'
                 if(failflag){
-                    cat('WARNING: Could not calculate sdreport.\n')
+                    warning('Could not calculate sdreport.\n')
                     rep <- list()
                     rep$sderr <- 1
                     rep$par.fixed <- opt$par
@@ -183,6 +183,7 @@ make.datin <- function(inp, dbg=0){
                   nc=inp$nc,
                   ii=inp$iiin,
                   iq=inp$iqin,
+                  isdi=inp$isdiin,
                   ir=inp$ir,
                   seasons=inp$seasons,
                   seasonindex=inp$seasonindex,
