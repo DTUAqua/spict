@@ -73,7 +73,7 @@ summary.spictcls <- function(object, numdigits=8){
         cat(paste('\nPriors\n'))
         maxchar <- max(nchar(usepriors))
         for(i in 1:npriors){
-            str[i] <- paste0('~  N[log(', round(exp(rep$inp$priors[[indso[i]]][1]), 3), '), ', round(rep$inp$priors[[indso[i]]][2], 3), '^2]')
+            str[i] <- paste0('~  N[log(', round(exp(rep$inp$priors[[indso[i]]][1]), 3), '), ', round(rep$inp$priors[[indso[i]]][2], 3), '^2]', ifelse(rep$inp$priors[[indso[i]]][2] <= 1e-4, ' (fixed)', ''))
             usepriors[i] <- formatC(usepriors[i], width = maxchar, flag = 0)
             cat(paste0(' ', usepriors[i], '  ', str[i], '\n'))
         }
@@ -135,7 +135,7 @@ summary.spictcls <- function(object, numdigits=8){
 #' @name get.order
 #' @title Get order of printed quantities.
 #' @return Vector containing indices of printed quantities.
-get.order <- function() return(c(2,1,3,2))
+get.order <- function() return(c(2, 1, 3, 2))
 
 
 #' @name get.colnms
@@ -211,18 +211,28 @@ sumspict.parest <- function(rep, numdigits=8){
     }
     rownames(resout) <- nms
     # Derived variables
-    derout <- rbind(get.par(parname='logr', rep, exp=TRUE)[, order])
+    nalpha <- sum(names(rep$par.fixed) == 'logsdi')
+    derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
+                    get.par(parname='logbeta', rep, exp=TRUE)[, order],
+                    get.par(parname='logr', rep, exp=TRUE)[, order])
     derout[, 4] <- log(derout[, 4])
     derout <- round(derout, numdigits)
     nr <- dim(derout)[1]
     if('true' %in% names(rep$inp)) derout <- cbind(est=derout[, 1], true=rep(-9, nr), ll=derout[, 2], ul=derout[, 3], tic=rep(-9, nr), eil=derout[, 4])
     #colnames(derout) <- colnms
     if(nr>1 & 'yearsepgrowth' %in% names(rep$inp)){
-        rownames(derout) <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
+        rnms <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
     } else {
-        #rownames(derout) <- paste0('r', each=paste0(1:dim(derout)[1], '    '))
-        rownames(derout) <- 'r    '
+        rnms <- 'r    '
     }
+    #nq <- length(rep$inp$ini$logq)
+
+    if(nalpha > 1){
+        alphanms <- paste0('alpha', 1:nalpha)
+    } else {
+        alphanms <- 'alpha'
+    }
+    rownames(derout) <- c(alphanms, 'beta', rnms)
     resout <- rbind(derout, resout)
     if('true' %in% names(rep$inp)){
         colnames(resout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
@@ -369,9 +379,8 @@ sumspict.fixedpars <- function(rep, numdigits=8){
     inds <- which(unlist(rep$inp$phases) < 0)
     nms <- names(rep$inp$phases)[inds]
     # Remove random effects
-    reinds <- match(rep$inp$RE, nms)
-    reinds <- reinds[-which(is.na(reinds))]
-    nms <- nms[-reinds]
+    reinds <- which(nms %in% rep$inp$RE)
+    if(length(reinds)>0) nms <- nms[-reinds]
 
     # Are robust options used? if not remove
     if(!any(rep$inp$robflagi | rep$inp$robflagc)){
@@ -385,7 +394,7 @@ sumspict.fixedpars <- function(rep, numdigits=8){
     if(rep$inp$seasontype != 2){
         nms <- nms[-match(c('logsdu', 'loglambda'), nms)]
     }
-    
+
     nnms <- length(nms)
     if(nnms > 0){
         vals <- numeric(0)
