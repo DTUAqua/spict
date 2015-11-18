@@ -484,9 +484,44 @@ check.inp <- function(inp){
         inp$priors <- list()
     }
     # Default priors
-    if(!'logn' %in% names(inp$priors)) inp$priors$logn <- c(log(2), 1e-4)
-    if(!'logalpha' %in% names(inp$priors)) inp$priors$logalpha <- c(log(1), 1e-4) 
-    if(!'logbeta' %in% names(inp$priors)) inp$priors$logbeta <- c(log(1), 1e-4)
+    lognflag <- TRUE
+    logalphaflag <- TRUE
+    logbetaflag <- TRUE
+    logn <- log(2)
+    logalpha <- log(1)
+    logbeta <- log(1)
+    small <- 1e-4
+    lognsd <- small
+    logalphasd <- small
+    logbetasd <- small
+    if('phases' %in% names(inp)){ # Only use default priors if not assigned a phase
+        if('logn' %in% names(inp$phases)){
+            if(inp$phases$logn > -1) lognflag <- FALSE # Estimate logn
+        }
+        if('logalpha' %in% names(inp$phases)){
+            if(inp$phases$logalpha > -1) logalphaflag <- FALSE # Estimate logalpha i.e. sdb and sdi untied
+        }
+        if('logbeta' %in% names(inp$phases)){  
+            if(inp$phases$logbeta > -1) logbetaflag <- FALSE # Estimate logalpha i.e. sdf and sdc untied
+        }
+    }
+    if('ini' %in% names(inp)){ # Default ini values have not been set yet at this point
+        if('logn' %in% names(inp$ini)){
+            logn <- inp$ini$logn
+            #lognflag <- TRUE
+        }
+        if('logalpha' %in% names(inp$ini)){
+            logalpha <- inp$ini$logalpha
+            #logalphaflag <- TRUE
+        }
+        if('logbeta' %in% names(inp$ini)){
+            logbeta <- inp$ini$logbeta
+            #logbetaflag <- TRUE
+        }
+    }
+    if(!'logn' %in% names(inp$priors) & lognflag) inp$priors$logn <- c(logn, lognsd)
+    if(!'logalpha' %in% names(inp$priors) & logalphaflag) inp$priors$logalpha <- c(logalpha, logalphasd) 
+    if(!'logbeta' %in% names(inp$priors) & logbetaflag) inp$priors$logbeta <- c(logbeta, logbetasd)
     if("priors" %in% names(inp)){
         # Remove wrong priors names
         nms <- names(inp$priors)
@@ -508,16 +543,15 @@ check.inp <- function(inp){
                 inp$priors[[nm]] <- check.prior(inp$priors, nm)
             }
         }
-        
     }
     npriors <- length(inp$priors)
     inp$priorsuseflags <- numeric(npriors)
     for(i in 1:npriors) inp$priorsuseflags[i] <- inp$priors[[i]][3]
-    
+           
     # -- MODEL PARAMETERS --
     # logn
     if(!"logn" %in% names(inp$ini)){
-        inp$ini$logn <- log(2.0)
+        inp$ini$logn <- logn
     } else {
         if(inp$ini$logn==0) stop('Initial value for logn == 0, that is not valid!')
     }
@@ -539,7 +573,6 @@ check.inp <- function(inp){
             inp$ini$logr <- log(-r)
         }
     }
-    #print(inp$ini$logr)
     if('logr' %in% names(inp$ini)){
         nr <- length(inp$ini$logr)
         #if(!nr %in% c(1, 2, 4)){
@@ -602,8 +635,8 @@ check.inp <- function(inp){
     if(!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
     if(!'logsdc' %in% names(inp$ini)) inp$ini$logsdc <- log(0.2)
     if(!'logsdi' %in% names(inp$ini)) inp$ini$logsdi <- log(0.2)
-    if(!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- log(1)
-    if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
+    if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- logalpha
+    if(!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- logbeta
     if('logsdi' %in% names(inp$ini) & 'logalpha' %in% names(inp$ini)){
         if(inp$onealpha | inp$onesdi){
                if(length(inp$ini$logsdi) != 1) inp$ini$logsdi <- log(0.2)
