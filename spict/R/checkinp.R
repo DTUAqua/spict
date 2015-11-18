@@ -88,11 +88,15 @@ check.inp <- function(inp){
             }
         }
         if(any(diff(inp$timeC)<=0)) stop('Catch times are not strictly increasing!')
-        if(length(inp$obsC) != length(inp$timeC)) stop('Time and observation vector do not match in length for catch series')
+        if(length(inp$obsC) != length(inp$timeC)) stop('Time and observation vector do not match in length for catch series.')
+        if(!'stdevfacC' %in% names(inp)) inp$stdevfacC <- rep(1, length(inp$obsC))
+        if(length(inp$obsC) != length(inp$stdevfacC)) stop('stdevfac and observation vector do not match in length for catch series.')
+        if(sum(inp$stdevfacC <= 0) > 0) stop('Non-positive values entered in stdevfac for catches.')
         neg <- which(inp$obsC<=0 | is.na(inp$obsC))
         if(length(neg)>0){
             inp$obsC <- inp$obsC[-neg]
             inp$timeC <- inp$timeC[-neg]
+            inp$stdevfacC <- inp$stdevfacC[-neg]
             cat(paste('Removing zero, negative, and NAs in catch series\n'))
         }
         inp$nobsC <- length(inp$obsC)
@@ -108,6 +112,8 @@ check.inp <- function(inp){
             inp$obsI <- list()
             inp$obsI[[1]] <- tmp
         }
+        inp$nindex <- length(inp$obsI)
+        # Time vector
         if(!'timeI' %in% names(inp)){
             inp$timeI <- list()
             if(!'nseasons' %in% names(inp)){
@@ -123,18 +129,30 @@ check.inp <- function(inp){
                 inp$timeI[[1]] <- tmp
             }
         }
-        inp$nindex <- length(inp$obsI)
-        if(inp$nindex != length(inp$timeI)){
-            stop('The length(inp$timeI) does not match length(inp$obsI)!')
+        # Standard deviation factor
+        if(!'stdevfacI' %in% names(inp)){
+            inp$stdevfacI <- list()
+            for(i in 1:inp$nindex) inp$stdevfacI[[i]] <- rep(1, length(inp$obsI[[i]]))
+        } else {
+            if(class(inp$stdevfacI)!='list'){
+                tmp <- inp$stdevfacI
+                inp$stdevfacI <- list()
+                inp$stdevfacI[[1]] <- tmp
+            }
         }
+        if(inp$nindex != length(inp$timeI)) stop('length(inp$timeI) is not equal to length(inp$obsI)!')
+        if(inp$nindex != length(inp$stdevfacI)) stop('length(inp$stdevfacI) is not equal to length(inp$obsI)!')
         inp$nobsI <- rep(0, inp$nindex)
         for(i in 1:inp$nindex){
-            if(length(inp$obsI[[i]]) != length(inp$timeI[[i]])) stop('Time and observation vector do not match in length for index series ',i)
+            if(length(inp$obsI[[i]]) != length(inp$timeI[[i]])) stop('Time and observation vector do not match in length for index series ', i)
+            if(length(inp$obsI[[i]]) != length(inp$stdevfacI[[i]])) stop('stdevfac and observation vector do not match in length for index series ', i)
+            if(sum(inp$stdevfacI[[i]] <= 0) > 0) stop('Non-positive values entered in stdevfac for index ', i)
             if(length(inp$obsI[[i]])>0){
                 neg <- which(inp$obsI[[i]]<=0 | is.na(inp$obsI[[i]]))
                 if(length(neg)>0){
                     inp$obsI[[i]] <- inp$obsI[[i]][-neg]
                     inp$timeI[[i]] <- inp$timeI[[i]][-neg]
+                    inp$stdevfacI[[i]] <- inp$stdevfacI[[i]][-neg]
                     cat(paste('Removing zero, negative and NAs in index series',i,'\n'))
                 }
             }
@@ -419,6 +437,7 @@ check.inp <- function(inp){
     for(i in 1:inp$nindex) inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
     # Translate index observations from a list to a vector
     inp$obsIin <- unlist(inp$obsI)
+    inp$stdevfacIin <- unlist(inp$stdevfacI)
     inp$iiin <- unlist(inp$ii)
     #inp$iqin <- rep(1:inp$nindex, times=inp$nobsI)
     inp$iqin <- rep(inp$mapq, times=inp$nobsI)
@@ -428,7 +447,9 @@ check.inp <- function(inp){
     #inp$dtpredcinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpredc))
     inp$dtpredcinds <- which(inp$time >= inp$timepredc & inp$time < (inp$timepredc+inp$dtpredc))
     inp$dtpredcnsteps <- length(inp$dtpredcinds)
-    inp$dtprediind <- which(inp$time == inp$timepredi)
+    #inp$dtprediind <- which(inp$time == inp$timepredi)
+    inp$dtprediind <- cut(inp$timepredi, inp$time, right=FALSE, labels=FALSE)
+    
 
     # - Sort observations in time and store in one vector -
     timeobsseen <- c(inp$timeC+inp$dtc-1e-4, unlist(inp$timeI)) # Add dtc to timeC because the total catch is first "seen" at the end of the given catch interval (typically year or quarter)

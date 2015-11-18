@@ -58,6 +58,8 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(indlastobs);    // Index of B and F corresponding to the last observation.
   DATA_VECTOR(obssrt);         // Catch and index observations sorted in time (to enable osar)
   DATA_VECTOR_INDICATOR(keep, obssrt);
+  DATA_VECTOR(stdevfacc);      // 
+  DATA_VECTOR(stdevfaci);      // 
   DATA_VECTOR(isc);            // 
   DATA_VECTOR(isi);            // 
   DATA_INTEGER(nobsC);
@@ -518,14 +520,14 @@ Type objective_function<Type>::operator() ()
       //ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0 <- NOT USED?
       inds = CppAD::Integer(isc(i)-1);
       if(robflagc==1.0){
-	likval = log(pp*dnorm(logCpred(i), logobsC(i), sdc, 0) + (1.0-pp)*dnorm(logCpred(i), logobsC(i), robfac*sdc, 0));
+	likval = log(pp*dnorm(logCpred(i), logobsC(i), stdevfacc(i)*sdc, 0) + (1.0-pp)*dnorm(logCpred(i), logobsC(i), robfac*stdevfacc(i)*sdc, 0));
       } else {
-	likval = dnorm(logCpred(i), logobsC(i), sdc, 1);
+	likval = dnorm(logCpred(i), logobsC(i), stdevfacc(i)*sdc, 1);
       }
       ans-= keep(inds) * likval;
       // DEBUGGING
       if(dbg>1){
-	std::cout << "-- i: " << i << " -   logobsC(i): " << logobsC(i)<< "  sdc: " << sdc << "  likval: " << likval << "  ans:" << ans << std::endl;
+	std::cout << "-- i: " << i << " -   logobsC(i): " << logobsC(i) << " -   stdevfacc(i): " << stdevfacc(i) << "  sdc: " << sdc << "  likval: " << likval << "  ans:" << ans << std::endl;
       }
     }
   }
@@ -544,14 +546,14 @@ Type objective_function<Type>::operator() ()
     inds = CppAD::Integer(isi(i)-1);
     logIpred(i) = logq(indq) + log(B(ind));
     if(robflagi==1.0){
-      likval = log(pp*dnorm(logobsI(i), logIpred(i), sdi(indsdi), 0) + (1.0-pp)*dnorm(logobsI(i), logIpred(i), robfac*sdi(indsdi), 0));
+      likval = log(pp*dnorm(logobsI(i), logIpred(i), stdevfaci(i)*sdi(indsdi), 0) + (1.0-pp)*dnorm(logobsI(i), logIpred(i), robfac*stdevfaci(i)*sdi(indsdi), 0));
     } else {
-      likval = dnorm(logobsI(i), logIpred(i), sdi(indsdi), 1);
+      likval = dnorm(logobsI(i), logIpred(i), stdevfaci(i)*sdi(indsdi), 1);
     }
     ans-= keep(inds) * likval;
     // DEBUGGING
     if(dbg>1){
-      std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -  indsdi: " << indsdi << " -  inds: " << inds << " -   logobsI(i): " << logobsI(i) << "  logIpred(i): " << logIpred(i) << "  likval: " << likval << "  sdi: " << sdi << "  ans:" << ans << std::endl;
+      std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -  indsdi: " << indsdi << " -  inds: " << inds << " -   logobsI(i): " << logobsI(i) << "  logIpred(i): " << logIpred(i) << "  stdevfaci(i): " << stdevfaci(i) << "  likval: " << likval << "  sdi: " << sdi << "  ans:" << ans << std::endl;
     }
   }
 
