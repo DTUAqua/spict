@@ -155,10 +155,12 @@ sim.spict <- function(input, nobs=100){
     sdb <- exp(pl$logsdb)
     sdu <- exp(pl$logsdu)
     sdf <- exp(pl$logsdf)
-    alpha <- exp(pl$logalpha)
-    beta <- exp(pl$logbeta)
-    sdi <- alpha * sdb
-    sdc <- beta * sdf
+    #alpha <- exp(pl$logalpha)
+    #beta <- exp(pl$logbeta)
+    sdi <- exp(pl$logsdi)
+    sdc <- exp(pl$logsdc)
+    #sdi <- alpha * sdb
+    #sdc <- beta * sdf
     #A <- inp$A
     lambda <- exp(pl$loglambda)
     omega <- inp$omega
@@ -356,6 +358,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
         }
         return(s)
     }
+    #asd <- fun(1, inp, nobs, estinp, backup)
     for(j in 1:nnobsvec){
         nobs <- nobsvec[j]
         cat(paste(Sys.time(), '- validating nobs:', nobs, '\n'))
