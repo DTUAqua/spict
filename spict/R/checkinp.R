@@ -242,25 +242,25 @@ check.inp <- function(inp){
         inp$timepredi <- max(unlist(inp$timeI))
     }
     # MSY type options
-    if("phases" %in% names(inp)){
-        if('logn' %in% names(inp$phases)){
-            if(inp$phases$logn > -1){
-                if(!"msytype" %in% names(inp)){
-                    inp$msytype <- 'd'
-                    cat('Using msytype = "d" because logn is estimated. Force SPiCT to use msytype = "s" by manually specifying it.\n')
-                } else {
-                    # Dangerous to use stochastic msys when estimating n because estimate of n could result in invalid reference points.
-                    #if(inp$msytype != 'd') cat('Using msytype = "d" because logn is estimated.\n')
-                    if(inp$msytype != 'd') warning('Dangerous to use stochastic msys when estimating n because estimate of n could result in invalid reference points. Check difference between deterministic and stochastic reference points.')
-                }
-            }
-        }
-    }
     if(!"msytype" %in% names(inp)){
         inp$msytype <- 's'
     } else {
         if(!inp$msytype %in% c('s', 'd')) stop('inp$msytype must be either "s" (stochastic) or "d" (deterministic!')
     }
+    #if("phases" %in% names(inp)){
+    #    if('logn' %in% names(inp$phases)){
+    #        if(inp$phases$logn > -1){
+    #            if(!"msytype" %in% names(inp)){
+    #                inp$msytype <- 'd'
+    #                cat('Using msytype = "d" because logn is estimated. Force SPiCT to use msytype = "s" by manually specifying it.\n')
+    #            } else {
+                    # Dangerous to use stochastic msys when estimating n because estimate of n could result in invalid reference points.
+                    #if(inp$msytype != 'd') cat('Using msytype = "d" because logn is estimated.\n')
+    #                if(inp$msytype != 'd') warning('Dangerous to use stochastic msys when estimating n because estimate of n could result in invalid reference points. Check difference between deterministic and stochastic reference points.')
+    #            }
+    #        }
+    #    }
+    #}
     # Catch intervals (dtc)
     if(!"dtc" %in% names(inp)){
         dtc <- diff(inp$timeC)

@@ -275,6 +275,7 @@ sim.spict <- function(input, nobs=100){
     sim$euler <- inp$euler
     sim$lamperti <- inp$lamperti
     sim$phases <- inp$phases
+    sim$priors <- inp$priors
     sim$outliers <- inp$outliers
     sim$recount <- recount
     sim$nseasons <- inp$nseasons
@@ -347,6 +348,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
     if('logB' %in% names(inp$ini)) inp$ini$logB <- NULL
     ss <- list()
     require(parallel)
+    #nobs <- nobsvec[1]
     fun <- function(i, inp, nobs, estinp, backup){
         cat(paste(Sys.time(), '- validating:  i:', i, 'nobs:', nobs, '\n'))
         sim <- sim.spict(inp, nobs)
