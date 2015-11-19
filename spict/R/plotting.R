@@ -1343,7 +1343,7 @@ plotspict.tc <- function(rep){
             lgnplace <- 'bottomright'
             if(B0cur > Bmsy[2]) lgnplace <- 'topright'
             legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=cols[1:nFvec], lwd=rep(1.5,nFvec), bg='white')
-            points(vt, rep(par('usr')[3], nFvec), col=3:(nFvec+2), pch=4)
+            points(vt, rep(par('usr')[3], nFvec), col=cols[1:nFvec], pch=4)
         }
         box(lwd=1.5)
     }
