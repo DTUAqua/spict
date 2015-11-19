@@ -105,12 +105,12 @@ summary.spictcls <- function(object, numdigits=8){
         #}
         #cat('', paste(capture.output(derout),' \n'))
         # Deterministic ref points
-        cat('Deterministic reference points\n')
+        cat('Deterministic reference points (Drp)\n')
         derout <- sumspict.drefpoints(rep, numdigits=numdigits)
         cat('', paste(capture.output(derout),' \n'))
         
         # Stochastic derived estimates
-        cat('Stochastic reference points\n')
+        cat('Stochastic reference points (Srp)\n')
         derout <- sumspict.srefpoints(rep, numdigits=numdigits)
         cat('', paste(capture.output(derout),' \n'))
 
@@ -303,6 +303,11 @@ sumspict.srefpoints <- function(rep, numdigits=8){
         derout <- cbind(derout[, 1], round(trueder,numdigits), derout[, 2:3], cider, derout[, 4])
         colnames(derout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
     }
+    Drp <- c(get.par(parname='logBmsyd', rep, exp=TRUE)[, 2],
+             get.par(parname='logFmsyd', rep, exp=TRUE)[, 2],
+             get.par(parname='logMSYd', rep, exp=TRUE)[, 2])
+    rel.diff.Drp <- (derout[, 1] - Drp)/derout[, 1]
+    if(length(rel.diff.Drp) == dim(derout)[1]) derout <- cbind(derout, rel.diff.Drp)
     return(derout)
 }
 
