@@ -123,9 +123,6 @@ Type objective_function<Type>::operator() ()
   PARAMETER_MATRIX(logu);      // Seasonal component of F in log
   PARAMETER_VECTOR(logB);      // Biomass in log
 
-  // Put a very wide prior on initial states to try and fix first residuals (this problem didn't occur with OffMode residuals)
-  //ans += dnorm(logB(0), Type(10.0), Type(10.0), 1);
-  //ans += dnorm(logF(0), Type(0.0), Type(10.0), 1);
 
   //std::cout << "expmosc: " << expmosc(lambda, omega, 0.1) << std::endl;
    if(dbg > 0){
@@ -197,6 +194,16 @@ Type objective_function<Type>::operator() ()
   Type sdc = exp(logsdc);
   Type beta = sdc/sdf;
   Type logbeta = log(beta);
+
+  // Put wide smooth distributions on difficult parameters to stabilise optimisation
+  // Note that this contributes to the objective function, which therefore cannot be regarded as a likelihood
+
+  ans += dnorm(logB(0), Type(10.0), Type(20.0), 1);
+  ans += dnorm(logF(0), Type(0.0), Type(20.0), 1);
+  ans += dnorm(logn, Type(0.6931472), Type(20.0), 1);
+  ans += dnorm(logbeta, Type(0.0), Type(20.0), 1);
+  for(int i=0; i<nalpha; i++){ ans += dnorm(logalpha(i), Type(0.0), Type(20.0), 1); }
+
 
   //vector<Type> logsdi = log(sdi);
   //Type logsdc = log(sdc);
