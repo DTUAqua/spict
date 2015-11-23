@@ -352,7 +352,8 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
     fun <- function(i, inp, nobs, estinp, backup){
         cat(paste(Sys.time(), '- validating:  i:', i, 'nobs:', nobs, '\n'))
         sim <- sim.spict(inp, nobs)
-        if(!is.null(estinp)) sim$ini <- estinp$ini
+        #if(!is.null(estinp)) sim$ini <- estinp$ini
+        if(!is.null(estinp)) for(nm in names(estinp$priors)) sim$priors[[nm]] <- estinp$priors[[nm]]
         rep <- try(fit.spict(sim))
         s <- NA
         if(!class(rep)=='try-error'){
