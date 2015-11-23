@@ -281,6 +281,8 @@ sim.spict <- function(input, nobs=100){
     sim$nseasons <- inp$nseasons
     sim$seasontype <- inp$seasontype
     sim$true <- pl
+    sim$true$logalpha <- sim$true$logsdi - sim$true$logsdb
+    sim$true$logbeta <- sim$true$logsdc - sim$true$logsdf
     sim$true$dteuler <- inp$dteuler
     sim$true$splineorder <- inp$splineorder
     sim$true$time <- time
@@ -294,6 +296,7 @@ sim.spict <- function(input, nobs=100){
     R <- (n-1)/n*gamma*mean(m[inp$ir])/K
     p <- n-1
     sim$true$R <- R
+    sim$true$logr <- log(2*R)
     # Deterministic reference points
     sim$true$Bmsyd <- K/(n^(1/(n-1)))
     sim$true$MSYd <- mean(m[inp$ir])
