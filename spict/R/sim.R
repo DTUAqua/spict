@@ -442,6 +442,8 @@ extract.simstats <- function(rep, inp){
         ss$FF <- calc.simstats('logFlFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy)
         # Biomass process noise
         ss$sdb <- calc.simstats('logsdb', rep, exp=TRUE, exp(rep$inp$true$logsdb))
+        # Biomass process noise
+        ss$sdi <- calc.simstats('logsdi', rep, exp=TRUE, exp(rep$inp$true$logsdi))
         # Convergence for all values
         uss <- unlist(ss)
         ss$convall <- (any(is.na(uss) | !is.finite(uss)) | ss$conv>0)
