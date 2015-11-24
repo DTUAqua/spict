@@ -542,17 +542,23 @@ check.inp <- function(inp){
         }
     }
     if('ini' %in% names(inp)){ # Default ini values have not been set yet at this point
+        # Log n
         if('logn' %in% names(inp$ini)){
             logn <- inp$ini$logn
-            #lognflag <- TRUE
+        }
+        # Log alpha
+        if(!'logalpha' %in% names(inp$ini) & 'logsdb' %in% names(inp$ini) & 'logsdi' %in% names(inp$ini)){
+            inp$ini$logalpha <- inp$ini$logsdi - inp$ini$logsdb
         }
         if('logalpha' %in% names(inp$ini)){
             logalpha <- inp$ini$logalpha
-            #logalphaflag <- TRUE
+        }
+        # Log beta
+        if(!'logbeta' %in% names(inp$ini) & 'logsdf' %in% names(inp$ini) & 'logsdc' %in% names(inp$ini)){
+            inp$ini$logbeta <- inp$ini$logsdc - inp$ini$logsdf
         }
         if('logbeta' %in% names(inp$ini)){
             logbeta <- inp$ini$logbeta
-            #logbetaflag <- TRUE
         }
     }
     if(!'logn' %in% names(inp$priors) & lognflag) inp$priors$logn <- c(logn, lognsd)

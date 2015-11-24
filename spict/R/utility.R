@@ -54,8 +54,8 @@ test.spict <- function(dataset='albacore'){
     data(pol)
     inp <- pol[[dataset]]
     if(dataset=='albacore'){
-        inp$ffac <- 0.9
-        nopredcyears <- 6 # Number of years to predict catch
+        inp$ffac <- 1
+        nopredcyears <- 3 # Number of years to predict catch
         inp$dtpredc <- 1 # Time step when predicting catch
         inp$timepredi <- tail(inp$timeC, 1) + nopredcyears
         inp$timepredc <- tail(inp$timeC, 1) + nopredcyears

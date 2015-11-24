@@ -218,7 +218,19 @@ sumspict.parest <- function(rep, numdigits=8){
     derout[, 4] <- log(derout[, 4])
     derout <- round(derout, numdigits)
     nr <- dim(derout)[1]
-    if('true' %in% names(rep$inp)) derout <- cbind(est=derout[, 1], true=rep(-9, nr), ll=derout[, 2], ul=derout[, 3], tic=rep(-9, nr), eil=derout[, 4])
+    if('true' %in% names(rep$inp)){
+        dertrue <- exp(c(rep(rep$inp$true$logalpha, nalpha), rep$inp$true$logbeta, rep$inp$true$logr))
+        ndertrue <- length(dertrue)
+        if(ndertrue == nr){
+            cider <- numeric(ndertrue)
+            for(i in 1:ndertrue) cider[i] <- as.numeric(dertrue[i] > derout[i, 2] & dertrue[i] < derout[i, 3])
+        } else {
+            dertrue <- rep(-9, nr)
+            cider <- rep(-9, nr)
+        }
+        derout <- cbind(est=derout[, 1], true=dertrue, ll=derout[, 2], ul=derout[, 3], tic=cider, eil=derout[, 4])
+    }
+    
     #colnames(derout) <- colnms
     if(nr>1 & 'yearsepgrowth' %in% names(rep$inp)){
         rnms <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
