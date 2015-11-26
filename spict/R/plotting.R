@@ -15,6 +15,17 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+add.catchunit <- function(lab, cu){
+    cu <- as.character(cu)
+    if(inp$catchunit != ''){
+        out <- eval(bquote(.(lab[[1]]) *',' ~ .(cu)))
+    } else {
+        out <- lab
+    }
+    return(out)
+}
+
+
 #' @name arrow.line
 #' @title Draw a line with arrow heads.
 #' @details Add to an existing plot a continuous line with arrow heads showing the direction between each data point
@@ -321,7 +332,9 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
         #if(main==-1) main <- paste('- Bmsy:',round(Bmsy[2]),' K:',round(Kest[2]))
         if(main==-1) main <- 'Absolute biomass'
         ylab <- expression(B[t])
-        if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
+        ylab <- add.catchunit(ylab, inp$catchunit)
+        #ylab <- add.catchunit(ylab)
+        #if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
         plot(inp$time, Best[,2]/scal, typ='n', xlab='Time', ylab=ylab, main=main, ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log)
         axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
         mtext(expression(B[t]/B[MSY]), side=4, las=0, line=2.2, cex=par('cex'))
@@ -917,7 +930,8 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             bscal <- 1
             fscal <- 1
             xlab <- expression(B[t])
-            if(inp$catchunit != '') xlab <- paste0(xlab, ', ', inp$catchunit)            
+            xlab <- add.catchunit(xlab, inp$catchunit)
+            #if(inp$catchunit != '') xlab <- paste0(xlab, ', ', inp$catchunit)            
             ylab <- expression(F[t])
         }
         Bp <- get.par('logBp', rep, exp=TRUE)
@@ -1140,7 +1154,8 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL, qlegend=T
         }
         if(main==-1) main <- 'Catch'
         ylab <- 'Catch'
-        if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
+        ylab <- add.catchunit(ylab, inp$catchunit)
+        #if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
         plot(time, c, typ='n', main=main, xlab='Time', ylab=ylab, xlim=range(c(inp$time, tail(inp$time,1))), ylim=ylim)
         #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
         polygon(c(inp$time, rev(inp$time)), c(MSYvec$ll,rev(MSYvec$ul)), col=cicol, border=cicol)
@@ -1223,7 +1238,8 @@ plotspict.production <- function(rep, n.plotyears=40){
         inde <- inp$indest[-length(inp$indest)]
         indp <- inp$indpred[-1]-1
         ylab <- 'Production'
-        if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
+        ylab <- add.catchunit(ylab, inp$catchunit)
+        #if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
         plot(Bplot/Kest[2], Pst[[nr]]/Bmsy[2], typ='l', ylim=ylim, xlim=xlim, xlab='B/K', ylab=ylab, col=1, main='Production curve')
         if(nr > 1) for(i in 1:(nr-1)) lines(Bplot/Kest[2], Pst[[i]]/Bmsy[2], col='gray')
         #if(inp$reportall & inp$nseasons==1){
@@ -1823,7 +1839,7 @@ plotspict.priors <- function(rep, do.plot=4){
             if(nm %in% repriors){
                 par <- par[priorvec[5], ]
                 nmpl <- paste0(nmpl, fd(priorvec[4]))
-                if(inp$catchunit != '' & nm == 'logB') nmpl <- paste0(nmpl, ', ', inp$catchunit)
+                if(nm == 'logB') nmpl <- add.catchunit(nmpl, inp$catchunit)
             }
             xmin <- par[2] - 3*par[4]
             xmax <- par[2] + 3*par[4]
@@ -1862,7 +1878,8 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     #if(!is.null(MSY)) main <- paste('MSY guess:', round(MSY, 2))
     # Plot catch
     ylab <- 'Catch'
-    if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
+    ylab <- add.catchunit(ylab, inp$catchunit)
+    #if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
     plot(inp$timeC, inp$obsC, typ='l', ylab=ylab, xlab='Time', main=main)
     grid()
     add.legend <- inp$nseasons > 1
