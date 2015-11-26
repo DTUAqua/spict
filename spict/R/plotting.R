@@ -1060,9 +1060,7 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL, qlegend=T
         cicol <- 'lightgray'
         MSY <- get.par('logMSY', rep, exp=TRUE)
         MSYvec <- get.msyvec(inp, MSY)
-        #Crc <- get.par('logCrcsum', rep, exp=TRUE)
         #Cpredsub <- get.par('Cpredsub', rep)
-        #Cpsub <- get.par('logCpsub', rep, exp=TRUE) # could be deleted
         Cpredest <- get.par('logCpred', rep, exp=TRUE)
         Cpredest[Cpredest<0] <- 0
         rep$Cp[rep$Cp<0] <- 0
@@ -1142,18 +1140,12 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL, qlegend=T
         ylab <- 'Catch'
         if(inp$catchunit != '') ylab <- paste0(ylab, ', ', inp$catchunit)
         plot(time, c, typ='n', main=main, xlab='Time', ylab=ylab, xlim=range(c(inp$time, tail(inp$time,1))), ylim=ylim)
-        #polygon(c(inp$time[1]-5,tail(inp$time,1)+5,tail(inp$time,1)+5,inp$time[1]-5), c(MSY[1],MSY[1],MSY[3],MSY[3])/Cscal, col=cicol, border=cicol)
         polygon(c(inp$time, rev(inp$time)), c(MSYvec$ll,rev(MSYvec$ul)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
-        #polygon(c(timef, rev(timef)), c(clf, rev(cuf)), col=cicol2, border=cicol2)
-        #lines(timef, clf, col=rgb(0, 0, 1, 0.2))
-        #lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         lines(time, cl, col=lcol, lwd=1.5, lty=2)
         lines(time, cu, col=lcol, lwd=1.5, lty=2)
         abline(v=tail(inp$timeC,1), col='gray')
-        #points(timeo, obs/Cscal, cex=0.7)
         plot.col(timeo, obs/Cscal, cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
-        #plot.col(inp$timeC, inp$obsC/Cscal, cex=0.7, do.line=FALSE, add=TRUE)
         # Highlight influential index observations
         if('infl' %in% names(rep) & min(inp$dtc) == 1){
             infl <- rep$infl$infl[1:inp$nobsC, ]
@@ -1173,10 +1165,7 @@ plotspict.catch <- function(rep, main=-1, plot.legend=TRUE, ylim=NULL, qlegend=T
             lines(timep, cp, col=lcol, lty=3)
             lines(timep, clp, col=lcol, lwd=1, lty=2)
             lines(timep, cup, col=lcol, lwd=1, lty=2)
-            #points(inp$timepredc, Crc[2], pch=21, bg='yellow')
         }
-        #if(min(inp$dtc) == 1 & plot.legend) legend('topleft',c(paste(tail(inp$timeCpred,1),'Pred.')), pch=21, pt.bg=c('yellow'), bg='white')
-        #if(min(inp$dtc) == 1 & inp$dtpredc > 0 & plot.legend & Crc[2] > ylim[1] & Crc[2] < ylim[2]) legend('topright', 'C at Fmsy', pch=21, pt.bg=c('yellow'), bg='white')
         box(lwd=1.5)
     }
 }

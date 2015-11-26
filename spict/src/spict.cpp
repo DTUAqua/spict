@@ -52,7 +52,7 @@ Type objective_function<Type>::operator() ()
   // DATA
   DATA_INTEGER(reportall);     // Report everything?
   DATA_VECTOR(dt);             // Time steps
-  DATA_VECTOR(dtpredcinds);    //
+  DATA_VECTOR(dtpredcinds);    // Indices of predictions in state vector 
   DATA_INTEGER(dtpredcnsteps); // Number of sub time step for prediction
   DATA_SCALAR(dtprediind);     //
   DATA_INTEGER(indlastobs);    // Index of B and F corresponding to the last observation.
@@ -563,7 +563,6 @@ Type objective_function<Type>::operator() ()
     }
   }
 
-
   /*
   --- ONE-STEP-AHEAD PREDICTIONS ---
   */
@@ -581,29 +580,6 @@ Type objective_function<Type>::operator() ()
     Cp += Cpredsub(ind);
   }
   Type logCp = log(Cp);
-  // CALCULATE RECOMMENDED CATCH
-  Type Crcsum = 1.0e-12;
-  if(dtpredcnsteps > 0){
-    vector<Type> Brc(dtpredcnsteps+1); // Biomass when predicting using Fmsy
-    ind = CppAD::Integer(dtpredcinds(0)-1);
-    Brc(0) = B(ind); // Start with the current biomass
-    vector<Type> Crc(dtpredcnsteps); // Catch when predicting using Fmsy
-    if(dbg>0){
-      std::cout << "--- DEBUG: RECOMMENDED CATCH" << std::endl;
-      std::cout << "-- Brc.size(): " << Brc.size() << " Crc.size(): " << Crc.size() << " dt.size(): " << dt.size() << std::endl;
-    }
-    for(int i=0; i<dtpredcnsteps; i++){
-      ind = CppAD::Integer(dtpredcinds(i)-1);
-      Crc(i) =  predictC(Fmsy(nm-1), Brc(i), dt(ind));
-      Crcsum += Crc(i);
-      Brc(i+1) = exp(predictlogB(Brc(i), Fmsy(nm-1), gamma, mvec(ind), K, dt(ind), n, sdb2));
-      // DEBUGGING
-      if(dbg>1){
-	std::cout << "-- i: " << i << " -  dtpredcinds(i)-1: " << ind << " -   Brc(i+1): " << Brc(i+1) << "  Crc(i): " << Crc(i) << "  Fmsy(nm-1): " << Fmsy(nm-1) << std::endl;
-      }
-    }
-  }
-  Type logCrcsum = log(Crcsum);
 
   // Biomass and F at the end of the prediction time interval
   int pind = CppAD::Integer(dtprediind-1);
@@ -620,14 +596,13 @@ Type objective_function<Type>::operator() ()
   }
 
   // Biomass and fishing mortality at last time point
-  // dtpredcinds(0) is the index of B and F corresponding to the time of the last observation.
   Type logBl = logB(indlastobs-1);
   Type logBlBmsy = logBl - logBmsyvec(indlastobs-1);
   Type logBlK = logBl - logK;
   Type logFl = logFs(indlastobs-1);
   Type logFlFmsy = logFl - logFmsyvec(indlastobs-1);
 
-  // Biomass and fishing mortality over msy levels
+  // Calculate relative levels of biomass and fishing mortality
   vector<Type> logBBmsy(ns);
   vector<Type> logFFmsy(ns);
   for(int i=0; i<ns; i++){ 
@@ -673,8 +648,6 @@ Type objective_function<Type>::operator() ()
   ADREPORT(seasonsplinefine);
   // PREDICTIONS
   ADREPORT(Cp);
-  ADREPORT(Crcsum);
-  ADREPORT(logCrcsum);
   ADREPORT(logIp);
   ADREPORT(logCp);
   // PARAMETERS

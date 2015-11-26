@@ -49,7 +49,8 @@ summary.spictcls <- function(object, numdigits=8){
         cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n'))
     }
     # -- Residual diagnostics --
-    statout <- unlist(rep$stats)[-(1:2)]
+    #statout <- unlist(rep$stats)[-(1:2)]
+    statout <- unlist(rep$stats)
     if(length(statout)>0){
         cat('\nResidual diagnostics\n')
         inds <- grep('.p', names(statout))
@@ -86,12 +87,12 @@ summary.spictcls <- function(object, numdigits=8){
         cat('', paste(capture.output(resout),' \n'))
     }
         
-    # -- Model parameters --
-    cat('\nModel parameter estimates w 95% CI \n')
-    resout <- sumspict.parest(rep, numdigits=numdigits)
-    cat('', paste(capture.output(resout),' \n'), '\n')
-
     if(!'sderr' %in% names(rep)){
+        # -- Model parameters --
+        cat('\nModel parameter estimates w 95% CI \n')
+        resout <- sumspict.parest(rep, numdigits=numdigits)
+        cat('', paste(capture.output(resout),' \n'), '\n')
+
         # Derived estimates
         #cat(paste0('\nDerived estimates w 95% CI\n'))
         #derout <- rbind(get.par(parname='logr', rep, exp=TRUE)[, order])
