@@ -19,21 +19,12 @@
 // 14.10.2014
 #include <TMB.hpp>
 
-/* t-distribution */
-template<class Type>
-Type ltdistr(const Type &x, const Type &df)
-{
-  Type p = 1.0;
-  Type h = 0.5;
-  return -(-lgamma(h*(df+p)) + h*log(df*M_PI) + lgamma(h*df) + h*(df+p)*log(Type(1.0)+x*x/df));
-}
-
 /* Predict biomass */
 template<class Type>
 Type predictlogB(const Type &B0, const Type &F, const Type &gamma, const Type &m, const Type &K, const Type &dt, const Type &n, const Type &sdb2=0)
 {
-  // Pella-Tomlinson
-  return log(B0) + (gamma*m/K - gamma*m/K*pow(B0/K, n-1.0) - F - 0.5*sdb2)*dt; // Euler
+  // Euler discretised Lamperti transformed Pella-Tomlinson surplus production model in Fletcher (1978) form.
+  return log(B0) + (gamma*m/K - gamma*m/K*pow(B0/K, n-1.0) - F - 0.5*sdb2)*dt;
 }
 
 /* Predict catch*/
@@ -52,18 +43,18 @@ Type objective_function<Type>::operator() ()
   // DATA
   DATA_INTEGER(reportall);     // Report everything?
   DATA_VECTOR(dt);             // Time steps
-  DATA_VECTOR(dtpredcinds);    //
+  DATA_VECTOR(dtpredcinds);    // Indices of predictions in F state vector 
   DATA_INTEGER(dtpredcnsteps); // Number of sub time step for prediction
-  DATA_SCALAR(dtprediind);     //
+  DATA_SCALAR(dtprediind);     // Index of B state vector to use for predicting I
   DATA_INTEGER(indlastobs);    // Index of B and F corresponding to the last observation.
   DATA_VECTOR(obssrt);         // Catch and index observations sorted in time (to enable osar)
-  DATA_VECTOR_INDICATOR(keep, obssrt);
-  DATA_VECTOR(stdevfacc);      // 
-  DATA_VECTOR(stdevfaci);      // 
-  DATA_VECTOR(isc);            // 
-  DATA_VECTOR(isi);            // 
-  DATA_INTEGER(nobsC);
-  DATA_INTEGER(nobsI);
+  DATA_VECTOR_INDICATOR(keep, obssrt); // This one is required to calculate OSA residuals
+  DATA_VECTOR(stdevfacc);      // Factors to scale stdev of catch observation error
+  DATA_VECTOR(stdevfaci);      // Factors to scale stdev of index observation error
+  DATA_VECTOR(isc);            // Indices in obssrt of catch observations
+  DATA_VECTOR(isi);            // Indices in obssrt of index observations
+  DATA_INTEGER(nobsC);         // Number of catch observations
+  DATA_INTEGER(nobsI);         // Number of index observations
   DATA_VECTOR(ic);             // Vector such that B(ic(i)) is the state at the start of obsC(i)
   DATA_VECTOR(nc);             // nc(i) gives the number of time intervals obsC(i) spans
   DATA_VECTOR(ii);             // A vector such that B(ii(i)) is the state corresponding to I(i)
@@ -117,8 +108,8 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logsdc);           // sdc = beta*sdf
   PARAMETER_VECTOR(logphi);    // Season levels of F.
   PARAMETER(loglambda);        // Damping variable when using seasonal SDEs
-  PARAMETER(logitpp);          // 
-  PARAMETER(logp1robfac);      // 
+  PARAMETER(logitpp);          // Proportion of narrow distribution when using robust obs err.
+  PARAMETER(logp1robfac);      // Coefficient to the standard deviation of robust observation error distribution
   PARAMETER_VECTOR(logF);      // Diffusion component of F in log
   PARAMETER_MATRIX(logu);      // Seasonal component of F in log
   PARAMETER_VECTOR(logB);      // Biomass in log
@@ -563,7 +554,6 @@ Type objective_function<Type>::operator() ()
     }
   }
 
-
   /*
   --- ONE-STEP-AHEAD PREDICTIONS ---
   */
@@ -581,29 +571,6 @@ Type objective_function<Type>::operator() ()
     Cp += Cpredsub(ind);
   }
   Type logCp = log(Cp);
-  // CALCULATE RECOMMENDED CATCH
-  Type Crcsum = 1.0e-12;
-  if(dtpredcnsteps > 0){
-    vector<Type> Brc(dtpredcnsteps+1); // Biomass when predicting using Fmsy
-    ind = CppAD::Integer(dtpredcinds(0)-1);
-    Brc(0) = B(ind); // Start with the current biomass
-    vector<Type> Crc(dtpredcnsteps); // Catch when predicting using Fmsy
-    if(dbg>0){
-      std::cout << "--- DEBUG: RECOMMENDED CATCH" << std::endl;
-      std::cout << "-- Brc.size(): " << Brc.size() << " Crc.size(): " << Crc.size() << " dt.size(): " << dt.size() << std::endl;
-    }
-    for(int i=0; i<dtpredcnsteps; i++){
-      ind = CppAD::Integer(dtpredcinds(i)-1);
-      Crc(i) =  predictC(Fmsy(nm-1), Brc(i), dt(ind));
-      Crcsum += Crc(i);
-      Brc(i+1) = exp(predictlogB(Brc(i), Fmsy(nm-1), gamma, mvec(ind), K, dt(ind), n, sdb2));
-      // DEBUGGING
-      if(dbg>1){
-	std::cout << "-- i: " << i << " -  dtpredcinds(i)-1: " << ind << " -   Brc(i+1): " << Brc(i+1) << "  Crc(i): " << Crc(i) << "  Fmsy(nm-1): " << Fmsy(nm-1) << std::endl;
-      }
-    }
-  }
-  Type logCrcsum = log(Crcsum);
 
   // Biomass and F at the end of the prediction time interval
   int pind = CppAD::Integer(dtprediind-1);
@@ -620,14 +587,13 @@ Type objective_function<Type>::operator() ()
   }
 
   // Biomass and fishing mortality at last time point
-  // dtpredcinds(0) is the index of B and F corresponding to the time of the last observation.
   Type logBl = logB(indlastobs-1);
   Type logBlBmsy = logBl - logBmsyvec(indlastobs-1);
   Type logBlK = logBl - logK;
   Type logFl = logFs(indlastobs-1);
   Type logFlFmsy = logFl - logFmsyvec(indlastobs-1);
 
-  // Biomass and fishing mortality over msy levels
+  // Calculate relative levels of biomass and fishing mortality
   vector<Type> logBBmsy(ns);
   vector<Type> logFFmsy(ns);
   for(int i=0; i<ns; i++){ 
@@ -673,8 +639,6 @@ Type objective_function<Type>::operator() ()
   ADREPORT(seasonsplinefine);
   // PREDICTIONS
   ADREPORT(Cp);
-  ADREPORT(Crcsum);
-  ADREPORT(logCrcsum);
   ADREPORT(logIp);
   ADREPORT(logCp);
   // PARAMETERS
