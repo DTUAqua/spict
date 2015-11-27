@@ -2,7 +2,7 @@
 % Please edit documentation in R/spict.R
 \name{make.obj}
 \alias{make.obj}
-\title{Create TMB obj.}
+\title{Create TMB obj using TMB::MakeADFun and squelch screen printing.}
 \usage{
 make.obj(datin, pl, inp, phase = 1)
 }
@@ -19,6 +19,6 @@ make.obj(datin, pl, inp, phase = 1)
 List to be used as data input to TMB.
 }
 \description{
-Create TMB obj.
+Create TMB obj using TMB::MakeADFun and squelch screen printing.
 }
 

@@ -17,6 +17,12 @@ plotspict.fb(rep, logax = FALSE, plot.legend = TRUE, ext = TRUE,
 \item{ext}{Add relative level axis to top and right side.}
 
 \item{rel.axes}{Plot axes in relative levels instead of absolute.}
+
+\item{xlim}{Limits of x-axis.}
+
+\item{ylim}{Limits of y-axis.}
+
+\item{labpos}{Positions of time stamps of start and end points as in pos in text().}
 }
 \value{
 Nothing.

@@ -18,7 +18,7 @@ Nothing.
 Output a summary of a fit.spict() run.
 }
 \details{
-The output includes, the convergence message from the optimiser, the likelihood value of the parameters, the parameter estimates with 95% confidence intervals, estimates of derived parameters (BMsy, Fmsy, MSY) with 95% confidence intervals, and predictions of biomass, fishing mortality, and catch for the value of inp$dtpred.
+The output includes the parameter estimates with 95% confidence intervals, estimates of derived parameters (Bmsy, Fmsy, MSY) with 95% confidence intervals, and predictions of biomass, fishing mortality, and catch.
 }
 \examples{
 data(pol)

@@ -126,21 +126,21 @@ fit.spict <- function(inp, dbg=0){
                     rep$inp <- inp
                     if(inp$reportall){
                         #  - Calculate Prager's statistics -
-                        if(!'stats' %in% names(rep)) rep$stats <- list()
-                        K <- get.par('logK', rep, exp=TRUE)[2]
-                        Bests <- get.par('logB', rep, exp=TRUE)[rep$inp$indest, 2]
-                        Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
-                        if(!any(is.na(Bests)) & !is.na(Bmsy)){
-                            Bdiff <- Bmsy - Bests
-                            # Prager's nearness
-                            if(any(diff(sign(Bdiff))!=0)){
-                                rep$stats$nearness <- 1
-                            } else {
-                                rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
-                            }
-                            # Prager's coverage
-                            rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
-                        }
+                        #if(!'stats' %in% names(rep)) rep$stats <- list()
+                        #K <- get.par('logK', rep, exp=TRUE)[2]
+                        #Bests <- get.par('logB', rep, exp=TRUE)[rep$inp$indest, 2]
+                        #Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
+                        #if(!any(is.na(Bests)) & !is.na(Bmsy)){
+                        #    Bdiff <- Bmsy - Bests
+                        #    # Prager's nearness
+                        #    if(any(diff(sign(Bdiff))!=0)){
+                        #        rep$stats$nearness <- 1
+                        #    } else {
+                        #        rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
+                        #    }
+                        #    # Prager's coverage
+                        #    rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
+                        #}
                         # - Built-in OSAR -
                         if(!inp$osar.method == 'none'){
                             rep <- calc.osa.resid(rep)

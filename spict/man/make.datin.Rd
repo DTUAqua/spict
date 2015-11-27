@@ -2,7 +2,7 @@
 % Please edit documentation in R/spict.R
 \name{make.datin}
 \alias{make.datin}
-\title{Create data list.}
+\title{Create data list used as input to TMB::MakeADFun.}
 \usage{
 make.datin(inp, dbg = 0)
 }
@@ -12,9 +12,9 @@ make.datin(inp, dbg = 0)
 \item{dbg}{Debugging option. Will print out runtime information useful for debugging if set to 1.}
 }
 \value{
-List to be used as data input to TMB.
+List to be used as data input to TMB::MakeADFun.
 }
 \description{
-Create data list.
+Create data list used as input to TMB::MakeADFun.
 }
 

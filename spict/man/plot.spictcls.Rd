@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotting.R
 \name{plot.spictcls}
 \alias{plot.spictcls}
-\title{3x3 plot illustrating spict results.}
+\title{Plot summarising spict results.}
 \usage{
 \method{plot}{spictcls}(rep, logax = FALSE)
 }
@@ -15,19 +15,27 @@
 Nothing.
 }
 \description{
-3x3 plot illustrating spict results.
+Plot summarising spict results.
 }
 \details{
-Create a 3x3 plot containing the following:
+Create a plot containing the following:
 \itemize{
- \item{1. Biomass using plotspict.biomass().}
- \item{2. One-step-ahead residuals, only if calculated, using plotspict.osar().}
- \item{3. One-step-ahead auto-correlation function (only if calculated).}
- \item{4. Estimated F versus estimated B using plotspict.fb().}
- \item{5. Estimated fishing mortality using plotspict.f().}
- \item{6. Observed versus predicted catches using plotspict.catch().}
+ \item{1. Estimated biomass using plotspict.biomass().}
+ \item{2. Estimated fishing mortality using plotspict.f().}
+ \item{3. Observed versus predicted catches using plotspict.catch().}
+ \item{4. Estimated biomass relative to Bmsy using plotspict.bbmsy().}
+ \item{5. Estimated fishing mortality relative to Fmsy using plotspict.ffmsy().}
+ \item{6. Estimated F versus estimated B using plotspict.fb().}
  \item{7. Observed versus theoretical production using plotspict.production().}
- \item{8. Calculated time-constant using plotspict.tc().}
+}
+
+Optional plots included if relevant:
+\itemize{
+ \item{ Estimated seasonal spline using plotspict.season().}
+ \item{ Calculated time-constant using plotspict.tc().}
+ \item{ First prior and corresponding posterior distribution using plotspict.priors().}
+ \item{ One-step-ahead residuals of catches using plotspict.osar().}
+ \item{ One-step-ahead residuals of catches using plotspict.osar().}
 }
 }
 \examples{

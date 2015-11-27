@@ -20,32 +20,39 @@ Fit a continuous-time surplus production model to data.
 \details{
 Fits the model using the TMB package and returns a result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
 
-Fixed effects:
+Model parameters using the formulation of Fletcher (1978):
 \itemize{
+  \item{"logn"}{ Parameter determining the shape of the production curve as in the generalised form of Pella & Tomlinson (1969).}
   \item{"logm"}{ Log of maximum sustainable yield.}
   \item{"logK"}{ Log of carrying capacity.}
   \item{"logq"}{ Log of catchability vector.}
-  \item{"logsdf"}{ Log of standard deviation of fishing mortality process noise.}
-  \item{"logsdb"}{ Log of standard deviation of biomass process noise.}
+  \item{"logsdb"}{ Log of standard deviation of biomass process error.}
+  \item{"logsdf"}{ Log of standard deviation of fishing mortality process error.}
+  \item{"logsdi"}{ Log of standard deviation of index observation error.}
+  \item{"logsdc"}{ Log of standard deviation of catch observation error.}
 }
 
-Optional parameters (which are normally not estimated):
+Unobserved states estimated as random effects:
 \itemize{
-  \item{"phi"}{ Used when inp$nseasons > 1 to specify the cyclic B spline representing seasonal variation.}
-  \item{"logalpha"}{ Proportionality factor for the observation noise of the indices and the biomass process noise: sdi = exp(logalpha)*sdb. (normally set to logalpha=0)}
-  \item{"logbeta"}{ Proportionality factor for the observation noise of the catches and the fishing mortality process noise: sdc = exp(logbeta)*sdf. (this is often difficult to estimate and can result in divergence of the optimisation. Normally set to logbeta=0)}
-  \item{"logn"}{ Parameter determining the shape of the production curve as in the generalised form of Pella & Tomlinson (1969). Default: log(2).}
+  \item{"logB"}{ Log of the biomass process given by the stochastic differential equation: dB_t = r*B_t*(1-(B_t/K)^n)*dt + sdb*dW_t, where dW_t is Brownian motion.}
+  \item{"logF"}{ Log of the fishing mortality process given by: dlog(F_t) = f(t, sdf), where the function f depends on the choice of seasonal model.}
 }
 
-Random effects:
+Other parameters (which are only needed in certain cases):
 \itemize{
-  \item{"logB"}{ Log of the biomass process given by the continuous-time stochastic Schaefer equation: dB_t = r*B_t*(1-(B_t/K)^n)*dt + sdb*dW_t, where dW_t is Brownian motion.}
-  \item{"logF"}{ Log of the fishing mortality process given by: F_t = D_s*G_t, where D_s is a cyclic B spline and dG_t = sigma_F * dV, with dV being Brownian motion.}
+  \item{"logphi"}{ Log of parameters used to specify the cyclic B spline representing seasonal variation. Used when inp$nseasons > 1 and inp$seasontype = 1.}
+  \item{"logU"}{ Log of the state of the coupled SDE system used to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
+  \item{"loglambda"}{ Log of damping parameter when using the coupled SDE system to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
+  \item{"logsdu"}{ Log of standard deviation of process error of U_t (the state of the coupled SDE system) used to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
+  \item{"logp1robfac"}{ Log plus one of the coefficient to the standard deviation of the observation error when using a mixture distribution robust toward outliers, i.e. when either inp$robflag = 1 and/or inp$robflagi = 1.}
+  \item{"logitpp"}{Logit of the proportion of narrow distribution when using a mixture distribution robust toward outliers, i.e. when either inp$robflag = 1 and/or inp$robflagi = 1.}
 }
 
-Derived parameters:
+Parameters that can be derived from model parameters:
 \itemize{
   \item{"logr"}{ Log of intrinsic growth rate (r = 4m/K).}
+  \item{"logalpha"}{ Proportionality factor for the observation noise of the indices and the biomass process noise: sdi = exp(logalpha)*sdb. (normally set to logalpha=0)}
+  \item{"logbeta"}{ Proportionality factor for the observation noise of the catches and the fishing mortality process noise: sdc = exp(logbeta)*sdf. (this is often difficult to estimate and can result in divergence of the optimisation. Normally set to logbeta=0)}
   \item{"logBmsy"}{ Log of the equilibrium biomass (Bmsy) when fished at Fmsy.}
   \item{"logFmsy"}{ Log of the fishing mortality (Fmsy) leading to the maximum sustainable yield.}
   \item{"MSY"}{ The yield when the biomass is at Bmsy and the fishing mortality is at Fmsy, i.e. the maximum sustainable yield.}
@@ -65,6 +72,7 @@ Model assumptions
 \examples{
 data(pol)
 rep <- fit.spict(pol$albacore)
+Bmsy <- get.par('logBmsy', rep, exp=TRUE)
 summary(rep)
 plot(rep)
 }

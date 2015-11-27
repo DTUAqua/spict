@@ -18,53 +18,82 @@
 #' @name check.inp
 #' @title Check list of input variables
 #' @details Fills in defalut values if missing.
+#'
 #' Required inputs:
+#' 
 #' \itemize{
 #'  \item{"inp$obsC"}{ Vector of catch observations.}
 #'  \item{"inp$obsI"}{ List containing vectors of index observations.}
-#'  \item{"inp$ini$logr"}{ Initial value(s) for logr (log intrinsic growth rate). Can be specified as a scalar, or a vector of length 2 or 4. If length(logr)=2 different r values are estimated for first and second half of the year, if length(logr)=4 different r values are estimated for the four quarters of the year.}
-#'  \item{"inp$ini$logK"}{ Initial value for logK (log carrying capacity).}
-#'  \item{"inp$ini$logq"}{ Initial value for logq (log catchability of index).}
-#'  \item{"inp$ini$logsdb"}{ Initial value for logsdb (log standard deviation of log biomass).}
-#'  \item{"inp$ini$logsdf"}{ Initial value for logsdf (log standard deviation of log fishing mortality).}
 #' }
+#' 
 #' Optional inputs:
+#' 
 #' - Data
 #' \itemize{
 #'  \item{"inp$timeC"}{ Vector of catch times. Default: even time steps starting at 1.}
 #'  \item{"inp$timeI"}{ List containing vectors of index times. Default: even time steps starting at 1.}
 #'  \item{"inp$dtc"}{ Time interval for catches, e.g. for annual catches inp$dtc=1, for quarterly catches inp$dtc=0.25. Can be given as a scalar, which is then used for all catch observations. Can also be given as a vector specifying the catch interval of each catch observation. Default: min(diff(inp$timeC)). }
-#'  \item{"inp$nseasons"}{ Number of within-year seasons in data. If inp$nseasons > 1 then a cyclic B spline is used to impose a seasonal pattern in F. The parameters of the spline are phi and are estimated. Valid values are 1, 2 or 4. Default: number of unique within-year time points present in data.}
+#'  \item{"inp$nseasons"}{ Number of within-year seasons in data. If inp$nseasons > 1 then a seasonal pattern is used in F. Valid values of inp$nseasons are 1, 2 or 4. Default: number of unique within-year time points present in data.}
 #' }
+#' 
 #' - Parameters
+#' 
 #' \itemize{
-#'  \item{"inp$ini$logn"}{ Pella-Tomlinson exponent. Default: log(2) corresponding to the Schaefer formulation.}
+#'  \item{"inp$ini$logn"}{ Pella-Tomlinson exponent determining shape of production function. Default: log(2) corresponding to the Schaefer formulation.}
+#'  \item{"inp$ini$logm"}{ Initial value for logm (log maximum sustainable yield). Default: log(mean(catch)).}
+#'  \item{"inp$ini$logK"}{ Initial value for logK (log carrying capacity). Default: log(4*max(catch)).}
+#'  \item{"inp$ini$logq"}{ Initial value for logq (log catchability of index). Default: log(max(index)/K).}
+#'  \item{"inp$ini$logsdb"}{ Initial value for logsdb (log standard deviation of biomass process). Default: log(0.2).}
+#'  \item{"inp$ini$logsdf"}{ Initial value for logsdf (log standard deviation of fishing mortality process). Default: log(0.2).}
+#'  \item{"inp$ini$logsdi"}{ Initial value for logsdi (log standard deviation of index observation error). Default: log(0.2).}
+#'  \item{"inp$ini$logsdc"}{ Initial value for logsdc (log standard deviation of catch observation error). Default: log(0.2).}
 #'  \item{"inp$ini$phi"}{ Vector for cyclic B spline representing within-year seasonal variation. Default: rep(1, inp$nseasons).}
-#'  \item{"inp$ini$logalpha"}{ sdi = alpha*sdb. Default: log(1).}
-#'  \item{"inp$ini$logbeta"}{ sdc = beta*sdf. Default: log(1).}
-#'  \item{"inp$ini$logF"}{ Default: log(0.2*r).}
-#'  \item{"inp$ini$logB"}{ Default: log(0.5*K).}
+#'  \item{"inp$ini$logsdu"}{ Initial value for logsdu (log standard deviation of log U, the state of the coupled SDE representation of seasonality). Default: log(0.1).}
+#'  \item{"inp$ini$loglambda"}{ Initial value for loglambda (log damping parameter of the coupled SDE representation of seasonality). Default: log(0.1).}
 #' }
+#'
+#' - Unobserved states estimated as random effects
+#' 
+#' \itemize{
+#'   \item{"inp$ini$logF"}{ Log fishing mortality. Default: log(0.2*r), with r derived from m and K.}
+#'   \item{"inp$ini$logB"}{ Log biomass. Default: log(0.5*K).}
+#'   \item{"inp$ini$logU"}{ Log U, the state of the coupled SDE representation of seasonality. Default: log(1).}
+#' }
+#' 
 #' - Priors
-#' Priors on model parameters are assumed Gaussian and specified in a vector of length 3: c(log(mean), stdev in log, useflag). NOTE: if specifying a prior for logB, then a 4th element is required specifying the year the prior should be applied.
+#' 
+#' Priors on model parameters are assumed Gaussian and specified in a vector of length 2: c(log(mean), stdev in log domain, useflag [optional]). NOTE: if specifying a prior for logB, then a 4th element is required specifying the year the prior should be applied.
 #' log(mean): log of the mean of the prior distribution.
 #' stdev in log: standard deviation of the prior distribution in log domain.
 #' useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
-#' Example: inp$priors$logr <- c(log(0.8), 0.1, 1)
-#' Example: inp$priors$logB <- c(log(200), 0.2, 1, 1985)
-#' - Settings
+#' To list parameters to which priors can be applied run list.possible.priors().
+#' Example: intrinsic growth rate of 0.8
+#'  inp$priors$logr <- c(log(0.8), 0.1)
+#'  inp$priors$logr <- c(log(0.8), 0.1, 1) # This includes the optional useflag
+#' Example: Biomass prior of 200 in 1985
+#'  inp$priors$logB <- c(log(200), 0.2, 1985)
+#'  inp$priors$logB <- c(log(200), 0.2, 1, 1985) # This includes the optional useflag
+#' 
+#' - Settings/Options/Preferences
+#' 
 #' \itemize{
-#'  \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc).}
-#'  \item{"inp$timepredc"}{ Predict catches in interval lengths given by $dtpredc until this time. Default: Time of last observation.}
-#'  \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation.}
+#'  \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc). Should be 1 to get annual predictions and 0.25 for quarterly predictions.}
+#'  \item{"inp$timepredc"}{ Predict catches in interval lengths given by $dtpredc until this time. Default: Time of last observation. Example: inp$timepredc <- 2012}
+#'  \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation. Example: inp$timepredi <- 2012}
 #'  \item{"inp$do.sd.report"}{ Flag indicating whether SD report (uncertainty of derived quantities) should be calculated. For small values of inp$dteuler this may require a lot of memory. Default: TRUE.}
 #'  \item{"inp$reportall"}{ Flag indicating whether quantities derived from state vectors (e.g. B/Bmsy, F/Fmsy etc.) should be calculated by SD report. For small values of inp$dteuler (< 1/32) reporting all may have to be set to FALSE for sdreport to run. Additionally, if only reference points of parameter estimates are of interest one can set to FALSE to gain a speed-up. Default: TRUE.}
 #' \item{"inp$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
 #'  \item{"inp$robflagi"}{ Flag indicating whether robust estimation should be used for indices (either 0 or 1). Default: 0.}
 #'  \item{"inp$ffac"}{ Management scenario represented by a factor to multiply F with when calculating the F of the next time step. ffac=0.8 means a 20\% reduction in F over the next year. The factor is only used when predicting beyond the data set. Default: 1 (0\% reduction).}
-#'  \item{"inp$dteuler"}{ Length of Euler time step in years. Default: min(inp$dtc).}
+#'  \item{"inp$dteuler"}{ Length of Euler time step in years. Default: 1/16 year.}
 #'  \item{"inp$phases"}{ Phases can be used to fix/free parameters and estimate in different stages or phases. To fix e.g. logr at inp$ini$logr set inp$phases$logr <- -1. To free logalpha and estimate in phase 1 set inp$phases$logalpha <- 1.}
 #'  \item{"inp$osar.method"}{ Method to use in TMB's oneStepPredict function. Valid methods include: "oneStepGaussianOffMode", "fullGaussian", "oneStepGeneric", "oneStepGaussian", "cdf". See TMB help for more information. Default: "none" (i.e. don't run this).}
+#'  \item{"inp$osar.trace"}{ If TRUE print OSAR calculation progress to screen. Default: FALSE.}
+#'  \item{"inp$osar.parallel"}{ If TRUE parallelise OSAR calculation for speed-up. Default: FALSE.}
+#'  \item{"inp$catchunit"}{ Specify unit of catches to be used in plotting legends. Default: ''.}
+#'  \item{"inp$stdevfacC"}{ Factors to multiply the observation error standard deviation of each individual catch observation. Can be used if some observations are more uncertain than others. Must be same length as observation vector. Default: 1.}
+#'  \item{"inp$stdevfacI"}{ Factors to multiply the observation error standard deviation of each individual index observation. Can be used if some observations are more uncertain than others. A list with vectors of same length as observation vectors. Default: 1.}
+#'  \item{"inp$mapsdi"}{ Vector of length equal to the number of index series specifying which indices that should use the same sdi. For example: in case of 3 index series use inp$mapsdi <- c(1, 1, 2) to have series 1 and 2 share sdi and have a separate sdi for series 3. Default: 1:nindex, where nindex is number of index series.}
 #' }
 #' @param inp List of input variables, see details for required variables.
 #' @return An updated list of input variables checked for consistency and with defaults added.
@@ -527,6 +556,7 @@ check.inp <- function(inp){
     logalpha <- log(1)
     logbeta <- log(1)
     small <- 1e-4
+    wide <- 2 # Value suggested by Casper 
     lognsd <- small
     logalphasd <- small
     logbetasd <- small
@@ -617,13 +647,6 @@ check.inp <- function(inp){
     }
     if('logr' %in% names(inp$ini)){
         nr <- length(inp$ini$logr)
-        #if(!nr %in% c(1, 2, 4)){
-        #    stop('logr must be a vector of length either 1, 2 or 4.')
-        #}
-        #min <- log(0.3)-3
-        #max <- log(0.3)+3
-        #for(i in 1:nr) if(inp$ini$logr[i] < min | inp$ini$logr[i] > max) stop('Please specify a value for logr(', i, ') in the interval: [', min, ';', max, ']')
-        # ir is the mapping from time to the r vector
         if(!'ir' %in% names(inp) | nr==1){
             inp$ir <- rep(0, inp$ns)
             for(i in 1:nr){
@@ -856,4 +879,15 @@ check.inp <- function(inp){
     }
     if(!is.null(inp)) class(inp) <- "spictcls"
     return(inp)
+}
+
+
+#' @name list.possible.priors
+#' @title List parameters to which priors can be added
+#' @return Prints parameters to which priors can be added.
+#' @export
+list.possible.priors <- function(){
+    data(pol)
+    inp <- check.inp(pol$albacore)
+    print(names(inp$priors))
 }
