@@ -555,7 +555,7 @@ check.inp <- function(inp){
     logn <- log(2)
     logalpha <- log(1)
     logbeta <- log(1)
-    small <- 1e-4
+    small <- 1e-3
     wide <- 2 # Value suggested by Casper 
     lognsd <- small
     logalphasd <- small

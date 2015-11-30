@@ -69,7 +69,7 @@ summary.spictcls <- function(object, numdigits=8){
         cat(paste('\nPriors\n'))
         maxchar <- max(nchar(usepriors))
         for(i in 1:npriors){
-            str[i] <- paste0('~  N[log(', round(exp(rep$inp$priors[[indso[i]]][1]), 3), '), ', round(rep$inp$priors[[indso[i]]][2], 3), '^2]', ifelse(rep$inp$priors[[indso[i]]][2] <= 1e-4, ' (fixed)', ''))
+            str[i] <- paste0('~  N[log(', round(exp(rep$inp$priors[[indso[i]]][1]), 3), '), ', round(rep$inp$priors[[indso[i]]][2], 3), '^2]', ifelse(rep$inp$priors[[indso[i]]][2] <= 1e-3, ' (fixed)', ''))
             usepriors[i] <- formatC(usepriors[i], width = maxchar, flag = 0)
             cat(paste0(' ', usepriors[i], '  ', str[i], '\n'))
         }
