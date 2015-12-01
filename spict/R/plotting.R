@@ -1771,6 +1771,7 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
         for(i in 2:inp$nindex){
             main <- paste0('Nobs I: ', inp$nobsI[i])
             plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
+            grid()
             plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
         }
     }
