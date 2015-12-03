@@ -557,21 +557,40 @@ check.inp <- function(inp){
     logbeta <- log(1)
     small <- 1e-3
     wide <- 2 # Value suggested by Casper 
-    lognsd <- small
-    logalphasd <- small
-    logbetasd <- small
+    lognsd <- wide
+    logalphasd <- wide
+    logbetasd <- wide
+    # Default phases are not set at this point, so if phases exist the user has chosen them manually
+    # If a phase is set > -1 then the parameter is estimated without prior.
+    # If a phase is set <= -1 then a narrow priors is used for this parameter fixing it.
     if('phases' %in% names(inp)){ # Only use default priors if not assigned a phase
         if('logn' %in% names(inp$phases)){
-            if(inp$phases$logn > -1) lognflag <- FALSE # Estimate logn
+            if(inp$phases$logn > -1){
+                lognflag <- FALSE # Estimate logn
+            } else {
+                lognsd <- small # Fix n
+            }
         }
         if('logalpha' %in% names(inp$phases)){
-            if(inp$phases$logalpha > -1) logalphaflag <- FALSE # Estimate logalpha i.e. sdb and sdi untied
+            if(inp$phases$logalpha > -1){
+                logalphaflag <- FALSE # Estimate logalpha i.e. sdb and sdi untied
+            } else {
+                logalphasd <- small # Fix alpha
+            }
         }
         if('logbeta' %in% names(inp$phases)){  
-            if(inp$phases$logbeta > -1) logbetaflag <- FALSE # Estimate logalpha i.e. sdf and sdc untied
+            if(inp$phases$logbeta > -1){
+                logbetaflag <- FALSE # Estimate logalpha i.e. sdf and sdc untied
+            } else {
+                logbetasd <- small # Fix beta
+            }
         }
     }
-    if('ini' %in% names(inp)){ # Default ini values have not been set yet at this point
+    # Default ini values have not been set yet at this point
+    # If an ini value is available the user has set it manually
+    # If an ini value is available it is used as mean of the prior for that parameter.
+    # The sd of the prior depends on whether a phase has been specified.
+    if('ini' %in% names(inp)){ 
         # Log n
         if('logn' %in% names(inp$ini)){
             logn <- inp$ini$logn

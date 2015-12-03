@@ -21,5 +21,6 @@
 }
 
 .onAttach <- function(lib, pkg) {
-   packageStartupMessage("Welcome to a Stochastic surplus Production model in Continuous Time (SPiCT).")
+    ver <- packageVersion('spict')
+   packageStartupMessage(paste0('Welcome to spict, version: ', ver))
  }
