@@ -834,6 +834,7 @@ check.inp <- function(inp){
                         logF=inp$ini$logF,
                         logu=inp$ini$logu,
                         logB=inp$ini$logB)
+    
     # Determine phases and fixed parameters
     fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless otherwise specified
     forcefixpars <- c() # Parameters that are forced to be fixed.
@@ -853,6 +854,11 @@ check.inp <- function(inp){
         if("logr" %in% names(inp$phases)){
             inp$phases$logm <- inp$phases$logr
             inp$phases$logr <- NULL
+        }
+        nms <- names(inp$phases)
+        inds <- which(is.na(match(nms, c(names(inp$ini), 'logalpha', 'logbeta'))))
+        if(length(inds)>0){
+            stop('phase specified for invalid parameter(s): ', paste(nms[inds], collapse=', '))
         }
     }
     # If robust flags are set to 1 then set phases for robust parameters to 1
