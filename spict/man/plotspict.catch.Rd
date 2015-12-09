@@ -19,8 +19,6 @@ plotspict.catch(rep, main = -1, plot.legend = TRUE, ylim = NULL,
 \item{qlegend}{If TRUE legend explaining colours of observation data is plotted.}
 
 \item{lcol}{Colour of prediction lines.}
-
-\item{lineat}{Draw horizontal line at this y-value.}
 }
 \value{
 Nothing.

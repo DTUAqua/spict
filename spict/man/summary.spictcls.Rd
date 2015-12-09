@@ -12,7 +12,7 @@
 \item{numdigits}{Present values with this number of digits after the dot.}
 }
 \value{
-Nothing.
+Nothing. Prints a summary to the screen.
 }
 \description{
 Output a summary of a fit.spict() run.

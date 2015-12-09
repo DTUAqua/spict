@@ -5,7 +5,7 @@
 \title{Simulate data and reestimate parameters}
 \usage{
 validate.spict(inp, nsim = 50, nobsvec = c(15, 60, 240), estinp = NULL,
-  backup = NULL, df.out = FALSE)
+  backup = NULL, df.out = FALSE, summ.ex.file = NULL)
 }
 \arguments{
 \item{inp}{An inp list with an ini key (see ?check.inp). If you want to use estimated parameters for the simulation create the inp$ini from the pl key of a result of fit.spict().}
@@ -17,6 +17,10 @@ validate.spict(inp, nsim = 50, nobsvec = c(15, 60, 240), estinp = NULL,
 \item{estinp}{The estimation uses the true parameters as starting guess. Other initial values to be used for estimation can be specified in estinp$ini.}
 
 \item{backup}{Since this procedure can be slow a filename can be specified in backup where the most recent results will be available.}
+
+\item{df.out}{Output data frame instead of list.}
+
+\item{summ.ex.file}{Save a summary example to this file (to check that parameters have correct priors or are fixed).}
 }
 \value{
 A list containing the results of the validation with the following keys:
