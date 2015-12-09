@@ -327,6 +327,8 @@ sim.spict <- function(input, nobs=100){
 #' @param nobsvec Vector containing the number of simulated observations of each data set in each batch.
 #' @param estinp The estimation uses the true parameters as starting guess. Other initial values to be used for estimation can be specified in estinp$ini.
 #' @param backup Since this procedure can be slow a filename can be specified in backup where the most recent results will be available.
+#' @param df.out Output data frame instead of list.
+#' @param summ.ex.file Save a summary example to this file (to check that parameters have correct priors or are fixed).
 #' @return A list containing the results of the validation with the following keys:
 #' \itemize{
 #'  \item{"osarpvals"}{ P-values of the Ljung-Box test for uncorrelated one-step-ahead residuals.}
@@ -341,7 +343,7 @@ sim.spict <- function(input, nobs=100){
 #' set.seed(1234)
 #' validate.spict(inp, nsim=10, nobsvec=c(30, 60), backup='validate.RData')
 #' @export
-validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, backup=NULL, df.out=FALSE){
+validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, backup=NULL, df.out=FALSE, summ.ex.file=NULL){
     nnobsvec <- length(nobsvec)
     inp$timeC <- NULL
     inp$timeI <- NULL
@@ -361,6 +363,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
         s <- NA
         if(!class(rep)=='try-error'){
             s <- extract.simstats(rep, inp)
+            if(!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file)
         }
         return(s)
     }

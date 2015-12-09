@@ -400,13 +400,15 @@ plotspict.biomass <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=
 #' @param ylim Limits for y-axis.
 #' @param plot.obs If TRUE observations are plotted.
 #' @param qlegend If TRUE legend explaining colours of observation data is plotted.
+#' @param lineat Draw horizontal line at this y-value.
+#' @param xlab Label of x-axis.
 #' @return Nothing.
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.bbmsy(rep)
 #' @export
-plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL, plot.obs=TRUE, qlegend=TRUE, lineat=1){
+plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL, plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time'){
     if(!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
@@ -429,7 +431,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         if(length(ylim)!=2) ylim <- range(c(lineat, BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
         ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
         if(main==-1) main <- 'Relative biomass'
-        plot(inp$time, BB[,2], typ='n', xlab='Time', ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main=main)
+        plot(inp$time, BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main=main)
         cicol2 <- rgb(0, 0, 1, 0.1)
         polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3])), col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
@@ -746,13 +748,14 @@ plotspict.f <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL){
 #' @param plot.legend If TRUE legend is plotted.
 #' @param ylim Limits for y-axis.
 #' @param lineat Draw horizontal line at this y-value.
+#' @param xlab Label of x-axis.
 #' @return Nothing.
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.ffmsy(rep)
 #' @export
-plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL, lineat=1){
+plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NULL, lineat=1, xlab='Time'){
     if(!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
@@ -813,7 +816,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
         ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat)) # Ensure that lineat is included in ylim
         if(main==-1) main <- 'Relative fishing mortality'
-        plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]), xlab='Time', xlim=range(c(inp$time, tail(inp$time,1)+1)))
+        plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]), xlab=xlab, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log)
         cicol2 <- rgb(0, 0, 1, 0.1)
         if(!flag) polygon(c(timef[fininds], rev(timef[fininds])), c(clf[fininds], rev(cuf[fininds])), col=cicol2, border=cicol2)
         if(min(inp$dtc) < 1){ # Plot estimated sub annual F 
@@ -845,13 +848,14 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main=-1, plot.legend=TRUE, ylim=NU
 #' @param xlim Limits of x-axis.
 #' @param ylim Limits of y-axis.
 #' @param labpos Positions of time stamps of start and end points as in pos in text().
+#' @param xlabel Label of x-axis. If NULL not used.
 #' @return Nothing.
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.fb(rep)
 #' @export
-plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE, xlim=NULL, ylim=NULL, labpos=c(1, 1)){
+plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE, xlim=NULL, ylim=NULL, labpos=c(1, 1), xlabel=NULL){
     if(!'sderr' %in% names(rep)){
         omar <- par()$mar
         mar <- c(5.1, 4.3, 4.1, 4.1)
@@ -930,6 +934,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             ylim[1] <- max(ylim[1], logminval)
         }
         # Plotting
+        if(!is.null(xlabel)) xlab <- xlabel
         plot(Bmsy[2]/bscal, Fmsy[2]/fscal, typ='n', xlim=xlim, xlab=xlab, ylab=ylab, ylim=ylim, log=log)
         if(ext){
             if(logax){
@@ -1002,7 +1007,6 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
 #' @param main Title of plot.
 #' @param plot.legend If TRUE legend is plotted.
 #' @param ylim Limits for y-axis.
-#' @param lineat Draw horizontal line at this y-value.
 #' @param qlegend If TRUE legend explaining colours of observation data is plotted.
 #' @param lcol Colour of prediction lines.
 #' @return Nothing.
