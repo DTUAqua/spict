@@ -120,11 +120,11 @@ read.aspic <- function(filename){
     inp$ini$logr <- log(2*dat$Fmsyini)
     inp$ini$logK <- log(2*dat$MSYini/dat$Fmsyini)
     inp$ini$logq <- log(dat$qini)
-    inp$ini$logsdf <- log(1)
-    inp$ini$logsdb <- log(1)
-    inp$lamperti <- 1
-    inp$euler <- 1
-    inp$dteuler <- 1
+    #inp$ini$logsdf <- log(1)
+    #inp$ini$logsdb <- log(1)
+    #inp$lamperti <- 1
+    #inp$euler <- 1
+    #inp$dteuler <- 1
     return(inp)
 }
 
