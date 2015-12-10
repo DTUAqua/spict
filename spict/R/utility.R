@@ -304,15 +304,15 @@ guess.m <- function(inp, all.return=FALSE){
 
 
 #' @name calc.EBinf
-#' @title Calculate E(Binfinity) the fished equilibrium.
-#' @details If a seasonal pattern in F is imposed the annual average F is used for calculating the expectation.
+#' @title Calculate E(Binfinity), i.e. the fished equilibrium.
+#' @details If a seasonal pattern in F is imposed the annual average F is used for calculating the expectation. Max() is used to avoid negative values.
 #' @param K The carrying capacity.
 #' @param n Pella-Tomlinson exponent.
 #' @param Fl Average fishing mortality of the last year.
 #' @param Fmsy Fishing mortality at MSY.
 #' @param sdb2 Standard deviation squared (variance) of B process.
 #' @return E(Binf).
-calc.EBinf <- function(K, n, Fl, Fmsy, sdb2) K*(1 - (n-1)/n * Fl/Fmsy)^(1/(n-1)) * (1 - n/2/(1 - (1-n*Fmsy + (n-1)*Fl))*sdb2)
+calc.EBinf <- function(K, n, Fl, Fmsy, sdb2) max(c(0, K*(1 - (n-1)/n * Fl/Fmsy)^(1/(n-1)) * (1 - n/2/(1 - (1-n*Fmsy + (n-1)*Fl))*sdb2)))
 
 
 #' @name get.EBinf
