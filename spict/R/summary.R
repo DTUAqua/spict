@@ -80,11 +80,11 @@ summary.spictcls <- function(object, numdigits=8){
         cat('\nFixed parameters\n')
         cat('', paste(capture.output(resout),' \n'))
     }
-    if(!'sderr' %in% names(rep)){
-        # -- Model parameters --
-        cat('\nModel parameter estimates w 95% CI \n')
-        resout <- sumspict.parest(rep, numdigits=numdigits)
-        cat('', paste(capture.output(resout),' \n'), '\n')
+    # -- Model parameters --
+    cat('\nModel parameter estimates w 95% CI \n')
+    resout <- sumspict.parest(rep, numdigits=numdigits)
+    cat('', paste(capture.output(resout),' \n'), '\n')
+    if(rep$inp$do.sd.report & !'sderr' %in% names(rep)){
         # Deterministic ref points
         cat('Deterministic reference points (Drp)\n')
         derout <- sumspict.drefpoints(rep, numdigits=numdigits)
@@ -129,100 +129,104 @@ get.colnms <- function() return(c('estimate', 'cilow', 'ciupp', 'est.in.log'))
 #' @return data.frame containing parameter estimates.
 #' @export
 sumspict.parest <- function(rep, numdigits=8){
-    order <- get.order()
-    colnms <- get.colnms()
-    sd <- sqrt(diag(rep$cov.fixed))
-    nms <- names(rep$par.fixed)
-    loginds <- grep('log', nms)
-    logp1inds <- grep('logp1',nms)
-    logitinds <- grep('logit',nms)
-    loginds <- setdiff(loginds, c(logp1inds, logitinds))
-    est <- rep$par.fixed
-    est[loginds] <- exp(est[loginds])
-    est[logitinds] <- invlogit(est[logitinds])
-    est[logp1inds] <- invlogp1(est[logp1inds])
-    cilow <- rep$par.fixed-1.96*sd
-    cilow[loginds] <- exp(cilow[loginds])
-    cilow[logitinds] <- invlogit(cilow[logitinds])
-    cilow[logp1inds] <- invlogp1(cilow[logp1inds])
-    ciupp <- rep$par.fixed+1.96*sd
-    ciupp[loginds] <- exp(ciupp[loginds])
-    ciupp[logitinds] <- invlogit(ciupp[logitinds])
-    ciupp[logp1inds] <- invlogp1(ciupp[logp1inds])
-    if('true' %in% names(rep$inp)){
-        npar <- length(nms)
+    if(rep$inp$do.sd.report){
+        order <- get.order()
+        colnms <- get.colnms()
+        sd <- sqrt(diag(rep$cov.fixed))
+        nms <- names(rep$par.fixed)
+        loginds <- grep('log', nms)
+        logp1inds <- grep('logp1',nms)
+        logitinds <- grep('logit',nms)
+        loginds <- setdiff(loginds, c(logp1inds, logitinds))
+        est <- rep$par.fixed
+        est[loginds] <- exp(est[loginds])
+        est[logitinds] <- invlogit(est[logitinds])
+        est[logp1inds] <- invlogp1(est[logp1inds])
+        cilow <- rep$par.fixed-1.96*sd
+        cilow[loginds] <- exp(cilow[loginds])
+        cilow[logitinds] <- invlogit(cilow[logitinds])
+        cilow[logp1inds] <- invlogp1(cilow[logp1inds])
+        ciupp <- rep$par.fixed+1.96*sd
+        ciupp[loginds] <- exp(ciupp[loginds])
+        ciupp[logitinds] <- invlogit(ciupp[logitinds])
+        ciupp[logp1inds] <- invlogp1(ciupp[logp1inds])
+        if('true' %in% names(rep$inp)){
+            npar <- length(nms)
+            unms <- unique(nms)
+            nupar <- length(unms)
+            truepar <- NULL
+            parnotest <- NULL
+            for(i in 1:nupar){
+                tp <- rep$inp$true[[unms[i]]]
+                nestpar <- sum(names(est) == unms[i])
+                truepar <- c(truepar, tp[1:nestpar])
+                if(nestpar < length(tp)){
+                    inds <- (nestpar+1):length(tp)
+                    parnotest <- c(parnotest, tp[inds])
+                    names(parnotest) <- c(names(parnotest), paste0(unms[i], inds))
+                }
+            }
+            truepar[loginds] <- exp(truepar[loginds])
+            truepar[logitinds] <- invlogit(truepar[logitinds])
+            truepar[logp1inds] <- invlogp1(truepar[logp1inds])
+            ci <- rep(0, npar)
+            for(i in 1:npar) ci[i] <- as.numeric(truepar[i] > cilow[i] & truepar[i] < ciupp[i])
+            resout <- cbind(estimate=round(est,numdigits), true=round(truepar,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), true.in.ci=ci, est.in.log=round(rep$par.fixed,numdigits))
+        } else {
+            resout <- cbind(estimate=round(est,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), est.in.log=round(rep$par.fixed,numdigits))
+        }
+        nms[loginds] <- sub('log', '', names(rep$par.fixed[loginds]))
+        nms[logitinds] <- sub('logit', '', names(rep$par.fixed[logitinds]))
+        nms[logp1inds] <- sub('logp1', '', names(rep$par.fixed[logp1inds]))
         unms <- unique(nms)
-        nupar <- length(unms)
-        truepar <- NULL
-        parnotest <- NULL
-        for(i in 1:nupar){
-            tp <- rep$inp$true[[unms[i]]]
-            nestpar <- sum(names(est) == unms[i])
-            truepar <- c(truepar, tp[1:nestpar])
-            if(nestpar < length(tp)){
-                inds <- (nestpar+1):length(tp)
-                parnotest <- c(parnotest, tp[inds])
-                names(parnotest) <- c(names(parnotest), paste0(unms[i], inds))
+        for(inm in unms){
+            nn <- sum(inm==nms)
+            if(nn>1){
+                newnms <- paste0(inm, 1:nn)
+                inds <- which(inm==nms)
+                nms[inds] <- newnms
             }
         }
-        truepar[loginds] <- exp(truepar[loginds])
-        truepar[logitinds] <- invlogit(truepar[logitinds])
-        truepar[logp1inds] <- invlogp1(truepar[logp1inds])
-        ci <- rep(0, npar)
-        for(i in 1:npar) ci[i] <- as.numeric(truepar[i] > cilow[i] & truepar[i] < ciupp[i])
-        resout <- cbind(estimate=round(est,numdigits), true=round(truepar,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), true.in.ci=ci, est.in.log=round(rep$par.fixed,numdigits))
-    } else {
-        resout <- cbind(estimate=round(est,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), est.in.log=round(rep$par.fixed,numdigits))
-    }
-    nms[loginds] <- sub('log', '', names(rep$par.fixed[loginds]))
-    nms[logitinds] <- sub('logit', '', names(rep$par.fixed[logitinds]))
-    nms[logp1inds] <- sub('logp1', '', names(rep$par.fixed[logp1inds]))
-    unms <- unique(nms)
-    for(inm in unms){
-        nn <- sum(inm==nms)
-        if(nn>1){
-            newnms <- paste0(inm, 1:nn)
-            inds <- which(inm==nms)
-            nms[inds] <- newnms
+        rownames(resout) <- nms
+        # Derived variables
+        nalpha <- sum(names(rep$par.fixed) == 'logsdi')
+        derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
+                        get.par(parname='logbeta', rep, exp=TRUE)[, order],
+                        get.par(parname='logr', rep, exp=TRUE)[, order])
+        derout[, 4] <- log(derout[, 4])
+        derout <- round(derout, numdigits)
+        nr <- dim(derout)[1]
+        if('true' %in% names(rep$inp)){
+            dertrue <- exp(c(rep(rep$inp$true$logalpha, nalpha), rep$inp$true$logbeta, rep$inp$true$logr))
+            ndertrue <- length(dertrue)
+            if(ndertrue == nr){
+                cider <- numeric(ndertrue)
+                for(i in 1:ndertrue) cider[i] <- as.numeric(dertrue[i] > derout[i, 2] & dertrue[i] < derout[i, 3])
+            } else {
+                dertrue <- rep(-9, nr)
+                cider <- rep(-9, nr)
+            }
+            derout <- cbind(est=derout[, 1], true=dertrue, ll=derout[, 2], ul=derout[, 3], tic=cider, eil=derout[, 4])
         }
-    }
-    rownames(resout) <- nms
-    # Derived variables
-    nalpha <- sum(names(rep$par.fixed) == 'logsdi')
-    derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
-                    get.par(parname='logbeta', rep, exp=TRUE)[, order],
-                    get.par(parname='logr', rep, exp=TRUE)[, order])
-    derout[, 4] <- log(derout[, 4])
-    derout <- round(derout, numdigits)
-    nr <- dim(derout)[1]
-    if('true' %in% names(rep$inp)){
-        dertrue <- exp(c(rep(rep$inp$true$logalpha, nalpha), rep$inp$true$logbeta, rep$inp$true$logr))
-        ndertrue <- length(dertrue)
-        if(ndertrue == nr){
-            cider <- numeric(ndertrue)
-            for(i in 1:ndertrue) cider[i] <- as.numeric(dertrue[i] > derout[i, 2] & dertrue[i] < derout[i, 3])
+        if(nr>1 & 'yearsepgrowth' %in% names(rep$inp)){
+            rnms <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
         } else {
-            dertrue <- rep(-9, nr)
-            cider <- rep(-9, nr)
+            rnms <- 'r    '
         }
-        derout <- cbind(est=derout[, 1], true=dertrue, ll=derout[, 2], ul=derout[, 3], tic=cider, eil=derout[, 4])
-    }
-    if(nr>1 & 'yearsepgrowth' %in% names(rep$inp)){
-        rnms <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
+        if(nalpha > 1){
+            alphanms <- paste0('alpha', 1:nalpha)
+        } else {
+            alphanms <- 'alpha'
+        }
+        rownames(derout) <- c(alphanms, 'beta', rnms)
+        resout <- rbind(derout, resout)
+        if('true' %in% names(rep$inp)){
+            colnames(resout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
+        } else {
+            colnames(resout) <- colnms
+        }
     } else {
-        rnms <- 'r    '
-    }
-    if(nalpha > 1){
-        alphanms <- paste0('alpha', 1:nalpha)
-    } else {
-        alphanms <- 'alpha'
-    }
-    rownames(derout) <- c(alphanms, 'beta', rnms)
-    resout <- rbind(derout, resout)
-    if('true' %in% names(rep$inp)){
-        colnames(resout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
-    } else {
-        colnames(resout) <- colnms
+        if('opt' %in% names(rep)) resout <- data.frame(estimate=rep$opt$par)
     }
     return(resout)
 }
