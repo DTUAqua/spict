@@ -268,6 +268,8 @@ Type objective_function<Type>::operator() ()
     Emsy(i) = Fmsy(0)/q(i); 
     Emsy2(i) = Fmsy(0)/exp(logq2(i))*1.0e4; // Used for the results of the albacore data set
   }
+  vector<Type> logEmsy = log(Emsy);
+  vector<Type> logEmsy2 = log(Emsy2);
 
   // Calculate growth rate
   Type sign = 1.0;
@@ -635,6 +637,8 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logMSYs);
   ADREPORT(Emsy);
   ADREPORT(Emsy2);
+  ADREPORT(logEmsy);
+  ADREPORT(logEmsy2);
   ADREPORT(logbkfrac);
   ADREPORT(seasonsplinefine);
   // PREDICTIONS
