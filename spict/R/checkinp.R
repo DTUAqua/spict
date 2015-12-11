@@ -405,7 +405,9 @@ check.inp <- function(inp){
     if(!"ffacvec" %in% names(inp)){
         inp$ffacvec <- numeric(inp$ns) + 1
         # -1 in indpred because 1 is for plotting
-        inp$ffacvec[inp$indpred[-1]] <- inp$ffac + 1e-8 # Add small to avoid taking log of 0
+        #inp$ffacvec[inp$indpred[-1]] <- inp$ffac + 1e-8 # Add small to avoid taking log of 0
+        # Start in indpred[2] because indpred[1] is mainly for plotting
+        inp$ffacvec[inp$indpred[2]] <- inp$ffac + 1e-8 # Add small to avoid taking log of 0
     }
     if(!"fconvec" %in% names(inp)){
         inp$fconvec <- numeric(inp$ns)
@@ -793,13 +795,13 @@ check.inp <- function(inp){
         inp$ini$logF <- rep(log(0.2) + inp$ini$logr[1], inp$ns)
     } else {
         if(length(inp$ini$logF) != inp$ns){
-            cat('Wrong length of inp$ini$logF:', length(inp$ini$logF), ' Should be equal to inp$ns:', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
+            warning('Wrong length of inp$ini$logF: ', length(inp$ini$logF), ' Should be equal to inp$ns: ', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
             inp$ini$logF <- inp$ini$logF[1:inp$ns]
         }
     }
     if("logu" %in% names(inp$ini)){
         if(dim(inp$ini$logu)[1] != 2*length(inp$ini$logsdu) & dim(inp$ini$logu)[2] != inp$ns){
-            cat('Wrong dimension of inp$ini$logu:', dim(inp$ini$logu)[1], 'x', dim(inp$ini$logu)[2], ' should be equal to 2*length(inp$ini$logsdu) x inp$ns: ', 2*length(inp$ini$logsdu), 'x', inp$ns,', Filling with log(1).\n')
+            warning('Wrong dimension of inp$ini$logu: ', dim(inp$ini$logu)[1], 'x', dim(inp$ini$logu)[2], ' should be equal to 2*length(inp$ini$logsdu) x inp$ns: ', 2*length(inp$ini$logsdu), 'x', inp$ns,', Filling with log(1).')
             inp$ini$logu <- NULL
         }
     }
@@ -810,7 +812,7 @@ check.inp <- function(inp){
         inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
     } else {
         if(length(inp$ini$logB) != inp$ns){
-            cat('Wrong length of inp$ini$logB:', length(inp$ini$logB), ' Should be equal to inp$ns:', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).\n')
+            warning('Wrong length of inp$ini$logB: ', length(inp$ini$logB), ' Should be equal to inp$ns: ', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
             inp$ini$logB <- inp$ini$logB[1:inp$ns]
         }
     }
