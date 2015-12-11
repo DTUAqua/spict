@@ -54,18 +54,19 @@ test.spict <- function(dataset='albacore'){
     data(pol)
     inp <- pol[[dataset]]
     if(dataset=='albacore'){
-        inp$ffac <- 1
+        inp$ffac <- 0.8
         nopredcyears <- 3 # Number of years to predict catch
         inp$dtpredc <- 1 # Time step when predicting catch
         inp$timepredi <- tail(inp$timeC, 1) + nopredcyears
         inp$timepredc <- tail(inp$timeC, 1) + nopredcyears
+        inp$phases$logn <- -1
     }
     # Fit model
     rep <- fit.spict(inp)
     # Calculate one-step-ahead residuals
     rep <- calc.osa.resid(rep)
     # Plot results
-    graphics.off()
+    #graphics.off()
     dev.new(width=10, height=10)
     plot(rep)
     summary(rep)
@@ -326,13 +327,13 @@ get.EBinf <- function(rep){
     sdb2 <- get.par('logsdb', rep, exp=TRUE)[2]^2
     Fmsyall <- get.par('logFmsy', rep, exp=TRUE)
     Fmsy <- tail(Fmsyall, 1)
+    logFest <- get.par('logFs', rep)
     if(min(rep$inp$dtc) < 1){
-        logFest <- get.par('logFs', rep)
         alf <- annual(rep$inp$time, logFest[, 2])
         fff <- exp(alf$annvec)
     } else {
-        Fest <- get.par('logFs', rep, exp=TRUE)
-        fff <- Fest[rep$inp$indest,2]
+        #fff <- exp(logFest[rep$inp$indest,2])
+        fff <- exp(logFest[, 2])
     }
     Fl <- tail(unname(fff), 1)
     EBinf <- calc.EBinf(K, n, Fl, Fmsy[2], sdb2)
