@@ -79,6 +79,7 @@
 #' plot(rep)
 #' @import TMB
 fit.spict <- function(inp, dbg=0){
+    rep <- NULL
     # Check input list
     inp <- check.inp(inp)
     datin <- make.datin(inp, dbg)
@@ -105,69 +106,75 @@ fit.spict <- function(inp, dbg=0){
             }
         }
     }
-    rep <- list()
-    rep$inp <- inp
-    if(dbg<1){
-        if(class(opt)!='try-error'){
-            if(inp$do.sd.report){
-                # Calculate SD report
-                rep <- try(TMB::sdreport(obj))
-                failflag <- class(rep)=='try-error'
-                if(failflag){
-                    warning('Could not calculate sdreport.\n')
-                    rep <- list()
-                    rep$sderr <- 1
-                    rep$par.fixed <- opt$par
-                    rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
-                    rep$report <- obj$report()
-                }
-                rep$obj <- obj
-                if(!failflag){
-                    rep$inp <- inp
-                    if(inp$reportall){
-                        #  - Calculate Prager's statistics -
-                        #if(!'stats' %in% names(rep)) rep$stats <- list()
-                        #K <- get.par('logK', rep, exp=TRUE)[2]
-                        #Bests <- get.par('logB', rep, exp=TRUE)[rep$inp$indest, 2]
-                        #Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
-                        #if(!any(is.na(Bests)) & !is.na(Bmsy)){
-                        #    Bdiff <- Bmsy - Bests
-                        #    # Prager's nearness
-                        #    if(any(diff(sign(Bdiff))!=0)){
-                        #        rep$stats$nearness <- 1
-                        #    } else {
-                        #        rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
-                        #    }
-                        #    # Prager's coverage
-                        #    rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
-                        #}
-                        # - Built-in OSAR -
-                        if(!inp$osar.method == 'none'){
-                            rep <- calc.osa.resid(rep)
-                        }
-                    }
-                }
+    optfailflag <- class(opt)=='try-error'
+    sdfailflag <- FALSE
+    if(optfailflag){ # Optimisation failed
+        cat('obj$par:\n')
+        print(obj$par)
+        cat('obj$fn:\n')
+        print(obj$fn())
+        cat('obj$gr:\n')
+        print(obj$gr())
+        stop('Could not fit model. Error msg:', opt)
+    } else {
+        if(inp$do.sd.report & dbg<1){
+            # Calculate SD report
+            rep <- try(TMB::sdreport(obj))
+            sdfailflag <- class(rep)=='try-error'
+            if(sdfailflag){
+                warning('Could not calculate sdreport.\n')
+                rep <- NULL
             }
-            rep$pl <- obj$env$parList(opt$par)
-            obj$fn()
-            rep$Cp <- obj$report()$Cp
-            rep$report <- obj$report()
-            rep$inp <- inp
-            rep$opt <- opt
-        } else {
-            cat('obj$par:\n')
-            print(obj$par)
-            cat('obj$fn:\n')
-            print(obj$fn())
-            cat('obj$gr:\n')
-            print(obj$gr())
-            stop('Could not fit model, try changing the initial parameter guess in inp$ini. Error msg:', opt)
+        }
+        if(is.null(rep)){ # If sdreport failed or was not calculated
+            rep <- list()
+            if(sdfailflag){
+                rep <- list()
+                rep$sderr <- 1
+                rep$par.fixed <- opt$par
+                rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
+            }
+        }
+        rep$inp <- inp
+        rep$obj <- obj
+        rep$opt <- opt
+        rep$pl <- obj$env$parList(opt$par)
+        obj$fn()
+        rep$Cp <- obj$report()$Cp
+        rep$report <- obj$report()
+        if(!sdfailflag & inp$reportall){
+            #  - Calculate Prager's statistics -
+            #rep <- calc.prager.stats(rep)
+            # - Built-in OSAR -
+            if(!inp$osar.method == 'none'){
+                rep <- calc.osa.resid(rep)
+            }
         }
     }
     if(!is.null(rep)) class(rep) <- "spictcls"
     return(rep)
 }
 
+
+
+calc.prager.stats <- function(rep){
+    if(!'stats' %in% names(rep)) rep$stats <- list()
+    K <- get.par('logK', rep, exp=TRUE)[2]
+    Bests <- get.par('logB', rep, exp=TRUE)[rep$inp$indest, 2]
+    Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
+    if(!any(is.na(Bests)) & !is.na(Bmsy)){
+        Bdiff <- Bmsy - Bests
+        # Prager's nearness
+        if(any(diff(sign(Bdiff))!=0)){
+            rep$stats$nearness <- 1
+        } else {
+            rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
+        }
+        # Prager's coverage
+        rep$stats$coverage <- min(c(2, (min(c(K, max(Bests))) - min(Bests))/Bmsy))
+    }
+    return(rep)
+}
 
 #' @name make.datin
 #' @title Create data list used as input to TMB::MakeADFun.
