@@ -77,14 +77,14 @@ predict.b <- function(B0, F0, gamma, m, K, n, dt, sdb){
 sim.spict <- function(input, nobs=100){
     # Check if input is a inp (initial values) or rep (results).
     if('par.fixed' %in% names(input)){
-        cat('Detected input as a SPiCT result, proceeding...\n')
+        #cat('Detected input as a SPiCT result, proceeding...\n')
         rep <- input
         inp <- rep$inp
         pl <- rep$pl
         plin <- inp$ini
     } else {
         if('ini' %in% names(input)){
-            cat('Detected input as a SPiCT inp, proceeding...\n')
+            #cat('Detected input as a SPiCT inp, proceeding...\n')
             inp <- input
             nm <- names(inp)
             if(!'timeC' %in% nm){
@@ -199,8 +199,6 @@ sim.spict <- function(input, nobs=100){
                 omegain <- omega*j
                 for(i in 2:inp$ns) u[, i] <- rnorm(2, expmosc(lambda, omegain, dt) %*% u[, i-1], sduana)
                 season <- season + u[1, ]
-                #if(j==1) plot(season, typ='l', ylim=c(-3, 3))
-                #if(j>1) lines(season, col=j)
             }
         }
         F <- exp(logFbase + season)
@@ -213,6 +211,7 @@ sim.spict <- function(input, nobs=100){
         recount <- recount+1
         if(recount > 10) stop('Having problems simulating data where B > 0, check parameter values!')
     }
+    if(any(B > 1e15)) warning('Some simulated biomass values are larger than 1e15.')
     # - Catch -
     Csub <- rep(0,nt)
     for(t in 1:nt) Csub[t] <- F[t]*B[t]*dt

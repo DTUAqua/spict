@@ -976,18 +976,27 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         } else {
             lines(bbb, fff, col=maincol, lwd=1.5)
             lines(Best[inp$indpred,2]/bscal, Fest[inp$indpred,2]/fscal, col=maincol, lty=3)
+            Bll <- tail(Best[inp$indpred,2]/bscal, 1)
+            Fll <- tail(Fest[inp$indpred,2]/fscal, 1)
+            lines(c(Bll, EBinf), rep(Fll, 2), lwd=1.5, lty=3, col='blue')
+            points(EBinf, Fll, pch=24, bg='gold')
         }
-        lines(c(Bl, EBinf), c(Fl, Fl), lwd=1.5, lty=3, col='blue')
-        points(EBinf, Fl, pch=24, bg='gold')
         nr <- length(inp$ini$logr)
-        if(nr > 1){
-            points(Bmsyall[1:(nr-1), 2]/bscal, Fmsyall[1:(nr-1), 2]/fscal, pch=24, bg='magenta')
-            if(plot.legend) legend('topright', c('Current MSY', 'Previous MSY'), pch=3, col=c('black', 'magenta'), bg='white')
-        } else {
-            if('true' %in% names(inp)){
-                if(plot.legend) legend('topright', c(expression('E(B'[infinity]*')'), 'True'), pch=c(24, 25), pt.bg=c('gold', true.col()), bg='white')
+        if(nr > 1) points(Bmsyall[1:(nr-1), 2]/bscal, Fmsyall[1:(nr-1), 2]/fscal, pch=24, bg='magenta')
+        if(plot.legend){
+            if(nr > 1){
+                legend('topright', c('Current MSY', 'Previous MSY'), pch=3, col=c('black', 'magenta'), bg='white')
             } else {
-                if(plot.legend) legend('topright', expression('E(B'[infinity]*')'), pch=24, pt.bg='gold', bg='white')
+                if('true' %in% names(inp)){
+                    if(min(inp$dtc) < 1){
+                        legend('topright', 'True', pch=25, pt.bg=true.col(), bg='white')
+                    } else {
+                        legend('topright', c(expression('E(B'[infinity]*')'), 'True'), pch=c(24, 25), pt.bg=c('gold', true.col()), bg='white')
+                    }
+                } else {
+                    if(!min(inp$dtc) < 1){ legend('topright', expression('E(B'[infinity]*')'), pch=24, pt.bg='gold', bg='white')
+                                       }
+                }
             }
         }
         points(bbb[1], fff[1], pch=21, bg='white')
@@ -1376,7 +1385,7 @@ plotspict.btrend <- function(rep){
 #' plot(rep)
 #' @export
 plot.spictcls <- function(rep, logax=FALSE){
-    if('par.fixed' %in% names(rep)){
+    if('par.fixed' %in% names(rep) & rep$inp$do.sd.report){
         inp <- rep$inp
         if(inp$reportall){
             #dev.new(width=10, height=10)
@@ -1422,7 +1431,7 @@ plot.spictcls <- function(rep, logax=FALSE){
         }
     } else {
         if('inp' %in% names(rep)){
-            plotspict.ci(inp)
+            plotspict.ci(rep$inp)
         } else {
             stop('Nothing to plot!')
         }
