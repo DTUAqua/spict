@@ -276,26 +276,11 @@ check.inp <- function(inp){
     } else {
         if(!inp$msytype %in% c('s', 'd')) stop('inp$msytype must be either "s" (stochastic) or "d" (deterministic!')
     }
-    #if("phases" %in% names(inp)){
-    #    if('logn' %in% names(inp$phases)){
-    #        if(inp$phases$logn > -1){
-    #            if(!"msytype" %in% names(inp)){
-    #                inp$msytype <- 'd'
-    #                cat('Using msytype = "d" because logn is estimated. Force SPiCT to use msytype = "s" by manually specifying it.\n')
-    #            } else {
-                    # Dangerous to use stochastic msys when estimating n because estimate of n could result in invalid reference points.
-                    #if(inp$msytype != 'd') cat('Using msytype = "d" because logn is estimated.\n')
-    #                if(inp$msytype != 'd') warning('Dangerous to use stochastic msys when estimating n because estimate of n could result in invalid reference points. Check difference between deterministic and stochastic reference points.')
-    #            }
-    #        }
-    #    }
-    #}
     # Catch intervals (dtc)
     if(!"dtc" %in% names(inp)){
         dtc <- diff(inp$timeC)
         if(length(dtc)>0){
             inp$dtc <- min(dtc)
-            #cat(paste('Catch interval (dtc) not specified. Assuming an interval of:', inp$dtc, 'year.\n'))
         } else {
             inp$dtc <- 1
             cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 2. Assuming an interval of 1 year.\n'))
@@ -329,15 +314,6 @@ check.inp <- function(inp){
     }
 
     # Numerical Euler discretisation time used by SDE solver
-    #timesteps <- diff(sort(timeobs))
-    #timesteps <- timesteps[timesteps > 0]
-    #if("dteuler" %in% names(inp)) if(inp$dteuler > min(timesteps)){
-    #    cat('inp$dteuler is', inp$dteuler, 'while the minimum time step of observations is', min(timesteps), 'inp$dteuler will be changed!')
-    #    inp$dteuler <- NULL
-    #}
-    #if(!"dteuler" %in% names(inp)) inp$dteuler <- 0.5*min(timesteps) # half because often a time step finer than obs is required
-    #if(!"dteuler" %in% names(inp)) inp$dteuler <- min(1/16, 0.5*min(timesteps)) # half because often a time step finer than obs is required
-    
     # Euler time step
     if(!"dteuler" %in% names(inp)) inp$dteuler <- 1/16
     if("dteuler" %in% names(inp)){
@@ -376,13 +352,9 @@ check.inp <- function(inp){
     }
     # Calculate time steps
     inp$dt <- c(diff(inp$time), inp$dteuler)
-    #inp$dt <- rep(inp$dteuler, inp$ns)
     inp$ns <- length(inp$time)
 
     # -- DERIVED VARIABLES --
-    #timeobsnodtc <- c(inp$timeC, unlist(inp$timeI))
-    
-    #inp$indlastobs <- which(inp$time == max(c(inp$timeC, unlist(inp$timeI))))
     inp$timerange <- range(timeobsall)
     inp$indlastobs <- cut(max(c(inp$timeC, unlist(inp$timeI))), inp$time, right=FALSE, labels=FALSE)
     inp$indest <- which(inp$time <= inp$timerange[2])
@@ -423,8 +395,6 @@ check.inp <- function(inp){
         } else {
             inp$nseasons <- 1
         }
-        #inp$nseasons <- length(unique(timeobs %% 1))
-        #if(inp$seasons>4) inp$seasons <- 4
     }
     if("nseasons" %in% names(inp)){
        if(!inp$nseasons %in% c(1, 2, 4)) stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
@@ -453,10 +423,8 @@ check.inp <- function(inp){
         dtcpred <- 1
     }
     inp$timeCpred <- unique(c(inp$timeC, (seq(tail(inp$timeC,1), inp$timepredc, by=dtcpred))))
-    #inp$timeCp <- tail(inp$timeCpred, 1)
     inp$nobsCp <- length(inp$timeCpred)
     inp$dtcp <- c(inp$dtc, rep(dtcpred, inp$nobsCp-inp$nobsC))
-    #inp$ic <- match(inp$timeCpred, inp$time)
     inp$ic <- cut(inp$timeCpred, inp$time, right=FALSE, labels=FALSE)
     # nc is number of states to integrate a catch observation over
     inp$nc <- rep(0, inp$nobsCp)
@@ -464,21 +432,17 @@ check.inp <- function(inp){
     if(any(inp$nc == 0)) stop('Current inp$dteuler is too large to accommodate some catch intervals. Make inp$dteuler smaller!')
     # ii is the indices of inp$time to which index observations correspond
     inp$ii <- list()
-    #for(i in 1:inp$nindex) inp$ii[[i]] <- match(inp$timeI[[i]], inp$time)
     for(i in 1:inp$nindex) inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
     # Translate index observations from a list to a vector
     inp$obsIin <- unlist(inp$obsI)
     inp$stdevfacIin <- unlist(inp$stdevfacI)
     inp$iiin <- unlist(inp$ii)
-    #inp$iqin <- rep(1:inp$nindex, times=inp$nobsI)
     inp$iqin <- rep(inp$mapq, times=inp$nobsI)
     inp$isdiin <- rep(inp$mapsdi, times=inp$nobsI)
     # Add helper variable such that predicted catch can be calculated using small euler steps
     # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
-    #inp$dtpredcinds <- which(inp$time >= inp$timerange[2] & inp$time < (inp$timerange[2]+inp$dtpredc))
     inp$dtpredcinds <- which(inp$time >= inp$timepredc & inp$time < (inp$timepredc+inp$dtpredc))
     inp$dtpredcnsteps <- length(inp$dtpredcinds)
-    #inp$dtprediind <- which(inp$time == inp$timepredi)
     inp$dtprediind <- cut(inp$timepredi, inp$time, right=FALSE, labels=FALSE)
     
 
@@ -565,64 +529,6 @@ check.inp <- function(inp){
     if(!'logn' %in% names(inp$priors)) inp$priors$logn <- c(logn, lognsd)
     if(!'logalpha' %in% names(inp$priors)) inp$priors$logalpha <- c(logalpha, logalphasd) 
     if(!'logbeta' %in% names(inp$priors)) inp$priors$logbeta <- c(logbeta, logbetasd)
-
-    if(FALSE){ # All this is potentially obsolete. Now default priors are independent of phases and ini values
-        # Default phases are not set at this point, so if phases exist the user has chosen them manually
-        # If a phase is set > -1 then the parameter is estimated without prior.
-        # If a phase is set <= -1 then a narrow priors is used to fix the parameter.
-        phasesin <- list()
-        if('phases' %in% names(inp)){ # Only use default priors if not assigned a phase
-            phasesin <- inp$phases
-            if('logn' %in% names(inp$phases)){
-                if(inp$phases$logn > -1){
-                    lognflag <- FALSE # Estimate logn
-                } else {
-                    lognsd <- small # Fix n
-                }
-            }
-            if('logalpha' %in% names(inp$phases)){
-                if(inp$phases$logalpha > -1){
-                    logalphaflag <- FALSE # Estimate logalpha i.e. sdb and sdi untied
-                } else {
-                    logalphasd <- small # Fix alpha
-                }
-            }
-            if('logbeta' %in% names(inp$phases)){  
-                if(inp$phases$logbeta > -1){
-                    logbetaflag <- FALSE # Estimate logalpha i.e. sdf and sdc untied
-                } else {
-                    logbetasd <- small # Fix beta
-                }
-            }
-        }
-        # Default ini values have not been set yet at this point
-        # If an ini value is available the user has set it manually
-        # If an ini value is available it is used as mean of the prior for that parameter.
-        # The sd of the prior depends on whether a phase has been specified.
-        if('ini' %in% names(inp)){ 
-            # Log n
-            if('logn' %in% names(inp$ini)){
-                logn <- inp$ini$logn
-            }
-            # Log alpha
-            if(!'logalpha' %in% names(inp$ini) & 'logsdb' %in% names(inp$ini) & 'logsdi' %in% names(inp$ini)){
-                inp$ini$logalpha <- inp$ini$logsdi - inp$ini$logsdb
-            }
-            if('logalpha' %in% names(inp$ini)){
-                logalpha <- inp$ini$logalpha
-            }
-            # Log beta
-            if(!'logbeta' %in% names(inp$ini) & 'logsdf' %in% names(inp$ini) & 'logsdc' %in% names(inp$ini)){
-                inp$ini$logbeta <- inp$ini$logsdc - inp$ini$logsdf
-            }
-            if('logbeta' %in% names(inp$ini)){
-                logbeta <- inp$ini$logbeta
-            }
-        }
-        if(!'logn' %in% names(inp$priors) & lognflag) inp$priors$logn <- c(logn, lognsd)
-        if(!'logalpha' %in% names(inp$priors) & logalphaflag) inp$priors$logalpha <- c(logalpha, logalphasd) 
-        if(!'logbeta' %in% names(inp$priors) & logbetaflag) inp$priors$logbeta <- c(logbeta, logbetasd)
-    }
     
     if("priors" %in% names(inp)){
         # Remove wrong priors names
@@ -751,28 +657,6 @@ check.inp <- function(inp){
     }
     if(!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- logbeta
 
-    #if('logsdi' %in% names(inp$ini) & 'logalpha' %in% names(inp$ini)){
-    #    if(inp$onealpha | inp$onesdi){
-    #           if(length(inp$ini$logsdi) != 1) inp$ini$logsdi <- log(0.2)
-    #           if(length(inp$ini$logalpha) != 1) inp$ini$logalpha <- log(1)
-    #    } else {
-    #        if(length(inp$ini$logsdi) != inp$nindex){
-    #            if(length(inp$ini$logsdi) == 1){
-    #                inp$ini$logsdi <- rep(inp$ini$logsdi, inp$nindex)
-    #            } else {
-    #                stop('The length of inp$ini$logsdi (', length(inp$ini$logsdi), ') does not fit with the number of index series (', inp$nindex, ')')
-    #            }
-    #        }
-    #        if(length(inp$ini$logalpha) != inp$nindex){
-    #            if(length(inp$ini$logalpha) == 1){
-    #                inp$ini$logalpha <- rep(inp$ini$logalpha, inp$nindex)
-    #            } else {
-    #                stop('The length of inp$ini$logalpha (', length(inp$ini$logalpha), ') does not fit with the number of index series (', inp$nindex, ')')
-    #            }
-    #        }
-    #    }
-    #}
-
     if(!"logm" %in% names(inp$ini)){
         gamma <- inp$ini$gamma
         r <- exp(inp$ini$logr)
@@ -786,7 +670,6 @@ check.inp <- function(inp){
     }
     # Fill in unspecified (more rarely user defined) model parameter values
     if(!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
-    #if("lambda" %in% names(inp)) if(inp$lambda <= 0) cat('Error: lambda must be positive!')
     if("logphi" %in% names(inp$ini)){
         if(length(inp$ini$logphi)+1 != dim(inp$splinemat)[2]){
             cat('Mismatch between length of ini$logphi and number of columns of splinemat! removing prespecified ini$logphi and setting default.\n')
@@ -797,10 +680,7 @@ check.inp <- function(inp){
     if(!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
     if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(15-1)
     if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
-    #if(!"logp" %in% names(inp$ini)) inp$ini$logp <- log(1.0)
-    #if(!"logF0" %in% names(inp$ini)) inp$ini$logF0 <- log(0.2*exp(inp$ini$logr[1]))
     if(!"logF" %in% names(inp$ini)){
-        #inp$ini$logF <- rep(inp$ini$logF0, inp$ns)
         inp$ini$logF <- rep(log(0.2) + inp$ini$logr[1], inp$ns)
     } else {
         if(length(inp$ini$logF) != inp$ns){
@@ -847,7 +727,6 @@ check.inp <- function(inp){
                         logB=inp$ini$logB)
     
     # Determine phases and fixed parameters
-    #fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless otherwise specified
     fixpars <- c('logitpp', 'logp1robfac') # These are fixed unless otherwise specified
     forcefixpars <- c() # Parameters that are forced to be fixed.
     if(inp$nseasons==1){
@@ -890,14 +769,6 @@ check.inp <- function(inp){
             inp$phases[[nm]] <- 1
         }
     }
-    # If a parameter is assigned a prior then estimate this parameter if phase is not already set
-    # phasesin is inp$phases as specified by the user
-    #inds <- which(inp$priorsuseflags == 1)
-    #priornmsuse <- names(inp$priors)[inds]
-    #for(nm in priornmsuse){
-    #    if(nm %in% names(inp$phases)) inp$phases[[nm]] <- 1
-    #    #if(nm %in% names(inp$phases) & !nm %in% names(phasesin)) inp$phases[[nm]] <- 1
-    #}
     
     nphasepars <- length(inp$phases)
     phasevec <- unlist(inp$phases)

@@ -1724,7 +1724,17 @@ plotspict.priors <- function(rep, do.plot=4){
     inp <- rep$inp
     npriors <- length(inp$priors)
     useflags <- numeric(npriors)
-    for(i in 1:npriors) useflags[i] <- inp$priors[[i]][3]
+    for(i in 1:npriors){
+        useflag <- inp$priors[[i]][3]
+        nm <- names(inp$priors)[i]
+        phase <- 1
+        if(nm %in% names(inp$phases)) phase <- inp$phases[[nm]]
+        if(phase > 0){ # Avoid plotting priors of parameters that are fixed
+            useflags[i] <- inp$priors[[i]][3]
+        } else {
+            useflags[i] <- 0
+        }
+    }
     inds <- which(useflags==1)
     ninds <- length(inds)
     ninds <- min(ninds, do.plot)
