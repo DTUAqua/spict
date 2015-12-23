@@ -562,59 +562,68 @@ check.inp <- function(inp){
     lognsd <- wide
     logalphasd <- wide
     logbetasd <- wide
-    # Default phases are not set at this point, so if phases exist the user has chosen them manually
-    # If a phase is set > -1 then the parameter is estimated without prior.
-    # If a phase is set <= -1 then a narrow priors is used for this parameter fixing it.
-    if('phases' %in% names(inp)){ # Only use default priors if not assigned a phase
-        if('logn' %in% names(inp$phases)){
-            if(inp$phases$logn > -1){
-                lognflag <- FALSE # Estimate logn
-            } else {
-                lognsd <- small # Fix n
+    if(!'logn' %in% names(inp$priors)) inp$priors$logn <- c(logn, lognsd)
+    if(!'logalpha' %in% names(inp$priors)) inp$priors$logalpha <- c(logalpha, logalphasd) 
+    if(!'logbeta' %in% names(inp$priors)) inp$priors$logbeta <- c(logbeta, logbetasd)
+
+    if(FALSE){ # All this is potentially obsolete. Now default priors are independent of phases and ini values
+        # Default phases are not set at this point, so if phases exist the user has chosen them manually
+        # If a phase is set > -1 then the parameter is estimated without prior.
+        # If a phase is set <= -1 then a narrow priors is used to fix the parameter.
+        phasesin <- list()
+        if('phases' %in% names(inp)){ # Only use default priors if not assigned a phase
+            phasesin <- inp$phases
+            if('logn' %in% names(inp$phases)){
+                if(inp$phases$logn > -1){
+                    lognflag <- FALSE # Estimate logn
+                } else {
+                    lognsd <- small # Fix n
+                }
+            }
+            if('logalpha' %in% names(inp$phases)){
+                if(inp$phases$logalpha > -1){
+                    logalphaflag <- FALSE # Estimate logalpha i.e. sdb and sdi untied
+                } else {
+                    logalphasd <- small # Fix alpha
+                }
+            }
+            if('logbeta' %in% names(inp$phases)){  
+                if(inp$phases$logbeta > -1){
+                    logbetaflag <- FALSE # Estimate logalpha i.e. sdf and sdc untied
+                } else {
+                    logbetasd <- small # Fix beta
+                }
             }
         }
-        if('logalpha' %in% names(inp$phases)){
-            if(inp$phases$logalpha > -1){
-                logalphaflag <- FALSE # Estimate logalpha i.e. sdb and sdi untied
-            } else {
-                logalphasd <- small # Fix alpha
+        # Default ini values have not been set yet at this point
+        # If an ini value is available the user has set it manually
+        # If an ini value is available it is used as mean of the prior for that parameter.
+        # The sd of the prior depends on whether a phase has been specified.
+        if('ini' %in% names(inp)){ 
+            # Log n
+            if('logn' %in% names(inp$ini)){
+                logn <- inp$ini$logn
+            }
+            # Log alpha
+            if(!'logalpha' %in% names(inp$ini) & 'logsdb' %in% names(inp$ini) & 'logsdi' %in% names(inp$ini)){
+                inp$ini$logalpha <- inp$ini$logsdi - inp$ini$logsdb
+            }
+            if('logalpha' %in% names(inp$ini)){
+                logalpha <- inp$ini$logalpha
+            }
+            # Log beta
+            if(!'logbeta' %in% names(inp$ini) & 'logsdf' %in% names(inp$ini) & 'logsdc' %in% names(inp$ini)){
+                inp$ini$logbeta <- inp$ini$logsdc - inp$ini$logsdf
+            }
+            if('logbeta' %in% names(inp$ini)){
+                logbeta <- inp$ini$logbeta
             }
         }
-        if('logbeta' %in% names(inp$phases)){  
-            if(inp$phases$logbeta > -1){
-                logbetaflag <- FALSE # Estimate logalpha i.e. sdf and sdc untied
-            } else {
-                logbetasd <- small # Fix beta
-            }
-        }
+        if(!'logn' %in% names(inp$priors) & lognflag) inp$priors$logn <- c(logn, lognsd)
+        if(!'logalpha' %in% names(inp$priors) & logalphaflag) inp$priors$logalpha <- c(logalpha, logalphasd) 
+        if(!'logbeta' %in% names(inp$priors) & logbetaflag) inp$priors$logbeta <- c(logbeta, logbetasd)
     }
-    # Default ini values have not been set yet at this point
-    # If an ini value is available the user has set it manually
-    # If an ini value is available it is used as mean of the prior for that parameter.
-    # The sd of the prior depends on whether a phase has been specified.
-    if('ini' %in% names(inp)){ 
-        # Log n
-        if('logn' %in% names(inp$ini)){
-            logn <- inp$ini$logn
-        }
-        # Log alpha
-        if(!'logalpha' %in% names(inp$ini) & 'logsdb' %in% names(inp$ini) & 'logsdi' %in% names(inp$ini)){
-            inp$ini$logalpha <- inp$ini$logsdi - inp$ini$logsdb
-        }
-        if('logalpha' %in% names(inp$ini)){
-            logalpha <- inp$ini$logalpha
-        }
-        # Log beta
-        if(!'logbeta' %in% names(inp$ini) & 'logsdf' %in% names(inp$ini) & 'logsdc' %in% names(inp$ini)){
-            inp$ini$logbeta <- inp$ini$logsdc - inp$ini$logsdf
-        }
-        if('logbeta' %in% names(inp$ini)){
-            logbeta <- inp$ini$logbeta
-        }
-    }
-    if(!'logn' %in% names(inp$priors) & lognflag) inp$priors$logn <- c(logn, lognsd)
-    if(!'logalpha' %in% names(inp$priors) & logalphaflag) inp$priors$logalpha <- c(logalpha, logalphasd) 
-    if(!'logbeta' %in% names(inp$priors) & logbetaflag) inp$priors$logbeta <- c(logbeta, logbetasd)
+    
     if("priors" %in% names(inp)){
         # Remove wrong priors names
         nms <- names(inp$priors)
@@ -838,7 +847,8 @@ check.inp <- function(inp){
                         logB=inp$ini$logB)
     
     # Determine phases and fixed parameters
-    fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless otherwise specified
+    #fixpars <- c('logalpha', 'logbeta', 'logn', 'logitpp', 'logp1robfac') # These are fixed unless otherwise specified
+    fixpars <- c('logitpp', 'logp1robfac') # These are fixed unless otherwise specified
     forcefixpars <- c() # Parameters that are forced to be fixed.
     if(inp$nseasons==1){
         forcefixpars <- c('logphi', 'logu', 'logsdu', 'loglambda', forcefixpars)
@@ -880,18 +890,22 @@ check.inp <- function(inp){
             inp$phases[[nm]] <- 1
         }
     }
-    # If a parameter is assigned a prior then estimate this parameter
-    inds <- which(inp$priorsuseflags == 1)
-    priornmsuse <- names(inp$priors)[inds]
-    for(nm in priornmsuse) if(nm %in% names(inp$phases)) inp$phases[[nm]] <- 1
+    # If a parameter is assigned a prior then estimate this parameter if phase is not already set
+    # phasesin is inp$phases as specified by the user
+    #inds <- which(inp$priorsuseflags == 1)
+    #priornmsuse <- names(inp$priors)[inds]
+    #for(nm in priornmsuse){
+    #    if(nm %in% names(inp$phases)) inp$phases[[nm]] <- 1
+    #    #if(nm %in% names(inp$phases) & !nm %in% names(phasesin)) inp$phases[[nm]] <- 1
+    #}
     
     nphasepars <- length(inp$phases)
     phasevec <- unlist(inp$phases)
     phases <- unique(unname(phasevec))
     phases <- phases[phases>0] # Don't include phase -1 (fixed value)
-    inp$nphases <- length(phases)
+    nphases <- length(phases)
     inp$map <- list()
-    for(j in 1:inp$nphases){
+    for(j in 1:nphases){
         inp$map[[j]] <- list() # Map for phase j
         inds <- which(phasevec > j | phasevec == -1)
         for(i in inds){
@@ -900,10 +914,14 @@ check.inp <- function(inp){
                 phase <- inp$phases[[parnam]]
                 inp$map[[j]][[parnam]] <- factor(rep(NA, length(inp$parlist[[parnam]])))
             } else {
-                warning('Phase specified for an invalid parameter:', parnam)
+                warning('Phase specified for an invalid parameter: ', parnam)
+                inp$phases[[parnam]] <- NULL # Remove invalid parameter
             }
         }
     }
+    inpphases <- unlist(inp$phases)
+    inpphases <- inpphases[inpphases > 0] # Don't include phase -1 (fixed value)
+    inp$nphases <- length(unique(inpphases))
     if(!is.null(inp)) class(inp) <- "spictcls"
     return(inp)
 }
