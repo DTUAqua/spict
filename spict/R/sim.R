@@ -362,7 +362,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
         s <- NA
         if(!class(rep)=='try-error'){
             s <- extract.simstats(rep, inp)
-            if(!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file)
+            #if(!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file)
         }
         return(s)
     }
@@ -519,11 +519,11 @@ validation.data.frame <- function(ss){
     for(i in 1:nna){ # nna is length of nobsvec
         nsim <- length(ss[[i]])
         # While loop to avoid taking nobs from a NA run.
-        c <- 1
+        c <- 0
         flag <- TRUE
         while(flag){
-            flag <- all(is.na(ss[[i]][[c]])) & length(ss[[i]][[c]])==1
             c <- c+1
+            flag <- (all(is.na(ss[[i]][[c]])) & length(ss[[i]][[c]])==1) | class(ss[[i]][[c]])=='try-error'
         }
         nobsvec[i] <- ss[[i]][[c]]$nobs[1]
         nobs <- rep(nobsvec[i], nsim)
