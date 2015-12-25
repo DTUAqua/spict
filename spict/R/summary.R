@@ -189,37 +189,39 @@ sumspict.parest <- function(rep, numdigits=8){
         }
         rownames(resout) <- nms
         # Derived variables
-        nalpha <- sum(names(rep$par.fixed) == 'logsdi')
-        derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
-                        get.par(parname='logbeta', rep, exp=TRUE)[, order],
-                        get.par(parname='logr', rep, exp=TRUE)[, order])
-        derout[, 4] <- log(derout[, 4])
-        derout <- round(derout, numdigits)
-        nr <- dim(derout)[1]
-        if('true' %in% names(rep$inp)){
-            dertrue <- exp(c(rep(rep$inp$true$logalpha, nalpha), rep$inp$true$logbeta, rep$inp$true$logr))
-            ndertrue <- length(dertrue)
-            if(ndertrue == nr){
-                cider <- numeric(ndertrue)
-                for(i in 1:ndertrue) cider[i] <- as.numeric(dertrue[i] > derout[i, 2] & dertrue[i] < derout[i, 3])
-            } else {
-                dertrue <- rep(-9, nr)
-                cider <- rep(-9, nr)
+        if(!'sderr' %in% names(rep)){
+            nalpha <- sum(names(rep$par.fixed) == 'logsdi')
+            derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
+                            get.par(parname='logbeta', rep, exp=TRUE)[, order],
+                            get.par(parname='logr', rep, exp=TRUE)[, order])
+            derout[, 4] <- log(derout[, 4])
+            derout <- round(derout, numdigits)
+            nr <- dim(derout)[1]
+            if('true' %in% names(rep$inp)){
+                dertrue <- exp(c(rep(rep$inp$true$logalpha, nalpha), rep$inp$true$logbeta, rep$inp$true$logr))
+                ndertrue <- length(dertrue)
+                if(ndertrue == nr){
+                    cider <- numeric(ndertrue)
+                    for(i in 1:ndertrue) cider[i] <- as.numeric(dertrue[i] > derout[i, 2] & dertrue[i] < derout[i, 3])
+                } else {
+                    dertrue <- rep(-9, nr)
+                    cider <- rep(-9, nr)
+                }
+                derout <- cbind(est=derout[, 1], true=dertrue, ll=derout[, 2], ul=derout[, 3], tic=cider, eil=derout[, 4])
             }
-            derout <- cbind(est=derout[, 1], true=dertrue, ll=derout[, 2], ul=derout[, 3], tic=cider, eil=derout[, 4])
-        }
-        if(nr>1 & 'yearsepgrowth' %in% names(rep$inp)){
-            rnms <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
-        } else {
-            rnms <- 'r    '
-        }
-        if(nalpha > 1){
-            alphanms <- paste0('alpha', 1:nalpha)
-        } else {
-            alphanms <- 'alpha'
-        }
-        rownames(derout) <- c(alphanms, 'beta', rnms)
-        resout <- rbind(derout, resout)
+            if(nr>1 & 'yearsepgrowth' %in% names(rep$inp)){
+                rnms <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
+            } else {
+                rnms <- 'r    '
+            }
+            if(nalpha > 1){
+                alphanms <- paste0('alpha', 1:nalpha)
+            } else {
+                alphanms <- 'alpha'
+            }
+            rownames(derout) <- c(alphanms, 'beta', rnms)
+            resout <- rbind(derout, resout)
+        }        
         if('true' %in% names(rep$inp)){
             colnames(resout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
         } else {

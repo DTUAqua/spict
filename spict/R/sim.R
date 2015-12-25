@@ -362,7 +362,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
         s <- NA
         if(!class(rep)=='try-error'){
             s <- extract.simstats(rep, inp)
-            #if(!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file)
+            if(!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file) # This line causes problems when running simulation2.R, the problem is that log cannot be taken of the derout variable of the summary.
         }
         return(s)
     }
