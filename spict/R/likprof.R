@@ -27,6 +27,7 @@
 #'   \item{"nogridpoints"}{ Number of grid points to evaluate the profile likelihood for each parameter. Default: 9. Note: with two parameters the calculation time increases quadratically when increasing the number of gridpoints.}
 #' }
 #' @param input A list containing observations and initial values for non profiled parameters (essentially an inp list) with the additional key "likprof" (see details for required keys). A valid result from fit.spict() containing an "inp" key with the described properties is also accepted.
+#' @param verbose Print progress to screen.
 #' @return The output is the input with the likelihood profile information added to the likprof key of either inp or rep$inp.
 #' @examples
 #' data(pol)
@@ -39,15 +40,15 @@
 #' rep <- likprof.spict(rep)
 #' plotspict.likprof(rep, logpar=TRUE)
 #' @export
-likprof.spict <- function(input){
+likprof.spict <- function(input, verbose=FALSE){
     if('par.fixed' %in% names(input)){
-        cat('Detected input as a SPiCT result, proceeding...\n')
+        if(verbose) cat('Detected input as a SPiCT result, proceeding...\n')
         rep <- input
         inp <- rep$inp
         pl <- rep$pl
         repflag <- TRUE
     } else {
-        cat('Assuming input is a SPiCT inp, checking for validity...\n')
+        if(verbose) cat('Assuming input is a SPiCT inp, checking for validity...\n')
         inp <- input
         inp <- check.inp(inp)
         repflag <- FALSE
@@ -95,19 +96,18 @@ likprof.spict <- function(input){
         }
         reptmp <- try(fit.spict(inptmp))
         if(class(reptmp)=='try-error'){
-            cat('likprof WARNING: par[i], i=', i, 'failed to fit!\n')
+            warning('likprof: par[i], i=', i, 'failed to fit!\n')
             rep2 <- list()
             rep2$opt <- list()
             rep2$opt$objective <- NA
         } else {
             rep2 <- reptmp
         }
-        #cat(i, '..')
         return(rep2$opt$objective)
     }
     single.do.grid <- function(i, ngrid){
         lv <- do.grid(i)
-        cat(sprintf("Profiling: %.2f%%\r", i/ngrid * 100))
+        if(verbose) cat(sprintf("Profiling: %.2f%%\r", i/ngrid * 100))
         return(lv)
     }
     multi.do.grid <- function(i, ngrid, progfile){
@@ -116,7 +116,7 @@ likprof.spict <- function(input){
         if(class(progfile)[1]=='fifo') writeBin(1/ngrid, progfile)
         return(lv)
     }
-    cat('Profiling pars:', paste(likprof$pars, collapse=' and '), 'with', ngrid, 'trials.\n')
+    if(verbose)  cat('Profiling pars:', paste(likprof$pars, collapse=' and '), 'with', ngrid, 'trials.\n')
     if(Sys.info()['sysname']!='Linux'){
     #if(class(partry)=='try-error'){
     #if(TRUE){
@@ -132,7 +132,7 @@ likprof.spict <- function(input){
             while (progress < 1 && !isIncomplete(progfile)) {
                 msg <- readBin(progfile, "double")
                 progress <- progress + as.numeric(msg)
-                cat(sprintf("Multicore profiling: %.2f%%\r", progress * 100))
+                if(verbose) cat(sprintf("Multicore profiling: %.2f%%\r", progress * 100))
             } 
             #exit()
         }
