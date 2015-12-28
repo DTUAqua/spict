@@ -20,11 +20,6 @@
 #' @details TBA
 #' @param rep A valid result from fit.spict().
 #' @return A list equal to the input with the added key "infl" containing influence statistics.
-#' @examples
-#' data(pol)
-#' rep <- fit.spict(pol$albacore)
-#' rep <- calc.osa.resid(rep) # This step is required
-#' rep <- calc.influence(rep)
 #' @export
 calc.influence <- function(rep){
     #parnams <- c('logFmsy', 'MSY', 'logCp', 'logBlBmsy')
@@ -87,8 +82,6 @@ calc.influence <- function(rep){
         return(list(parmat=parmat, detcov=detcov, dosarpvals=dosarpvals))
     }
     # Calculate influence
-    #partry <- try(library(parallel))
-    #partry <- try(library(multicore))
     if(Sys.info()['sysname']!='Linux'){
     #if(class(partry)=='try-error'){
         single.inflfun <- function(c, inp, parnams, nobs){
@@ -100,7 +93,7 @@ calc.influence <- function(rep){
 
         res <- lapply(1:nobs, single.inflfun, inp, parnams, nobs)
     } else {
-        require(parallel)
+        #require(parallel)
         multi.inflfun <- function(c, inp, parnams, nobs, progfile){
             res <- inflfun(c, inp, parnams)
             ## Send progress update
@@ -120,7 +113,7 @@ calc.influence <- function(rep){
             } 
             #exit()
         }
-        res <- mclapply(1:nobs, multi.inflfun, inp, parnams, nobs, progfile, mc.cores=4)
+        res <- parallel::mclapply(1:nobs, multi.inflfun, inp, parnams, nobs, progfile, mc.cores=4)
         ## Close progress file
         close(progfile)
     }
