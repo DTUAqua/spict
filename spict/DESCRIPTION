@@ -14,5 +14,6 @@ Depends:
 LinkingTo: TMB
 Suggests:
     ellipse,
-    parallel
+    parallel,
+    mgcv
 LazyData: true

@@ -4,7 +4,7 @@
 \alias{plotspict.bbmsy}
 \title{Plot estimated B/Bmsy.}
 \usage{
-plotspict.bbmsy(rep, logax = FALSE, main = -1, plot.legend = TRUE,
+plotspict.bbmsy(rep, logax = FALSE, main = "Relative biomass",
   ylim = NULL, plot.obs = TRUE, qlegend = TRUE, lineat = 1,
   xlab = "Time")
 }
@@ -14,8 +14,6 @@ plotspict.bbmsy(rep, logax = FALSE, main = -1, plot.legend = TRUE,
 \item{logax}{Take log of y-axis? default: FALSE}
 
 \item{main}{Title of plot.}
-
-\item{plot.legend}{If TRUE legend is plotted.}
 
 \item{ylim}{Limits for y-axis.}
 

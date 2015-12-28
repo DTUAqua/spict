@@ -4,10 +4,12 @@
 \alias{likprof.spict}
 \title{Create profile likelihood}
 \usage{
-likprof.spict(input)
+likprof.spict(input, verbose = FALSE)
 }
 \arguments{
 \item{input}{A list containing observations and initial values for non profiled parameters (essentially an inp list) with the additional key "likprof" (see details for required keys). A valid result from fit.spict() containing an "inp" key with the described properties is also accepted.}
+
+\item{verbose}{Print progress to screen.}
 }
 \value{
 The output is the input with the likelihood profile information added to the likprof key of either inp or rep$inp.
@@ -30,8 +32,8 @@ Optional:
 data(pol)
 inp <- pol$albacore
 inp$likprof <- list()
-inp$likprof$pars <- 'logsdb'
-inp$likprof$parrange <- c(log(0.05), log(0.4))
+inp$likprof$pars <- 'logK'
+inp$likprof$parrange <- c(log(80), log(400))
 inp$likprof$nogridpoints <- 15
 rep <- fit.spict(inp)
 rep <- likprof.spict(rep)
