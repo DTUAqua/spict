@@ -32,8 +32,8 @@
 #' data(pol)
 #' inp <- pol$albacore
 #' inp$likprof <- list()
-#' inp$likprof$pars <- 'logsdb'
-#' inp$likprof$parrange <- c(log(0.05), log(0.4))
+#' inp$likprof$pars <- 'logK'
+#' inp$likprof$parrange <- c(log(80), log(400))
 #' inp$likprof$nogridpoints <- 15
 #' rep <- fit.spict(inp)
 #' rep <- likprof.spict(rep)
@@ -116,8 +116,6 @@ likprof.spict <- function(input){
         if(class(progfile)[1]=='fifo') writeBin(1/ngrid, progfile)
         return(lv)
     }
-    #partry <- try(library(multicore))
-    #partry <- try(library(parallel))
     cat('Profiling pars:', paste(likprof$pars, collapse=' and '), 'with', ngrid, 'trials.\n')
     if(Sys.info()['sysname']!='Linux'){
     #if(class(partry)=='try-error'){
@@ -138,7 +136,7 @@ likprof.spict <- function(input){
             } 
             #exit()
         }
-        likvals <- mclapply(1:ngrid, multi.do.grid, ngrid, progfile, mc.cores=4)
+        likvals <- parallel::mclapply(1:ngrid, multi.do.grid, ngrid, progfile, mc.cores=4)
         ## Close progress file
         close(progfile)
     }
