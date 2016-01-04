@@ -62,7 +62,7 @@ calc.osa.resid <- function(rep){
             if(!'stats' %in% names(rep)) rep$stats <- list()
             # Catches
             logCpres <- rep$osarC$residual
-            statsCp <- res.stats(logCpres, nam='catch')
+            statsCp <- res.stats(logCpres, name='catch')
             for(nm in names(statsCp$stats)) rep$stats[[nm]] <- statsCp$stats[[nm]]
             # Indices
             logIpres <- list()
@@ -72,7 +72,7 @@ calc.osa.resid <- function(rep){
             for(i in 1:inp$nindex){
                 logIpres[[i]] <- rep$osarI[[i]]$residual
                 #logIpres[[i]][1] <- NA # Always omit first residual because it can be difficult to calculate
-                statsIp[[i]] <- res.stats(logIpres[[i]], nam=paste0('index', i))
+                statsIp[[i]] <- res.stats(logIpres[[i]], name=paste0('index', i))
                 logIpshapiro[[i]] <- statsIp[[i]]$shapiro
                 logIpbias[[i]] <- statsIp[[i]]$bias
                 nam <- paste0('acfI', i, '.p')
@@ -99,9 +99,9 @@ calc.osa.resid <- function(rep){
 #' @param name Identifier that will be used in warning messages.
 #' @return List containing residual statistics in 'stats', shapiro output in 'shapiro', and bias output in 'bias'.
 #' @export
-res.stats <- function(resid, nam=''){
+res.stats <- function(resid, name=''){
     nna <- sum(is.na(resid))
-    if(nna > 0) warning(nna, ' NAs found in ', nam, ' residuals')
+    if(nna > 0) warning(nna, ' NAs found in ', name, ' residuals')
     nnotna <- sum(!is.na(resid))
     stats <- list()
     if(nnotna > 5){
@@ -111,7 +111,7 @@ res.stats <- function(resid, nam=''){
         stats$shapiro.p <- shapiro$p.value
         stats$bias.p <- bias$p.value
     } else {
-        warning('Warning: only ', nnotna, ' non-NAs found in ', nam, ' residuals. Not calculating residual statistics')
+        warning('Warning: only ', nnotna, ' non-NAs found in ', name, ' residuals. Not calculating residual statistics')
         bias <- NA
         shapiro <- NA
     }

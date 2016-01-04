@@ -18,10 +18,4 @@ Calculates influence statistics of observations.
 \details{
 TBA
 }
-\examples{
-data(pol)
-rep <- fit.spict(pol$albacore)
-rep <- calc.osa.resid(rep) # This step is required
-rep <- calc.influence(rep)
-}
 

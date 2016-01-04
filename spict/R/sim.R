@@ -351,7 +351,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
     if('logF' %in% names(inp$ini)) inp$ini$logF <- NULL
     if('logB' %in% names(inp$ini)) inp$ini$logB <- NULL
     ss <- list()
-    require(parallel)
+    #require(parallel)
     #nobs <- nobsvec[1]
     fun <- function(i, inp, nobs, estinp, backup){
         cat(paste(Sys.time(), '- validating:  i:', i, 'nobs:', nobs, '\n'))
@@ -362,7 +362,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
         s <- NA
         if(!class(rep)=='try-error'){
             s <- extract.simstats(rep, inp)
-            if(!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file)
+            if(!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file) # This line causes problems when running simulation2.R, the problem is that log cannot be taken of the derout variable of the summary.
         }
         return(s)
     }
@@ -370,7 +370,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
     for(j in 1:nnobsvec){
         nobs <- nobsvec[j]
         cat(paste(Sys.time(), '- validating nobs:', nobs, '\n'))
-        ss[[j]] <- mclapply(1:nsim, fun, inp, nobs, estinp, backup, mc.cores=8)
+        ss[[j]] <- parallel::mclapply(1:nsim, fun, inp, nobs, estinp, backup, mc.cores=8)
         if(!is.null(backup)) save(ss, file=backup)
     }
     if(df.out) ss <- validation.data.frame(ss)
@@ -390,7 +390,7 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
 #' rep <- fit.spict(sim)
 #' extract.simstats(rep)
 #' @export
-extract.simstats <- function(rep, inp){
+extract.simstats <- function(rep, inp=NULL){
     if('true' %in% names(rep$inp)){
         ss <- list()
         ss$nobs <- c(nobsc=rep$inp$nobsC, nobsI=rep$inp$nobsI)
@@ -428,7 +428,9 @@ extract.simstats <- function(rep, inp){
             return(list(ci=ci, ciw=ciw, cv=cv))
         }
         # sdu estimate
-        if('logsdu' %in% names(inp$ini) & rep$inp$phases$logsdu > 0) ss$sdu <- calc.simstats('logsdu', rep, exp=FALSE, rep$inp$true$logsdu)
+        if(!is.null(inp)){
+            if('logsdu' %in% names(inp$ini) & rep$inp$phases$logsdu > 0) ss$sdu <- calc.simstats('logsdu', rep, exp=FALSE, rep$inp$true$logsdu)
+        }
         # Fmsy estimate
         ss$Fmsy <- calc.simstats('logFmsy', rep, exp=TRUE, rep$inp$true$Fmsy)
         # Bmsy estimate
@@ -519,11 +521,11 @@ validation.data.frame <- function(ss){
     for(i in 1:nna){ # nna is length of nobsvec
         nsim <- length(ss[[i]])
         # While loop to avoid taking nobs from a NA run.
-        c <- 1
+        c <- 0
         flag <- TRUE
         while(flag){
-            flag <- all(is.na(ss[[i]][[c]])) & length(ss[[i]][[c]])==1
             c <- c+1
+            flag <- (all(is.na(ss[[i]][[c]])) & length(ss[[i]][[c]])==1) | class(ss[[i]][[c]])=='try-error'
         }
         nobsvec[i] <- ss[[i]][[c]]$nobs[1]
         nobs <- rep(nobsvec[i], nsim)

@@ -21,6 +21,6 @@
 }
 
 .onAttach <- function(lib, pkg) {
-    ver <- packageVersion('spict')
-   packageStartupMessage(paste0('Welcome to spict, version: ', ver))
+    ver <- utils::packageVersion('spict')
+    packageStartupMessage(paste0('Welcome to spict, version: ', ver))
  }

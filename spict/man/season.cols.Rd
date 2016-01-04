@@ -6,6 +6,9 @@
 \usage{
 season.cols(modin)
 }
+\arguments{
+\item{modin}{Time vector modulo 1.}
+}
 \value{
 Vector containing season colors.
 }

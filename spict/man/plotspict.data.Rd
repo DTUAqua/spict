@@ -7,11 +7,11 @@
 plotspict.data(inpin, MSY = NULL, one.index = NULL)
 }
 \arguments{
+\item{inpin}{An input list containing data.}
+
 \item{MSY}{Value of MSY.}
 
 \item{one.index}{Integer indicating the number of the index to plot.}
-
-\item{inp}{An input list containing data.}
 }
 \value{
 Nothing

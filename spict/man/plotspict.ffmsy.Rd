@@ -4,7 +4,7 @@
 \alias{plotspict.ffmsy}
 \title{Plot estimated relative fishing mortality.}
 \usage{
-plotspict.ffmsy(rep, logax = FALSE, main = -1, plot.legend = TRUE,
+plotspict.ffmsy(rep, logax = FALSE, main = "Relative fishing mortality",
   ylim = NULL, lineat = 1, xlab = "Time")
 }
 \arguments{
@@ -13,8 +13,6 @@ plotspict.ffmsy(rep, logax = FALSE, main = -1, plot.legend = TRUE,
 \item{logax}{Take log of y-axis? default: FALSE}
 
 \item{main}{Title of plot.}
-
-\item{plot.legend}{If TRUE legend is plotted.}
 
 \item{ylim}{Limits for y-axis.}
 

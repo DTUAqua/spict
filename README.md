@@ -13,9 +13,9 @@ An R-package for fittng surplus production models in continuous-time to fisherie
 
 ## Package requirements
 
-The package requires [`TMB`](http://www.tmb-project.org) to be installed. Like spict, TMB is not a part of CRAN and therefore needs to be installed by following the instruction on the TMB github ['front page'](https://github.com/kaskr/adcomp).
+The package requires [`TMB`](http://www.tmb-project.org) to be installed. TMB is now a part of CRAN and can therefore be installed using the install.packages() command. For more information about TMB click [`here`](https://github.com/kaskr/adcomp).
 
-## Installing the package
+## Installing the spict package
 
 To install spict from GitHub (not on Windows) use
 
@@ -30,4 +30,4 @@ Windows
 
 2. From R run: ```source("install_windows.R")```
 
-This requires that Rtools is installed, which is probably the case if TMB is installed. When running install_windows.R remember to set your working directory to the spict directory containing install_windows.R.
+This requires that Rtools is installed, which is probably the case if TMB is installed. If not Rtools can be obtained [`here`](https://cran.r-project.org/bin/windows/Rtools/). When running install_windows.R remember to set your working directory to the spict directory containing install_windows.R.
