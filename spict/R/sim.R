@@ -46,17 +46,17 @@ predict.b <- function(B0, F0, gamma, m, K, n, dt, sdb){
 #' @return A list containing the simulated data.
 #' @examples
 #' data(pol)
+#' repin <- fit.spict(pol$albacore)
 #' # Simulate a specific number of observations
-#' inp <- pol$albacore
-#' inp$obsC <- NULL
-#' inp$timeC <- NULL
-#' inp$obsI <- NULL
-#' inp$timeI <- NULL
+#' inp <- list()
+#' inp$dteuler <- 1/4 # To reduce calculation time
+#' inp$ini <- repin$inp$ini
+#' inp$ini$logF <- NULL
+#' inp$ini$logB <- NULL
 #' set.seed(1)
 #' sim <- sim.spict(inp, nobs=150)
 #' repsim <- fit.spict(sim)
 #' summary(repsim) # Note true values are listed in the summary
-#' dev.new(width=10, height=10)
 #' plot(repsim) # Note true states are shown with orange colour
 #'
 #' # Simulate data with seasonal F
@@ -66,7 +66,9 @@ predict.b <- function(B0, F0, gamma, m, K, n, dt, sdb){
 #' inp$splineorder <- 1
 #' inp$obsC <- 1:80
 #' inp$obsI <- 1:80
-#' inp$ini <- pol$albacore$ini
+#' inp$ini <- repin$inp$ini
+#' inp$ini$logF <- NULL
+#' inp$ini$logB <- NULL
 #' inp$ini$logphi <- log(2) # Seasonality introduced here
 #' inp <- check.inp(inp)
 #' sim2 <- sim.spict(inp)
@@ -386,7 +388,8 @@ validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, ba
 #' @return A list containing the relevant statistics.
 #' @examples
 #' data(pol)
-#' sim <- sim.spict(pol$albacore)
+#' repin <- fit.spict(pol$albacore)
+#' sim <- sim.spict(repin)
 #' rep <- fit.spict(sim)
 #' extract.simstats(rep)
 #' @export

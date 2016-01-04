@@ -22,7 +22,8 @@ TBA
 }
 \examples{
 data(pol)
-sim <- sim.spict(pol$albacore)
+repin <- fit.spict(pol$albacore)
+sim <- sim.spict(repin)
 rep <- fit.spict(sim)
 extract.simstats(rep)
 }

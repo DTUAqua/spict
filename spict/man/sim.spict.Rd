@@ -28,17 +28,17 @@ Simply take the output from a fit.spict() run and use as input to sim.spict().
 }
 \examples{
 data(pol)
+repin <- fit.spict(pol$albacore)
 # Simulate a specific number of observations
-inp <- pol$albacore
-inp$obsC <- NULL
-inp$timeC <- NULL
-inp$obsI <- NULL
-inp$timeI <- NULL
+inp <- list()
+inp$dteuler <- 1/4 # To reduce calculation time
+inp$ini <- repin$inp$ini
+inp$ini$logF <- NULL
+inp$ini$logB <- NULL
 set.seed(1)
 sim <- sim.spict(inp, nobs=150)
 repsim <- fit.spict(sim)
 summary(repsim) # Note true values are listed in the summary
-dev.new(width=10, height=10)
 plot(repsim) # Note true states are shown with orange colour
 
 # Simulate data with seasonal F
@@ -48,7 +48,9 @@ inp$nseasons <- 2
 inp$splineorder <- 1
 inp$obsC <- 1:80
 inp$obsI <- 1:80
-inp$ini <- pol$albacore$ini
+inp$ini <- repin$inp$ini
+inp$ini$logF <- NULL
+inp$ini$logB <- NULL
 inp$ini$logphi <- log(2) # Seasonality introduced here
 inp <- check.inp(inp)
 sim2 <- sim.spict(inp)
