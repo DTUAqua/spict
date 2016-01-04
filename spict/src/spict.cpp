@@ -51,10 +51,13 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR_INDICATOR(keep, obssrt); // This one is required to calculate OSA residuals
   DATA_VECTOR(stdevfacc);      // Factors to scale stdev of catch observation error
   DATA_VECTOR(stdevfaci);      // Factors to scale stdev of index observation error
+  DATA_VECTOR(stdevface);      // Factors to scale stdev of effort observation error
   DATA_VECTOR(isc);            // Indices in obssrt of catch observations
   DATA_VECTOR(isi);            // Indices in obssrt of index observations
+  DATA_VECTOR(ise);            // Indices in obssrt of effort observations
   DATA_INTEGER(nobsC);         // Number of catch observations
   DATA_INTEGER(nobsI);         // Number of index observations
+  DATA_INTEGER(nobsE);         // Number of effort observations
   DATA_VECTOR(ic);             // Vector such that B(ic(i)) is the state at the start of obsC(i)
   DATA_VECTOR(nc);             // nc(i) gives the number of time intervals obsC(i) spans
   DATA_VECTOR(ii);             // A vector such that B(ii(i)) is the state corresponding to I(i)
@@ -73,6 +76,7 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(robflagc);       // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
   DATA_SCALAR(robflagi);       // Index Degrees of freedom of t-distribution (only used if tdf < 25)
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
+  DATA_SCALAR(effortflag);     // If effortflag == 1 use effort data, else use index data
 
   // Priors
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
@@ -133,6 +137,11 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<nobsI; i++){ 
     ind = CppAD::Integer(isi(i)-1);
     logobsI(i) = obssrt(ind);
+  }
+  vector<Type> logobsE(nobsE);
+  for(int i=0; i<nobsE; i++){ 
+    ind = CppAD::Integer(ise(i)-1);
+    logobsE(i) = obssrt(ind);
   }
 
   vector<Type> logphipar(logphi.size()+1);
@@ -210,6 +219,7 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<nobsCp; i++){ Cpred(i) = 0.0; }
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
+  vector<Type> logEpred(nobsE);
 
   vector<Type> Bmsyd(nm);
   vector<Type> MSYd = m;
@@ -500,6 +510,24 @@ Type objective_function<Type>::operator() ()
     }
   }
 
+  // EFFORT PREDICTIONS
+  vector<Type> Fcumpred(nobsE);
+  vector<Type> logFcumpred(nobsE);
+  if(simple==0){
+    for(int i=0; i<nobsE; i++){
+      // Sum effort contributions from each sub interval
+      for(int j=0; j<ne(i); j++){
+	ind = CppAD::Integer(ie(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
+	Fcumpred(i) += F(ind);
+      }
+      logFcumpred(i) = log(Fcumpred(i));
+      // DEBUGGING
+      if(dbg>1){
+	std::cout << "-- i: " << i << " -  ind: " << ind << "  logFcumpred(i): " << logFcumpred(i) << std::endl;
+      }
+    }
+  }
+
   // CALCULATE PRODUCTION
   for(int i=0; i<(ns-1); i++) P(i) = B(i+1) - B(i) + Cpredsub(i);
 
@@ -508,6 +536,7 @@ Type objective_function<Type>::operator() ()
     --- OBSERVATION EQUATIONS ---
   */
   int inds;
+
   // CATCHES
   if(simple==0){
     if(dbg>0){
@@ -527,6 +556,28 @@ Type objective_function<Type>::operator() ()
       // DEBUGGING
       if(dbg>1){
 	std::cout << "-- i: " << i << " -   logobsC(i): " << logobsC(i) << " -   stdevfacc(i): " << stdevfacc(i) << "  sdc: " << sdc << "  likval: " << likval << "  ans:" << ans << std::endl;
+      }
+    }
+  }
+
+  // EFFORT
+  if(simple==0){
+    if(dbg>0){
+      std::cout << "--- DEBUG: Epred loop start --- ans: " << ans << std::endl;
+    }
+    for(int i=0; i<nobsE; i++){
+      inds = CppAD::Integer(ise(i)-1);
+      indq = CppAD::Integer(iq(i)-1);
+      logEpred(i) = logFcumpred(i) - logq(indq); // E = 1/q * integral{F_t dt}
+      if(robflagc==1.0){
+	likval = log(pp*dnorm(logEpred(i), logobsE(i), stdevface(i)*sdi, 0) + (1.0-pp)*dnorm(logEpred(i), logobsE(i), robfac*stdevface(i)*sdi, 0));
+      } else {
+	likval = dnorm(logEpred(i), logobsE(i), stdevface(i)*sdi, 1);
+      }
+      ans-= keep(inds) * likval;
+      // DEBUGGING
+      if(dbg>1){
+	std::cout << "-- i: " << i << " -   logobsE(i): " << logobsE(i) << " -   stdevface(i): " << stdevface(i) << "  sdi: " << sdi << "  likval: " << likval << "  ans:" << ans << std::endl;
       }
     }
   }
@@ -555,6 +606,7 @@ Type objective_function<Type>::operator() ()
       std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -  indsdi: " << indsdi << " -  inds: " << inds << " -   logobsI(i): " << logobsI(i) << "  logIpred(i): " << logIpred(i) << "  stdevfaci(i): " << stdevfaci(i) << "  likval: " << likval << "  sdi: " << sdi << "  ans:" << ans << std::endl;
     }
   }
+
 
   /*
   --- ONE-STEP-AHEAD PREDICTIONS ---

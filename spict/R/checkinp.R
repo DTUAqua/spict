@@ -105,6 +105,34 @@ check.inp <- function(inp){
     check.ini <- function(parname, inp, min=NULL, max=NULL){
         if(!parname %in% names(inp$ini)) stop('Please specify an initial value for ', parname, '!')
     }
+    remove.neg <- function(inp, nam){
+        nms <- paste0(c('obs', 'time', 'stdevfac'), nam)
+        flag <- class(inp[[nms[1]]]) == 'list'
+        if(flag){
+            nna <- length(inp[[nms[1]]])
+            for(j in 1:nna){
+                neg <- which(inp[[nms[1]]][[j]]<=0 | is.na(inp[[nms[1]]][[j]]))
+                if(length(neg)>0){
+                    nnms <- length(nms)
+                    for(i in 1:nnms) inp[[nms[i]]][[j]] <- inp[[nms[i]]][[j]][-neg]
+                    cat('Removing zero, negative, and NAs in ', nam, ' series ', j, '\n')
+                }
+            }
+        } else {
+            neg <- which(inp[[nms[1]]]<=0 | is.na(inp[[nms[1]]]))
+            if(length(neg)>0){
+                nnms <- length(nms)
+                for(i in 1:nnms) inp[[nms[i]]] <- inp[[nms[i]]][-neg]
+                cat('Removing zero, negative, and NAs in ', nam, ' series\n')
+            }
+        }
+        return(inp)
+    }
+    base.checks <- function(obs, time, stdevfac, nam){
+        if(length(obs) != length(time)) stop('Time and observation vector do not match in length for  ', name, ' series.')
+        if(length(obs) != length(stdevfac)) stop('stdevfac and observation vector do not match in length for ', nam, ' series.')
+        if(sum(stdevfac <= 0) > 0) stop('Non-positive values entered in stdevfac for ', nam, 'series.')
+    }
     # -- DATA --
     # Check catches
     if('obsC' %in% names(inp)){
@@ -117,17 +145,9 @@ check.inp <- function(inp){
             }
         }
         if(any(diff(inp$timeC)<=0)) stop('Catch times are not strictly increasing!')
-        if(length(inp$obsC) != length(inp$timeC)) stop('Time and observation vector do not match in length for catch series.')
         if(!'stdevfacC' %in% names(inp)) inp$stdevfacC <- rep(1, length(inp$obsC))
-        if(length(inp$obsC) != length(inp$stdevfacC)) stop('stdevfac and observation vector do not match in length for catch series.')
-        if(sum(inp$stdevfacC <= 0) > 0) stop('Non-positive values entered in stdevfac for catches.')
-        neg <- which(inp$obsC<=0 | is.na(inp$obsC))
-        if(length(neg)>0){
-            inp$obsC <- inp$obsC[-neg]
-            inp$timeC <- inp$timeC[-neg]
-            inp$stdevfacC <- inp$stdevfacC[-neg]
-            cat(paste('Removing zero, negative, and NAs in catch series\n'))
-        }
+        base.checks(inp$obsC, inp$timeC, inp$stdevfacC, 'C')
+        inp <- remove.neg(inp, 'C')
         inp$nobsC <- length(inp$obsC)
         inp$obsidC <- 1:inp$nobsC
     } else {
@@ -172,19 +192,19 @@ check.inp <- function(inp){
         if(inp$nindex != length(inp$timeI)) stop('length(inp$timeI) is not equal to length(inp$obsI)!')
         if(inp$nindex != length(inp$stdevfacI)) stop('length(inp$stdevfacI) is not equal to length(inp$obsI)!')
         inp$nobsI <- rep(0, inp$nindex)
+        for(i in 1:inp$nindex) base.checks(inp$obsI[[i]], inp$timeI[[i]], inp$stdevfacI[[i]], paste0('I', i))
+        inp <- remove.neg(inp, 'I')
+        
+            #if(length(inp$obsI[[i]])>0){
+            #    neg <- which(inp$obsI[[i]]<=0 | is.na(inp$obsI[[i]]))
+            #    if(length(neg)>0){
+            #        inp$obsI[[i]] <- inp$obsI[[i]][-neg]
+            #        inp$timeI[[i]] <- inp$timeI[[i]][-neg]
+            #        inp$stdevfacI[[i]] <- inp$stdevfacI[[i]][-neg]
+            #        cat(paste('Removing zero, negative and NAs in index series',i,'\n'))
+            #    }
+            #}
         for(i in 1:inp$nindex){
-            if(length(inp$obsI[[i]]) != length(inp$timeI[[i]])) stop('Time and observation vector do not match in length for index series ', i)
-            if(length(inp$obsI[[i]]) != length(inp$stdevfacI[[i]])) stop('stdevfac and observation vector do not match in length for index series ', i)
-            if(sum(inp$stdevfacI[[i]] <= 0) > 0) stop('Non-positive values entered in stdevfac for index ', i)
-            if(length(inp$obsI[[i]])>0){
-                neg <- which(inp$obsI[[i]]<=0 | is.na(inp$obsI[[i]]))
-                if(length(neg)>0){
-                    inp$obsI[[i]] <- inp$obsI[[i]][-neg]
-                    inp$timeI[[i]] <- inp$timeI[[i]][-neg]
-                    inp$stdevfacI[[i]] <- inp$stdevfacI[[i]][-neg]
-                    cat(paste('Removing zero, negative and NAs in index series',i,'\n'))
-                }
-            }
             inp$nobsI[i] <- length(inp$obsI[[i]])
             if(i==1){
                 inp$obsidI[[i]] <- (1:inp$nobsI[i]) + inp$nobsC
