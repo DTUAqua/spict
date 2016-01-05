@@ -105,45 +105,71 @@ check.inp <- function(inp){
     check.ini <- function(parname, inp, min=NULL, max=NULL){
         if(!parname %in% names(inp$ini)) stop('Please specify an initial value for ', parname, '!')
     }
+    rm.neg <- function(tmpin, nam, nms, j=''){
+        nnms <- length(nms)
+        neg <- which(tmpin[[nms[1]]]<=0 | is.na(tmpin[[nms[1]]]))
+        tmpout <- tmpin
+        if(length(neg)>0){
+            for(i in 1:nnms) tmpout[[nms[i]]] <- tmpin[[nms[i]]][-neg]
+            cat('Removing zero, negative, and NAs in ', nam, ' series ', j, ' \n')
+        }
+        return(tmpout)
+    }
     remove.neg <- function(inp, nam){
         nms <- paste0(c('obs', 'time', 'stdevfac'), nam)
+        nnms <- length(nms)
         flag <- class(inp[[nms[1]]]) == 'list'
         if(flag){
             nna <- length(inp[[nms[1]]])
-            for(j in 1:nna){
-                neg <- which(inp[[nms[1]]][[j]]<=0 | is.na(inp[[nms[1]]][[j]]))
-                if(length(neg)>0){
-                    nnms <- length(nms)
-                    for(i in 1:nnms) inp[[nms[i]]][[j]] <- inp[[nms[i]]][[j]][-neg]
-                    cat('Removing zero, negative, and NAs in ', nam, ' series ', j, '\n')
+            if(nna>0){
+                for(j in 1:nna){
+                    tmp <- list()
+                    for(i in 1:nnms) tmp[[nms[i]]] <- inp[[nms[i]]][[j]]
+                    tmpup <- rm.neg(tmp, nam, nms, j)
+                    for(i in 1:nnms) inp[[nms[i]]][[j]] <- tmpup[[nms[i]]]
                 }
             }
         } else {
-            neg <- which(inp[[nms[1]]]<=0 | is.na(inp[[nms[1]]]))
-            if(length(neg)>0){
-                nnms <- length(nms)
-                for(i in 1:nnms) inp[[nms[i]]] <- inp[[nms[i]]][-neg]
-                cat('Removing zero, negative, and NAs in ', nam, ' series\n')
-            }
+            tmp <- list()
+            for(i in 1:nnms) tmp[[nms[i]]] <- inp[[nms[i]]]
+            tmpup <- rm.neg(tmp, nam, nms)
+            for(i in 1:nnms) inp[[nms[i]]] <- tmpup[[nms[i]]]
         }
         return(inp)
     }
     base.checks <- function(obs, time, stdevfac, nam){
-        if(length(obs) != length(time)) stop('Time and observation vector do not match in length for  ', name, ' series.')
+        if(length(obs) != length(time)) stop('Time and observation vector do not match in length for  ', nam, ' series.')
         if(length(obs) != length(stdevfac)) stop('stdevfac and observation vector do not match in length for ', nam, ' series.')
         if(sum(stdevfac <= 0) > 0) stop('Non-positive values entered in stdevfac for ', nam, 'series.')
     }
-    # -- DATA --
-    # Check catches
-    if('obsC' %in% names(inp)){
-        if(!'timeC' %in% names(inp)){
+    make.list <- function(invar){
+        if(class(invar)!='list'){
+            outvar <- list()
+            outvar[[1]] <- invar
+        } else {
+            outvar <- invar
+        }
+        return(outvar)
+    }
+    make.time <- function(inp, nam){
+        time <- paste0('time', nam)
+        obs <- paste0('obs', nam)
+        nobs <- length(unlist(inp[[obs]]))
+        if(!time %in% names(inp) & nobs > 0){
             if(!'nseasons' %in% names(inp)){
-                inp$timeC <- 0:(length(inp$obsC)-1)
+                inp[[time]] <- 0:(nobs-1)
             } else {
-                to <- (length(inp$obsC)-1)/inp$nseasons
-                inp$timeC <- seq(0, to, length=length(inp$obsC))
+                to <- (nobs-1)/inp$nseasons
+                inp[[time]] <- seq(0, to, length=nobs)
             }
         }
+        return(inp)
+    }
+
+    # -- DATA --
+    # Check catch observations
+    if('obsC' %in% names(inp)){
+        inp <- make.time(inp, 'C')
         if(any(diff(inp$timeC)<=0)) stop('Catch times are not strictly increasing!')
         if(!'stdevfacC' %in% names(inp)) inp$stdevfacC <- rep(1, length(inp$obsC))
         base.checks(inp$obsC, inp$timeC, inp$stdevfacC, 'C')
@@ -153,59 +179,27 @@ check.inp <- function(inp){
     } else {
         stop('No catch observations included. Please include them as a vector in inp$obsC.')
     }
-
-    # Check indices
-    if('obsI' %in% names(inp)){
-        if(class(inp$obsI)!='list'){
-            tmp <- inp$obsI
-            inp$obsI <- list()
-            inp$obsI[[1]] <- tmp
-        }
-        inp$nindex <- length(inp$obsI)
-        # Time vector
-        if(!'timeI' %in% names(inp)){
-            inp$timeI <- list()
-            if(!'nseasons' %in% names(inp)){
-                inp$timeI[[1]] <- 0:(length(inp$obsI[[1]])-1)
-            } else {
-                to <- (length(inp$obsI[[1]])-1)/inp$nseasons
-                inp$timeI[[1]] <- seq(0, to, length=length(inp$obsI[[1]]))
-            }
-        } else {
-            if(class(inp$timeI)!='list'){
-                tmp <- inp$timeI
-                inp$timeI <- list()
-                inp$timeI[[1]] <- tmp
-            }
-        }
-        # Standard deviation factor
-        if(!'stdevfacI' %in% names(inp)){
-            inp$stdevfacI <- list()
-            for(i in 1:inp$nindex) inp$stdevfacI[[i]] <- rep(1, length(inp$obsI[[i]]))
-        } else {
-            if(class(inp$stdevfacI)!='list'){
-                tmp <- inp$stdevfacI
-                inp$stdevfacI <- list()
-                inp$stdevfacI[[1]] <- tmp
-            }
-        }
-        if(inp$nindex != length(inp$timeI)) stop('length(inp$timeI) is not equal to length(inp$obsI)!')
-        if(inp$nindex != length(inp$stdevfacI)) stop('length(inp$stdevfacI) is not equal to length(inp$obsI)!')
-        inp$nobsI <- rep(0, inp$nindex)
-        for(i in 1:inp$nindex) base.checks(inp$obsI[[i]], inp$timeI[[i]], inp$stdevfacI[[i]], paste0('I', i))
-        inp <- remove.neg(inp, 'I')
-        
-            #if(length(inp$obsI[[i]])>0){
-            #    neg <- which(inp$obsI[[i]]<=0 | is.na(inp$obsI[[i]]))
-            #    if(length(neg)>0){
-            #        inp$obsI[[i]] <- inp$obsI[[i]][-neg]
-            #        inp$timeI[[i]] <- inp$timeI[[i]][-neg]
-            #        inp$stdevfacI[[i]] <- inp$stdevfacI[[i]][-neg]
-            #        cat(paste('Removing zero, negative and NAs in index series',i,'\n'))
-            #    }
-            #}
+    
+    # Check index observations
+    inp$obsI <- make.list(inp$obsI)
+    inp$nindex <- length(inp$obsI)
+    inp$nobsI <- rep(0, inp$nindex)
+    if(inp$nindex>0) for(i in 1:inp$nindex) inp$nobsI[i] <- length(inp$obsI[[i]])
+    # Time vector
+    inp <- make.time(inp, 'I')
+    inp$timeI <- make.list(inp$timeI)
+    # Standard deviation factor
+    if(!'stdevfacI' %in% names(inp)){
+        inp$stdevfacI <- list()
+        if(inp$nindex>0) for(i in 1:inp$nindex) inp$stdevfacI[[i]] <- rep(1, inp$nobsI[i])
+    }
+    inp$stdevfacI <- make.list(inp$stdevfacI)
+    if(inp$nindex != length(inp$timeI)) stop('length(inp$timeI) is not equal to length(inp$obsI)!')
+    if(inp$nindex != length(inp$stdevfacI)) stop('length(inp$stdevfacI) is not equal to length(inp$obsI)!')
+    if(inp$nindex>0) for(i in 1:inp$nindex) base.checks(inp$obsI[[i]], inp$timeI[[i]], inp$stdevfacI[[i]], paste0('I', i))
+    inp <- remove.neg(inp, 'I')
+    if(inp$nindex>0){
         for(i in 1:inp$nindex){
-            inp$nobsI[i] <- length(inp$obsI[[i]])
             if(i==1){
                 inp$obsidI[[i]] <- (1:inp$nobsI[i]) + inp$nobsC
             } else {
@@ -213,7 +207,37 @@ check.inp <- function(inp){
             }
         }
     } else {
-        stop('No index observations included. Please include them as a list in inp$obsI.')
+        inp$obsidI <- list()
+    }
+    
+    # Check effort observations
+    inp$obsE <- make.list(inp$obsE)
+    inp$neffort <- length(inp$obsE)
+    inp$nobsE <- rep(0, inp$neffort)
+    if(inp$neffort>0) for(i in 1:inp$neffort) inp$nobsE[i] <- length(inp$obsE[[i]])
+    # Time vector
+    inp <- make.time(inp, 'E')
+    inp$timeE <- make.list(inp$timeE)
+    # Standard deviation factor
+    if(!'stdevfacE' %in% names(inp)){
+        inp$stdevfacE <- list()
+        if(inp$neffort>0) for(i in 1:inp$neffort) inp$stdevfacE[[i]] <- rep(1, inp$nobsE[i])
+    }
+    inp$stdevfacE <- make.list(inp$stdevfacE)
+    if(inp$neffort != length(inp$timeE)) stop('length(inp$timeE) is not equal to length(inp$obsE)!')
+    if(inp$neffort != length(inp$stdevfacE)) stop('length(inp$stdevfacE) is not equal to length(inp$obsE)!')
+    if(inp$neffort>0) for(i in 1:inp$neffort) base.checks(inp$obsE[[i]], inp$timeE[[i]], inp$stdevfacE[[i]], paste0('E', i))
+    inp <- remove.neg(inp, 'E')
+    if(inp$neffort>0){
+        for(i in 1:inp$neffort){
+            if(i==1){
+                inp$obsidE[[i]] <- (1:inp$nobsE[i]) + inp$nobsC + sum(inp$nobsI)
+            } else {
+                inp$obsidE[[i]] <- (1:inp$nobsE[i]) + tail(inp$obsidE[[i-1]], 1)
+            }
+        }
+    } else {
+        inp$obsidE <- list()
     }
 
     # -- MAX MIN RATIO (used in simulation only) --
