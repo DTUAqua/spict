@@ -180,76 +180,68 @@ check.inp <- function(inp){
         stop('No catch observations included. Please include them as a vector in inp$obsC.')
     }
     
+    if(!any(c('obsI', 'obsE') %in% names(inp))) stop('No effort or index observations. Please include index observations as a vector in inp$obsI and effort observations in inp$obsE.')
+    
     # Check index observations
     inp$obsI <- make.list(inp$obsI)
     inp$nindex <- length(inp$obsI)
+    inp$nindexseq <- ifelse(inp$nindex>0, 1:inp$nindex, NULL)
     inp$nobsI <- rep(0, inp$nindex)
-    if(inp$nindex>0) for(i in 1:inp$nindex) inp$nobsI[i] <- length(inp$obsI[[i]])
+    for(i in inp$nindexseq) inp$nobsI[i] <- length(inp$obsI[[i]])
     # Time vector
     inp <- make.time(inp, 'I')
     inp$timeI <- make.list(inp$timeI)
     # Standard deviation factor
     if(!'stdevfacI' %in% names(inp)){
         inp$stdevfacI <- list()
-        if(inp$nindex>0) for(i in 1:inp$nindex) inp$stdevfacI[[i]] <- rep(1, inp$nobsI[i])
+        for(i in inp$nindexseq) inp$stdevfacI[[i]] <- rep(1, inp$nobsI[i])
     }
     inp$stdevfacI <- make.list(inp$stdevfacI)
     if(inp$nindex != length(inp$timeI)) stop('length(inp$timeI) is not equal to length(inp$obsI)!')
     if(inp$nindex != length(inp$stdevfacI)) stop('length(inp$stdevfacI) is not equal to length(inp$obsI)!')
-    if(inp$nindex>0) for(i in 1:inp$nindex) base.checks(inp$obsI[[i]], inp$timeI[[i]], inp$stdevfacI[[i]], paste0('I', i))
+    for(i in inp$nindexseq) base.checks(inp$obsI[[i]], inp$timeI[[i]], inp$stdevfacI[[i]], paste0('I', i))
     inp <- remove.neg(inp, 'I')
-    if(inp$nindex>0){
-        for(i in 1:inp$nindex){
-            if(i==1){
-                inp$obsidI[[i]] <- (1:inp$nobsI[i]) + inp$nobsC
-            } else {
-                inp$obsidI[[i]] <- (1:inp$nobsI[i]) + tail(inp$obsidI[[i-1]], 1)
-            }
+    inp$obsidI <- list()
+    for(i in inp$nindexseq){
+        if(i==1){
+            inp$obsidI[[i]] <- (1:inp$nobsI[i]) + inp$nobsC
+        } else {
+            inp$obsidI[[i]] <- (1:inp$nobsI[i]) + tail(inp$obsidI[[i-1]], 1)
         }
-    } else {
-        inp$obsidI <- list()
     }
     
     # Check effort observations
     inp$obsE <- make.list(inp$obsE)
     inp$neffort <- length(inp$obsE)
+    inp$neffortseq <- ifelse(inp$neffort>0, 1:inp$neffort, NULL)
     inp$nobsE <- rep(0, inp$neffort)
-    if(inp$neffort>0) for(i in 1:inp$neffort) inp$nobsE[i] <- length(inp$obsE[[i]])
+    for(i in 1:inp$neffortseq) inp$nobsE[i] <- length(inp$obsE[[i]])
     # Time vector
     inp <- make.time(inp, 'E')
     inp$timeE <- make.list(inp$timeE)
     # Standard deviation factor
     if(!'stdevfacE' %in% names(inp)){
         inp$stdevfacE <- list()
-        if(inp$neffort>0) for(i in 1:inp$neffort) inp$stdevfacE[[i]] <- rep(1, inp$nobsE[i])
+        for(i in 1:inp$neffortseq) inp$stdevfacE[[i]] <- rep(1, inp$nobsE[i])
     }
     inp$stdevfacE <- make.list(inp$stdevfacE)
     if(inp$neffort != length(inp$timeE)) stop('length(inp$timeE) is not equal to length(inp$obsE)!')
     if(inp$neffort != length(inp$stdevfacE)) stop('length(inp$stdevfacE) is not equal to length(inp$obsE)!')
-    if(inp$neffort>0) for(i in 1:inp$neffort) base.checks(inp$obsE[[i]], inp$timeE[[i]], inp$stdevfacE[[i]], paste0('E', i))
+    for(i in 1:inp$neffortseq) base.checks(inp$obsE[[i]], inp$timeE[[i]], inp$stdevfacE[[i]], paste0('E', i))
     inp <- remove.neg(inp, 'E')
-    if(inp$neffort>0){
-        for(i in 1:inp$neffort){
-            if(i==1){
-                inp$obsidE[[i]] <- (1:inp$nobsE[i]) + inp$nobsC + sum(inp$nobsI)
-            } else {
-                inp$obsidE[[i]] <- (1:inp$nobsE[i]) + tail(inp$obsidE[[i-1]], 1)
-            }
+    inp$obsidE <- list()
+    for(i in inp$neffortseq){
+        if(i==1){
+            inp$obsidE[[i]] <- (1:inp$nobsE[i]) + inp$nobsC + sum(inp$nobsI)
+        } else {
+            inp$obsidE[[i]] <- (1:inp$nobsE[i]) + tail(inp$obsidE[[i-1]], 1)
         }
-    } else {
-        inp$obsidE <- list()
-    }
-
-    # -- MAX MIN RATIO (used in simulation only) --
-    inp$maxminratio <- rep(0, inp$nindex)
-    names(inp$maxminratio) <- paste0('I', 1:inp$nindex)
-    for(i in 1:inp$nindex){
-        if(length(inp$obsI[[i]])>0) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
     }
 
     # -- MODEL OPTIONS --
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
     if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
+    # Index related
     if(!"onealpha" %in% names(inp)){
         if(!"onesdi" %in% names(inp)){
             inp$onealpha <- FALSE
@@ -259,13 +251,20 @@ check.inp <- function(inp){
     }
     if(!"onesdi" %in% names(inp)) inp$onesdi <- inp$onealpha
     if(!"mapsdi" %in% names(inp)){
-        inp$mapsdi <- 1:inp$nindex
+        inp$mapsdi <- inp$nindexseq
         if("onealpha" %in% names(inp)) if(inp$onealpha) inp$mapsdi <- rep(1, inp$nindex)
     }
     if("mapsdi" %in% names(inp)) inp$nsdi <- length(unique(inp$mapsdi))
-    if(!"mapq" %in% names(inp)) inp$mapq <- 1:inp$nindex
+    if(!"mapq" %in% names(inp)) inp$mapq <- inp$nindexseq
     if("mapq" %in% names(inp)) inp$nq <- length(unique(inp$mapq))
+    # Effort related
+    if(!"mapsde" %in% names(inp)) inp$mapsde <- inp$neffortseq
+    if("mapsde" %in% names(inp)) inp$nsde <- length(unique(inp$mapsde))
+    if(!"mapqe" %in% names(inp)) inp$mapqe <- inp$neffortseq
+    if("mapqe" %in% names(inp)) inp$nqe <- length(unique(inp$mapqe))
+    # Catch related
     if(!"catchunit" %in% names(inp)) inp$catchunit <- ''
+    # Reporting
     if(!"reportall" %in% names(inp)) inp$reportall <- TRUE
     if(!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
     # Simulation options
@@ -285,6 +284,8 @@ check.inp <- function(inp){
     inp$robflagc <- as.numeric(inp$robflagc)
     if(!"robflagi" %in% names(inp)) inp$robflagi <- 0
     inp$robflagi <- as.numeric(inp$robflagi)
+    if(!"robflage" %in% names(inp)) inp$robflage <- 0
+    inp$robflage <- as.numeric(inp$robflage)
     # ASPIC options 
     if(!"aspic" %in% names(inp)) inp$aspic <- list()
     if(!"mode" %in% names(inp$aspic)) inp$aspic$mode <- 'FIT'
@@ -298,7 +299,7 @@ check.inp <- function(inp){
         umodtimeC <- unique(inp$timeC%%1)
         if(length(umodtimeC) != 1) stop('When inp$simple = 1, inp$timeC must have a fixed regular time step of 1 year!')
         if(umodtimeC != 0) inp$timeC <- floor(inp$timeC)
-        for(i in 1:inp$nindex){
+        for(i in inp$nindexseq){
             umodtimeI <- unique(inp$timeI[[i]]%%1)
             if(length(umodtimeI) != 1) stop('When inp$simple = 1, inp$timeI must have a fixed regular time step of 1 year!')
             if(umodtimeI != 0) inp$timeI[[i]] <- floor(inp$timeI[[i]])
@@ -332,9 +333,30 @@ check.inp <- function(inp){
     }
     if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
     if(length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
+    # Effort intervals (dte)
+    if(!"dte" %in% names(inp)){
+        dte <- list()
+        inp$dte <- list()
+        for(i in inp$neffortseq){
+            dte[[i]] <- diff(inp$timeE[[i]])
+            if(length(dte[[i]])>0){
+                inp$dte[[i]] <- min(dte[[i]])
+            } else {
+                inp$dte[[i]] <- 1
+                cat('Effort time interval (dte) of effort series ', i, ' not specified and length of effort time series shorter than 2. Assuming an interval of 1 year.\n')
+            }
+        }
+    } else {
+        inp$dte <- make.list(inp$dte)
+    }
+    if(length(inp$dte) != inp$neffort) stop('Number of dte series is not equal to number of effort series!')
+    for(i in inp$neffortseq){
+        if(length(inp$dte[[i]])==1) inp$dte[[i]] <- rep(inp$dte[[i]], inp$nobsE[i])
+        if(length(inp$dte[[i]]) != inp$nobsE[i]) stop('Effort time interval vector (inp$dte) series ', i, ' does not match effort observation vector (inp$obsE) in length!')
+    }
 
     # - Prediction horizons -
-    timeobsall <- sort(c(inp$timeC, inp$timeC + inp$dtc, unlist(inp$timeI)))
+    timeobsall <- sort(c(inp$timeC, inp$timeC + inp$dtc, unlist(inp$timeI), unlist(inp$timeE), unlist(inp$timeE) + unlist(inp$dte)))
     # Catch prediction time step (dtpredc)
     if(!"dtpredc" %in% names(inp)){
         if(length(inp$dtc)>0){
@@ -356,7 +378,10 @@ check.inp <- function(inp){
     } else {
         if(inp$timepredi < max(unlist(inp$timeI))) stop('inp$timepredi must be equal to or later than last index observation!')
     }
-
+    # Prediction is not yet implemented for effort
+    # This may give a problem if effort data has later time points than catches or index
+    if(max(unlist(inp$timeE)) > max(unlist(inp$timeI), inp$timeC)) stop('Effort data must overlap temporally with index or catches')
+    
     # Numerical Euler discretisation time used by SDE solver
     # Euler time step
     if(!"dteuler" %in% names(inp)) inp$dteuler <- 1/16
@@ -474,9 +499,35 @@ check.inp <- function(inp){
     inp$nc <- rep(0, inp$nobsCp)
     for(i in 1:inp$nobsCp) inp$nc[i] <- sum(inp$time >= inp$timeCpred[i] & inp$time < (inp$timeCpred[i]+inp$dtcp[i]))
     if(any(inp$nc == 0)) stop('Current inp$dteuler is too large to accommodate some catch intervals. Make inp$dteuler smaller!')
+    # ie is the indices of inp$time to which effort observations correspond
+    dtepred <- min(unlist(inp$dtc))
+    inp$timeEpred <- list()
+    inp$nobsEp <- numeric(inp$neffort)
+    inp$dtep <- list()
+    inp$ie <- list()
+    for(i in inp$neffortseq){
+        #inp$timeEpred[[i]] <- unique(c(inp$timeE[[i]], (seq(tail(inp$timeE[[i]],1), inp$timeprede, by=dtepred))))
+        inp$timeEpred[[i]] <- inp$timeE[[i]]
+        inp$nobsEp[i] <- length(inp$timeEpred[[i]])
+        inp$dtep[[i]] <- c(inp$dte[[i]], rep(dtepred, inp$nobsEp[i]-inp$nobsE[i]))
+        inp$ie[[i]] <- cut(inp$timeEpred, inp$time, right=FALSE, labels=FALSE)
+    }
+    # ne is number of states to integrate an effort observation over
+    inp$ne <- list()
+    for(j in inp$neffortseq){    
+        inp$ne[[j]] <- rep(0, inp$nobsEp[j])
+        for(i in 1:inp$nobsEp[j]) inp$ne[[j]][i] <- sum(inp$time >= inp$timeEpred[[j]][i] & inp$time < (inp$timeEpred[[j]][i]+inp$dtep[[j]][i]))
+        if(any(inp$ne[[j]] == 0)) stop('Current inp$dteuler is too large to accommodate some effort intervals. Make inp$dteuler smaller!')
+    }
+    # Translate effort observations from a list to a vector
+    inp$obsEin <- unlist(inp$obsE)
+    inp$stdevfacEin <- unlist(inp$stdevfacE)
+    inp$iein <- unlist(inp$ie)
+    inp$iqein <- rep(inp$mapqe, times=inp$nobsE)
+    inp$isdein <- rep(inp$mapsde, times=inp$nobsE)
     # ii is the indices of inp$time to which index observations correspond
     inp$ii <- list()
-    for(i in 1:inp$nindex) inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
+    for(i in inp$nindexseq) inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
     # Translate index observations from a list to a vector
     inp$obsIin <- unlist(inp$obsI)
     inp$stdevfacIin <- unlist(inp$stdevfacI)
@@ -491,20 +542,20 @@ check.inp <- function(inp){
     
 
     # - Sort observations in time and store in one vector -
-    timeobsseen <- c(inp$timeC+inp$dtc-1e-4, unlist(inp$timeI)) # Add dtc to timeC because the total catch is first "seen" at the end of the given catch interval (typically year or quarter)
+    timeobsseen <- c(inp$timeC + inp$dtc - 1e-4, unlist(inp$timeI), unlist(inp$timeE) + unlist(inp$dte) - 1e-5) # Add dtc to timeC because the total catch is first "seen" at the end of the given catch interval (typically year or quarter), similarly for quarter. By arbitrary convention catches are assumed to be "seen" before effort although they should be observed at the same time.
     srt <- sort(timeobsseen, index=TRUE)
-    timeobs <- c(inp$timeC, unlist(inp$timeI))
+    timeobs <- c(inp$timeC, unlist(inp$timeI), unlist(inp$timeE))
     timeobssrt <- timeobs[srt$ix]
-    obs <- log(c(inp$obsC, unlist(inp$obsI)))
-    obsid <- c(inp$obsidC, unlist(inp$obsidI))
+    obs <- log(c(inp$obsC, unlist(inp$obsI), unlist(inp$obsE)))
+    obsid <- c(inp$obsidC, unlist(inp$obsidI), unlist(inp$obsidE))
     inp$obssrt <- obs[srt$ix]
     inp$timeobssrt <- timeobs[srt$ix]
     inp$obsidsrt <- obsid[srt$ix]
     inp$isc <- match(1:inp$nobsC, srt$ix)
     inp$isi <- match((inp$nobsC+1):(inp$nobsC+sum(inp$nobsI)), srt$ix)
-    if(sum(inp$nobsI) != length(inp$isi)){
-        cat('Warning: Mismatch between length(inp$isi)', length(inp$isi), 'and sum(inp$nobsI)', sum(inp$nobsI), '\n')
-    }
+    inp$ise <- match((inp$nobsC+sum(inp$nobsI)+1):(inp$nobsC+sum(inp$nobsI)+sum(inp$nobsE)), srt$ix)
+    if(sum(inp$nobsI) != length(inp$isi)) warning('Mismatch between length(inp$isi)', length(inp$isi), 'and sum(inp$nobsI)', sum(inp$nobsI), '\n')
+    if(sum(inp$nobsE) != length(inp$ise)) warning('Mismatch between length(inp$ise)', length(inp$ise), 'and sum(inp$nobsE)', sum(inp$nobsE), '\n')
     inp$osar.conditional <- which(inp$timeobssrt < inp$time[1]+1) # Condition on the first year of data.
     inp$osar.subset <- setdiff(1:length(inp$obssrt), inp$osar.conditional)
 
