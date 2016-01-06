@@ -185,22 +185,22 @@ check.inp <- function(inp){
     # Check index observations
     inp$obsI <- make.list(inp$obsI)
     inp$nindex <- length(inp$obsI)
-    inp$nindexseq <- ifelse(inp$nindex>0, 1:inp$nindex, NULL)
-    inp$nobsI <- rep(0, inp$nindex)
-    for(i in inp$nindexseq) inp$nobsI[i] <- length(inp$obsI[[i]])
+    if(inp$nindex>0) inp$nindexseq <- 1:inp$nindex
     # Time vector
     inp <- make.time(inp, 'I')
     inp$timeI <- make.list(inp$timeI)
     # Standard deviation factor
     if(!'stdevfacI' %in% names(inp)){
         inp$stdevfacI <- list()
-        for(i in inp$nindexseq) inp$stdevfacI[[i]] <- rep(1, inp$nobsI[i])
+        for(i in inp$nindexseq) inp$stdevfacI[[i]] <- rep(1, length(inp$obsI[[i]]))
     }
     inp$stdevfacI <- make.list(inp$stdevfacI)
     if(inp$nindex != length(inp$timeI)) stop('length(inp$timeI) is not equal to length(inp$obsI)!')
     if(inp$nindex != length(inp$stdevfacI)) stop('length(inp$stdevfacI) is not equal to length(inp$obsI)!')
     for(i in inp$nindexseq) base.checks(inp$obsI[[i]], inp$timeI[[i]], inp$stdevfacI[[i]], paste0('I', i))
     inp <- remove.neg(inp, 'I')
+    inp$nobsI <- rep(0, inp$nindex) # Need to be after negative have been removed
+    for(i in inp$nindexseq) inp$nobsI[i] <- length(inp$obsI[[i]])
     inp$obsidI <- list()
     for(i in inp$nindexseq){
         if(i==1){
@@ -213,21 +213,22 @@ check.inp <- function(inp){
     # Check effort observations
     inp$obsE <- make.list(inp$obsE)
     inp$neffort <- length(inp$obsE)
-    inp$neffortseq <- ifelse(inp$neffort>0, 1:inp$neffort, NULL)
+    if(inp$neffort>0) inp$neffortseq <- 1:inp$neffort
+    #inp$neffortseq <- ifelse(inp$neffort>0, 1:inp$neffort, NULL)
     inp$nobsE <- rep(0, inp$neffort)
-    for(i in 1:inp$neffortseq) inp$nobsE[i] <- length(inp$obsE[[i]])
+    for(i in inp$neffortseq) inp$nobsE[i] <- length(inp$obsE[[i]])
     # Time vector
     inp <- make.time(inp, 'E')
     inp$timeE <- make.list(inp$timeE)
     # Standard deviation factor
     if(!'stdevfacE' %in% names(inp)){
         inp$stdevfacE <- list()
-        for(i in 1:inp$neffortseq) inp$stdevfacE[[i]] <- rep(1, inp$nobsE[i])
+        for(i in inp$neffortseq) inp$stdevfacE[[i]] <- rep(1, inp$nobsE[i])
     }
     inp$stdevfacE <- make.list(inp$stdevfacE)
     if(inp$neffort != length(inp$timeE)) stop('length(inp$timeE) is not equal to length(inp$obsE)!')
     if(inp$neffort != length(inp$stdevfacE)) stop('length(inp$stdevfacE) is not equal to length(inp$obsE)!')
-    for(i in 1:inp$neffortseq) base.checks(inp$obsE[[i]], inp$timeE[[i]], inp$stdevfacE[[i]], paste0('E', i))
+    for(i in inp$neffortseq) base.checks(inp$obsE[[i]], inp$timeE[[i]], inp$stdevfacE[[i]], paste0('E', i))
     inp <- remove.neg(inp, 'E')
     inp$obsidE <- list()
     for(i in inp$neffortseq){
@@ -380,7 +381,9 @@ check.inp <- function(inp){
     }
     # Prediction is not yet implemented for effort
     # This may give a problem if effort data has later time points than catches or index
-    if(max(unlist(inp$timeE)) > max(unlist(inp$timeI), inp$timeC)) stop('Effort data must overlap temporally with index or catches')
+    if(sum(inp$nobsE)>0 & sum(inp$nobsI)>0){
+        if(max(unlist(inp$timeE)) > max(unlist(inp$timeI), inp$timeC)) stop('Effort data must overlap temporally with index or catches')
+    }
     
     # Numerical Euler discretisation time used by SDE solver
     # Euler time step
@@ -510,7 +513,7 @@ check.inp <- function(inp){
         inp$timeEpred[[i]] <- inp$timeE[[i]]
         inp$nobsEp[i] <- length(inp$timeEpred[[i]])
         inp$dtep[[i]] <- c(inp$dte[[i]], rep(dtepred, inp$nobsEp[i]-inp$nobsE[i]))
-        inp$ie[[i]] <- cut(inp$timeEpred, inp$time, right=FALSE, labels=FALSE)
+        inp$ie[[i]] <- cut(inp$timeEpred[[i]], inp$time, right=FALSE, labels=FALSE)
     }
     # ne is number of states to integrate an effort observation over
     inp$ne <- list()
@@ -552,10 +555,10 @@ check.inp <- function(inp){
     inp$timeobssrt <- timeobs[srt$ix]
     inp$obsidsrt <- obsid[srt$ix]
     inp$isc <- match(1:inp$nobsC, srt$ix)
-    inp$isi <- match((inp$nobsC+1):(inp$nobsC+sum(inp$nobsI)), srt$ix)
-    inp$ise <- match((inp$nobsC+sum(inp$nobsI)+1):(inp$nobsC+sum(inp$nobsI)+sum(inp$nobsE)), srt$ix)
-    if(sum(inp$nobsI) != length(inp$isi)) warning('Mismatch between length(inp$isi)', length(inp$isi), 'and sum(inp$nobsI)', sum(inp$nobsI), '\n')
-    if(sum(inp$nobsE) != length(inp$ise)) warning('Mismatch between length(inp$ise)', length(inp$ise), 'and sum(inp$nobsE)', sum(inp$nobsE), '\n')
+    if(sum(inp$nobsI)>0) inp$isi <- match((inp$nobsC+1):(inp$nobsC+sum(inp$nobsI)), srt$ix)
+    if(sum(inp$nobsE)>0) inp$ise <- match((inp$nobsC+sum(inp$nobsI)+1):(inp$nobsC+sum(inp$nobsI)+sum(inp$nobsE)), srt$ix)
+    if(sum(inp$nobsI) != length(inp$isi)) warning('Mismatch between length(inp$isi) ', length(inp$isi), ' and sum(inp$nobsI) ', sum(inp$nobsI), '.')
+    if(sum(inp$nobsE) != length(inp$ise)) warning('Mismatch between length(inp$ise) ', length(inp$ise), ' and sum(inp$nobsE) ', sum(inp$nobsE), '.')
     inp$osar.conditional <- which(inp$timeobssrt < inp$time[1]+1) # Condition on the first year of data.
     inp$osar.subset <- setdiff(1:length(inp$obssrt), inp$osar.conditional)
 
@@ -667,7 +670,7 @@ check.inp <- function(inp){
     if('logr' %in% names(inp$ini) & 'logm' %in% names(inp$ini)) inp$ini$logr <- NULL # If both r and m are specified use m and discard r
     if(!'logr' %in% names(inp$ini)){
         if(!'logm' %in% names(inp$ini)){
-            inp$ini$logm <- log(guess.m(inp))
+            inp$ini$logm <- unname(log(guess.m(inp)))
         }
         r <- inp$ini$gamma * exp(inp$ini$logm) / exp(inp$ini$logK) # n > 1
         if(n>1){
@@ -716,40 +719,36 @@ check.inp <- function(inp){
             }
         }
     }
-    if(!'logq' %in% names(inp$ini)) inp$ini$logq <- log(max(inp$obsI[[1]])) - inp$ini$logK
-    if('logq' %in% names(inp$ini)){
-        if(length(inp$ini$logq) != inp$nq){ # nq is given by mapq
-            if(length(inp$ini$logq) == 1){
-                inp$ini$logq <- rep(inp$ini$logq, inp$nq)
-            } else {
-                stop('The length of inp$ini$logq (', length(inp$ini$logq), ') does not fit with the number of qs to be estimated (', inp$nq, ')')
+
+    check.mapped.ini <- function(inp, nam, nnam){
+        if(nam %in% names(inp$ini)){
+            if(length(inp$ini[[nam]]) != inp[[nnam]]){ # nq is given by mapq
+                if(length(inp$ini[[nam]]) == 1){
+                    inp$ini[[nam]] <- rep(inp$ini[[nam]], inp[[nnam]])
+                } else {
+                    stop('The length of ', nam, ' in inp$ini (', length(inp$ini[[nam]]), ') does not fit with the number of parameters to be estimated (', inp[[nam]], ').')
+                }
             }
         }
+        return(inp)
     }
+
+    logmaxI <- ifelse(length(inp$obsI)==0, 0, log(max(inp$obsI[[1]])))
+    if(!'logq' %in% names(inp$ini)) inp$ini$logq <- logmaxI - inp$ini$logK
+    if(sum(inp$nobsI)>0) inp <- check.mapped.ini(inp, 'logq', 'nq')
+    logmaxE <- ifelse(length(inp$obsE)==0, 0, log(max(inp$obsE[[1]])))
+    if(!'logqe' %in% names(inp$ini)) inp$ini$logqe <- inp$ini$logr - logmaxE
+    if(sum(inp$nobsE)>0) inp <- check.mapped.ini(inp, 'logqe', 'nqe')
     if(!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
     if(!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(0.1)
     if(!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
     if(!'logsdc' %in% names(inp$ini)) inp$ini$logsdc <- log(0.2)
     if(!'logsdi' %in% names(inp$ini)) inp$ini$logsdi <- log(0.2)
-    if('logsdi' %in% names(inp$ini)){
-        if(length(inp$ini$logsdi) != inp$nsdi){ # nsdi is given by mapsdi
-            if(length(inp$ini$logsdi) == 1){
-                inp$ini$logsdi <- rep(inp$ini$logsdi, inp$nsdi)
-            } else {
-                stop('The length of inp$ini$logsdi (', length(inp$ini$logsdi), ') does not fit with the number of sdis to be estimated (', inp$nsdi, ')')
-            }
-        }
-    }
+    if(sum(inp$nobsI)>0) inp <- check.mapped.ini(inp, 'logsdi', 'nsdi')
+    if(!'logsde' %in% names(inp$ini)) inp$ini$logsde <- log(0.2)
+    if(sum(inp$nobsE)>0) inp <- check.mapped.ini(inp, 'logsde', 'nsde')
     if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- logalpha
-    if('logalpha' %in% names(inp$ini)){
-        if(length(inp$ini$logalpha) != inp$nsdi){ # nsdi is given by mapsdi
-            if(length(inp$ini$logalpha) == 1){
-                inp$ini$logalpha <- rep(inp$ini$logalpha, inp$nsdi)
-            } else {
-                stop('The length of inp$ini$logalpha (', length(inp$ini$logalpha), ') does not fit with the number of sdis to be estimated (', inp$nsdi, ')')
-            }
-        }
-    }
+    if(sum(inp$nobsI)>0) inp <- check.mapped.ini(inp, 'logalpha', 'nsdi')
     if(!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- logbeta
 
     if(!"logm" %in% names(inp$ini)){
@@ -805,11 +804,13 @@ check.inp <- function(inp){
     inp$parlist <- list(logm=inp$ini$logm,
                         logK=inp$ini$logK,
                         logq=inp$ini$logq,
+                        logqe=inp$ini$logqe,
                         logn=inp$ini$logn,
                         logsdb=inp$ini$logsdb,
                         logsdu=inp$ini$logsdu,
                         logsdf=inp$ini$logsdf,
                         logsdi=inp$ini$logsdi,
+                        logsde=inp$ini$logsde,
                         logsdc=inp$ini$logsdc,
                         #logalpha=inp$ini$logalpha,
                         #logbeta=inp$ini$logbeta,
@@ -821,8 +822,7 @@ check.inp <- function(inp){
                         logu=inp$ini$logu,
                         logB=inp$ini$logB)
     
-    # Determine phases and fixed parameters
-    fixpars <- c('logitpp', 'logp1robfac') # These are fixed unless otherwise specified
+    # Determine fixed parameters
     forcefixpars <- c() # Parameters that are forced to be fixed.
     if(inp$nseasons==1){
         forcefixpars <- c('logphi', 'logu', 'logsdu', 'loglambda', forcefixpars)
@@ -834,6 +834,12 @@ check.inp <- function(inp){
             forcefixpars <- c('logphi', forcefixpars)
         }
     }
+    if(inp$robflagc==0 & inp$robflagi==0 & inp$robflage==0){
+        forcefixpars <- c('logitpp', 'logp1robfac', forcefixpars)
+    }
+    if(sum(inp$nobsE)==0) forcefixpars <- c('logqe', 'logsde', forcefixpars)
+    if(sum(inp$nobsI)==0) forcefixpars <- c('logq', 'logsdi', forcefixpars)
+    # Determine phases
     if(!"phases" %in% names(inp)){
         inp$phases <- list()
     } else {
@@ -847,15 +853,7 @@ check.inp <- function(inp){
             stop('phase specified for invalid parameter(s): ', paste(nms[inds], collapse=', '))
         }
     }
-    # If robust flags are set to 1 then set phases for robust parameters to 1
-    if(inp$robflagc==1 | inp$robflagi==1){
-        if(!"logitpp" %in% names(inp$phases)) inp$phases$logitpp <- 1
-        if(!"logp1robfac" %in% names(inp$phases)) inp$phases$logp1robfac <- 1
-    }
-    if("phases" %in% names(inp)){
-        for(i in 1:length(forcefixpars)) inp$phases[[forcefixpars[i]]] <- -1
-        for(i in 1:length(fixpars)) if(!fixpars[i] %in% names(inp$phases)) inp$phases[[fixpars[i]]] <- -1
-    }
+    if("phases" %in% names(inp)) for(i in 1:length(forcefixpars)) inp$phases[[forcefixpars[i]]] <- -1
     # Assign phase 1 to parameters without a phase
     nms <- names(inp$parlist)
     nnms <- length(nms)
