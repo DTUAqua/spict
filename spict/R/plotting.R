@@ -1119,7 +1119,7 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
 #' plotspict.production(rep)
 #' @export
 plotspict.production <- function(rep, n.plotyears=40, main='Production curve'){
-    if(!'sderr' %in% names(rep)){
+    if (!'sderr' %in% names(rep)){
         inp <- rep$inp
         Kest <- get.par('logK', rep, exp=TRUE)
         mest <- get.par('logm', rep, exp=TRUE)
@@ -1133,17 +1133,19 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve'){
         # Calculate production curve (Pst)
         pfun <- function(gamma, m, K, n, B) gamma*m/K*B*(1 - (B/K)^(n-1))
         Pst <- list()
-        for(i in 1:nr) Pst[[i]] <- pfun(gamma[2], mest[i,2], Kest[2], n[2], Bplot)
+        for (i in 1:nr) Pst[[i]] <- pfun(gamma[2], mest[i,2], Kest[2], n[2], Bplot)
         ylim <- c(0, max(unlist(Pst)/Bmsy[2], na.rm=TRUE))
-        if(inp$reportall){
+        if (inp$reportall){
             Best <- get.par('logB', rep, exp=TRUE)
             Pest <- get.par('P', rep)
             Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
             for(i in 1:nr) Pst[[i]] <- pfun(gamma[2], mest[i,2], Kest[2], n[2], Bplot)
             Bvec <- Best[inp$ic[1:dim(Pest)[1]], 2]
+            xlim <- range(Bvec/Kest[2], 0, 1)
             ylim <- c(min(0, Pest[,2]/Bmsy[2]), max(Pest[,2]/Bmsy[2], unlist(Pst)/Bmsy[2], na.rm=TRUE))
+        } else {
+            xlim <- range(Bplot/Kest[2], na.rm=TRUE)
         }
-        xlim <- range(Bplot/Kest[2], na.rm=TRUE)
         dt <- inp$dt[-1]
         inde <- inp$indest[-length(inp$indest)]
         indp <- inp$indpred[-1]-1
@@ -1151,12 +1153,12 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve'){
         ylab <- add.catchunit(ylab, inp$catchunit)
         #if(main==-1) main <- 'Production curve'
         plot(Bplot/Kest[2], Pst[[nr]]/Bmsy[2], typ='l', ylim=ylim, xlim=xlim, xlab='B/K', ylab=ylab, col=1, main=main)
-        if(nr > 1) for(i in 1:(nr-1)) lines(Bplot/Kest[2], Pst[[i]]/Bmsy[2], col='gray')
-        if(inp$reportall){
+        if (nr > 1) for(i in 1:(nr-1)) lines(Bplot/Kest[2], Pst[[i]]/Bmsy[2], col='gray')
+        if (inp$reportall){
             lines(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, lwd=1.5)
             points(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, pch=20, cex=0.7)
             par(xpd=TRUE)
-            if(length(inp$ic) < n.plotyears){
+            if (length(inp$ic) < n.plotyears){
                 inds <- c(1, length(Bvec), seq(1, length(Bvec), by=2))
                 labs <- round(inp$time[inp$ic], 2)
                 text(Bvec[inds]/Kest[2], Pest[inds, 2]/Bmsy[2], labels=labs[inds], cex=0.75, pos=4, offset=0.25)
