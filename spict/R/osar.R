@@ -104,16 +104,17 @@ res.stats <- function(resid, name=''){
     if(nna > 0) warning(nna, ' NAs found in ', name, ' residuals')
     nnotna <- sum(!is.na(resid))
     stats <- list()
-    if(nnotna > 5){
+    if(nnotna > 2){
         shapiro <- shapiro.test(resid) # Test for normality of residuals
         bias <- t.test(resid) # Test for bias of residuals
         stats$acf.p <- min(acf.signf(resid, lag.max=4, return.p=TRUE))
-        stats$shapiro.p <- shapiro$p.value
-        stats$bias.p <- bias$p.value
     } else {
         warning('Warning: only ', nnotna, ' non-NAs found in ', name, ' residuals. Not calculating residual statistics')
-        bias <- NA
-        shapiro <- NA
+        bias <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
+        shapiro <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
     }
+    stats$shapiro.p <- shapiro$p.value
+    stats$bias.p <- bias$p.value
+    if(is.null(stats$acf.p)) stats$acf.p <- NA
     return(list(shapiro=shapiro, bias=bias, stats=stats))
 }
