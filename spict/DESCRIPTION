@@ -11,7 +11,7 @@ Copyright: Martin Waever Pedersen <mawp@dtu.dk>
 Depends:
     R (>= 3.0),
     TMB
-LinkingTo: TMB
+LinkingTo: TMB, RcppEigen
 Suggests:
     ellipse,
     parallel,
