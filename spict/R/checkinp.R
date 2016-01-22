@@ -102,27 +102,26 @@
 #' (inp <- check.inp(pol$albacore))
 #' @export
 check.inp <- function(inp){
-    check.ini <- function(parname, inp, min=NULL, max=NULL){
-        if(!parname %in% names(inp$ini)) stop('Please specify an initial value for ', parname, '!')
-    }
+    if (length(unique(names(inp))) != length(inp)) stop('Some names of inp are not unique!')
     # -- DATA --
     # Check catches
-    if('obsC' %in% names(inp)){
-        if(!'timeC' %in% names(inp)){
-            if(!'nseasons' %in% names(inp)){
+    if ('obsC' %in% names(inp)){
+        if (!'timeC' %in% names(inp)){
+            if (!'nseasons' %in% names(inp)){
                 inp$timeC <- 0:(length(inp$obsC)-1)
             } else {
                 to <- (length(inp$obsC)-1)/inp$nseasons
                 inp$timeC <- seq(0, to, length=length(inp$obsC))
             }
         }
-        if(any(diff(inp$timeC)<=0)) stop('Catch times are not strictly increasing!')
-        if(length(inp$obsC) != length(inp$timeC)) stop('Time and observation vector do not match in length for catch series.')
-        if(!'stdevfacC' %in% names(inp)) inp$stdevfacC <- rep(1, length(inp$obsC))
-        if(length(inp$obsC) != length(inp$stdevfacC)) stop('stdevfac and observation vector do not match in length for catch series.')
-        if(sum(inp$stdevfacC <= 0) > 0) stop('Non-positive values entered in stdevfac for catches.')
+        if (class(inp$timeC) != 'numeric') inp$timeC <- as.numeric(inp$timeC)
+        if (any(diff(inp$timeC)<=0)) stop('Catch times are not strictly increasing!')
+        if (length(inp$obsC) != length(inp$timeC)) stop('Time and observation vector do not match in length for catch series.')
+        if (!'stdevfacC' %in% names(inp)) inp$stdevfacC <- rep(1, length(inp$obsC))
+        if (length(inp$obsC) != length(inp$stdevfacC)) stop('stdevfac and observation vector do not match in length for catch series.')
+        if (sum(inp$stdevfacC <= 0) > 0) stop('Non-positive values entered in stdevfac for catches.')
         neg <- which(inp$obsC<=0 | is.na(inp$obsC))
-        if(length(neg)>0){
+        if (length(neg)>0){
             inp$obsC <- inp$obsC[-neg]
             inp$timeC <- inp$timeC[-neg]
             inp$stdevfacC <- inp$stdevfacC[-neg]
@@ -135,50 +134,51 @@ check.inp <- function(inp){
     }
 
     # Check indices
-    if('obsI' %in% names(inp)){
-        if(class(inp$obsI)!='list'){
+    if ('obsI' %in% names(inp)){
+        if (class(inp$obsI)!='list'){
             tmp <- inp$obsI
             inp$obsI <- list()
             inp$obsI[[1]] <- tmp
         }
         inp$nindex <- length(inp$obsI)
         # Time vector
-        if(!'timeI' %in% names(inp)){
+        if (!'timeI' %in% names(inp)){
             inp$timeI <- list()
-            if(!'nseasons' %in% names(inp)){
+            if (!'nseasons' %in% names(inp)){
                 inp$timeI[[1]] <- 0:(length(inp$obsI[[1]])-1)
             } else {
                 to <- (length(inp$obsI[[1]])-1)/inp$nseasons
                 inp$timeI[[1]] <- seq(0, to, length=length(inp$obsI[[1]]))
             }
         } else {
-            if(class(inp$timeI)!='list'){
+            if (class(inp$timeI)!='list'){
                 tmp <- inp$timeI
                 inp$timeI <- list()
                 inp$timeI[[1]] <- tmp
             }
         }
+        for (i in 1:inp$nindex) if (class(inp$timeI[[i]]) != 'numeric') inp$timeI[[i]] <- as.numeric(inp$timeI[[i]])
         # Standard deviation factor
-        if(!'stdevfacI' %in% names(inp)){
+        if (!'stdevfacI' %in% names(inp)){
             inp$stdevfacI <- list()
-            for(i in 1:inp$nindex) inp$stdevfacI[[i]] <- rep(1, length(inp$obsI[[i]]))
+            for (i in 1:inp$nindex) inp$stdevfacI[[i]] <- rep(1, length(inp$obsI[[i]]))
         } else {
-            if(class(inp$stdevfacI)!='list'){
+            if (class(inp$stdevfacI)!='list'){
                 tmp <- inp$stdevfacI
                 inp$stdevfacI <- list()
                 inp$stdevfacI[[1]] <- tmp
             }
         }
-        if(inp$nindex != length(inp$timeI)) stop('length(inp$timeI) is not equal to length(inp$obsI)!')
-        if(inp$nindex != length(inp$stdevfacI)) stop('length(inp$stdevfacI) is not equal to length(inp$obsI)!')
+        if (inp$nindex != length(inp$timeI)) stop('length(inp$timeI) is not equal to length(inp$obsI)!')
+        if (inp$nindex != length(inp$stdevfacI)) stop('length(inp$stdevfacI) is not equal to length(inp$obsI)!')
         inp$nobsI <- rep(0, inp$nindex)
-        for(i in 1:inp$nindex){
-            if(length(inp$obsI[[i]]) != length(inp$timeI[[i]])) stop('Time and observation vector do not match in length for index series ', i)
-            if(length(inp$obsI[[i]]) != length(inp$stdevfacI[[i]])) stop('stdevfac and observation vector do not match in length for index series ', i)
-            if(sum(inp$stdevfacI[[i]] <= 0) > 0) stop('Non-positive values entered in stdevfac for index ', i)
-            if(length(inp$obsI[[i]])>0){
+        for (i in 1:inp$nindex){
+            if (length(inp$obsI[[i]]) != length(inp$timeI[[i]])) stop('Time and observation vector do not match in length for index series ', i)
+            if (length(inp$obsI[[i]]) != length(inp$stdevfacI[[i]])) stop('stdevfac and observation vector do not match in length for index series ', i)
+            if (sum(inp$stdevfacI[[i]] <= 0) > 0) stop('Non-positive values entered in stdevfac for index ', i)
+            if (length(inp$obsI[[i]])>0){
                 neg <- which(inp$obsI[[i]]<=0 | is.na(inp$obsI[[i]]))
-                if(length(neg)>0){
+                if (length(neg)>0){
                     inp$obsI[[i]] <- inp$obsI[[i]][-neg]
                     inp$timeI[[i]] <- inp$timeI[[i]][-neg]
                     inp$stdevfacI[[i]] <- inp$stdevfacI[[i]][-neg]
@@ -186,7 +186,7 @@ check.inp <- function(inp){
                 }
             }
             inp$nobsI[i] <- length(inp$obsI[[i]])
-            if(i==1){
+            if (i==1){
                 inp$obsidI[[i]] <- (1:inp$nobsI[i]) + inp$nobsC
             } else {
                 inp$obsidI[[i]] <- (1:inp$nobsI[i]) + tail(inp$obsidI[[i-1]], 1)
@@ -199,65 +199,65 @@ check.inp <- function(inp){
     # -- MAX MIN RATIO (used in simulation only) --
     inp$maxminratio <- rep(0, inp$nindex)
     names(inp$maxminratio) <- paste0('I', 1:inp$nindex)
-    for(i in 1:inp$nindex){
-        if(length(inp$obsI[[i]])>0) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
+    for (i in 1:inp$nindex){
+        if (length(inp$obsI[[i]])>0) inp$maxminratio[i] <- max(inp$obsI[[i]])/min(inp$obsI[[i]])
     }
 
     # -- MODEL OPTIONS --
-    if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
-    if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
-    if(!"onealpha" %in% names(inp)){
-        if(!"onesdi" %in% names(inp)){
+    if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
+    if (!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
+    if (!"onealpha" %in% names(inp)){
+        if (!"onesdi" %in% names(inp)){
             inp$onealpha <- FALSE
         } else {
             inp$onealpha <- inp$onesdi
         }
     }
-    if(!"onesdi" %in% names(inp)) inp$onesdi <- inp$onealpha
-    if(!"mapsdi" %in% names(inp)){
+    if (!"onesdi" %in% names(inp)) inp$onesdi <- inp$onealpha
+    if (!"mapsdi" %in% names(inp)){
         inp$mapsdi <- 1:inp$nindex
-        if("onealpha" %in% names(inp)) if(inp$onealpha) inp$mapsdi <- rep(1, inp$nindex)
+        if ("onealpha" %in% names(inp)) if (inp$onealpha) inp$mapsdi <- rep(1, inp$nindex)
     }
-    if("mapsdi" %in% names(inp)) inp$nsdi <- length(unique(inp$mapsdi))
-    if(!"mapq" %in% names(inp)) inp$mapq <- 1:inp$nindex
-    if("mapq" %in% names(inp)) inp$nq <- length(unique(inp$mapq))
-    if(!"catchunit" %in% names(inp)) inp$catchunit <- ''
-    if(!"reportall" %in% names(inp)) inp$reportall <- TRUE
-    if(!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
+    if ("mapsdi" %in% names(inp)) inp$nsdi <- length(unique(inp$mapsdi))
+    if (!"mapq" %in% names(inp)) inp$mapq <- 1:inp$nindex
+    if ("mapq" %in% names(inp)) inp$nq <- length(unique(inp$mapq))
+    if (!"catchunit" %in% names(inp)) inp$catchunit <- ''
+    if (!"reportall" %in% names(inp)) inp$reportall <- TRUE
+    if (!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
     # Simulation options
-    if(!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
+    if (!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
     # Optimiser options
-    if(!"optimiser" %in% names(inp)) inp$optimiser <- 'nlminb'
-    if(!"optimiser.control" %in% names(inp)) inp$optimiser.control <- list()
+    if (!"optimiser" %in% names(inp)) inp$optimiser <- 'nlminb'
+    if (!"optimiser.control" %in% names(inp)) inp$optimiser.control <- list()
     # OSAR options
-    if(!"osar.method" %in% names(inp)) inp$osar.method <- 'none'
-    if(!"osar.trace" %in% names(inp))  inp$osar.trace <- FALSE
-    if(!"osar.parallel" %in% names(inp)) inp$osar.parallel <- FALSE
+    if (!"osar.method" %in% names(inp)) inp$osar.method <- 'none'
+    if (!"osar.trace" %in% names(inp))  inp$osar.trace <- FALSE
+    if (!"osar.parallel" %in% names(inp)) inp$osar.parallel <- FALSE
     # Season options
-    if(!"seasontype" %in% names(inp)) inp$seasontype <- 1
-    if(!"omega" %in% names(inp)) inp$omega <- 2*pi # Annual cycle of noisy oscillator
+    if (!"seasontype" %in% names(inp)) inp$seasontype <- 1
+    if (!"omega" %in% names(inp)) inp$omega <- 2*pi # Annual cycle of noisy oscillator
     # Robust options
-    if(!"robflagc" %in% names(inp)) inp$robflagc <- 0
+    if (!"robflagc" %in% names(inp)) inp$robflagc <- 0
     inp$robflagc <- as.numeric(inp$robflagc)
-    if(!"robflagi" %in% names(inp)) inp$robflagi <- 0
+    if (!"robflagi" %in% names(inp)) inp$robflagi <- 0
     inp$robflagi <- as.numeric(inp$robflagi)
     # ASPIC options 
-    if(!"aspic" %in% names(inp)) inp$aspic <- list()
-    if(!"mode" %in% names(inp$aspic)) inp$aspic$mode <- 'FIT'
-    if(!"verbosity" %in% names(inp$aspic)) inp$aspic$verbosity <- '102'
-    if(!"nboot" %in% names(inp$aspic)) inp$aspic$nboot <- 1000
-    if(!"ciperc" %in% names(inp$aspic)) inp$aspic$ciperc <- 95
+    if (!"aspic" %in% names(inp)) inp$aspic <- list()
+    if (!"mode" %in% names(inp$aspic)) inp$aspic$mode <- 'FIT'
+    if (!"verbosity" %in% names(inp$aspic)) inp$aspic$verbosity <- '102'
+    if (!"nboot" %in% names(inp$aspic)) inp$aspic$nboot <- 1000
+    if (!"ciperc" %in% names(inp$aspic)) inp$aspic$ciperc <- 95
 
     # Options for simple model
-    if(!"simple" %in% names(inp)) inp$simple <- 0
-    if(inp$simple==1){ # Set parameters for the simple model (catch assumed known, no F process).
+    if (!"simple" %in% names(inp)) inp$simple <- 0
+    if (inp$simple==1){ # Set parameters for the simple model (catch assumed known, no F process).
         umodtimeC <- unique(inp$timeC%%1)
-        if(length(umodtimeC) != 1) stop('When inp$simple = 1, inp$timeC must have a fixed regular time step of 1 year!')
-        if(umodtimeC != 0) inp$timeC <- floor(inp$timeC)
-        for(i in 1:inp$nindex){
+        if (length(umodtimeC) != 1) stop('When inp$simple = 1, inp$timeC must have a fixed regular time step of 1 year!')
+        if (umodtimeC != 0) inp$timeC <- floor(inp$timeC)
+        for (i in 1:inp$nindex){
             umodtimeI <- unique(inp$timeI[[i]]%%1)
-            if(length(umodtimeI) != 1) stop('When inp$simple = 1, inp$timeI must have a fixed regular time step of 1 year!')
-            if(umodtimeI != 0) inp$timeI[[i]] <- floor(inp$timeI[[i]])
+            if (length(umodtimeI) != 1) stop('When inp$simple = 1, inp$timeI must have a fixed regular time step of 1 year!')
+            if (umodtimeI != 0) inp$timeI[[i]] <- floor(inp$timeI[[i]])
         }
         inp$dteuler <- 1
         # Fix parameters
@@ -271,29 +271,29 @@ check.inp <- function(inp){
         inp$timepredi <- max(unlist(inp$timeI))
     }
     # MSY type options
-    if(!"msytype" %in% names(inp)){
+    if (!"msytype" %in% names(inp)){
         inp$msytype <- 's'
     } else {
-        if(!inp$msytype %in% c('s', 'd')) stop('inp$msytype must be either "s" (stochastic) or "d" (deterministic!')
+        if (!inp$msytype %in% c('s', 'd')) stop('inp$msytype must be either "s" (stochastic) or "d" (deterministic!')
     }
     # Catch intervals (dtc)
-    if(!"dtc" %in% names(inp)){
+    if (!"dtc" %in% names(inp)){
         dtc <- diff(inp$timeC)
-        if(length(dtc)>0){
+        if (length(dtc)>0){
             inp$dtc <- min(dtc)
         } else {
             inp$dtc <- 1
             cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 2. Assuming an interval of 1 year.\n'))
         }
     }
-    if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
-    if(length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
+    if (length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
+    if (length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
 
     # - Prediction horizons -
     timeobsall <- sort(c(inp$timeC, inp$timeC + inp$dtc, unlist(inp$timeI)))
     # Catch prediction time step (dtpredc)
-    if(!"dtpredc" %in% names(inp)){
-        if(length(inp$dtc)>0){
+    if (!"dtpredc" %in% names(inp)){
+        if (length(inp$dtc)>0){
             inp$dtpredc <- max(inp$dtc)
         } else {
             inp$dtpredc <- 1
@@ -301,28 +301,28 @@ check.inp <- function(inp){
         }
     }
     # Time point to predict catches until
-    if(!"timepredc" %in% names(inp)){
+    if (!"timepredc" %in% names(inp)){
         inp$timepredc <- max(timeobsall)
     } else {
-        if(inp$timepredc < max(inp$timeC)) cat('inp$timepredc:', inp$timepredc, ' must be equal to or later than last catch observation: ', max(inp$timeC), '!')
+        if (inp$timepredc < max(inp$timeC)) cat('inp$timepredc:', inp$timepredc, ' must be equal to or later than last catch observation: ', max(inp$timeC), '!')
     }
     # Time point to predict indices until
-    if(!"timepredi" %in% names(inp)){
+    if (!"timepredi" %in% names(inp)){
         inp$timepredi <- max(timeobsall)
     } else {
-        if(inp$timepredi < max(unlist(inp$timeI))) stop('inp$timepredi must be equal to or later than last index observation!')
+        if (inp$timepredi < max(unlist(inp$timeI))) stop('inp$timepredi must be equal to or later than last index observation!')
     }
 
     # Numerical Euler discretisation time used by SDE solver
     # Euler time step
-    if(!"dteuler" %in% names(inp)) inp$dteuler <- 1/16
-    if("dteuler" %in% names(inp)){
+    if (!"dteuler" %in% names(inp)) inp$dteuler <- 1/16
+    if ("dteuler" %in% names(inp)){
         alloweddteuler <- 1/2^(6:0)
-        if(!inp$dteuler %in% alloweddteuler){ # Check if dteuler is among the alloweddteuler
+        if (!inp$dteuler %in% alloweddteuler){ # Check if dteuler is among the alloweddteuler
             ind <- cut(inp$dteuler, alloweddteuler, right=FALSE, labels=FALSE)
-            if(is.na(ind)){
-                if(inp$dteuler > max(alloweddteuler)) inp$dteuler <- max(alloweddteuler)
-                if(inp$dteuler < min(alloweddteuler)) inp$dteuler <- min(alloweddteuler)
+            if (is.na(ind)){
+                if (inp$dteuler > max(alloweddteuler)) inp$dteuler <- max(alloweddteuler)
+                if (inp$dteuler < min(alloweddteuler)) inp$dteuler <- min(alloweddteuler)
             } else {
                 inp$dteuler <- alloweddteuler[ind]
             }
@@ -333,21 +333,21 @@ check.inp <- function(inp){
     # hard: time discretisation is equidistant with step length = dteuler. Observations are assigned to intervals
     # soft: time discretisation is equidistant with step length = dteuler, but with time points of observations inserted such that they can be assigned accurately to a time point instead of an interval.
     # Include dtc because a catch observation at time t includes information in the interval [t; t+dtc[
-    if(!"eulertype" %in% names(inp)){
+    if (!"eulertype" %in% names(inp)){
         inp$eulertype <- 'hard'
     }
-    if("eulertype" %in% names(inp)){
-        if(inp$eulertype == 'hard'){
+    if ("eulertype" %in% names(inp)){
+        if (inp$eulertype == 'hard'){
             # Hard Euler discretisation
             time <- seq(floor(min(timeobsall)), max(inp$timepredi, inp$timepredc+inp$dtpredc), by=inp$dteuler)
             inp$time <- time
         }
-        if(inp$eulertype == 'soft'){
+        if (inp$eulertype == 'soft'){
             # Include times of observations (including dtc)
             time <- seq(ceiling(min(timeobsall)), max(inp$timepredi, inp$timepredc+inp$dtpredc), by=inp$dteuler)
             inp$time <- sort(unique(c(timeobsall, time)))
         }
-        if(!inp$eulertype %in% c('soft', 'hard'))
+        if (!inp$eulertype %in% c('soft', 'hard'))
             stop('inp$eulertype must be either "soft" or "hard"!')
     }
     # Calculate time steps
@@ -360,49 +360,49 @@ check.inp <- function(inp){
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
     # Management
-    if(!"ffac" %in% names(inp)) inp$ffac <- 1
-    if("ffac" %in% names(inp)){
-        if(inp$ffac < 0){
+    if (!"ffac" %in% names(inp)) inp$ffac <- 1
+    if ("ffac" %in% names(inp)){
+        if (inp$ffac < 0){
             cat('Warning: ffac < 0, which is not allowed, setting ffac = 0.')
             inp$ffac <- 0
         }
     }
-    if(!"fcon" %in% names(inp)) inp$fcon <- 0
-    if("fcon" %in% names(inp)){
-        if(inp$fcon < 0){
+    if (!"fcon" %in% names(inp)) inp$fcon <- 0
+    if ("fcon" %in% names(inp)){
+        if (inp$fcon < 0){
             cat('Warning: fcon < 0, which is not allowed, setting fcon = 0.')
             inp$fcon <- 0
         }
     }
-    if(!"ffacvec" %in% names(inp)){
+    if (!"ffacvec" %in% names(inp)){
         inp$ffacvec <- numeric(inp$ns) + 1
         # -1 in indpred because 1 is for plotting
         #inp$ffacvec[inp$indpred[-1]] <- inp$ffac + 1e-8 # Add small to avoid taking log of 0
         # Start in indpred[2] because indpred[1] is mainly for plotting
         inp$ffacvec[inp$indpred[2]] <- inp$ffac + 1e-8 # Add small to avoid taking log of 0
     }
-    if(!"fconvec" %in% names(inp)){
+    if (!"fconvec" %in% names(inp)){
         inp$fconvec <- numeric(inp$ns)
         # -1 in indpred because 1 is for plotting
         inp$fconvec[inp$indpred[-1]] <- inp$fcon + 1e-8 # Add small to avoid taking log of 0
     }
     inp$ffaceuler <- inp$ffac^inp$dteuler
     # Seasons
-    if(!"nseasons" %in% names(inp)){
+    if (!"nseasons" %in% names(inp)){
         expnseasons <- 1/min(inp$dtc)
-        if(expnseasons >= 4){
+        if (expnseasons >= 4){
             inp$nseasons <- 4
         } else {
             inp$nseasons <- 1
         }
     }
-    if("nseasons" %in% names(inp)){
-       if(!inp$nseasons %in% c(1, 2, 4)) stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
+    if ("nseasons" %in% names(inp)){
+       if (!inp$nseasons %in% c(1, 2, 4)) stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
     }
-    if(inp$nseasons == 1) inp$seasontype <- 0 # seasontype = 0 means seasons are disabled.
+    if (inp$nseasons == 1) inp$seasontype <- 0 # seasontype = 0 means seasons are disabled.
     # Calculate seasonal spline
-    if("splineorder" %in% names(inp)){
-        if(inp$nseasons<4 & inp$splineorder>2) inp$splineorder <- 2
+    if ("splineorder" %in% names(inp)){
+        if (inp$nseasons<4 & inp$splineorder>2) inp$splineorder <- 2
     } else {
         inp$splineorder <- ifelse(inp$nseasons<4, 2, 3)
     }
@@ -410,14 +410,14 @@ check.inp <- function(inp){
     inp$splinematfine <- make.splinemat(inp$nseasons, inp$splineorder, dtfine=1/100)
     inp$seasonindex <- 1/inp$dteuler*(inp$time %% 1)
     inp$seasons <- rep(0, inp$ns)
-    for(i in 1:inp$nseasons){
+    for (i in 1:inp$nseasons){
         frac <- 1/inp$nseasons
         modtime <- inp$time %% 1
         inds <- which(modtime>=((i-1)*frac) & modtime<(i*frac))
         inp$seasons[inds] <- i
     }
     # ic is the indices of inp$time to which catch observations correspond
-    if(length(inp$dtc)>0){
+    if (length(inp$dtc)>0){
         dtcpred <- min(inp$dtc)
     } else {
         dtcpred <- 1
@@ -428,11 +428,11 @@ check.inp <- function(inp){
     inp$ic <- cut(inp$timeCpred, inp$time, right=FALSE, labels=FALSE)
     # nc is number of states to integrate a catch observation over
     inp$nc <- rep(0, inp$nobsCp)
-    for(i in 1:inp$nobsCp) inp$nc[i] <- sum(inp$time >= inp$timeCpred[i] & inp$time < (inp$timeCpred[i]+inp$dtcp[i]))
-    if(any(inp$nc == 0)) stop('Current inp$dteuler is too large to accommodate some catch intervals. Make inp$dteuler smaller!')
+    for (i in 1:inp$nobsCp) inp$nc[i] <- sum(inp$time >= inp$timeCpred[i] & inp$time < (inp$timeCpred[i]+inp$dtcp[i]))
+    if (any(inp$nc == 0)) stop('Current inp$dteuler is too large to accommodate some catch intervals. Make inp$dteuler smaller!')
     # ii is the indices of inp$time to which index observations correspond
     inp$ii <- list()
-    for(i in 1:inp$nindex) inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
+    for (i in 1:inp$nindex) inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
     # Translate index observations from a list to a vector
     inp$obsIin <- unlist(inp$obsI)
     inp$stdevfacIin <- unlist(inp$stdevfacI)
@@ -458,7 +458,7 @@ check.inp <- function(inp){
     inp$obsidsrt <- obsid[srt$ix]
     inp$isc <- match(1:inp$nobsC, srt$ix)
     inp$isi <- match((inp$nobsC+1):(inp$nobsC+sum(inp$nobsI)), srt$ix)
-    if(sum(inp$nobsI) != length(inp$isi)){
+    if (sum(inp$nobsI) != length(inp$isi)){
         cat('Warning: Mismatch between length(inp$isi)', length(inp$isi), 'and sum(inp$nobsI)', sum(inp$nobsI), '\n')
     }
     inp$osar.conditional <- which(inp$timeobssrt < inp$time[1]+1) # Condition on the first year of data.
@@ -471,18 +471,18 @@ check.inp <- function(inp){
     # useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
     check.prior <- function(priors, priorname){
         priorvec <- priors[[priorname]]
-        if(priorname %in% repriors){ # RE priors
-            if(length(priorvec) < 3){
+        if (priorname %in% repriors){ # RE priors
+            if (length(priorvec) < 3){
                 priorvec <- rep(0, 5)
                 warning('Invalid prior length specified for', priorname, ', must be 3 (without useflag or 4 (with useflag). Not using this prior.')
             }
-            if(length(priorvec) == 3){
+            if (length(priorvec) == 3){
                 #warning('Length of ', priorname, ' is 3. Proceeding assuming useflag has not been specified.')
                 priorvec <- c(priorvec[1:2], 1, priorvec[3])
             }
-            if(length(priorvec) == 4){
+            if (length(priorvec) == 4){
                 ib <- match(priorvec[4], inp$time)
-                if(is.na(ib)){
+                if (is.na(ib)){
                     ib <- 0
                     priorvec[3] <- 0
                     warning('Year for prior on ', priorname, ' (', priorvec[3], ') did not match times where this RE is estimated. Not using this prior. To fix this use a year where an observation is available.')
@@ -490,18 +490,18 @@ check.inp <- function(inp){
                 priorvec <- c(priorvec, ib) # Add index in time vec to which this year corresponds
             }
         } else { # FE priors
-            if(!length(priorvec) %in% 2:3){
+            if (!length(priorvec) %in% 2:3){
                 priorvec <- rep(0, 3)
                 warning('Invalid prior length specified for', priorname, ', must be 2 (without useflag or 3 (with useflag). Not using this prior.')
             }
-            if(length(priorvec) == 2){
+            if (length(priorvec) == 2){
                 #warning('Length of ', priorname, ' is 2. Proceeding assuming useflag has not been specified.')
                 priorvec <- c(priorvec, 1)
             }
         }
-        if(priorvec[3] == 1){
+        if (priorvec[3] == 1){
             # Check st dev
-            if(priorvec[2] <= 0){
+            if (priorvec[2] <= 0){
                 warning('Invalid standard deviation specified in prior for', priorname, '(must be > 0). Not using this prior.')
                 priorvec[3] <- 0
             }
@@ -511,7 +511,7 @@ check.inp <- function(inp){
     possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq', 'logbkfrac', 'logB', 'logF', 'logBBmsy', 'logFFmsy', 'logsdb', 'logsdf', 'logsdi', 'logsdc')
     repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
     npossiblepriors <- length(possiblepriors)
-    if(!"priors" %in% names(inp)){
+    if (!"priors" %in% names(inp)){
         inp$priors <- list()
     }
     # Default priors
@@ -526,23 +526,23 @@ check.inp <- function(inp){
     lognsd <- wide
     logalphasd <- wide
     logbetasd <- wide
-    if(!'logn' %in% names(inp$priors)) inp$priors$logn <- c(logn, lognsd)
-    if(!'logalpha' %in% names(inp$priors)) inp$priors$logalpha <- c(logalpha, logalphasd) 
-    if(!'logbeta' %in% names(inp$priors)) inp$priors$logbeta <- c(logbeta, logbetasd)
+    if (!'logn' %in% names(inp$priors)) inp$priors$logn <- c(logn, lognsd)
+    if (!'logalpha' %in% names(inp$priors)) inp$priors$logalpha <- c(logalpha, logalphasd) 
+    if (!'logbeta' %in% names(inp$priors)) inp$priors$logbeta <- c(logbeta, logbetasd)
     
-    if("priors" %in% names(inp)){
+    if ("priors" %in% names(inp)){
         # Remove wrong priors names
         nms <- names(inp$priors)
         inds <- which(is.na(match(nms, possiblepriors)))
-        if(length(inds)>0){
+        if (length(inds)>0){
             warning('Wrong prior names specified: ', nms[inds])
             inp$priors[inds] <- NULL
         }
         # Check priors
-        for(nm in possiblepriors){
-            if(!nm %in% names(inp$priors)){
+        for (nm in possiblepriors){
+            if (!nm %in% names(inp$priors)){
                 # Set default prior values. These will not be used
-                if(nm %in% repriors){
+                if (nm %in% repriors){
                     inp$priors[[nm]] <- c(log(1e-4), 0.2, 0, 2000, 0) # RE prior
                 } else {
                     inp$priors[[nm]] <- c(log(1e-4), 0.2, 0) # FE priors
@@ -554,50 +554,50 @@ check.inp <- function(inp){
     }
     npriors <- length(inp$priors)
     inp$priorsuseflags <- numeric(npriors)
-    for(i in 1:npriors) inp$priorsuseflags[i] <- inp$priors[[i]][3]
+    for (i in 1:npriors) inp$priorsuseflags[i] <- inp$priors[[i]][3]
            
     # -- MODEL PARAMETERS --
     # logn
-    if(!"logn" %in% names(inp$ini)){
+    if (!"logn" %in% names(inp$ini)){
         inp$ini$logn <- logn
     } else {
-        if(inp$ini$logn==0) stop('Initial value for logn == 0, that is not valid!')
+        if (inp$ini$logn==0) stop('Initial value for logn == 0, that is not valid!')
     }
     # Calculate gamma from n
     n <- exp(inp$ini$logn)
     inp$ini$gamma <- calc.gamma(n)
     # logK
-    if(!'logK' %in% names(inp$ini)) inp$ini$logK <- log(4*max(inp$obsC))
+    if (!'logK' %in% names(inp$ini)) inp$ini$logK <- log(4*max(inp$obsC))
     # logr
-    if('logr' %in% names(inp$ini) & 'logm' %in% names(inp$ini)) inp$ini$logr <- NULL # If both r and m are specified use m and discard r
-    if(!'logr' %in% names(inp$ini)){
-        if(!'logm' %in% names(inp$ini)){
+    if ('logr' %in% names(inp$ini) & 'logm' %in% names(inp$ini)) inp$ini$logr <- NULL # If both r and m are specified use m and discard r
+    if (!'logr' %in% names(inp$ini)){
+        if (!'logm' %in% names(inp$ini)){
             inp$ini$logm <- log(guess.m(inp))
         }
         r <- inp$ini$gamma * exp(inp$ini$logm) / exp(inp$ini$logK) # n > 1
-        if(n>1){
+        if (n>1){
             inp$ini$logr <- log(r)
         } else {
             inp$ini$logr <- log(-r)
         }
     }
-    if('logr' %in% names(inp$ini)){
+    if ('logr' %in% names(inp$ini)){
         nr <- length(inp$ini$logr)
-        if(!'ir' %in% names(inp) | nr==1){
+        if (!'ir' %in% names(inp) | nr==1){
             inp$ir <- rep(0, inp$ns)
-            for(i in 1:nr){
+            for (i in 1:nr){
                 frac <- 1/nr
                 modtime <- inp$time %% 1
                 inds <- which(modtime>=((i-1)*frac) & modtime<(i*frac))
                 inp$ir[inds] <- i
             }
         } else {
-            if(length(unique(inp$ir)) != nr) stop('Mismatch between specified inp$ir and inp$ini$logr!')
+            if (length(unique(inp$ir)) != nr) stop('Mismatch between specified inp$ir and inp$ini$logr!')
             nir <- length(inp$ir)
-            if(nir != inp$ns){
-                if(nir == inp$nobsC){ # Assume that inp$ir fits with inp$timeC
+            if (nir != inp$ns){
+                if (nir == inp$nobsC){ # Assume that inp$ir fits with inp$timeC
                     ir <- rep(0, inp$ns)
-                    for(i in 1:nir){
+                    for (i in 1:nir){
                         inds <- which(inp$time >= inp$timeC[i] & inp$time < (inp$timeC[i]+inp$dtc[i]))
                         ir[inds] <- inp$ir[i]
                     }
@@ -605,9 +605,9 @@ check.inp <- function(inp){
                     ir[inds] <- inp$ir[nir]
                     inp$ir <- ir
                 } else {
-                    if(nir == inp$nobsI[[1]]){ # Assume that inp$ir fits with inp$timeI[[1]]
+                    if (nir == inp$nobsI[[1]]){ # Assume that inp$ir fits with inp$timeI[[1]]
                         ir <- rep(0, inp$ns)
-                        for(i in 2:nir){
+                        for (i in 2:nir){
                             inds <- which(inp$time >= inp$timeI[[1]][i-1] & inp$time < inp$timeI[[1]][i])
                             ir[inds] <- inp$ir[i]
                         }
@@ -621,86 +621,86 @@ check.inp <- function(inp){
             }
         }
     }
-    if(!'logq' %in% names(inp$ini)) inp$ini$logq <- log(max(inp$obsI[[1]])) - inp$ini$logK
-    if('logq' %in% names(inp$ini)){
-        if(length(inp$ini$logq) != inp$nq){ # nq is given by mapq
-            if(length(inp$ini$logq) == 1){
+    if (!'logq' %in% names(inp$ini)) inp$ini$logq <- log(max(inp$obsI[[1]])) - inp$ini$logK
+    if ('logq' %in% names(inp$ini)){
+        if (length(inp$ini$logq) != inp$nq){ # nq is given by mapq
+            if (length(inp$ini$logq) == 1){
                 inp$ini$logq <- rep(inp$ini$logq, inp$nq)
             } else {
                 stop('The length of inp$ini$logq (', length(inp$ini$logq), ') does not fit with the number of qs to be estimated (', inp$nq, ')')
             }
         }
     }
-    if(!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
-    if(!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(0.1)
-    if(!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
-    if(!'logsdc' %in% names(inp$ini)) inp$ini$logsdc <- log(0.2)
-    if(!'logsdi' %in% names(inp$ini)) inp$ini$logsdi <- log(0.2)
-    if('logsdi' %in% names(inp$ini)){
-        if(length(inp$ini$logsdi) != inp$nsdi){ # nsdi is given by mapsdi
-            if(length(inp$ini$logsdi) == 1){
+    if (!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
+    if (!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(0.1)
+    if (!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
+    if (!'logsdc' %in% names(inp$ini)) inp$ini$logsdc <- log(0.2)
+    if (!'logsdi' %in% names(inp$ini)) inp$ini$logsdi <- log(0.2)
+    if ('logsdi' %in% names(inp$ini)){
+        if (length(inp$ini$logsdi) != inp$nsdi){ # nsdi is given by mapsdi
+            if (length(inp$ini$logsdi) == 1){
                 inp$ini$logsdi <- rep(inp$ini$logsdi, inp$nsdi)
             } else {
                 stop('The length of inp$ini$logsdi (', length(inp$ini$logsdi), ') does not fit with the number of sdis to be estimated (', inp$nsdi, ')')
             }
         }
     }
-    if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- logalpha
-    if('logalpha' %in% names(inp$ini)){
-        if(length(inp$ini$logalpha) != inp$nsdi){ # nsdi is given by mapsdi
-            if(length(inp$ini$logalpha) == 1){
+    if (!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- logalpha
+    if ('logalpha' %in% names(inp$ini)){
+        if (length(inp$ini$logalpha) != inp$nsdi){ # nsdi is given by mapsdi
+            if (length(inp$ini$logalpha) == 1){
                 inp$ini$logalpha <- rep(inp$ini$logalpha, inp$nsdi)
             } else {
                 stop('The length of inp$ini$logalpha (', length(inp$ini$logalpha), ') does not fit with the number of sdis to be estimated (', inp$nsdi, ')')
             }
         }
     }
-    if(!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- logbeta
+    if (!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- logbeta
 
-    if(!"logm" %in% names(inp$ini)){
+    if (!"logm" %in% names(inp$ini)){
         gamma <- inp$ini$gamma
         r <- exp(inp$ini$logr)
         K <- exp(inp$ini$logK)
         m <- r * K / gamma # n > 1
-        if(n>1){
+        if (n>1){
             inp$ini$logm <- log(m)
         } else {
             inp$ini$logm <- log(-m)
         }
     }
     # Fill in unspecified (more rarely user defined) model parameter values
-    if(!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
-    if("logphi" %in% names(inp$ini)){
-        if(length(inp$ini$logphi)+1 != dim(inp$splinemat)[2]){
+    if (!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
+    if ("logphi" %in% names(inp$ini)){
+        if (length(inp$ini$logphi)+1 != dim(inp$splinemat)[2]){
             cat('Mismatch between length of ini$logphi and number of columns of splinemat! removing prespecified ini$logphi and setting default.\n')
             inp$ini$logphi <- NULL
         }
     }
-    if(!"logphi" %in% names(inp$ini)) inp$ini$logphi <- rep(0, inp$nseasons-1)
-    if(!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
-    if(!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(15-1)
-    if(!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
-    if(!"logF" %in% names(inp$ini)){
+    if (!"logphi" %in% names(inp$ini)) inp$ini$logphi <- rep(0, inp$nseasons-1)
+    if (!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
+    if (!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(15-1)
+    if (!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
+    if (!"logF" %in% names(inp$ini)){
         inp$ini$logF <- rep(log(0.2) + inp$ini$logr[1], inp$ns)
     } else {
-        if(length(inp$ini$logF) != inp$ns){
+        if (length(inp$ini$logF) != inp$ns){
             warning('Wrong length of inp$ini$logF: ', length(inp$ini$logF), ' Should be equal to inp$ns: ', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
             inp$ini$logF <- inp$ini$logF[1:inp$ns]
         }
     }
-    if("logu" %in% names(inp$ini)){
-        if(dim(inp$ini$logu)[1] != 2*length(inp$ini$logsdu) & dim(inp$ini$logu)[2] != inp$ns){
+    if ("logu" %in% names(inp$ini)){
+        if (dim(inp$ini$logu)[1] != 2*length(inp$ini$logsdu) & dim(inp$ini$logu)[2] != inp$ns){
             warning('Wrong dimension of inp$ini$logu: ', dim(inp$ini$logu)[1], 'x', dim(inp$ini$logu)[2], ' should be equal to 2*length(inp$ini$logsdu) x inp$ns: ', 2*length(inp$ini$logsdu), 'x', inp$ns,', Filling with log(1).')
             inp$ini$logu <- NULL
         }
     }
-    if(!"logu" %in% names(inp$ini)){
+    if (!"logu" %in% names(inp$ini)){
         inp$ini$logu <- matrix(log(1)+1e-3, 2*length(inp$ini$logsdu), inp$ns)
     }
-    if(!"logB" %in% names(inp$ini)){
+    if (!"logB" %in% names(inp$ini)){
         inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
     } else {
-        if(length(inp$ini$logB) != inp$ns){
+        if (length(inp$ini$logB) != inp$ns){
             warning('Wrong length of inp$ini$logB: ', length(inp$ini$logB), ' Should be equal to inp$ns: ', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
             inp$ini$logB <- inp$ini$logB[1:inp$ns]
         }
@@ -729,43 +729,43 @@ check.inp <- function(inp){
     # Determine phases and fixed parameters
     fixpars <- c('logitpp', 'logp1robfac') # These are fixed unless otherwise specified
     forcefixpars <- c() # Parameters that are forced to be fixed.
-    if(inp$nseasons==1){
+    if (inp$nseasons==1){
         forcefixpars <- c('logphi', 'logu', 'logsdu', 'loglambda', forcefixpars)
     } else {
-        if(inp$seasontype==1){ # Use spline
+        if (inp$seasontype==1){ # Use spline
             forcefixpars <- c('logu', 'logsdu', 'loglambda', forcefixpars)
         }
-        if(inp$seasontype==2){ # Use coupled SDEs
+        if (inp$seasontype==2){ # Use coupled SDEs
             forcefixpars <- c('logphi', forcefixpars)
         }
     }
-    if(!"phases" %in% names(inp)){
+    if (!"phases" %in% names(inp)){
         inp$phases <- list()
     } else {
-        if("logr" %in% names(inp$phases)){
+        if ("logr" %in% names(inp$phases)){
             inp$phases$logm <- inp$phases$logr
             inp$phases$logr <- NULL
         }
         nms <- names(inp$phases)
         inds <- which(is.na(match(nms, c(names(inp$ini), 'logalpha', 'logbeta'))))
-        if(length(inds)>0){
+        if (length(inds)>0){
             stop('phase specified for invalid parameter(s): ', paste(nms[inds], collapse=', '))
         }
     }
     # If robust flags are set to 1 then set phases for robust parameters to 1
-    if(inp$robflagc==1 | inp$robflagi==1){
-        if(!"logitpp" %in% names(inp$phases)) inp$phases$logitpp <- 1
-        if(!"logp1robfac" %in% names(inp$phases)) inp$phases$logp1robfac <- 1
+    if (inp$robflagc==1 | inp$robflagi==1){
+        if (!"logitpp" %in% names(inp$phases)) inp$phases$logitpp <- 1
+        if (!"logp1robfac" %in% names(inp$phases)) inp$phases$logp1robfac <- 1
     }
-    if("phases" %in% names(inp)){
-        for(i in 1:length(forcefixpars)) inp$phases[[forcefixpars[i]]] <- -1
-        for(i in 1:length(fixpars)) if(!fixpars[i] %in% names(inp$phases)) inp$phases[[fixpars[i]]] <- -1
+    if ("phases" %in% names(inp)){
+        for (i in 1:length(forcefixpars)) inp$phases[[forcefixpars[i]]] <- -1
+        for (i in 1:length(fixpars)) if (!fixpars[i] %in% names(inp$phases)) inp$phases[[fixpars[i]]] <- -1
     }
     # Assign phase 1 to parameters without a phase
     nms <- names(inp$parlist)
     nnms <- length(nms)
-    for(nm in nms){
-        if(!nm %in% names(inp$phases)){
+    for (nm in nms){
+        if (!nm %in% names(inp$phases)){
             inp$phases[[nm]] <- 1
         }
     }
@@ -776,12 +776,12 @@ check.inp <- function(inp){
     phases <- phases[phases>0] # Don't include phase -1 (fixed value)
     nphases <- length(phases)
     inp$map <- list()
-    for(j in 1:nphases){
+    for (j in 1:nphases){
         inp$map[[j]] <- list() # Map for phase j
         inds <- which(phasevec > j | phasevec == -1)
-        for(i in inds){
+        for (i in inds){
             parnam <- names(phasevec)[i]
-            if(parnam %in% names(inp$parlist)){
+            if (parnam %in% names(inp$parlist)){
                 phase <- inp$phases[[parnam]]
                 inp$map[[j]][[parnam]] <- factor(rep(NA, length(inp$parlist[[parnam]])))
             } else {
@@ -793,7 +793,7 @@ check.inp <- function(inp){
     inpphases <- unlist(inp$phases)
     inpphases <- inpphases[inpphases > 0] # Don't include phase -1 (fixed value)
     inp$nphases <- length(unique(inpphases))
-    if(!is.null(inp)) class(inp) <- "spictcls"
+    if (!is.null(inp)) class(inp) <- "spictcls"
     return(inp)
 }
 
