@@ -1762,8 +1762,9 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     # Plot catch
     ylab <- 'Catch'
     ylab <- add.catchunit(ylab, inp$catchunit)
-    plot(inp$timeC, inp$obsC, typ='l', ylab=ylab, xlab='Time', main=main)
+    plot(inp$timeC, inp$obsC, typ='n', ylab=ylab, xlab='Time', main=main)
     grid()
+    lines(inp$timeC, inp$obsC)
     add.legend <- inp$nseasons > 1
     plot.col(inp$timeC, inp$obsC, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
     if(!is.null(MSY)) abline(h=MSY, lty=2)
@@ -1771,14 +1772,16 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     # Plot index
     i <- 1
     main <- paste0('Nobs I: ', inp$nobsI[i])
-    plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
+    plot(inp$timeI[[i]], inp$obsI[[i]], typ='n', ylab=paste('Index', i), xlab='Time', main=main)
     grid()
+    lines(inp$timeI[[i]], inp$obsI[[i]])
     plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
     if(inp$nindex>1 & is.null(one.index)){
         for(i in 2:inp$nindex){
             main <- paste0('Nobs I: ', inp$nobsI[i])
-            plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
+            plot(inp$timeI[[i]], inp$obsI[[i]], typ='n', ylab=paste('Index', i), xlab='Time', main=main)
             grid()
+            lines(inp$timeI[[i]], inp$obsI[[i]])
             plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
         }
     }
