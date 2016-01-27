@@ -300,6 +300,12 @@ Type objective_function<Type>::operator() ()
     std::cout << "INPUT: lambda: " << lambda << std::endl;
     std::cout << "INPUT: omega: " << omega << std::endl;
     std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  ir.size(): " << ir.size() << "  logFmsy.size(): " << logFmsy.size() << "  logFmsyvec.size(): " << logFmsyvec.size() << "  logBmsy.size(): " << logBmsy.size() << "  logBmsyvec.size(): " << logBmsyvec.size() << "  m.size(): " << m.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
+    std::cout << "Bmsys: " << Bmsys << std::endl;
+    std::cout << "Fmsys: " << Fmsys << std::endl;
+    std::cout << "MSYs: " << MSYs << std::endl;
+    std::cout << "Bmsyd: " << Bmsyd << std::endl;
+    std::cout << "Fmsyd: " << Fmsyd << std::endl;
+    std::cout << "MSYd: " << MSYd << std::endl;
   }
   // Calculate mvec if multiple rs are used (rarely the case).
   for(int i=0; i<ns; i++){
@@ -680,6 +686,7 @@ Type objective_function<Type>::operator() ()
   REPORT(MSY);
   REPORT(Bmsy);
   REPORT(Fmsy);
+  REPORT(stochmsy);
 
   return ans;
 }
