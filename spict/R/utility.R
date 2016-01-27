@@ -164,14 +164,14 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
         }
         if(exp==TRUE){
             cv <- sqrt(exp(sd^2) - 1)
+            ll <- exp(ll)
+            ul <- exp(ul)
+            ul[!is.finite(ul)] <- exp(705) # Put a large but finite value instead of Inf
+            est <- exp(est)
         } else {
             cv <- sd/est
         }
-        if(exp){
-            out <- cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd, cv)
-        } else {
-            out <- cbind(ll, est, ul, sd, cv)
-        }
+        out <- cbind(ll, est, ul, sd, cv)
         if(parname %in% c('logB', 'logF', 'logBBmsy', 'logFFmsy')) rownames(out) <- rep$inp$time
         return(out)
     }
