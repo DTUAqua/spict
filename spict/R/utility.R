@@ -286,10 +286,14 @@ invlogp1 <- function(a) 1 + exp(a)
 #' @export
 guess.m <- function(inp, all.return=FALSE){
     y <- inp$obsC
-    if(class(inp$obsI)=='list'){
-        z <- inp$obsI[[1]]
+    if (length(inp$obsI)>0){
+        if(class(inp$obsI)=='list'){
+            z <- inp$obsI[[1]]
+        } else {
+            z <- inp$obsI
+        }
     } else {
-        z <- inp$obsI
+        z <- NULL
     }
     if(length(y) == length(z)){
         x <- y/z
