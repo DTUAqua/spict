@@ -81,7 +81,7 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(robflagi);       // If 1 use robust observation error for index
   DATA_SCALAR(robflage);       // If 1 use robust observation error for effort
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
-  DATA_SCALAR(effortflag);     // If effortflag == 1 use effort data, else use index data
+  //DATA_SCALAR(effortflag);     // If effortflag == 1 use effort data, else use index data
 
   // Priors
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
@@ -111,12 +111,13 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logm);      // m following the Fletcher formulation (see Prager 2002)
   PARAMETER(logK);             // Carrying capacity
   PARAMETER_VECTOR(logq);      // Catchability for index
-  PARAMETER_VECTOR(logqe);     // Catchability for effort
+  PARAMETER(logqe);            // Catchability for effort
   PARAMETER(logn);             // Pella-Tomlinson exponent
   PARAMETER(logsdb);           // Standard deviation in B process
   PARAMETER_VECTOR(logsdu);    // Standard deviation in seasonal component of F process
   PARAMETER(logsdf);           // Standard deviation in diffusion component of F process
   PARAMETER_VECTOR(logsdi);    // sdi = alpha*sdb
+  PARAMETER(logsde);           // sdc = beta*sdf
   PARAMETER(logsdc);           // sdc = beta*sdf
   PARAMETER_VECTOR(logphi);    // Season levels of F.
   PARAMETER(loglambda);        // Damping variable when using seasonal SDEs
@@ -200,6 +201,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> alpha = sdi/sdb;
   vector<Type> logalpha = log(alpha);
   int nalpha = logalpha.size();
+  Type sde = exp(logsde);
   Type sdc = exp(logsdc);
   Type beta = sdc/sdf;
   Type logbeta = log(beta);
@@ -526,10 +528,11 @@ Type objective_function<Type>::operator() ()
   vector<Type> logFcumpred(nobsE);
   if(simple==0){
     for(int i=0; i<nobsE; i++){
+      Fcumpred(i) = 0.0;
       // Sum effort contributions from each sub interval
       for(int j=0; j<ne(i); j++){
 	ind = CppAD::Integer(ie(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
-	Fcumpred(i) += F(ind);
+	Fcumpred(i) += F(ind) * dt(ind);
       }
       logFcumpred(i) = log(Fcumpred(i));
       // DEBUGGING
@@ -577,17 +580,17 @@ Type objective_function<Type>::operator() ()
       std::cout << "--- DEBUG: Epred loop start --- ans: " << ans << std::endl;
     }
     for(int i=0; i<nobsE; i++){
-      inds = CppAD::Integer(ise(i)-1);
       logEpred(i) = logFcumpred(i) - logqe; // E = 1/q * integral{F_t dt}
-      if(robflagc==1.0){
-	likval = log(pp*dnorm(logEpred(i), logobsE(i), stdevface(i)*sdi, 0) + (1.0-pp)*dnorm(logEpred(i), logobsE(i), robfac*stdevface(i)*sdi, 0));
+      if(robflage==1.0){
+	likval = log(pp*dnorm(logEpred(i), logobsE(i), stdevface(i)*sde, 0) + (1.0-pp)*dnorm(logEpred(i), logobsE(i), robfac*stdevface(i)*sde, 0));
       } else {
-	likval = dnorm(logEpred(i), logobsE(i), stdevface(i)*sdi, 1);
+	likval = dnorm(logEpred(i), logobsE(i), stdevface(i)*sde, 1);
       }
+      inds = CppAD::Integer(ise(i)-1);
       ans-= keep(inds) * likval;
       // DEBUGGING
       if(dbg>1){
-	std::cout << "-- i: " << i << " -   logobsE(i): " << logobsE(i) << " -   stdevface(i): " << stdevface(i) << "  sdi: " << sdi << "  likval: " << likval << "  ans:" << ans << std::endl;
+	std::cout << "-- i: " << i << " -   logobsE(i): " << logobsE(i) << " -   stdevface(i): " << stdevface(i) << "  sde: " << sde << "  likval: " << likval << "  ans:" << ans << std::endl;
       }
     }
   }
@@ -734,6 +737,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(m);
   ADREPORT(sdf);
   ADREPORT(sdc);
+  ADREPORT(sde);
   ADREPORT(sdb);
   ADREPORT(sdi);
   ADREPORT(logalpha);
