@@ -1,12 +1,11 @@
 citHeader("To cite SPiCT in publications, please use:")
 citEntry(entry="article",
-         title = "title",
-         author = c(person(given=c("Martin", "W."), family="Pedersen", email="map@aqua.dtu.dk"),
-             person(given=c("Uffe", "H."), family="Thygesen", email="uht@aqua.dtu.dk"),
-             person(given="Anders", family="Nielsen", email="an@aqua.dtu.dk")),
-         note="In press",
+         title = "A stochastic surplus production model in continuous-time",
+         author = c(person(given=c("Martin", "W."), family="Pedersen", email="mawp@dtu.dk"),
+             person(given=c("Casper", "W."), family="Berg", email="cbe@aqua.dtu.dk")),
+         note="In review",
          doi="xxx/xxx",
-         year="2014",
+         year="2016",
          journal="Science",
          textVersion=NULL
          )
