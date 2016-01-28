@@ -117,8 +117,8 @@ check.inp <- function(inp){
             return(tmpout)
         }
     }
-    remove.neg <- function(inp, nam){
-        nms <- paste0(c('obs', 'time', 'stdevfac'), nam)
+    remove.neg <- function(inp, nam, extrakeys=NULL){
+        nms <- c(paste0(c('obs', 'time', 'stdevfac'), nam), extrakeys)
         nnms <- length(nms)
         flag <- class(inp[[nms[1]]]) == 'list'
         if(flag){
@@ -175,14 +175,26 @@ check.inp <- function(inp){
     if('obsC' %in% names(inp)){
         inp <- make.time(inp, 'C')
         if(any(diff(inp$timeC)<=0)) stop('Catch times are not strictly increasing!')
+        # Catch intervals (dtc)
+        if(!"dtc" %in% names(inp)){
+            dtc <- diff(inp$timeC)
+            if(length(dtc)>0){
+                inp$dtc <- min(dtc)
+            } else {
+                inp$dtc <- 1
+                cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 2. Assuming an interval of 1 year.\n'))
+            }
+        }
+        if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, length(inp$obsC))
         if(!'stdevfacC' %in% names(inp)) inp$stdevfacC <- rep(1, length(inp$obsC))
         base.checks(inp$obsC, inp$timeC, inp$stdevfacC, 'C')
-        inp <- remove.neg(inp, 'C')
+        inp <- remove.neg(inp, 'C', extrakeys='dtc')
         inp$nobsC <- length(inp$obsC)
         inp$obsidC <- 1:inp$nobsC
     } else {
         stop('No catch observations included. Please include them as a vector in inp$obsC.')
     }
+    if(length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
     
     if(!any(c('obsI', 'obsE') %in% names(inp))) stop('No effort or index observations. Please include index observations as a vector in inp$obsI and effort observations in inp$obsE.')
     
@@ -217,12 +229,25 @@ check.inp <- function(inp){
     # Check effort observations
     inp <- make.time(inp, 'E')
     if (any(diff(inp$timeE) <= 0)) stop('Effort times are not strictly increasing!')
+    # Effort intervals (dte)
+    if(!"dte" %in% names(inp) & length(inp$obsE) > 0){
+        dte <- diff(inp$timeE)
+        if(length(dte) > 0){
+            inp$dte <- min(dte)
+        } else {
+            inp$dte <- 1
+            cat(paste('Effort interval (dte) not specified and length of effort time series shorter than 2. Assuming an interval of 1 year.\n'))
+        }
+    }
+    if (length(inp$dte) == 1) inp$dte <- rep(inp$dte, length(inp$obsE))
     if (!'stdevfacE' %in% names(inp)) inp$stdevfacE <- rep(1, length(inp$obsE))
     base.checks(inp$obsE, inp$timeE, inp$stdevfacE, 'E')
     inp <- remove.neg(inp, 'E')
     inp$nobsE <- length(inp$obsE)
     inp$obsidE <- (1:inp$nobsE) + inp$nobsC + sum(inp$nobsI)
+    if (length(inp$dte) != inp$nobsE) stop('Effort interval vector (inp$dte) does not match effort observation vector (inp$obsE) in length')
 
+    
     # -- MODEL OPTIONS --
     if(!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
     if(!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
@@ -306,30 +331,7 @@ check.inp <- function(inp){
     } else {
         if(!inp$msytype %in% c('s', 'd')) stop('inp$msytype must be either "s" (stochastic) or "d" (deterministic!')
     }
-    # Catch intervals (dtc)
-    if(!"dtc" %in% names(inp)){
-        dtc <- diff(inp$timeC)
-        if(length(dtc)>0){
-            inp$dtc <- min(dtc)
-        } else {
-            inp$dtc <- 1
-            cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 2. Assuming an interval of 1 year.\n'))
-        }
-    }
-    if(length(inp$dtc)==1) inp$dtc <- rep(inp$dtc, inp$nobsC)
-    if(length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
-    # Effort intervals (dte)
-    if(!"dte" %in% names(inp) & inp$nobsE > 0){
-        dte <- diff(inp$timeE)
-        if(length(dte)>0){
-            inp$dte <- min(dte)
-        } else {
-            inp$dte <- 1
-            cat(paste('Effort interval (dte) not specified and length of effort time series shorter than 2. Assuming an interval of 1 year.\n'))
-        }
-    }
-    if (length(inp$dte) == 1) inp$dte <- rep(inp$dte, inp$nobsE)
-    if (length(inp$dte) != inp$nobsE) stop('Effort interval vector (inp$dte) does not match effort observation vector (inp$obsE) in length')
+
 
     # - Prediction horizons -
     timeobsall <- sort(c(inp$timeC, inp$timeC + inp$dtc,
@@ -346,7 +348,7 @@ check.inp <- function(inp){
     }
     # Time point to predict catches until
     if(!"timepredc" %in% names(inp)){
-        inp$timepredc <- max(obsall)
+        inp$timepredc <- max(timeobsall)
     } else {
         if(inp$timepredc < max(inp$timeC)) cat('inp$timepredc:', inp$timepredc, ' must be equal to or later than last catch observation: ', max(inp$timeC), '!')
     }
