@@ -46,17 +46,24 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(dtpredcinds);    // Indices of predictions in F state vector 
   DATA_INTEGER(dtpredcnsteps); // Number of sub time step for prediction
   DATA_SCALAR(dtprediind);     // Index of B state vector to use for predicting I
+  DATA_VECTOR(dtpredeinds);    // Indices of predictions in F state vector 
+  DATA_INTEGER(dtpredensteps); // Number of sub time step for prediction
   DATA_INTEGER(indlastobs);    // Index of B and F corresponding to the last observation.
   DATA_VECTOR(obssrt);         // Catch and index observations sorted in time (to enable osar)
   DATA_VECTOR_INDICATOR(keep, obssrt); // This one is required to calculate OSA residuals
   DATA_VECTOR(stdevfacc);      // Factors to scale stdev of catch observation error
   DATA_VECTOR(stdevfaci);      // Factors to scale stdev of index observation error
+  DATA_VECTOR(stdevface);      // Factors to scale stdev of effort observation error
   DATA_VECTOR(isc);            // Indices in obssrt of catch observations
   DATA_VECTOR(isi);            // Indices in obssrt of index observations
+  DATA_VECTOR(ise);            // Indices in obssrt of effort observations
   DATA_INTEGER(nobsC);         // Number of catch observations
   DATA_INTEGER(nobsI);         // Number of index observations
+  DATA_INTEGER(nobsE);         // Number of effort observations
   DATA_VECTOR(ic);             // Vector such that B(ic(i)) is the state at the start of obsC(i)
   DATA_VECTOR(nc);             // nc(i) gives the number of time intervals obsC(i) spans
+  DATA_VECTOR(ie);             // Vector such that E(ie(i)) is the state at the start of obsE(i)
+  DATA_VECTOR(ne);             // ne(i) gives the number of time intervals obsE(i) spans
   DATA_VECTOR(ii);             // A vector such that B(ii(i)) is the state corresponding to I(i)
   DATA_VECTOR(iq);             // A vector such that iq(i) is the index number corresponding to I_iq(i)
   DATA_VECTOR(isdi);           // A vector such that isdi(i) is the index number corresponding to I_isdi(i)
@@ -70,9 +77,11 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(ffacvec);        // Management factor each year multiply the predicted F with ffac
   DATA_VECTOR(fconvec);        // Management factor each year add this constant to the predicted F
   DATA_VECTOR(indpred);        // A vector indicating when the management factor should be applied
-  DATA_SCALAR(robflagc);       // Catch Degrees of freedom of t-distribution (only used if tdf < 25)
-  DATA_SCALAR(robflagi);       // Index Degrees of freedom of t-distribution (only used if tdf < 25)
+  DATA_SCALAR(robflagc);       // If 1 use robust observation error for catches
+  DATA_SCALAR(robflagi);       // If 1 use robust observation error for index
+  DATA_SCALAR(robflage);       // If 1 use robust observation error for effort
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
+  //DATA_SCALAR(effortflag);     // If effortflag == 1 use effort data, else use index data
 
   // Priors
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
@@ -80,10 +89,12 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorq);         // Prior vector for q, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorqe);        // Prior vector for qe, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorbkfrac);    // Prior vector for B0/K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorsdb);       // Prior vector for sdb, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorsdf);       // Prior vector for sdf, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorsdi);       // Prior vector for sdi, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorsde);       // Prior vector for sde, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorsdc);       // Prior vector for sdc, [log(mean), stdev in log, useflag]
   DATA_VECTOR(prioralpha);     // Prior vector for alpha, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorbeta);      // Prior vector for beta, [log(mean), stdev in log, useflag]
@@ -99,12 +110,14 @@ Type objective_function<Type>::operator() ()
   // PARAMETERS
   PARAMETER_VECTOR(logm);      // m following the Fletcher formulation (see Prager 2002)
   PARAMETER(logK);             // Carrying capacity
-  PARAMETER_VECTOR(logq);      // Catchability
+  PARAMETER_VECTOR(logq);      // Catchability for index
+  PARAMETER(logqe);            // Catchability for effort
   PARAMETER(logn);             // Pella-Tomlinson exponent
   PARAMETER(logsdb);           // Standard deviation in B process
   PARAMETER_VECTOR(logsdu);    // Standard deviation in seasonal component of F process
   PARAMETER(logsdf);           // Standard deviation in diffusion component of F process
   PARAMETER_VECTOR(logsdi);    // sdi = alpha*sdb
+  PARAMETER(logsde);           // sdc = beta*sdf
   PARAMETER(logsdc);           // sdc = beta*sdf
   PARAMETER_VECTOR(logphi);    // Season levels of F.
   PARAMETER(loglambda);        // Damping variable when using seasonal SDEs
@@ -134,6 +147,11 @@ Type objective_function<Type>::operator() ()
     ind = CppAD::Integer(isi(i)-1);
     logobsI(i) = obssrt(ind);
   }
+  vector<Type> logobsE(nobsE);
+  for(int i=0; i<nobsE; i++){ 
+    ind = CppAD::Integer(ise(i)-1);
+    logobsE(i) = obssrt(ind);
+  }
 
   vector<Type> logphipar(logphi.size()+1);
   logphipar(0) = 0.0; // The first logphi is set to 0, the rest are estimated relative to this.
@@ -155,6 +173,7 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<nq; i++){ q(i) = exp(logq(i)); }
   vector<Type> logq2(nq);
   for(int i=0; i<nq; i++){ logq2(i) = log(100) + logq(i); }
+  Type qe = exp(logqe);
   Type n = exp(logn);
   Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
   Type p = n - 1.0;
@@ -182,6 +201,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> alpha = sdi/sdb;
   vector<Type> logalpha = log(alpha);
   int nalpha = logalpha.size();
+  Type sde = exp(logsde);
   Type sdc = exp(logsdc);
   Type beta = sdc/sdf;
   Type logbeta = log(beta);
@@ -210,6 +230,7 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<nobsCp; i++){ Cpred(i) = 0.0; }
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
+  vector<Type> logEpred(nobsE);
 
   vector<Type> Bmsyd(nm);
   vector<Type> MSYd = m;
@@ -331,10 +352,12 @@ Type objective_function<Type>::operator() ()
   if(priorK(2) == 1) ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
   if(priorm(2) == 1 & nm == 1) ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
   if(priorq(2) == 1 & nq == 1) ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq
+  if(priorqe(2) == 1) ans-= dnorm(logqe, priorqe(0), priorqe(1), 1); // Prior for logqe
   if(priorbkfrac(2) == 1) ans-= dnorm(logB(0) - logK, priorbkfrac(0), priorbkfrac(1), 1); // Prior for logbkfrac
   if(priorsdb(2) == 1) ans-= dnorm(logsdb, priorsdb(0), priorsdb(1), 1); // Prior for logsdb
   if(priorsdf(2) == 1) ans-= dnorm(logsdf, priorsdf(0), priorsdf(1), 1); // Prior for logsdf
   if(priorsdi(2) == 1) for(int i=0; i<nsdi; i++){ ans-= dnorm(logsdi(i), priorsdi(0), priorsdi(1), 1); } // Prior for logsdi
+  if(priorsde(2) == 1) ans-= dnorm(logsde, priorsde(0), priorsde(1), 1); // Prior for logsde
   if(priorsdc(2) == 1) ans-= dnorm(logsdc, priorsdc(0), priorsdc(1), 1); // Prior for logsdc
   if(prioralpha(2) == 1) for(int i=0; i<nalpha; i++){ ans-= dnorm(logalpha(i), prioralpha(0), prioralpha(1), 1); } // Prior for logalpha
   if(priorbeta(2) == 1) ans-= dnorm(logbeta, priorbeta(0), priorbeta(1), 1); // Prior for logbeta
@@ -506,6 +529,25 @@ Type objective_function<Type>::operator() ()
     }
   }
 
+  // EFFORT PREDICTIONS
+  vector<Type> Fcumpred(nobsE);
+  vector<Type> logFcumpred(nobsE);
+  if(simple==0){
+    for(int i=0; i<nobsE; i++){
+      Fcumpred(i) = 0.0;
+      // Sum effort contributions from each sub interval
+      for(int j=0; j<ne(i); j++){
+	ind = CppAD::Integer(ie(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
+	Fcumpred(i) += F(ind) * dt(ind);
+      }
+      logFcumpred(i) = log(Fcumpred(i));
+      // DEBUGGING
+      if(dbg>1){
+	std::cout << "-- i: " << i << " -  ind: " << ind << "  logFcumpred(i): " << logFcumpred(i) << std::endl;
+      }
+    }
+  }
+
   // CALCULATE PRODUCTION
   for(int i=0; i<(ns-1); i++) P(i) = B(i+1) - B(i) + Cpredsub(i);
 
@@ -514,6 +556,7 @@ Type objective_function<Type>::operator() ()
     --- OBSERVATION EQUATIONS ---
   */
   int inds;
+
   // CATCHES
   if(simple==0){
     if(dbg>0){
@@ -533,6 +576,27 @@ Type objective_function<Type>::operator() ()
       // DEBUGGING
       if(dbg>1){
 	std::cout << "-- i: " << i << " -   logobsC(i): " << logobsC(i) << " -   stdevfacc(i): " << stdevfacc(i) << "  sdc: " << sdc << "  likval: " << likval << "  ans:" << ans << std::endl;
+      }
+    }
+  }
+
+  // EFFORT
+  if(simple==0){
+    if(dbg>0){
+      std::cout << "--- DEBUG: Epred loop start --- ans: " << ans << std::endl;
+    }
+    for(int i=0; i<nobsE; i++){
+      logEpred(i) = logFcumpred(i) - logqe; // E = 1/q * integral{F_t dt}
+      if(robflage==1.0){
+	likval = log(pp*dnorm(logEpred(i), logobsE(i), stdevface(i)*sde, 0) + (1.0-pp)*dnorm(logEpred(i), logobsE(i), robfac*stdevface(i)*sde, 0));
+      } else {
+	likval = dnorm(logEpred(i), logobsE(i), stdevface(i)*sde, 1);
+      }
+      inds = CppAD::Integer(ise(i)-1);
+      ans-= keep(inds) * likval;
+      // DEBUGGING
+      if(dbg>1){
+	std::cout << "-- i: " << i << " -   logobsE(i): " << logobsE(i) << " -   stdevface(i): " << stdevface(i) << "  sde: " << sde << "  likval: " << likval << "  ans:" << ans << std::endl;
       }
     }
   }
@@ -562,6 +626,7 @@ Type objective_function<Type>::operator() ()
     }
   }
 
+
   /*
   --- ONE-STEP-AHEAD PREDICTIONS ---
   */
@@ -569,7 +634,9 @@ Type objective_function<Type>::operator() ()
   if(dbg>0){
     std::cout << "--- DEBUG: ONE-STEP-AHEAD PREDICTIONS --- ans: " << ans << std::endl;
     std::cout << "-- dtpredcnsteps: " << dtpredcnsteps << "  dtpredcinds.size(): " << dtpredcinds.size() <<std::endl;
+    std::cout << "-- dtpredensteps: " << dtpredensteps << "  dtpredeinds.size(): " << dtpredeinds.size() <<std::endl;
   }
+  // Catch prediction
   Type Cp = 0.0;
   for(int i=0; i<dtpredcnsteps; i++){
     ind = CppAD::Integer(dtpredcinds(i)-1);
@@ -579,6 +646,18 @@ Type objective_function<Type>::operator() ()
     Cp += Cpredsub(ind);
   }
   Type logCp = log(Cp);
+
+  // Effort prediction
+  Type Fp = 0.0;
+  for(int i=0; i<dtpredensteps; i++){
+    ind = CppAD::Integer(dtpredeinds(i)-1);
+    if(dbg>1){
+      std::cout << "-- i: " << i << " -  dtpredeinds(i)-1: " << ind << std::endl;
+    }
+    Fp += F(ind);
+  }
+  Type logEp = log(Fp) - logqe;
+  Type Ep = exp(logEp);
 
   // Biomass and F at the end of the prediction time interval
   int pind = CppAD::Integer(dtprediind-1);
@@ -651,6 +730,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(Cp);
   ADREPORT(logIp);
   ADREPORT(logCp);
+  ADREPORT(logEp);
   // PARAMETERS
   ADREPORT(r);
   ADREPORT(logr);
@@ -663,6 +743,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(m);
   ADREPORT(sdf);
   ADREPORT(sdc);
+  ADREPORT(sde);
   ADREPORT(sdb);
   ADREPORT(sdi);
   ADREPORT(logalpha);
@@ -676,12 +757,15 @@ Type objective_function<Type>::operator() ()
     ADREPORT(logFs);    // Vector of size ns
     // C
     ADREPORT(logCpred);
-    // Other
+    // I
     ADREPORT(logIpred);
+    // E
+    ADREPORT(logEpred);
   }
 
   // REPORTS (these don't require sdreport to be output)
   REPORT(Cp);
+  REPORT(Ep);
   REPORT(logIp);
   REPORT(MSY);
   REPORT(Bmsy);

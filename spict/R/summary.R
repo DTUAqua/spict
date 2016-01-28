@@ -43,7 +43,14 @@ summary.spictcls <- function(object, ...){
     if('sderr' %in% names(rep)) cat('WARNING: Could not calculate standard deviations. The optimum found may be invalid. Proceed with caution.\n')
     cat(paste0('Objective function at optimum: ', round(rep$opt$objective, numdigits), '\n'))
     cat(paste0('Euler time step: 1/', 1/rep$inp$dteuler, ' or ', rep$inp$dteuler, '\n'))
-    cat(paste0('Nobs C: ', rep$inp$nobsC, paste0(paste0(',  Nobs I', 1:rep$inp$nindex), ': ', rep$inp$nobsI, collapse=''), '\n'))
+    #cat(paste0('Nobs C: ', rep$inp$nobsC, paste0(paste0(',  Nobs I', 1:rep$inp$nindex), ': ', rep$inp$nobsI, collapse=''), '\n'))
+    str <- paste0('Nobs C: ', rep$inp$nobsC)
+    if (rep$inp$nindex > 0){
+        str <- paste0(str, paste0(paste0(',  Nobs I', 1:rep$inp$nindex),
+                                                      ': ', rep$inp$nobsI, collapse=''))
+    }
+    if (rep$inp$nobsE > 0) str <- paste0(str, paste0(',  Nobs E: ', rep$inp$nobsE))
+    cat(paste0(str, '\n'))
     # -- Catch/biomass unit --
     if(rep$inp$catchunit != ''){
         cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n'))
@@ -390,6 +397,14 @@ sumspict.fixedpars <- function(rep, numdigits=8){
     # Remove random effects
     reinds <- which(nms %in% rep$inp$RE)
     if(length(reinds)>0) nms <- nms[-reinds]
+    # Were index observations used? 
+    if (sum(rep$inp$nobsI) == 0){
+        nms <- nms[-match(c('logsdi', 'logq'), nms)]
+    }
+    # Were effort observations used? 
+    if (rep$inp$nobsE == 0){
+        nms <- nms[-match(c('logsde', 'logqe'), nms)]
+    }
     # Are robust options used? if not remove
     if(!any(rep$inp$robflagi | rep$inp$robflagc)){
         nms <- nms[-match(c('logitpp', 'logp1robfac'), nms)]
