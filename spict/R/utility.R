@@ -164,14 +164,14 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
         }
         if(exp==TRUE){
             cv <- sqrt(exp(sd^2) - 1)
+            ll <- exp(ll)
+            ul <- exp(ul)
+            ul[!is.finite(ul)] <- exp(705) # Put a large but finite value instead of Inf
+            est <- exp(est)
         } else {
             cv <- sd/est
         }
-        if(exp){
-            out <- cbind(ll=exp(ll), est=exp(est), ul=exp(ul), sd, cv)
-        } else {
-            out <- cbind(ll, est, ul, sd, cv)
-        }
+        out <- cbind(ll, est, ul, sd, cv)
         if(parname %in% c('logB', 'logF', 'logBBmsy', 'logFFmsy')) rownames(out) <- rep$inp$time
         return(out)
     }
@@ -286,10 +286,14 @@ invlogp1 <- function(a) 1 + exp(a)
 #' @export
 guess.m <- function(inp, all.return=FALSE){
     y <- inp$obsC
-    if(class(inp$obsI)=='list'){
-        z <- inp$obsI[[1]]
+    if (length(inp$obsI)>0){
+        if(class(inp$obsI)=='list'){
+            z <- inp$obsI[[1]]
+        } else {
+            z <- inp$obsI
+        }
     } else {
-        z <- inp$obsI
+        z <- NULL
     }
     if(length(y) == length(z)){
         x <- y/z

@@ -278,8 +278,14 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         Bp <- get.par('logBp', rep, exp=TRUE)
         scal <- 1
         cicol <- 'lightgray'
-        obsI <- list()
-        for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]
+        if (inp$nindex==0){
+            nindexseq <- numeric(0)
+            obsI <- NULL
+        } else {
+            nindexseq <- 1:inp$nindex
+            obsI <- list()
+        }
+        for(i in nindexseq) obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]
         fininds <- which(Best[, 5] < 5) # Use CV to check for large uncertainties
         BBfininds <- which(BB[, 5] < 5) # Use CV to check for large uncertainties
         if(length(ylim)!=2) ylim <- range(BB[BBfininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), 0.95*Bmsy[1], 1.05*Bmsy[3], na.rm=TRUE)/scal
@@ -294,12 +300,18 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
             mtext(expression(B[t]/B[MSY]), side=4, las=0, line=2.2, cex=par('cex'))
         }
-        if(all(is.finite(unlist(Bmsyvec)))) polygon(c(inp$time, rev(inp$time)), c(Bmsyvec$ll,rev(Bmsyvec$ul)), col=cicol, border=cicol)
+        if (all(is.finite(unlist(Bmsyvec)))){
+            polygon(c(inp$time, rev(inp$time)), c(Bmsyvec$ll,rev(Bmsyvec$ul)),
+                    col=cicol, border=cicol)
+        }
         cicol2 <- rgb(0, 0, 1, 0.1)
-        if(!'yearsepgrowth' %in% names(inp) & rel.ci) polygon(c(inp$time[BBfininds], rev(inp$time[BBfininds])), c(BB[BBfininds,1], rev(BB[BBfininds,3]))/scal*Bmsy[2], col=cicol2, border=cicol2)
+        if (!'yearsepgrowth' %in% names(inp) & rel.ci){
+            polygon(c(inp$time, rev(inp$time)), c(BB[, 1], rev(BB[, 3]))/scal*Bmsy[2],
+                    col=cicol2, border=cicol2)
+        }
         abline(v=inp$time[inp$indlastobs], col='gray')
         if(plot.obs){
-            for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], inp$obsI[[i]]/qest[inp$mapq[i], 2], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
+            for(i in nindexseq) plot.col(inp$timeI[[i]], inp$obsI[[i]]/qest[inp$mapq[i], 2], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
             if(qlegend){
                 subyears <- unique(unlist(inp$timeI)%%1)
                 plot.col(subyears, numeric(length(subyears)), typ='n', add=TRUE, add.legend=TRUE) # Only plot legend
@@ -308,7 +320,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             if('infl' %in% names(rep)){
                 infl <- rep$infl$infl
                 indslast <- inp$nobsC # Start after catch observations
-                for(i in 1:inp$nindex){
+                for(i in nindexseq){
                     iinds <- indslast + 1:inp$nobsI[i]
                     infl2 <- infl[iinds, ]
                     cols <- apply(!is.na(infl2), 1, sum)
@@ -373,16 +385,18 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
         Bmsyvec <- get.msyvec(inp, Bmsy)
+		if (!all(is.na(Bmsyvec$msy))){ # Don't plot if all are NA
         qest <- get.par('logq', rep, fixed=TRUE, exp=TRUE)
         BB <- get.par('logBBmsy', rep, exp=TRUE)
         ns <- dim(BB)[1]
         cicol <- 'lightgray'
-        obsI <- list()
-        if(plot.obs) {
-            for(i in 1:inp$nindex) obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]/Bmsy[1,2]
+        if (inp$nindex==0){
+            nindexseq <- numeric(0)
+            obsI <- NULL
         } else {
-            # Since obs are not plottet set a value that doesn't affect ylim
-            obsI <- mean(BB[, 2]) 
+            nindexseq <- 1:inp$nindex
+            obsI <- list()
+            for(i in nindexseq) obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]/Bmsy[1,2]
         }
         fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
         if(length(ylim)!=2) ylim <- range(c(lineat, BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
@@ -393,7 +407,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
         polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3])), col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
         if(plot.obs){
-            for(i in 1:inp$nindex) plot.col(inp$timeI[[i]], obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
+            for(i in nindexseq) plot.col(inp$timeI[[i]], obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
             if(qlegend){
                 subyears <- unique(unlist(inp$timeI)%%1)
                 plot.col(subyears, numeric(length(subyears)), typ='n', add=TRUE, add.legend=TRUE) # Only plot legend
@@ -402,7 +416,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
             if('infl' %in% names(rep)){
                 infl <- rep$infl$infl
                 indslast <- inp$nobsC # Start after catch observations
-                for(i in 1:inp$nindex){
+                for(i in nindexseq){
                     iinds <- indslast + 1:inp$nobsI[i]
                     infl2 <- infl[iinds, ]
                     cols <- apply(!is.na(infl2), 1, sum)
@@ -424,6 +438,9 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
         lines(inp$time[inp$indpred], BB[inp$indpred,3], col=cicol3, lty=1, lwd=1)
         abline(h=lineat)
         box(lwd=1.5)
+        } else {
+            plot(1, typ='n', xlab='', ylab='', xaxt='n', yaxt='n', main=paste('Bmsy=NA!', main))
+        }
     }
 }
 
@@ -588,6 +605,8 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
 #' @param logax Take log of y-axis? default: FALSE
 #' @param main Title of plot.
 #' @param ylim Limits for y-axis.
+#' @param plot.obs If TRUE observations are plotted.
+#' @param qlegend If TRUE legend explaining colours of observation data is plotted.
 #' @param xlab Label of x-axis.
 #' @param ylab Label of y-axis.
 #' @param rel.axes Plot secondary y-axis contatning relative level of F.
@@ -598,7 +617,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.f(rep)
 #' @export
-plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', ylim=NULL, xlab='Time', ylab=NULL, rel.axes=TRUE, rel.ci=TRUE){
+plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', ylim=NULL, plot.obs=TRUE, qlegend=TRUE, xlab='Time', ylab=NULL, rel.axes=TRUE, rel.ci=TRUE){
     if(!'sderr' %in% names(rep)){
         ylabflag <- is.null(ylab) # If null then not manually specified
         omar <- par()$mar
@@ -612,6 +631,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         cicol <- 'lightgray'
+        qe <- get.par('logqe', rep, exp=TRUE)
         Fest <- get.par('logFs', rep, exp=TRUE)
         logFest <- get.par('logFs', rep)
         FF <- get.par('logFFmsy', rep, exp=TRUE)
@@ -683,6 +703,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             lines(inp$time, Fest[, 2], col=rgb(0, 0, 1, 0.4))
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
+        if (plot.obs) plot.col(inp$timeE, inp$obsE/inp$dte*qe[2], cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
         if('true' %in% names(inp)){
             lines(inp$true$time, inp$true$Fs, col=true.col()) # Plot true
             abline(h=inp$true$Fmsy, col=true.col(), lty=1)
@@ -711,6 +732,8 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
 #' @param logax Take log of y-axis? default: FALSE
 #' @param main Title of plot.
 #' @param ylim Limits for y-axis.
+#' @param plot.obs If TRUE observations are plotted.
+#' @param qlegend If TRUE legend explaining colours of observation data is plotted.
 #' @param lineat Draw horizontal line at this y-value.
 #' @param xlab Label of x-axis.
 #' @return Nothing.
@@ -719,11 +742,12 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.ffmsy(rep)
 #' @export
-plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality', ylim=NULL, lineat=1, xlab='Time'){
+plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality', ylim=NULL, plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time'){
     if(!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         cicol <- 'lightgray'
+        qe <- get.par('logqe', rep, exp=TRUE)
         Fest <- get.par('logFs', rep, exp=TRUE)
         FF <- get.par('logFFmsy', rep, exp=TRUE)
         logFF <- get.par('logFFmsy', rep)
@@ -787,6 +811,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             lines(inp$time, FF[, 2], col=rgb(0, 0, 1, 0.4))
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
+        if (plot.obs) plot.col(inp$timeE, inp$obsE/inp$dte*qe[2]/Fmsy[2], cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
         if('true' %in% names(inp)){
             lines(inp$true$time, inp$true$Fs/inp$true$Fmsy, col=true.col()) # Plot true
         }
@@ -883,8 +908,8 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
                 # New annual limits
                 xlim <- range(c(exp(alb$annvec), exp(cl[, 1]), EBinf)/bscal, na.rm=TRUE)
             }
-            xlim[2] <- min(c(xlim[2], 8*Bmsy[2]/bscal), 2.2*max(bbb))
-            xlim[2] <- max(c(xlim[2], Bmsy[2]/bscal))
+            xlim[2] <- min(c(xlim[2], 8*Bmsy[2]/bscal), 2.2*max(bbb), na.rm=TRUE)
+            xlim[2] <- max(c(xlim[2], Bmsy[2]/bscal), na.rm=TRUE)
         }
         if(is.null(ylim)){
             ylim <- range(c(exp(cl[,2]), Fest[,2])/fscal, na.rm=TRUE)
@@ -892,8 +917,8 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
                 # New annual limits
                 ylim <- range(c(exp(alf$annvec)/fscal, exp(cl[, 2])/fscal), na.rm=TRUE)
             }
-            ylim[2] <- min(c(ylim[2], 8*Fmsy[2]/fscal), 2.2*max(fff))
-            ylim[2] <- max(c(ylim[2], Fmsy[2]/fscal))
+            ylim[2] <- min(c(ylim[2], 8*Fmsy[2]/fscal), 2.2*max(fff), na.rm=TRUE)
+            ylim[2] <- max(c(ylim[2], Fmsy[2]/fscal), na.rm=TRUE)
         }
         logminval <- 1e-4
         if(logax){ # Ensure that zero is not in the limit if taking log
@@ -1376,13 +1401,13 @@ plot.spictcls <- function(x, ...){
             # Biomass
             plotspict.biomass(rep, logax=logax)
             # F
-            plotspict.f(rep, logax=logax)
+            plotspict.f(rep, logax=logax, qlegend=FALSE)
             # Catch
             plotspict.catch(rep, qlegend=FALSE)
             # B/Bmsy
             plotspict.bbmsy(rep, logax=logax, qlegend=FALSE)
             # F/Fmsy
-            plotspict.ffmsy(rep, logax=logax)
+            plotspict.ffmsy(rep, logax=logax, qlegend=FALSE)
             # F versus B
             plotspict.fb(rep, logax=logax, plot.legend=TRUE)
         } else {
@@ -1620,70 +1645,77 @@ plotspict.retro <- function(rep){
 plotspict.ci <- function(inp){
     op <- par()
     inp <- check.inp(inp)
-    time <- inp$timeC
-    y <- inp$obsC
-    z <- inp$obsI[[1]]
-    c <- guess.m(inp, all.return=TRUE)
-    mfrow <- c(3, 2)
-    if(class(c) == 'list'){ # A regression line could be fitted
-        MSY <- c$MSY
-        Emsy <- c$Emsy
-        a <- c$a
-        b <- c$b
-        x <- c$x
-        mod0 <- c$mod0
-        xlim <- Re(polyroot(c(0, a, b)))
-        xp <- data.frame('x'=seq(xlim[1], xlim[2], length=100))
-        yp <- a*xp$x + b*xp$x^2 # Dome
-        yp0 <- predict(mod0, xp)
+    if (sum(inp$nobsI) > 0){
+        # Remove effort observations as they are not used in this plot
+        inp$obsE <- NULL
+        inp$timeE <- NULL
+        c <- guess.m(inp, all.return=TRUE)
+        time <- inp$timeC
+        y <- inp$obsC
+        z <- inp$obsI[[1]]
+        mfrow <- c(3, 2)
+        if(class(c) == 'list'){ # A regression line could be fitted
+            MSY <- c$MSY
+            Emsy <- c$Emsy
+            a <- c$a
+            b <- c$b
+            x <- c$x
+            mod0 <- c$mod0
+            xlim <- Re(polyroot(c(0, a, b)))
+            xp <- data.frame('x'=seq(xlim[1], xlim[2], length=100))
+            yp <- a*xp$x + b*xp$x^2 # Dome
+            yp0 <- predict(mod0, xp)
+        } else {
+            MSY <- c
+            mfrow <- c(1, 2)
+        }
+        if(inp$nseasons > 1){
+            if(inp$nindex %in% 1) mfrow <- c(2, 2)
+            if(inp$nindex %in% 2:3) mfrow <- c(2, 3)
+            if(inp$nindex %in% 4:5) mfrow <- c(2, 4)
+        }
+        par(mfrow=mfrow)
+        plot.seasondiff <- function(time, obs, ylab='Obs'){
+            dt <- time[-length(time)]
+            dy <- diff(log(obs))
+            plot(dt, dy, typ='n', col='lightgray', ylab=ylab, xlab='Time')
+            plot.col(dt, dy, do.line=FALSE, add=TRUE, typ='l')
+            abline(h=0, lty=2, col='gray')
+            box(lwd=1.5)
+        }
+        # Plot data
+        plotspict.data(inp, MSY=MSY, one.index=1)
+        # Plot seasonal patterns
+        if(inp$nseasons > 1){
+            plot.seasondiff(inp$timeC, y, ylab='diff log catch')
+            for(i in 1:inp$nindex) plot.seasondiff(inp$timeI[[i]], inp$obsI[[i]], ylab='diff log index 1')
+        }
+        if(class(c) == 'list' & inp$nseasons == 1){
+            #
+            plot(x, z, typ='l', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
+            plot.col(time, z, obsx=x, do.line=FALSE, add=TRUE)
+            lines(xp$x, yp0, col=4)
+            box(lwd=1.5)
+            #
+            plot(x, y, typ='l', xlim=xlim, ylim=range(0, y, yp), ylab='Catch', xlab='Catch/Index (E, effort proxy)', main=paste('Emsy guess:', round(Emsy, 3)))
+            plot.col(time, y, obsx=x, do.line=FALSE, add=TRUE)
+            abline(h=MSY, lty=2)
+            lines(xp$x, yp, col=4)
+            box(lwd=1.5)
+            #
+            plot(z, y, typ='b', ylab='Catch', xlab='Index')
+            plot.col(time, y, obsx=z, do.line=FALSE, add=TRUE)
+            abline(h=MSY, lty=2)
+            box(lwd=1.5)
+            #
+            plot(y[-length(y)], diff(z)/z[-length(z)], typ='b', xlab='Catch', ylab='Prop. incr. in index')
+            plot.col(time, diff(z)/z[-length(z)], obsx=y[-length(y)], do.line=FALSE, add=TRUE)
+            abline(h=0, lty=2)
+            abline(v=MSY, lty=2)
+            box(lwd=1.5)
+        }
     } else {
-        MSY <- c
-        mfrow <- c(1, 2)
-    }
-    if(inp$nseasons > 1){
-        if(inp$nindex %in% 1) mfrow <- c(2, 2)
-        if(inp$nindex %in% 2:3) mfrow <- c(2, 3)
-        if(inp$nindex %in% 4:5) mfrow <- c(2, 4)
-    }
-    par(mfrow=mfrow)
-    plot.seasondiff <- function(time, obs, ylab='Obs'){
-        dt <- time[-length(time)]
-        dy <- diff(log(obs))
-        plot(dt, dy, typ='n', col='lightgray', ylab=ylab, xlab='Time')
-        plot.col(dt, dy, do.line=FALSE, add=TRUE, typ='l')
-        abline(h=0, lty=2, col='gray')
-        box(lwd=1.5)
-    }
-    # Plot data
-    plotspict.data(inp, MSY=MSY, one.index=1)
-    # Plot seasonal patterns
-    if(inp$nseasons > 1){
-        plot.seasondiff(inp$timeC, y, ylab='diff log catch')
-        for(i in 1:inp$nindex) plot.seasondiff(inp$timeI[[i]], inp$obsI[[i]], ylab='diff log index 1')
-    }
-    if(class(c) == 'list' & inp$nseasons == 1){
-        #
-        plot(x, z, typ='l', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)', main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
-        plot.col(time, z, obsx=x, do.line=FALSE, add=TRUE)
-        lines(xp$x, yp0, col=4)
-        box(lwd=1.5)
-        #
-        plot(x, y, typ='l', xlim=xlim, ylim=range(0, y, yp), ylab='Catch', xlab='Catch/Index (E, effort proxy)', main=paste('Emsy guess:', round(Emsy, 3)))
-        plot.col(time, y, obsx=x, do.line=FALSE, add=TRUE)
-        abline(h=MSY, lty=2)
-        lines(xp$x, yp, col=4)
-        box(lwd=1.5)
-        #
-        plot(z, y, typ='b', ylab='Catch', xlab='Index')
-        plot.col(time, y, obsx=z, do.line=FALSE, add=TRUE)
-        abline(h=MSY, lty=2)
-        box(lwd=1.5)
-        #
-        plot(y[-length(y)], diff(z)/z[-length(z)], typ='b', xlab='Catch', ylab='Prop. incr. in index')
-        plot.col(time, diff(z)/z[-length(z)], obsx=y[-length(y)], do.line=FALSE, add=TRUE)
-        abline(h=0, lty=2)
-        abline(v=MSY, lty=2)
-        box(lwd=1.5)
+        plotspict.data(inp)
     }
     par(op)
 }
@@ -1727,14 +1759,25 @@ plotspict.priors <- function(rep, do.plot=4){
                 nmpl <- paste0(nmpl, fd(priorvec[4]))
                 if(nm == 'logB') nmpl <- add.catchunit(nmpl, inp$catchunit)
             }
-            xmin <- par[2] - 3*par[4]
-            xmax <- par[2] + 3*par[4]
+            mu <- ifelse(is.na(par[4]), priorvec[1], par[2])
+            sd <- ifelse(is.na(par[4]), priorvec[2], par[4])
+            xmin <- mu - 3*sd
+            xmax <- mu + 3*sd
             x <- seq(xmin, xmax, length=200)
             priorvals <- dnorm(x, priorvec[1], priorvec[2])
-            posteriorvals <- dnorm(x, par[2], par[4])
+            if (is.na(par[4])){
+                posteriorvals <- NULL
+            } else {
+                posteriorvals <- dnorm(x, par[2], par[4])
+            }
             plot(exp(x), priorvals, typ='l', xlab=nmpl, ylab='Density', log='x', lwd=1.5, ylim=c(0, max(priorvals, posteriorvals)*1.3))
-            lines(exp(x), posteriorvals, col=3, lwd=1.5)
-            legend('topright', legend=c('Prior', 'Post.'), lty=1, col=c(1, 3), lwd=1.5)
+            if (is.na(par[4])){
+                if (!is.na(par[2])) abline(v=par[2], lty=2, col=3)
+                legend('topright', legend=c('Prior', 'Post. Mean'), lty=1:2, col=c(1, 3), lwd=1.5)
+            } else {
+                lines(exp(x), posteriorvals, col=3, lwd=1.5)
+                legend('topright', legend=c('Prior', 'Post.'), lty=1, col=c(1, 3), lwd=1.5)
+            }
             box(lwd=1.5)
         }
     }
@@ -1750,8 +1793,8 @@ plotspict.priors <- function(rep, do.plot=4){
 #' @export
 plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     inp <- check.inp(inpin)
-    nseries <- inp$nindex+1
-    if(nseries == 2) mfrow <- c(2, 1)
+    nseries <- inp$nindex + 1 + as.numeric(inp$nobsE > 0)
+    if(nseries %in% 1:2) mfrow <- c(2, 1)
     if(nseries %in% 3:4) mfrow <- c(2, 2)
     if(nseries %in% 5:6) mfrow <- c(2, 3)
     if(nseries %in% 7:9) mfrow <- c(3, 3)
@@ -1760,8 +1803,8 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     } else {
         if(sum(par()$mfrow)==2) par(mfrow=mfrow)
     }
-    main <- paste0('Nobs C: ', inp$nobsC)
     # Plot catch
+    main <- paste0('Nobs C: ', inp$nobsC)
     ylab <- 'Catch'
     ylab <- add.catchunit(ylab, inp$catchunit)
     plot(inp$timeC, inp$obsC, typ='l', ylab=ylab, xlab='Time', main=main)
@@ -1771,20 +1814,32 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     if(!is.null(MSY)) abline(h=MSY, lty=2)
     box(lwd=1.5)
     # Plot index
-    i <- 1
-    main <- paste0('Nobs I: ', inp$nobsI[i])
-    plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
-    grid()
-    plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
-    if(inp$nindex>1 & is.null(one.index)){
-        for(i in 2:inp$nindex){
-            main <- paste0('Nobs I: ', inp$nobsI[i])
-            plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
-            grid()
-            plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
+    if (inp$nindex > 0){
+        i <- 1
+        main <- paste0('Nobs I: ', inp$nobsI[i])
+        plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
+        grid()
+        plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
+        if(inp$nindex>1 & is.null(one.index)){
+            for(i in 2:inp$nindex){
+                main <- paste0('Nobs I: ', inp$nobsI[i])
+                plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
+                grid()
+                plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
+            }
         }
+        box(lwd=1.5)
     }
-    box(lwd=1.5)
+    # Plot effort
+    if (inp$nobsE){
+        main <- paste0('Nobs E: ', inp$nobsE)
+        ylab <- 'Effort'
+        plot(inp$timeE, inp$obsE, typ='l', ylab=ylab, xlab='Time', main=main)
+        grid()
+        add.legend <- inp$nseasons > 1
+        plot.col(inp$timeE, inp$obsE, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
+        box(lwd=1.5)
+    }    
 }
 
 

@@ -86,7 +86,7 @@ fit.spict <- function(inp, dbg=0){
     pl <- inp$parlist
     # Cycle through phases
     for(i in 1:inp$nphases){
-        if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
+        if(inp$nphases>1) cat(paste('Estimating - phase', i, '\n'))
         # Create TMB object
         obj <- make.obj(datin, pl, inp, phase=i)
         if(dbg<1){
@@ -106,48 +106,50 @@ fit.spict <- function(inp, dbg=0){
             }
         }
     }
-    optfailflag <- class(opt)=='try-error'
-    sdfailflag <- FALSE
-    if(optfailflag){ # Optimisation failed
-        cat('obj$par:\n')
-        print(obj$par)
-        cat('obj$fn:\n')
-        print(obj$fn())
-        cat('obj$gr:\n')
-        print(obj$gr())
-        stop('Could not fit model. Error msg:', opt)
-    } else {
-        if(inp$do.sd.report & dbg<1){
-            # Calculate SD report
-            rep <- try(TMB::sdreport(obj))
-            sdfailflag <- class(rep)=='try-error'
-            if(sdfailflag){
-                warning('Could not calculate sdreport.\n')
-                rep <- NULL
+    if(dbg<1){
+        optfailflag <- class(opt)=='try-error'
+        sdfailflag <- FALSE
+        if(optfailflag){ # Optimisation failed
+            cat('obj$par:\n')
+            print(obj$par)
+            cat('obj$fn:\n')
+            print(obj$fn())
+            cat('obj$gr:\n')
+            print(obj$gr())
+            stop('Could not fit model. Error msg:', opt)
+        } else {
+            if(inp$do.sd.report){
+                # Calculate SD report
+                rep <- try(TMB::sdreport(obj))
+                sdfailflag <- class(rep)=='try-error'
+                if(sdfailflag){
+                    warning('Could not calculate sdreport.\n')
+                    rep <- NULL
+                }
             }
-        }
-        if(is.null(rep)){ # If sdreport failed or was not calculated
-            rep <- list()
-            if(sdfailflag){
+            if(is.null(rep)){ # If sdreport failed or was not calculated
                 rep <- list()
-                rep$sderr <- 1
-                rep$par.fixed <- opt$par
-                rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
+                if(sdfailflag){
+                    rep <- list()
+                    rep$sderr <- 1
+                    rep$par.fixed <- opt$par
+                    rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
+                }
             }
-        }
-        rep$inp <- inp
-        rep$obj <- obj
-        rep$opt <- opt
-        rep$pl <- obj$env$parList(opt$par)
-        obj$fn()
-        rep$Cp <- obj$report()$Cp
-        rep$report <- obj$report()
-        if(!sdfailflag & inp$reportall){
-            #  - Calculate Prager's statistics -
-            #rep <- calc.prager.stats(rep)
-            # - Built-in OSAR -
-            if(!inp$osar.method == 'none'){
-                rep <- calc.osa.resid(rep)
+            rep$inp <- inp
+            rep$obj <- obj
+            rep$opt <- opt
+            rep$pl <- obj$env$parList(opt$par)
+            obj$fn()
+            rep$Cp <- obj$report()$Cp
+            rep$report <- obj$report()
+            if(!sdfailflag & inp$reportall){
+                #  - Calculate Prager's statistics -
+                #rep <- calc.prager.stats(rep)
+                # - Built-in OSAR -
+                if(!inp$osar.method == 'none'){
+                    rep <- calc.osa.resid(rep)
+                }
             }
         }
     }
@@ -188,16 +190,23 @@ make.datin <- function(inp, dbg=0){
                   dtpredcinds=inp$dtpredcinds,
                   dtpredcnsteps=inp$dtpredcnsteps,
                   dtprediind=inp$dtprediind,
+                  dtpredeinds=inp$dtpredeinds,
+                  dtpredensteps=inp$dtpredensteps,
                   indlastobs=inp$indlastobs,
                   obssrt=inp$obssrt,
                   stdevfacc=inp$stdevfacC,
                   stdevfaci=inp$stdevfacIin,
+                  stdevface=inp$stdevfacE,
                   isc=inp$isc,
                   isi=inp$isi,
+                  ise=inp$ise,
                   nobsC=inp$nobsC,
                   nobsI=sum(inp$nobsI),
+                  nobsE=inp$nobsE,
                   ic=inp$ic,
                   nc=inp$nc,
+                  ie=inp$ie,
+                  ne=inp$ne,
                   ii=inp$iiin,
                   iq=inp$iqin,
                   isdi=inp$isdiin,
@@ -213,16 +222,19 @@ make.datin <- function(inp, dbg=0){
                   indpred=inp$indpred,
                   robflagc=inp$robflagc,
                   robflagi=inp$robflagi,
+                  robflage=inp$robflage,
                   stochmsy=ifelse(inp$msytype=='s', 1, 0),
                   priorn=inp$priors$logn,
                   priorr=inp$priors$logr,
                   priorK=inp$priors$logK,
                   priorm=inp$priors$logm,
                   priorq=inp$priors$logq,
+                  priorqe=inp$priors$logqe,
                   priorbkfrac=inp$priors$logbkfrac,
                   priorsdb=inp$priors$logsdb,
                   priorsdf=inp$priors$logsdf,
                   priorsdi=inp$priors$logsdi,
+                  priorsde=inp$priors$logsde,
                   priorsdc=inp$priors$logsdc,
                   prioralpha=inp$priors$logalpha,
                   priorbeta=inp$priors$logbeta,

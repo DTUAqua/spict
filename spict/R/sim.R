@@ -401,8 +401,6 @@ extract.simstats <- function(rep, inp=NULL){
         ss$conv <- rep$opt$convergence
         # Fit stats
         ss$stats <- rep$stats
-        # Max min ratio
-        ss$maxminratio <- rep$inp$maxminratio
         # OSA residuals p-values
         if('osar' %in% names(rep)) ss$osarpvalC <- rep$osar$logCpboxtest$p.value
         if('osar' %in% names(rep)) ss$osarpvalI <- rep$osar$logIpboxtest[[1]]$p.value
