@@ -1770,7 +1770,7 @@ plotspict.priors <- function(rep, do.plot=4){
 #' @export
 plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     inp <- check.inp(inpin)
-    nseries <- inp$nindex + 1 + as.numeric(inp2$nobsE > 0)
+    nseries <- inp$nindex + 1 + as.numeric(inp$nobsE > 0)
     if(nseries %in% 1:2) mfrow <- c(2, 1)
     if(nseries %in% 3:4) mfrow <- c(2, 2)
     if(nseries %in% 5:6) mfrow <- c(2, 3)
