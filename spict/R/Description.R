@@ -1,5 +1,5 @@
 # Stochastic surplus Production model in Continuous-Time (SPiCT)
-#    Copyright (C) 2015  Martin Waever Pedersen, mawp@dtu.dk or wpsgodd@gmail.com
+#    Copyright (C) 2015-2016  Martin W. Pedersen, mawp@dtu.dk, wpsgodd@gmail.com
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -19,9 +19,9 @@
 #' @aliases spict
 #' @docType package
 #' @title Fits a continuous-time surplus production model to data
-#' @author Martin W. Pedersen \email{map@@aqua.dtu.dk}
+#' @author Martin W. Pedersen \email{mawp@@dtu.dk}
 #' @references
-#' \url{https://github.com/martinwpedersen/spict/}
+#' \url{https://github.com/mawp/spict/}
 #' @keywords production model, fisheries, assessment
 #' @seealso \code{\link{test.spict}}
 #' @examples
