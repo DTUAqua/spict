@@ -406,7 +406,7 @@ sumspict.fixedpars <- function(rep, numdigits=8){
         nms <- nms[-match(c('logsde', 'logqe'), nms)]
     }
     # Are robust options used? if not remove
-    if(!any(rep$inp$robflagi | rep$inp$robflagc)){
+    if(!any(rep$inp$robflagi | rep$inp$robflagc | rep$inp$robflage)){
         nms <- nms[-match(c('logitpp', 'logp1robfac'), nms)]
     }
     # Are seasonal spline used? if not remove
