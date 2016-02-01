@@ -1773,7 +1773,7 @@ plotspict.priors <- function(rep, do.plot=4){
             }
             plot(exp(x), priorvals, typ='l', xlab=nmpl, ylab='Density', log='x', lwd=1.5, ylim=c(0, max(priorvals, posteriorvals)*1.3))
             if (is.na(par[4])){
-                if (!is.na(par[2])) abline(v=par[2], lty=2, col=3)
+                if (!is.na(par[2])) abline(v=exp(par[2]), lty=2, col=3, lwd=1.5)
                 legend('topright', legend=c('Prior', 'Post. Mean'), lty=1:2, col=c(1, 3), lwd=1.5)
             } else {
                 lines(exp(x), posteriorvals, col=3, lwd=1.5)
