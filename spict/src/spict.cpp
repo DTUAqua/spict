@@ -21,10 +21,18 @@
 
 /* Predict biomass */
 template<class Type>
-Type predictlogB(const Type &B0, const Type &F, const Type &gamma, const Type &m, const Type &K, const Type &dt, const Type &n, const Type &sdb2=0)
+Type predictlogB(const Type &B0, const Type &F, const Type &gamma, const Type &m, const Type &K, const Type &dt, const Type &n, const Type &sdb2)
 {
   // Euler discretised Lamperti transformed Pella-Tomlinson surplus production model in Fletcher (1978) form.
   return log(B0) + (gamma*m/K - gamma*m/K*pow(B0/K, n-1.0) - F - 0.5*sdb2)*dt;
+}
+
+/* Predict F*/
+template<class Type>
+Type predictF(const Type &F0, const Type &dt, const Type &sdf2)
+{
+  //return F0;
+  return exp(log(F0) - 0.5*sdf2*dt);
 }
 
 /* Predict catch*/
@@ -179,6 +187,7 @@ Type objective_function<Type>::operator() ()
   Type p = n - 1.0;
   Type lambda = exp(loglambda);
   Type sdf = exp(logsdf);
+  Type sdf2 = sdf*sdf;
   vector<Type> sdu = exp(logsdu);
   int nsdu = sdu.size();
   Type sdb = exp(logsdb);
@@ -403,6 +412,7 @@ Type objective_function<Type>::operator() ()
   */
 
   // FISHING MORTALITY
+  // predictF(const Type &F0, const Type &dt, const Type &sdf2=0)
   vector<Type> logFs = logF;
   if(simple==0){
     if(dbg>0){
@@ -410,7 +420,7 @@ Type objective_function<Type>::operator() ()
     }
     // Diffusion component of F
     for(int i=1; i<ns; i++){
-      Type logFpred = log( ffacvec(i) * exp(logF(i-1)) + fconvec(i) );
+      Type logFpred = log( ffacvec(i) * predictF(exp(logF(i-1)), dt(i), sdf2) + fconvec(i) );
       likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf, 1);
       ans-=likval;
       // DEBUGGING
