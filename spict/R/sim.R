@@ -31,6 +31,18 @@ predict.b <- function(B0, F0, gamma, m, K, n, dt, sdb){
 }
 
 
+#' @name predict.logf
+#' @title Helper function for sim.spict().
+#' @param logF0 Fishing mortality.
+#' @param dt Time step.
+#' @param sdf Standard deviation of F process.
+#' @return Predicted F at the end of dt.
+predict.logf <- function(logF0, dt, sdf){
+    # This is the Lamperti transformed F process with state dependent noise.
+    logF0 - 0.5*sdf^2*dt
+}
+
+
 #' @name sim.spict
 #' @title Simulate data from Pella-Tomlinson model
 #' @details Simulates data using either manually specified parameters values or parameters estimated by fit.spict().
@@ -182,8 +194,12 @@ sim.spict <- function(input, nobs=100){
     recount <- 0
     while(flag){
         # - Fishing mortality -
-        ef <- arima.sim(inp$armalistF, nt-1) * sdf*sqrt(dt) # Used to simulate other than white noise in F
-        logFbase <- c(log(F0), log(F0) + cumsum(ef)) # Fishing mortality
+        logFbase <- numeric(nt)
+        logFbase[1] <- log(F0)
+        e.f <- rnorm(nt-1, 0, sdf*sqrt(dt))
+        for(t in 2:nt) logFbase[t] <- predict.logf(logFbase[t-1], dt, sdf) + e.f[t-1]
+        #ef <- arima.sim(inp$armalistF, nt-1) * sdf*sqrt(dt) # Used to simulate other than white noise in F
+        #logFbase <- c(log(F0), log(F0) + cumsum(ef)) # Fishing mortality
         # Impose seasons
         season <- numeric(length(logFbase))
         if(inp$seasontype==1){ # Spline-based seasonality
@@ -205,10 +221,10 @@ sim.spict <- function(input, nobs=100){
         }
         F <- exp(logFbase + season)
         # - Biomass -
-        B <- rep(0,nt)
+        B <- numeric(nt)
         B[1] <- B0
-        e <- exp(rnorm(nt-1, 0, sdb*sqrt(dt)))
-        for(t in 2:nt) B[t] <- predict.b(B[t-1], F[t-1], gamma, m[inp$ir[t]], K, n, dt, sdb) * e[t-1]
+        e.b <- exp(rnorm(nt-1, 0, sdb*sqrt(dt)))
+        for(t in 2:nt) B[t] <- predict.b(B[t-1], F[t-1], gamma, m[inp$ir[t]], K, n, dt, sdb) * e.b[t-1]
         flag <- any(B <= 0) # Negative biomass not allowed
         recount <- recount+1
         if(recount > 10) stop('Having problems simulating data where B > 0, check parameter values!')
