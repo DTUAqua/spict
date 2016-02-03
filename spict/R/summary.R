@@ -32,7 +32,7 @@ summary.spictcls <- function(object, ...){
     numdigits <- digits # Present values with this number of digits after the dot.
     rep <- object
     cat(paste('Convergence: ', rep$opt$convergence, '  MSG: ', rep$opt$message, '\n', sep=''))
-    if(rep$opt$convergence>0){
+    if (rep$opt$convergence > 0){
         cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and cannot be trusted.\n')
         grad <- rep$obj$gr()
         names(grad) <- names(rep$par.fixed)
@@ -41,7 +41,12 @@ summary.spictcls <- function(object, ...){
         cat('\n')
     }
     if('sderr' %in% names(rep)) cat('WARNING: Could not calculate standard deviations. The optimum found may be invalid. Proceed with caution.\n')
-    cat(paste0('Objective function at optimum: ', round(rep$opt$objective, numdigits), '\n'))
+    if (rep$opt$convergence > 0){
+        txtobj <- 'Objective function: '
+    } else {
+        txtobj <- 'Objective function at optimum: '
+    }
+    cat(paste0(txtobj, round(rep$obj$fn(), numdigits), '\n'))    
     cat(paste0('Euler time step: 1/', 1/rep$inp$dteuler, ' or ', rep$inp$dteuler, '\n'))
     #cat(paste0('Nobs C: ', rep$inp$nobsC, paste0(paste0(',  Nobs I', 1:rep$inp$nindex), ': ', rep$inp$nobsI, collapse=''), '\n'))
     str <- paste0('Nobs C: ', rep$inp$nobsC)
