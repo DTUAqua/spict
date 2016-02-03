@@ -287,7 +287,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         }
         for(i in nindexseq) obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]
         fininds <- which(Best[, 5] < 5) # Use CV to check for large uncertainties
-        BBfininds <- which(BB[, 5] < 5) # Use CV to check for large uncertainties
+        BBfininds <- unname(which(is.finite(BB[, 1]) & is.finite(BB[, 3]))) # Use CV to check for large uncertainties
         if(length(ylim)!=2) ylim <- range(BB[BBfininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2], unlist(obsI), 0.95*Bmsy[1], 1.05*Bmsy[3], na.rm=TRUE)/scal
         ylim[2] <- min(c(ylim[2], 3*max(Best[fininds, 2], unlist(obsI)))) # Limit upper limit
         #if(main==-1) main <- 'Absolute biomass'
@@ -306,7 +306,8 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         }
         cicol2 <- rgb(0, 0, 1, 0.1)
         if (!'yearsepgrowth' %in% names(inp) & rel.ci){
-            polygon(c(inp$time, rev(inp$time)), c(BB[, 1], rev(BB[, 3]))/scal*Bmsy[2],
+            polygon(c(inp$time[BBfininds], rev(inp$time[BBfininds])),
+                    c(BB[BBfininds, 1], rev(BB[BBfininds, 3]))/scal*Bmsy[2],
                     col=cicol2, border=cicol2)
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
@@ -399,13 +400,14 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
             for(i in nindexseq) obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]/Bmsy[1,2]
         }
         fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
+        BBfininds <- which(is.finite(BB[, 1]) & is.finite(BB[, 3]))
         if(length(ylim) != 2) ylim <- range(c(lineat, BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
         ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
         #if(main==-1) main <- 'Relative biomass'
         plot(inp$time, BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main=main)
         cicol2 <- rgb(0, 0, 1, 0.1)
         #polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3])), col=cicol2, border=cicol2)
-        polygon(c(inp$time, rev(inp$time)), c(BB[, 1], rev(BB[, 3])), col=cicol2, border=cicol2)
+        polygon(c(inp$time[BBfininds], rev(inp$time[BBfininds])), c(BB[BBfininds, 1], rev(BB[BBfininds, 3])), col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
         if(plot.obs){
             for(i in nindexseq) plot.col(inp$timeI[[i]], obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)

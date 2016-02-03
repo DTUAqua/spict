@@ -166,7 +166,7 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
             cv <- sqrt(exp(sd^2) - 1)
             ll <- exp(ll)
             ul <- exp(ul)
-            ul[!is.finite(ul)] <- exp(705) # Put a large but finite value instead of Inf
+            ul[ul == Inf] <- exp(705) # Put a large but finite value instead of Inf
             est <- exp(est)
         } else {
             cv <- sd/est
