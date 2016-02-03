@@ -1806,11 +1806,12 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     } else {
         if(sum(par()$mfrow)==2) par(mfrow=mfrow)
     }
+    xlim <- range(inp$timeC, unlist(inp$timeI), inp$timeE)
     # Plot catch
     main <- paste0('Nobs C: ', inp$nobsC)
     ylab <- 'Catch'
     ylab <- add.catchunit(ylab, inp$catchunit)
-    plot(inp$timeC, inp$obsC, typ='l', ylab=ylab, xlab='Time', main=main)
+    plot(inp$timeC, inp$obsC, typ='l', ylab=ylab, xlab='Time', main=main, xlim=xlim)
     grid()
     add.legend <- inp$nseasons > 1
     plot.col(inp$timeC, inp$obsC, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
@@ -1820,13 +1821,13 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     if (inp$nindex > 0){
         i <- 1
         main <- paste0('Nobs I: ', inp$nobsI[i])
-        plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
+        plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main, xlim=xlim)
         grid()
         plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
         if(inp$nindex>1 & is.null(one.index)){
             for(i in 2:inp$nindex){
                 main <- paste0('Nobs I: ', inp$nobsI[i])
-                plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main)
+                plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main, xlim=xlim)
                 grid()
                 plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
             }
@@ -1837,7 +1838,7 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     if (inp$nobsE){
         main <- paste0('Nobs E: ', inp$nobsE)
         ylab <- 'Effort'
-        plot(inp$timeE, inp$obsE, typ='l', ylab=ylab, xlab='Time', main=main)
+        plot(inp$timeE, inp$obsE, typ='l', ylab=ylab, xlab='Time', main=main, xlim=xlim)
         grid()
         add.legend <- inp$nseasons > 1
         plot.col(inp$timeE, inp$obsE, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
