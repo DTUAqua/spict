@@ -46,9 +46,9 @@ summary.spictcls <- function(object, ...){
     } else {
         txtobj <- 'Objective function at optimum: '
     }
-    cat(paste0(txtobj, round(rep$obj$fn(), numdigits), '\n'))    
-    cat(paste0('Euler time step: 1/', 1/rep$inp$dteuler, ' or ', rep$inp$dteuler, '\n'))
-    #cat(paste0('Nobs C: ', rep$inp$nobsC, paste0(paste0(',  Nobs I', 1:rep$inp$nindex), ': ', rep$inp$nobsI, collapse=''), '\n'))
+    cat(paste0(txtobj, round(rep$obj$fn(), numdigits), '\n'))
+    #cat(paste0('Computing time (seconds): ', round(rep$computing.time, 3), '\n'))
+    cat(paste0('Euler time step (years):  1/', 1/rep$inp$dteuler, ' or ', rep$inp$dteuler, '\n'))
     str <- paste0('Nobs C: ', rep$inp$nobsC)
     if (rep$inp$nindex > 0){
         str <- paste0(str, paste0(paste0(',  Nobs I', 1:rep$inp$nindex),
@@ -117,7 +117,6 @@ summary.spictcls <- function(object, ...){
             cat(paste0('\nPredictions w 95% CI (inp$msytype: ', rep$inp$msytype, ')\n'))
             predout <- sumspict.predictions(rep, numdigits=numdigits)
             cat('', paste(capture.output(predout),' \n'))
-
         } else {
             cat(paste0('\nPredictions omitted because inp$reportall = FALSE\n'))
         }
@@ -408,7 +407,7 @@ sumspict.fixedpars <- function(rep, numdigits=8){
     }
     # Were effort observations used? 
     if (rep$inp$nobsE == 0){
-        nms <- nms[-match(c('logsde', 'logqe'), nms)]
+        nms <- nms[-match(c('logsde', 'logqf'), nms)]
     }
     # Are robust options used? if not remove
     if(!any(rep$inp$robflagi | rep$inp$robflagc | rep$inp$robflage)){

@@ -634,7 +634,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         cicol <- 'lightgray'
-        qe <- get.par('logqe', rep, exp=TRUE)
+        qf <- get.par('logqf', rep, exp=TRUE)
         Fest <- get.par('logFs', rep, exp=TRUE)
         logFest <- get.par('logFs', rep)
         FF <- get.par('logFFmsy', rep, exp=TRUE)
@@ -706,7 +706,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             lines(inp$time, Fest[, 2], col=rgb(0, 0, 1, 0.4))
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
-        if (plot.obs) plot.col(inp$timeE, inp$obsE/inp$dte*qe[2], cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
+        if (plot.obs) plot.col(inp$timeE, inp$obsE/inp$dte*qf[2], cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
         if('true' %in% names(inp)){
             lines(inp$true$time, inp$true$Fs, col=true.col()) # Plot true
             abline(h=inp$true$Fmsy, col=true.col(), lty=1)
@@ -750,7 +750,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         cicol <- 'lightgray'
-        qe <- get.par('logqe', rep, exp=TRUE)
+        qf <- get.par('logqf', rep, exp=TRUE)
         Fest <- get.par('logFs', rep, exp=TRUE)
         FF <- get.par('logFFmsy', rep, exp=TRUE)
         logFF <- get.par('logFFmsy', rep)
@@ -814,7 +814,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             lines(inp$time, FF[, 2], col=rgb(0, 0, 1, 0.4))
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
-        if (plot.obs) plot.col(inp$timeE, inp$obsE/inp$dte*qe[2]/Fmsy[2], cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
+        if (plot.obs) plot.col(inp$timeE, inp$obsE/inp$dte*qf[2]/Fmsy[2], cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
         if('true' %in% names(inp)){
             lines(inp$true$time, inp$true$Fs/inp$true$Fmsy, col=true.col()) # Plot true
         }

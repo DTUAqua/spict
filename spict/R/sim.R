@@ -36,10 +36,16 @@ predict.b <- function(B0, F0, gamma, m, K, n, dt, sdb){
 #' @param logF0 Fishing mortality.
 #' @param dt Time step.
 #' @param sdf Standard deviation of F process.
+#' @param efforttype If 1 use diffusion on logF, if 2 use diffusion of F with state dependent noise (this induces the drift term -0.5*sdf^2 in log domain)
 #' @return Predicted F at the end of dt.
-predict.logf <- function(logF0, dt, sdf){
+predict.logf <- function(logF0, dt, sdf, efforttype){
+    if (efforttype == 1){
+        return(logF0)
+    }
     # This is the Lamperti transformed F process with state dependent noise.
-    logF0 - 0.5*sdf^2*dt
+    if (efforttype == 2){
+        return(logF0 - 0.5*sdf^2*dt)
+    }
 }
 
 
@@ -197,7 +203,7 @@ sim.spict <- function(input, nobs=100){
         logFbase <- numeric(nt)
         logFbase[1] <- log(F0)
         e.f <- rnorm(nt-1, 0, sdf*sqrt(dt))
-        for(t in 2:nt) logFbase[t] <- predict.logf(logFbase[t-1], dt, sdf) + e.f[t-1]
+        for(t in 2:nt) logFbase[t] <- predict.logf(logFbase[t-1], dt, sdf, inp$efforttype) + e.f[t-1]
         #ef <- arima.sim(inp$armalistF, nt-1) * sdf*sqrt(dt) # Used to simulate other than white noise in F
         #logFbase <- c(log(F0), log(F0) + cumsum(ef)) # Fishing mortality
         # Impose seasons

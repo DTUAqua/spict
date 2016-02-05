@@ -270,15 +270,18 @@ check.inp <- function(inp){
     if (!"mapq" %in% names(inp)) inp$mapq <- inp$nindexseq
     if ("mapq" %in% names(inp)) inp$nq <- length(unique(inp$mapq))
     # Effort related
+    if (!"efforttype" %in% names(inp)) inp$efforttype <- 1
     if (!"mapsde" %in% names(inp)) inp$mapsde <- inp$neffortseq
     if ("mapsde" %in% names(inp)) inp$nsde <- length(unique(inp$mapsde))
-    if (!"mapqe" %in% names(inp)) inp$mapqe <- inp$neffortseq
-    if ("mapqe" %in% names(inp)) inp$nqe <- length(unique(inp$mapqe))
+    if (!"mapqf" %in% names(inp)) inp$mapqf <- inp$neffortseq
+    if ("mapqf" %in% names(inp)) inp$nqf <- length(unique(inp$mapqf))
     # Catch related
     if (!"catchunit" %in% names(inp)) inp$catchunit <- ''
     # Reporting
     if (!"reportall" %in% names(inp)) inp$reportall <- TRUE
     if (!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
+    if (!"bias.correct" %in% names(inp)) inp$bias.correct <- FALSE # This is time consuming
+    if (!"bias.correct.control" %in% names(inp)) inp$bias.correct.control <- list(sd=FALSE) # This is time consuming
     # Simulation options
     if (!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
     # Optimiser options
@@ -624,7 +627,7 @@ check.inp <- function(inp){
         }
         return(priorvec)
     }
-    possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq', 'logqe', 'logbkfrac', 'logB', 'logF', 'logBBmsy', 'logFFmsy', 'logsdb', 'logsdf', 'logsdi', 'logsde', 'logsdc')
+    possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq', 'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy', 'logFFmsy', 'logsdb', 'logsdf', 'logsdi', 'logsde', 'logsdc')
     repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
     npossiblepriors <- length(possiblepriors)
     if (!"priors" %in% names(inp)){
@@ -765,8 +768,8 @@ check.inp <- function(inp){
         logmaxE <- 0        
     }
     #logmaxE <- ifelse(length(inp$obsE)==0, 0, log(max(inp$obsE[[1]])))
-    if (!'logqe' %in% names(inp$ini)) inp$ini$logqe <- inp$ini$logr - logmaxE
-    #if (sum(inp$nobsE)>0) inp <- check.mapped.ini(inp, 'logqe', 'nqe')
+    if (!'logqf' %in% names(inp$ini)) inp$ini$logqf <- inp$ini$logr - logmaxE
+    #if (sum(inp$nobsE)>0) inp <- check.mapped.ini(inp, 'logqf', 'nqf')
     if (!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
     if (!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(0.1)
     if (!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
@@ -832,7 +835,7 @@ check.inp <- function(inp){
     inp$parlist <- list(logm=inp$ini$logm,
                         logK=inp$ini$logK,
                         logq=inp$ini$logq,
-                        logqe=inp$ini$logqe,
+                        logqf=inp$ini$logqf,
                         logn=inp$ini$logn,
                         logsdb=inp$ini$logsdb,
                         logsdu=inp$ini$logsdu,
@@ -865,7 +868,7 @@ check.inp <- function(inp){
     if (inp$robflagc==0 & inp$robflagi==0 & inp$robflage==0){
         forcefixpars <- c('logitpp', 'logp1robfac', forcefixpars)
     }
-    if (inp$nobsE == 0) forcefixpars <- c('logqe', 'logsde', forcefixpars)
+    if (inp$nobsE == 0) forcefixpars <- c('logqf', 'logsde', forcefixpars)
     if (sum(inp$nobsI) == 0) forcefixpars <- c('logq', 'logsdi', forcefixpars)
     # Determine phases
     if (!"phases" %in% names(inp)){

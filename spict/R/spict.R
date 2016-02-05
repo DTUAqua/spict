@@ -84,6 +84,7 @@ fit.spict <- function(inp, dbg=0){
     inp <- check.inp(inp)
     datin <- make.datin(inp, dbg)
     pl <- inp$parlist
+    tic <- Sys.time()
     # Cycle through phases
     for(i in 1:inp$nphases){
         if(inp$nphases>1) cat(paste('Estimating - phase', i, '\n'))
@@ -120,7 +121,7 @@ fit.spict <- function(inp, dbg=0){
         } else {
             if(inp$do.sd.report){
                 # Calculate SD report
-                rep <- try(TMB::sdreport(obj))
+                rep <- try(TMB::sdreport(obj, bias.correct=inp$bias.correct, bias.correct.control=inp$bias.correct.control))
                 sdfailflag <- class(rep)=='try-error'
                 if(sdfailflag){
                     warning('Could not calculate sdreport.\n')
@@ -153,7 +154,11 @@ fit.spict <- function(inp, dbg=0){
             }
         }
     }
-    if(!is.null(rep)) class(rep) <- "spictcls"
+    toc <- Sys.time()
+    if(!is.null(rep)){
+        rep$computing.time <- as.numeric(toc - tic)
+        class(rep) <- "spictcls"
+    }
     return(rep)
 }
 
@@ -217,6 +222,7 @@ make.datin <- function(inp, dbg=0){
                   splinematfine=inp$splinematfine,
                   omega=inp$omega,
                   seasontype=inp$seasontype,
+                  efforttype=inp$efforttype,
                   ffacvec=inp$ffacvec,
                   fconvec=inp$fconvec,
                   indpred=inp$indpred,
@@ -229,7 +235,7 @@ make.datin <- function(inp, dbg=0){
                   priorK=inp$priors$logK,
                   priorm=inp$priors$logm,
                   priorq=inp$priors$logq,
-                  priorqe=inp$priors$logqe,
+                  priorqf=inp$priors$logqf,
                   priorbkfrac=inp$priors$logbkfrac,
                   priorsdb=inp$priors$logsdb,
                   priorsdf=inp$priors$logsdf,
