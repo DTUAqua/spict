@@ -480,7 +480,7 @@ Type objective_function<Type>::operator() ()
   } else {
     for(int i=0; i<ns; i++) logS(i) = -30; // If using simple set fishing mortality to something small.
   }
-  vector<Type> F = exp(logS + logF);
+  vector<Type> F = exp(logS + logF); // This is the fishing mortality used to calculate catch
   vector<Type> logFs = log(F);
 
   // BIOMASS PREDICTIONS

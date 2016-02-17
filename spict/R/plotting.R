@@ -268,9 +268,9 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         # Biomass plot
-        Best <- get.par('logB', rep, exp=TRUE, random=TRUE)
+        Best <- get.par('logB', rep, exp=TRUE)
         ns <- dim(Best)[1]
-        Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
+        Kest <- get.par('logK', rep, exp=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
         Bmsyvec <- get.msyvec(inp, Bmsy)
         qest <- get.par('logq', rep, exp=TRUE)
@@ -340,12 +340,12 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         lines(inp$time[inp$indpred], Best[inp$indpred,2]/scal, col='blue', lty=3)
         lines(inp$time, Bmsyvec$msy, col='black')
         # B CI
-        if(inp$phases$logq>0){
+        #if(inp$phases$logq>0){
             lines(inp$time[inp$indest], Best[inp$indest,1]/scal, col=4, lty=2, lwd=1.5)
             lines(inp$time[inp$indest], Best[inp$indest,3]/scal, col=4, lty=2, lwd=1.5)
             lines(inp$time[inp$indpred], Best[inp$indpred,1]/scal, col=4, lty=2)
             lines(inp$time[inp$indpred], Best[inp$indpred,3]/scal, col=4, lty=2)
-        }
+        #}
         # B/Bmsy CI
         cicol3 <- rgb(0, 0, 1, 0.2)
         if(!'yearsepgrowth' %in% names(inp)){

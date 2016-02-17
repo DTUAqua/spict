@@ -96,10 +96,32 @@ predict.logf <- function(logF0, dt, sdf, efforttype){
 #' @export
 sim.spict <- function(input, nobs=100){
     # Check if input is a inp (initial values) or rep (results).
+    use.effort.flag <- TRUE
+    check.effort <- function(inp){
+        nm <- names(inp)
+        if(!'timeE' %in% nm){
+            if(!'obsE' %in% nm){
+                inp$nobsE <- inp$nobsC
+                inp$timeE <- inp$timeC
+                inp$stdevfacE <- NULL
+                inp$timeprede <- NULL
+                use.effort.flag <<- FALSE
+            } else {
+                inp$nobsE <- length(inp$obsE)
+                inp$timeE <- 1:inp$nobsE
+            }
+        } else {
+            inp$nobsE <- length(inp$timeE)
+        }
+        if(!'obsE' %in% nm) inp$obsE <- rep(10, inp$nobsE) # Insert dummy
+        return(inp)
+    }
     if('par.fixed' %in% names(input)){
         #cat('Detected input as a SPiCT result, proceeding...\n')
         rep <- input
         inp <- rep$inp
+        inp <- check.effort(inp)
+        inp <- check.inp(inp)
         pl <- rep$pl
         plin <- inp$ini
     } else {
@@ -107,6 +129,7 @@ sim.spict <- function(input, nobs=100){
             #cat('Detected input as a SPiCT inp, proceeding...\n')
             inp <- input
             nm <- names(inp)
+            # Catch
             if(!'timeC' %in% nm){
                 if(!'obsC' %in% nm){
                     inp$nobsC <- nobs
@@ -117,7 +140,10 @@ sim.spict <- function(input, nobs=100){
             } else {
                 inp$nobsC <- length(inp$timeC)
             }
-            if(!'obsC' %in% nm) inp$obsC <- rep(10, inp$nobsC) # Insert dummy, required by check.inp().
+            if(!'obsC' %in% nm) inp$obsC <- rep(10, inp$nobsC) # Insert dummy, req by check.inp().
+            # Effort
+            inp <- check.effort(inp)
+            # Index
             if(!'logq' %in% names(inp$ini)) stop('logq not specified in inp$ini!')
             inp$nindex <- length(inp$ini$logq)
             if(!'timeI' %in% nm){
@@ -171,6 +197,7 @@ sim.spict <- function(input, nobs=100){
     gamma <- calc.gamma(n)
     K <- exp(pl$logK)
     q <- exp(pl$logq)
+    qf <- exp(pl$logqf)
     logphi <- pl$logphi
     sdb <- exp(pl$logsdb)
     sdu <- exp(pl$logsdu)
@@ -179,6 +206,7 @@ sim.spict <- function(input, nobs=100){
     #beta <- exp(pl$logbeta)
     sdi <- exp(pl$logsdi)
     sdc <- exp(pl$logsdc)
+    sde <- exp(pl$logsde)
     #sdi <- alpha * sdb
     #sdc <- beta * sdf
     #A <- inp$A
@@ -260,6 +288,26 @@ sim.spict <- function(input, nobs=100){
             obsC[inp$outliers$indsoutC] <- exp(log(obsC[inp$outliers$indsoutC]) + rnorm(inp$outliers$noutC, 0, fac*sdc))
         }
     }
+    # - Effort observations -
+    Esub <- F / qf * dt
+    E <- numeric(inp$nobsE)
+    obsE <- numeric(inp$nobsE)
+    for(i in 1:inp$nobsE){
+        for(j in 1:inp$ne[i]){
+            ind <- inp$ie[i] + j-1
+            E[i] <- E[i] + Esub[ind];
+        }
+        obsE[i] <- exp(log(E[i]) + rnorm(1, 0, sde))
+        #obsE[i] <- E[i] * exp(rnorm(1, 0, sde))
+    }
+    if('outliers' %in% names(inp)){
+        if('noutE' %in% names(inp$outliers)){
+            fac <- invlogp1(inp$ini$logp1robfae)
+            inp$outliers$orgobsE <- obsE
+            inp$outliers$indsoutE <- sample(1:inp$nobsE, inp$outliers$noutE)
+            obsE[inp$outliers$indsoutE] <- exp(log(obsE[inp$outliers$indsoutE]) + rnorm(inp$outliers$noutE, 0, fac*sde))
+        }
+    }
     # - Index observations -
     obsI <- list()
     errI <- list()
@@ -290,6 +338,13 @@ sim.spict <- function(input, nobs=100){
     sim$timeC <- inp$timeC
     sim$obsI <- obsI
     sim$timeI <- inp$timeI
+    if (use.effort.flag){
+        sim$obsE <- obsE
+        sim$timeE <- inp$timeE
+    } else {
+        sim$otherobs$obsE <- obsE
+        sim$otherobs$timeE <- inp$timeE
+    }
     sim$ini <- plin
     sim$do.sd.report <- inp$do.sd.report
     sim$reportall <- inp$reportall
