@@ -311,14 +311,18 @@ sim.spict <- function(input, nobs=100){
     # - Index observations -
     obsI <- list()
     errI <- list()
+    logItrue <- list()
+    Itrue <- list()
     for(I in 1:inp$nindex){
         obsI[[I]] <- rep(0, inp$nobsI[I])
         errI[[I]] <- rep(0, inp$nobsI[I])
+        logItrue[[I]] <- numeric(inp$nobsI[I])
         for(i in 1:inp$nobsI[I]){
             errI[[I]][i] <- rnorm(1, 0, sdi)
-            logItrue <- log(q[I]) + log(B[inp$ii[[I]][i]])
-            obsI[[I]][i] <- exp(logItrue + errI[[I]][i])
+            logItrue[[I]][i] <- log(q[I]) + log(B[inp$ii[[I]][i]])
+            obsI[[I]][i] <- exp(logItrue[[I]][i] + errI[[I]][i])
         }
+        Itrue[[I]] <- exp(logItrue[[I]])
     }
     if('outliers' %in% names(inp)){
         if('noutI' %in% names(inp$outliers)){
@@ -364,6 +368,9 @@ sim.spict <- function(input, nobs=100){
     sim$true$dteuler <- inp$dteuler
     sim$true$splineorder <- inp$splineorder
     sim$true$time <- time
+    sim$true$C <- C
+    sim$true$E <- E
+    sim$true$I <- Itrue
     sim$true$B <- B
     sim$true$F <- exp(logFbase)
     sim$true$Fs <- F
