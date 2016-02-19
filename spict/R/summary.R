@@ -184,10 +184,20 @@ sumspict.parest <- function(rep, numdigits=8){
             truepar[logitinds] <- invlogit(truepar[logitinds])
             truepar[logp1inds] <- invlogp1(truepar[logp1inds])
             ci <- rep(0, npar)
-            for(i in 1:npar) ci[i] <- as.numeric(truepar[i] > cilow[i] & truepar[i] < ciupp[i])
-            resout <- cbind(estimate=round(est,numdigits), true=round(truepar,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), true.in.ci=ci, est.in.log=round(rep$par.fixed,numdigits))
+            for(i in 1:npar){
+                ci[i] <- as.numeric(truepar[i] > cilow[i] & truepar[i] < ciupp[i])
+            }
+            resout <- cbind(estimate=round(est,numdigits),
+                            true=round(truepar,numdigits),
+                            cilow=round(cilow,numdigits),
+                            ciupp=round(ciupp,numdigits),
+                            true.in.ci=ci,
+                            est.in.log=round(rep$par.fixed,numdigits))
         } else {
-            resout <- cbind(estimate=round(est,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), est.in.log=round(rep$par.fixed,numdigits))
+            resout <- cbind(estimate=round(est,numdigits),
+                            cilow=round(cilow,numdigits),
+                            ciupp=round(ciupp,numdigits),
+                            est.in.log=round(rep$par.fixed,numdigits))
         }
         nms[loginds] <- sub('log', '', names(rep$par.fixed[loginds]))
         nms[logitinds] <- sub('logit', '', names(rep$par.fixed[logitinds]))
@@ -205,14 +215,20 @@ sumspict.parest <- function(rep, numdigits=8){
         # Derived variables
         if(!'sderr' %in% names(rep)){
             nalpha <- sum(names(rep$par.fixed) == 'logsdi')
-            derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
-                            get.par(parname='logbeta', rep, exp=TRUE)[, order],
+            derout <- rbind(get.par(parname='logbeta', rep, exp=TRUE)[, order],
                             get.par(parname='logr', rep, exp=TRUE)[, order])
+            if (nalpha > 0){
+                derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
+                                derout)
+            }
             derout[, 4] <- log(derout[, 4])
             derout <- round(derout, numdigits)
             nr <- dim(derout)[1]
             if('true' %in% names(rep$inp)){
-                dertrue <- exp(c(rep(rep$inp$true$logalpha, nalpha), rep$inp$true$logbeta, rep$inp$true$logr))
+                dertrue <- exp(c(rep$inp$true$logbeta, rep$inp$true$logr))
+                if (nalpha > 0){
+                    dertrue <- c(rep(exp(rep$inp$true$logalpha), nalpha), dertrue)
+                }
                 ndertrue <- length(dertrue)
                 if(ndertrue == nr){
                     cider <- numeric(ndertrue)
@@ -228,10 +244,14 @@ sumspict.parest <- function(rep, numdigits=8){
             } else {
                 rnms <- 'r    '
             }
-            if(nalpha > 1){
-                alphanms <- paste0('alpha', 1:nalpha)
+            if (nalpha > 0){
+                if(nalpha > 1){
+                    alphanms <- paste0('alpha', 1:nalpha)
+                } else {
+                    alphanms <- 'alpha'
+                }
             } else {
-                alphanms <- 'alpha'
+                alphanms <- NULL
             }
             rownames(derout) <- c(alphanms, 'beta', rnms)
             resout <- rbind(derout, resout)
