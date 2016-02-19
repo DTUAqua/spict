@@ -273,12 +273,14 @@ sim.spict <- function(input, nobs=100){
     # - Catch observations -
     C <- rep(0, inp$nobsC)
     obsC <- rep(0, inp$nobsC)
+    e.c <- exp(rnorm(inp$nobsC, 0, sdc))
     for(i in 1:inp$nobsC){
         for(j in 1:inp$nc[i]){
             ind <- inp$ic[i] + j-1
             C[i] <- C[i] + Csub[ind];
         }
-        obsC[i] <- exp(log(C[i]) + rnorm(1, 0, sdc))
+        #obsC[i] <- exp(log(C[i]) + rnorm(1, 0, sdc))
+        obsC[i] <- C[i] * e.c[i]
     }
     if('outliers' %in% names(inp)){
         if('noutC' %in% names(inp$outliers)){
@@ -292,13 +294,14 @@ sim.spict <- function(input, nobs=100){
     Esub <- F / qf * dt
     E <- numeric(inp$nobsE)
     obsE <- numeric(inp$nobsE)
+    e.e <- exp(rnorm(inp$nobsE, 0, sde))
     for(i in 1:inp$nobsE){
         for(j in 1:inp$ne[i]){
             ind <- inp$ie[i] + j-1
             E[i] <- E[i] + Esub[ind];
         }
-        obsE[i] <- exp(log(E[i]) + rnorm(1, 0, sde))
-        #obsE[i] <- E[i] * exp(rnorm(1, 0, sde))
+        #obsE[i] <- exp(log(E[i]) + rnorm(1, 0, sde))
+        obsE[i] <- E[i] * e.e[i]
     }
     if('outliers' %in% names(inp)){
         if('noutE' %in% names(inp$outliers)){
@@ -313,14 +316,17 @@ sim.spict <- function(input, nobs=100){
     errI <- list()
     logItrue <- list()
     Itrue <- list()
+    e.i <- list()
     for(I in 1:inp$nindex){
         obsI[[I]] <- rep(0, inp$nobsI[I])
         errI[[I]] <- rep(0, inp$nobsI[I])
         logItrue[[I]] <- numeric(inp$nobsI[I])
+        e.i[[I]] <- exp(rnorm(inp$nobsI[I], 0, sdi))
         for(i in 1:inp$nobsI[I]){
             errI[[I]][i] <- rnorm(1, 0, sdi)
             logItrue[[I]][i] <- log(q[I]) + log(B[inp$ii[[I]][i]])
-            obsI[[I]][i] <- exp(logItrue[[I]][i] + errI[[I]][i])
+            #obsI[[I]][i] <- exp(logItrue[[I]][i] + errI[[I]][i])
+            obsI[[I]][i] <- exp(logItrue[[I]][i]) * e.i[[I]][i]
         }
         Itrue[[I]] <- exp(logItrue[[I]])
     }
@@ -376,6 +382,11 @@ sim.spict <- function(input, nobs=100){
     sim$true$Fs <- F
     sim$true$gamma <- gamma
     sim$true$seasontype <- inp$seasontype
+    sim$true$e.c <- e.c
+    sim$true$e.e <- e.e
+    sim$true$e.i <- e.i
+    sim$true$e.b <- e.b
+    sim$true$e.f <- e.f
     
     sign <- 1
     R <- (n-1)/n*gamma*mean(m[inp$ir])/K
