@@ -97,6 +97,7 @@ predict.logf <- function(logF0, dt, sdf, efforttype){
 sim.spict <- function(input, nobs=100){
     # Check if input is a inp (initial values) or rep (results).
     use.effort.flag <- TRUE
+    use.index.flag <- TRUE
     check.effort <- function(inp){
         nm <- names(inp)
         if(!'timeE' %in% nm){
@@ -116,11 +117,45 @@ sim.spict <- function(input, nobs=100){
         if(!'obsE' %in% nm) inp$obsE <- rep(10, inp$nobsE) # Insert dummy
         return(inp)
     }
+    check.index <- function(inp){
+        if(!'logq' %in% names(inp$ini)) stop('logq not specified in inp$ini!')
+        inp$nindex <- length(inp$ini$logq)
+        nm <- names(inp)
+        if(!'timeI' %in% nm){
+            if(!'obsI' %in% nm){
+                inp$nobsI <- inp$nobsC
+                inp$timeI <- inp$timeC
+                inp$stdevfacI <- NULL
+                inp$timepredi <- NULL
+                use.index.flag <<- FALSE
+                inp$nobsI <- nobs
+            } else {
+                if(class(inp$obsI)!='list'){
+                    tmp <- inp$obsI
+                    inp$obsI <- list()
+                    inp$obsI[[1]] <- tmp
+                }
+                inp$nobsI <- rep(0, inp$nindex)
+                for(i in 1:inp$nindex) inp$nobsI[i] <- length(inp$obsI[[i]])
+            }
+            inp$timeI <- list()
+            for(i in 1:inp$nindex) inp$timeI[[i]] <- 1:inp$nobsI[i]
+        } else {
+            inp$nobsI <- rep(0, inp$nindex)
+            for(i in 1:inp$nindex) inp$nobsI[i] <- length(inp$timeI[[i]])
+        }
+        if(!'obsI' %in% nm){
+            inp$obsI <- list()
+            for(i in 1:inp$nindex) inp$obsI[[i]] <- rep(10, inp$nobsI[i]) # Insert dummy
+        }
+        return(inp)
+    }
     if('par.fixed' %in% names(input)){
         #cat('Detected input as a SPiCT result, proceeding...\n')
         rep <- input
         inp <- rep$inp
         inp <- check.effort(inp)
+        inp <- check.index(inp)
         inp <- check.inp(inp)
         pl <- rep$pl
         plin <- inp$ini
@@ -144,30 +179,8 @@ sim.spict <- function(input, nobs=100){
             # Effort
             inp <- check.effort(inp)
             # Index
-            if(!'logq' %in% names(inp$ini)) stop('logq not specified in inp$ini!')
-            inp$nindex <- length(inp$ini$logq)
-            if(!'timeI' %in% nm){
-                if(!'obsI' %in% nm){
-                    inp$nobsI <- nobs
-                } else {
-                    if(class(inp$obsI)!='list'){
-                        tmp <- inp$obsI
-                        inp$obsI <- list()
-                        inp$obsI[[1]] <- tmp
-                    }
-                    inp$nobsI <- rep(0, inp$nindex)
-                    for(i in 1:inp$nindex) inp$nobsI[i] <- length(inp$obsI[[i]])
-                }
-                inp$timeI <- list()
-                for(i in 1:inp$nindex) inp$timeI[[i]] <- 1:inp$nobsI[i]
-            } else {
-                inp$nobsI <- rep(0, inp$nindex)
-                for(i in 1:inp$nindex) inp$nobsI[i] <- length(inp$timeI[[i]])
-            }
-            if(!'obsI' %in% nm){
-                inp$obsI <- list()
-                for(i in 1:inp$nindex) inp$obsI[[i]] <- rep(10, inp$nobsI[i]) # Insert dummy
-            }
+            inp <- check.index(inp)
+            # Make parameter lists and check input
             plin <- inp$ini
             inp <- check.inp(inp)
             pl <- inp$parlist
@@ -346,8 +359,15 @@ sim.spict <- function(input, nobs=100){
     sim <- list()
     sim$obsC <- obsC
     sim$timeC <- inp$timeC
-    sim$obsI <- obsI
-    sim$timeI <- inp$timeI
+    #sim$obsI <- obsI
+    #sim$timeI <- inp$timeI
+    if (use.index.flag){
+        sim$obsI <- obsI
+        sim$timeI <- inp$timeI
+    } else {
+        sim$otherobs$obsI <- obsI
+        sim$otherobs$timeI <- inp$timeI
+    }
     if (use.effort.flag){
         sim$obsE <- obsE
         sim$timeE <- inp$timeE
@@ -420,11 +440,12 @@ sim.spict <- function(input, nobs=100){
 #' WARNING: One should simulate at least 50 data sets and preferably more than 100 to obtain reliable results. This will take some time (potentially hours).
 #' @param inp An inp list with an ini key (see ?check.inp). If you want to use estimated parameters for the simulation create the inp$ini from the pl key of a result of fit.spict().
 #' @param nsim Number of simulated data sets in each batch.
-#' @param nobsvec Vector containing the number of simulated observations of each data set in each batch.
+#' @param invec Vector containing the number of simulated observations of each data set in each batch.
 #' @param estinp The estimation uses the true parameters as starting guess. Other initial values to be used for estimation can be specified in estinp$ini.
 #' @param backup Since this procedure can be slow a filename can be specified in backup where the most recent results will be available.
 #' @param df.out Output data frame instead of list.
 #' @param summ.ex.file Save a summary example to this file (to check that parameters have correct priors or are fixed).
+#' @param type Specify what type of information is contained in invec. If type == 'nobs' then invec is assumed to be a vector containing the number of simulated observations of each data set in each batch. If type == 'logsdc' then invec is assumed to be a vector containing values of logsdc over which to loop.
 #' @return A list containing the results of the validation with the following keys:
 #' \itemize{
 #'  \item{"osarpvals"}{ P-values of the Ljung-Box test for uncorrelated one-step-ahead residuals.}
@@ -437,40 +458,57 @@ sim.spict <- function(input, nobs=100){
 #' inp <- list()
 #' inp$ini <- rep0$pl
 #' set.seed(1234)
-#' validate.spict(inp, nsim=10, nobsvec=c(30, 60), backup='validate.RData')
+#' validate.spict(inp, nsim=10, invec=c(30, 60), backup='validate.RData')
 #' @export
-validate.spict <- function(inp, nsim=50, nobsvec=c(15, 60, 240), estinp=NULL, backup=NULL, df.out=FALSE, summ.ex.file=NULL){
-    nnobsvec <- length(nobsvec)
-    inp$timeC <- NULL
-    inp$timeI <- NULL
-    inp$obsC <- NULL
-    inp$obsI <- NULL
-    if('logF' %in% names(inp$ini)) inp$ini$logF <- NULL
-    if('logB' %in% names(inp$ini)) inp$ini$logB <- NULL
+validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, backup=NULL,
+                           df.out=FALSE, summ.ex.file=NULL, type='nobs'){
     ss <- list()
     #require(parallel)
-    #nobs <- nobsvec[1]
-    fun <- function(i, inp, nobs, estinp, backup){
-        cat(paste(Sys.time(), '- validating:  i:', i, 'nobs:', nobs, '\n'))
+    #nobs <- invec[1]
+    fun <- function(i, inp, nobs, estinp, backup, type, val){
+        cat(paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4), '\n'))
         sim <- sim.spict(inp, nobs)
         #if(!is.null(estinp)) sim$ini <- estinp$ini
-        if(!is.null(estinp)) for(nm in names(estinp$priors)) sim$priors[[nm]] <- estinp$priors[[nm]]
+        if (!is.null(estinp)){
+            for (nm in names(estinp$priors)){
+                sim$priors[[nm]] <- estinp$priors[[nm]]
+            }
+        }
         rep <- try(fit.spict(sim))
         s <- NA
-        if(!class(rep)=='try-error'){
+        if (!class(rep)=='try-error'){
             s <- extract.simstats(rep, inp)
-            if(!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file) # This line causes problems when running simulation2.R, the problem is that log cannot be taken of the derout variable of the summary.
+            if (!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file) # This line causes problems when running simulation2.R, the problem is that log cannot be taken of the derout variable of the summary.
         }
         return(s)
     }
     #asd <- fun(1, inp, nobs, estinp, backup)
-    for(j in 1:nnobsvec){
-        nobs <- nobsvec[j]
-        cat(paste(Sys.time(), '- validating nobs:', nobs, '\n'))
-        ss[[j]] <- parallel::mclapply(1:nsim, fun, inp, nobs, estinp, backup, mc.cores=8)
-        if(!is.null(backup)) save(ss, file=backup)
+    ninvec <- length(invec)
+    if (type == 'nobs'){
+        inp$timeC <- NULL
+        inp$timeI <- NULL
+        inp$obsC <- NULL
+        inp$obsI <- NULL
+        if ('logF' %in% names(inp$ini)) inp$ini$logF <- NULL
+        if ('logB' %in% names(inp$ini)) inp$ini$logB <- NULL
+        for (j in 1:ninvec){
+            nobs <- invec[j]
+            cat(paste(Sys.time(), '- validating nobs:', nobs, '\n'))
+            ss[[j]] <- parallel::mclapply(1:nsim, fun, inp, nobs, estinp, backup, type, invec[j], mc.cores=8)
+            if (!is.null(backup)) save(ss, file=backup)
+        }
     }
-    if(df.out) ss <- validation.data.frame(ss)
+    if (type == 'logsdc'){
+        for (j in 1:ninvec){
+            inp$ini$logsdc <- invec[j]
+            cat(paste(Sys.time(), '- validating logsdc:', round(invec[j], 4), '\n'))
+            ss[[j]] <- parallel::mclapply(1:nsim, fun, inp, nobs, estinp, backup, type, invec[j], mc.cores=8)
+            if (!is.null(backup)) save(ss, file=backup)
+        }
+    }
+
+    
+    if (df.out) ss <- validation.data.frame(ss)
     return(ss)
 }
 
