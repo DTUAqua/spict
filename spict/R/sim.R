@@ -526,7 +526,7 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
 #' rep <- fit.spict(sim)
 #' extract.simstats(rep)
 #' @export
-extract.simstats <- function(rep, inp=NULL){
+extract.simstats <- function(rep, inp=NULL, parnames=c('logFmsy', 'logBmsy', 'MSY', 'logBl', 'logBlBmsy', 'logFlFmsy', 'logsdb', 'logsdi')){
     if('true' %in% names(rep$inp)){
         ss <- list()
         ss$nobs <- c(nobsc=rep$inp$nobsC, nobsI=rep$inp$nobsI)
@@ -562,9 +562,14 @@ extract.simstats <- function(rep, inp=NULL){
             return(list(ci=ci, ciw=ciw, cv=cv))
         }
         # sdu estimate
-        if(!is.null(inp)){
-            if('logsdu' %in% names(inp$ini) & rep$inp$phases$logsdu > 0) ss$sdu <- calc.simstats('logsdu', rep, exp=FALSE, rep$inp$true$logsdu)
-        }
+        #if(!is.null(inp)){
+        #    if('logsdu' %in% names(inp$ini) & rep$inp$phases$logsdu > 0) ss$sdu <- calc.simstats('logsdu', rep, exp=FALSE, rep$inp$true$logsdu)
+        #}
+        
+        #for (pn in parnames){
+        #    ss[[pn]] <- calc.simstats(pn, rep, exp=TRUE, rep$inp$true$Fmsy)
+        #}
+        
         # Fmsy estimate
         ss$Fmsy <- calc.simstats('logFmsy', rep, exp=TRUE, rep$inp$true$Fmsy)
         # Bmsy estimate
