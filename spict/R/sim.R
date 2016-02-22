@@ -191,6 +191,9 @@ sim.spict <- function(input, nobs=100){
     time <- inp$time
     euler <- inp$euler
     lamperti <- inp$lamperti
+    if (!use.effort.flag){
+        use.index.flag <- TRUE
+    }
 
     # Calculate derived variables
     dt <- inp$dteuler
@@ -423,9 +426,11 @@ sim.spict <- function(input, nobs=100){
     sim$true$MSY <- K*R/((p+1)^(1/p)) * (1 - (p+1)/2*sdb^2/(1-(1-R)^2))
     sim$true$BBmsy <- B/sim$true$Bmsy
     sim$true$FFmsy <- F/sim$true$Fmsy
-    #sim$true$Bmsy <- sim$true$Bmsyd * (1 - (1+R*(p-1)/2)*sdb^2 / (R*(2-R)^2))
-    #sim$true$Fmsy <- sim$true$Fmsyd - (p*(1-R)*sdb^2) / ((2-R)^2)
-    #sim$true$MSY <- sim$true$MSYd * (1 - ((p+1)/2*sdb^2) / (1-(1-R)^2))
+    # include the log of some quantities
+    lognames <- c('B', 'F', 'Bmsy', 'Fmsy', 'MSY', 'FFmsy', 'BBmsy')
+    for (pn in lognames){
+        sim$true[[paste0('log', pn)]] <- log(sim$true[[pn]])
+    }
     sim$true$errI <- errI
     sim$true$logB <- NULL
     sim$true$logF <- NULL
@@ -461,11 +466,15 @@ sim.spict <- function(input, nobs=100){
 #' validate.spict(inp, nsim=10, invec=c(30, 60), backup='validate.RData')
 #' @export
 validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, backup=NULL,
-                           df.out=FALSE, summ.ex.file=NULL, type='nobs'){
+                           df.out=FALSE, summ.ex.file=NULL, type='nobs', parnames=NULL, exp=NULL){
+    if (is.null(parnames)){
+        parnames <- c('logFmsy', 'logBmsy', 'MSY', 'logBl', 'logBlBmsy',
+                      'logFlFmsy', 'logsdb', 'logsdi')
+    }
     ss <- list()
     #require(parallel)
     #nobs <- invec[1]
-    fun <- function(i, inp, nobs, estinp, backup, type, val){
+    fun <- function(i, inp, nobs, estinp, backup, type, val, parnames, exp){
         cat(paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4), '\n'))
         sim <- sim.spict(inp, nobs)
         #if(!is.null(estinp)) sim$ini <- estinp$ini
@@ -477,7 +486,7 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
         rep <- try(fit.spict(sim))
         s <- NA
         if (!class(rep)=='try-error'){
-            s <- extract.simstats(rep, inp)
+            s <- extract.simstats(rep, inp, exp=exp, parnames=parnames)
             if (!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file) # This line causes problems when running simulation2.R, the problem is that log cannot be taken of the derout variable of the summary.
         }
         return(s)
@@ -491,22 +500,21 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
         inp$obsI <- NULL
         if ('logF' %in% names(inp$ini)) inp$ini$logF <- NULL
         if ('logB' %in% names(inp$ini)) inp$ini$logB <- NULL
-        for (j in 1:ninvec){
-            nobs <- invec[j]
-            cat(paste(Sys.time(), '- validating nobs:', nobs, '\n'))
-            ss[[j]] <- parallel::mclapply(1:nsim, fun, inp, nobs, estinp, backup, type, invec[j], mc.cores=8)
-            if (!is.null(backup)) save(ss, file=backup)
-        }
-    }
-    if (type == 'logsdc'){
-        for (j in 1:ninvec){
-            inp$ini$logsdc <- invec[j]
-            cat(paste(Sys.time(), '- validating logsdc:', round(invec[j], 4), '\n'))
-            ss[[j]] <- parallel::mclapply(1:nsim, fun, inp, nobs, estinp, backup, type, invec[j], mc.cores=8)
-            if (!is.null(backup)) save(ss, file=backup)
-        }
     }
 
+    for (j in 1:ninvec){
+        if (type == 'logsdc'){
+            inp$ini$logsdc <- invec[j]
+        }
+        if (type == 'nobs'){
+            nobs <- invec[j]
+        }
+        # Run simulations
+        cat(paste0(Sys.time(), ' - validating ', type, ': ', round(invec[j], 4), '\n'))
+        ss[[j]] <- parallel::mclapply(1:nsim, fun, inp, nobs, estinp, backup,
+                                      type, invec[j], parnames, exp, mc.cores=8)
+        if (!is.null(backup)) save(ss, file=backup)
+    }
     
     if (df.out) ss <- validation.data.frame(ss)
     return(ss)
@@ -526,8 +534,13 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
 #' rep <- fit.spict(sim)
 #' extract.simstats(rep)
 #' @export
-extract.simstats <- function(rep, inp=NULL, parnames=c('logFmsy', 'logBmsy', 'MSY', 'logBl', 'logBlBmsy', 'logFlFmsy', 'logsdb', 'logsdi')){
+extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
     if('true' %in% names(rep$inp)){
+        if (is.null(parnames)){
+            parnames <- c('logFmsy', 'logBmsy', 'MSY', 'logBl', 'logBlBmsy',
+                          'logFlFmsy', 'logsdb', 'logsdi')
+        }
+
         ss <- list()
         ss$nobs <- c(nobsc=rep$inp$nobsC, nobsI=rep$inp$nobsI)
         # Convergence
@@ -559,37 +572,74 @@ extract.simstats <- function(rep, inp=NULL, parnames=c('logFmsy', 'logBmsy', 'MS
                     cv[i] <- par[i, 5]
                 }
             }
-            return(list(ci=ci, ciw=ciw, cv=cv))
+            return(list(ci=ci, ciw=ciw, cv=cv, exp=exp))
         }
         # sdu estimate
         #if(!is.null(inp)){
         #    if('logsdu' %in% names(inp$ini) & rep$inp$phases$logsdu > 0) ss$sdu <- calc.simstats('logsdu', rep, exp=FALSE, rep$inp$true$logsdu)
         #}
+
+        # NEW ---
+        nparnames <- length(parnames)
+        if (length(exp) != nparnames){
+            if (length(exp) == 1){
+                exp <- rep(exp, nparnames)
+            } else {
+                exp <- NULL
+            }
+        }
+        if (is.null(exp)){
+            inds <- grep('^log', parnames)
+            exp <- logical(nparnames)
+            exp[inds] <- TRUE
+        }
+        for (i in 1:nparnames){
+            pn <- parnames[i]
+            true <- rep$inp$true[[pn]]
+            if (pn == 'logBl'){
+                ind <- rep$inp$indlastobs
+                true <- log(rep$inp$true$B[ind])
+            }
+            if (pn == 'logFl'){
+                ind <- rep$inp$indlastobs
+                true <- log(rep$inp$true$F[ind])
+            }
+            if (pn == 'logBlBmsy'){
+                ind <- rep$inp$indlastobs
+                true <- log(rep$inp$true$B[ind] / rep$inp$true$Bmsy)
+            }
+            if (pn == 'logFlFmsy'){
+                ind <- rep$inp$indlastobs
+                true <- log(rep$inp$true$F[ind] / rep$inp$true$Fmsy)
+            }
+            true <- ifelse(exp[i], exp(true), true)
+            ss[[pn]] <- calc.simstats(pn, rep, exp=exp[i], true)
+        }
+        # NEW end ---
         
-        #for (pn in parnames){
-        #    ss[[pn]] <- calc.simstats(pn, rep, exp=TRUE, rep$inp$true$Fmsy)
-        #}
-        
+        # OLD ---
         # Fmsy estimate
-        ss$Fmsy <- calc.simstats('logFmsy', rep, exp=TRUE, rep$inp$true$Fmsy)
+        #ss$Fmsy <- calc.simstats('logFmsy', rep, exp=TRUE, rep$inp$true$Fmsy)
         # Bmsy estimate
-        ss$Bmsy <- calc.simstats('logBmsy', rep, exp=TRUE, rep$inp$true$Bmsy)
+        #ss$Bmsy <- calc.simstats('logBmsy', rep, exp=TRUE, rep$inp$true$Bmsy)
         # MSY estimate
-        ss$MSY <- calc.simstats('MSY', rep, exp=FALSE, rep$inp$true$MSY)
+        #ss$MSY <- calc.simstats('MSY', rep, exp=FALSE, rep$inp$true$MSY)
         # Final biomass estimate
-        ind <- rep$inp$indlastobs
-        ss$B <- calc.simstats('logBl', rep, exp=TRUE, rep$inp$true$B[ind])
+        #ind <- rep$inp$indlastobs
+        #ss$B <- calc.simstats('logBl', rep, exp=TRUE, rep$inp$true$B[ind])
         # Final B/Bmsy estimate
-        ss$BB <- calc.simstats('logBlBmsy', rep, exp=TRUE, rep$inp$true$B[ind]/rep$inp$true$Bmsy)
+        #ss$BB <- calc.simstats('logBlBmsy', rep, exp=TRUE, rep$inp$true$B[ind]/rep$inp$true$Bmsy)
         # Final F/Fmsy estimate
-        ss$FF <- calc.simstats('logFlFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy)
+        #ss$FF <- calc.simstats('logFlFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy)
         # Biomass process noise
-        ss$sdb <- calc.simstats('logsdb', rep, exp=TRUE, exp(rep$inp$true$logsdb))
+        #ss$sdb <- calc.simstats('logsdb', rep, exp=TRUE, exp(rep$inp$true$logsdb))
         # Biomass process noise
-        ss$sdi <- calc.simstats('logsdi', rep, exp=TRUE, exp(rep$inp$true$logsdi))
+        #ss$sdi <- calc.simstats('logsdi', rep, exp=TRUE, exp(rep$inp$true$logsdi))
+        # OLD end ---
+        
         # Convergence for all values
         uss <- unlist(ss)
-        ss$convall <- (any(is.na(uss) | !is.finite(uss)) | ss$conv>0)
+        ss$convall <- (any(is.na(uss) | !is.finite(uss)) | ss$conv > 0)
         return(ss)
     } else {
         stop('These results do not come from the estimation of a simulated data set!')
