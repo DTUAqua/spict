@@ -283,7 +283,11 @@ check.inp <- function(inp){
     if (!"bias.correct" %in% names(inp)) inp$bias.correct <- FALSE # This is time consuming
     if (!"bias.correct.control" %in% names(inp)) inp$bias.correct.control <- list(sd=FALSE) # This is time consuming
     # Simulation options
-    if (!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
+    #if (!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
+    # When simulating using sim.comm.cpue == TRUE, the simulation calculates
+    # commercial CPUE by dividing catch and effort.
+    # This is output as an biomass index.
+    if (!"sim.comm.cpue" %in% names(inp)) inp$sim.comm.cpue <- FALSE
     # Optimiser options
     if (!"optimiser" %in% names(inp)) inp$optimiser <- 'nlminb'
     if (!"optimiser.control" %in% names(inp)) inp$optimiser.control <- list()

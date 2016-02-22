@@ -141,6 +141,11 @@ sim.spict <- function(input, nobs=100){
             inp$timeI <- list()
             for(i in 1:inp$nindex) inp$timeI[[i]] <- 1:inp$nobsI[i]
         } else {
+            if(class(inp$timeI)!='list'){
+                tmp <- inp$timeI
+                inp$timeI <- list()
+                inp$timeI[[1]] <- tmp
+            }
             inp$nobsI <- rep(0, inp$nindex)
             for(i in 1:inp$nindex) inp$nobsI[i] <- length(inp$timeI[[i]])
         }
@@ -193,6 +198,10 @@ sim.spict <- function(input, nobs=100){
     lamperti <- inp$lamperti
     if (!use.effort.flag){
         use.index.flag <- TRUE
+    }
+    if (inp$sim.comm.cpue){
+        use.index.flag <- FALSE
+        use.effort.flag <- FALSE
     }
 
     # Calculate derived variables
@@ -378,6 +387,15 @@ sim.spict <- function(input, nobs=100){
         sim$otherobs$obsE <- obsE
         sim$otherobs$timeE <- inp$timeE
     }
+    if (inp$nobsC == inp$nobsE){
+        if (inp$sim.comm.cpue){
+            sim$obsI <- obsC / obsE
+            sim$timeI <- inp$timeI
+        } else {
+            sim$otherobs$obsIcommcpue <- obsC / obsE
+            sim$otherobs$timeIcommcpue <- inp$timeC
+        }
+    }
     sim$ini <- plin
     sim$do.sd.report <- inp$do.sd.report
     sim$reportall <- inp$reportall
@@ -391,6 +409,7 @@ sim.spict <- function(input, nobs=100){
     sim$recount <- recount
     sim$nseasons <- inp$nseasons
     sim$seasontype <- inp$seasontype
+    sim$sim.comm.cpue <- inp$sim.comm.cpue
     sim$true <- pl
     sim$true$logalpha <- sim$true$logsdi - sim$true$logsdb
     sim$true$logbeta <- sim$true$logsdc - sim$true$logsdf

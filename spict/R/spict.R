@@ -140,6 +140,7 @@ fit.spict <- function(inp, dbg=0){
             rep$inp <- inp
             rep$obj <- obj
             rep$opt <- opt
+            rep$opt$gr <- rep$obj$gr(rep$opt$par)
             rep$pl <- obj$env$parList(opt$par)
             obj$fn()
             rep$Cp <- obj$report()$Cp
