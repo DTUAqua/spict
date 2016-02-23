@@ -241,6 +241,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> Bmsys(nm);
   vector<Type> Fmsys(nm);
   vector<Type> MSYs(nm);
+  int Fmsyflag = 0;
   for(int i=0; i<nm; i++){
     // Deterministic reference points
     Bmsyd(i) = K * pow(1.0/n, 1.0/(n-1.0));
@@ -249,6 +250,9 @@ Type objective_function<Type>::operator() ()
     rbmean(i) = (n-1)/n*gamma*m(i)/K;
     Bmsys(i) = Bmsyd(i) * (1.0 - (1.0 + rbmean(i)*(p-1.0)/2.0)*sdb2 / (rbmean(i)*pow(2.0-rbmean(i), 2.0)));
     Fmsys(i) = Fmsyd(i) - (p*(1.0-rbmean(i))*sdb2) / pow(2.0-rbmean(i), 2.0) ;
+    if (Fmsys(i) < 0){
+      Fmsyflag = 1;
+    }
     MSYs(i) = MSYd(i) * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean(i), 2.0)));
   }
   // log reference points
@@ -266,7 +270,11 @@ Type objective_function<Type>::operator() ()
   vector<Type> logFmsy(nm);
   vector<Type> logMSY(nm);
 
-  if(stochmsy == 1){
+  int stochmsyused = 0;
+  if(dbg > 0){
+    std::cout << "stochmsyused: " << stochmsyused << "  stochmsy: " << stochmsy << "  n: " << n << "  Fmsyflag: " << Fmsyflag << std::endl;
+  }
+  if(stochmsy == 1 && n > 1 && Fmsyflag == 0){
     // Use stochastic reference points
     Bmsy = Bmsys;
     MSY = MSYs;
@@ -274,6 +282,12 @@ Type objective_function<Type>::operator() ()
     logBmsy = logBmsys;
     logFmsy = logFmsys;
     logMSY = logMSYs;
+    for(int i=0; i<ns; i++){
+      ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
+      logBmsyvec(i) = logBmsys(ind);
+      logFmsyvec(i) = logFmsys(ind);
+    }
+    stochmsyused = 1;
   } else {
     // Use deterministic reference points
     Bmsy = Bmsyd;
@@ -282,7 +296,17 @@ Type objective_function<Type>::operator() ()
     logBmsy = logBmsyd;
     logFmsy = logFmsyd;
     logMSY = logMSYd;
+    for(int i=0; i<ns; i++){
+      ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
+      logBmsyvec(i) = logBmsyd(ind);
+      logFmsyvec(i) = logFmsyd(ind);
+    }
   }
+  //if(dbg > 0){
+    std::cout << "stochmsyused: " << stochmsyused << "  stochmsy: " << stochmsy << "  n: " << n << "  Fmsyflag: " << Fmsyflag << "  Fmsy: " << Fmsy << "  Fmsys: " << Fmsys << std::endl;
+    //}
+
+    std::cout << "logFmsyvec: " << logFmsyvec << std::endl;
 
   // These quantities are calculated to enable comparison with the Polacheck et al (1993) parameter estimates
   vector<Type> Emsy(nq);
@@ -336,8 +360,8 @@ Type objective_function<Type>::operator() ()
       std::cout << "-- i: " << i << " -- ind: " << ind << " -   mvec(i): " << mvec(i) << std::endl;
     }
     mvec(i) = m(ind);
-    logFmsyvec(i) = logFmsy(ind);
-    logBmsyvec(i) = logBmsy(ind);
+    //logFmsyvec(i) = logFmsy(ind);
+    //logBmsyvec(i) = logBmsy(ind);
   }
 
   // PRIORS
@@ -776,6 +800,7 @@ Type objective_function<Type>::operator() ()
   REPORT(Bmsy);
   REPORT(Fmsy);
   REPORT(stochmsy);
+  REPORT(stochmsyused);
 
   return ans;
 }
