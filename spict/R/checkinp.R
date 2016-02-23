@@ -422,10 +422,22 @@ check.inp <- function(inp){
     if (!"eulertype" %in% names(inp)){
         inp$eulertype <- 'hard'
     }
+    if (!"start.in.first.data.point" %in% names(inp)){
+        inp$start.in.first.data.point <- TRUE
+    }
     if ("eulertype" %in% names(inp)){
         if (inp$eulertype == 'hard'){
             # Hard Euler discretisation
-            time <- seq(floor(min(timeobsall)), max(inp$timepredi, inp$timepredc+inp$dtpredc), by=inp$dteuler)
+            if (inp$start.in.first.data.point){
+                time <- seq(min(timeobsall), max(inp$timepredi, inp$timepredc+inp$dtpredc),
+                            by=inp$dteuler)
+            } else {
+                # Here we take floor of time of first data point
+                # This can sometimes cause problems when estimating the random effect
+                # prior to the first data point, because of no data support
+                time <- seq(floor(min(timeobsall)), max(inp$timepredi, inp$timepredc+inp$dtpredc),
+                            by=inp$dteuler)
+            }
             inp$time <- time
         }
         if (inp$eulertype == 'soft'){
