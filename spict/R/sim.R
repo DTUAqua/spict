@@ -485,7 +485,8 @@ sim.spict <- function(input, nobs=100){
 #' validate.spict(inp, nsim=10, invec=c(30, 60), backup='validate.RData')
 #' @export
 validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, backup=NULL,
-                           df.out=FALSE, summ.ex.file=NULL, type='nobs', parnames=NULL, exp=NULL){
+                           df.out=FALSE, summ.ex.file=NULL, type='nobs', parnames=NULL, exp=NULL,
+                           mc.cores=8){
     if (is.null(parnames)){
         parnames <- c('logFmsy', 'logBmsy', 'MSY', 'logBl', 'logBlBmsy',
                       'logFlFmsy', 'logsdb', 'logsdi')
@@ -494,7 +495,7 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
     #require(parallel)
     #nobs <- invec[1]
     fun <- function(i, inp, nobs, estinp, backup, type, val, parnames, exp){
-        cat(paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4), '\n'))
+        #cat(paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4)))
         sim <- sim.spict(inp, nobs)
         #if(!is.null(estinp)) sim$ini <- estinp$ini
         if (!is.null(estinp)){
@@ -504,10 +505,15 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
         }
         rep <- try(fit.spict(sim))
         s <- NA
+        str <- paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4))
         if (!class(rep)=='try-error'){
             s <- extract.simstats(rep, inp, exp=exp, parnames=parnames)
             if (!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file) # This line causes problems when running simulation2.R, the problem is that log cannot be taken of the derout variable of the summary.
+            s$type <- type
             s[[type]] <- val
+            cat(str, ' convall:', as.numeric(s$convall), '\n')
+        } else {
+            cat(str, ' Error in fit.spict()\n')
         }
         return(s)
     }
@@ -530,9 +536,10 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
             nobs <- invec[j]
         }
         # Run simulations
-        cat(paste0(Sys.time(), ' - validating ', type, ': ', round(invec[j], 4), '\n'))
+        cat(paste0(Sys.time(), ' - validating w mc.cores: ', mc.cores, ' ',
+                   type, ': ', round(invec[j], 4), '\n'))
         ss[[j]] <- parallel::mclapply(1:nsim, fun, inp, nobs, estinp, backup,
-                                      type, invec[j], parnames, exp, mc.cores=8)
+                                      type, invec[j], parnames, exp, mc.cores=mc.cores)
         if (!is.null(backup)) save(ss, file=backup)
     }
     
