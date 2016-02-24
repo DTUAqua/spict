@@ -732,8 +732,15 @@ validation.data.frame <- function(ss){
     nnms <- length(nms)
     nna <- length(ss)
     nobsvec <- numeric(nna)
-    df <- data.frame(matrix(0, 1, nnms+1))
-    colnames(df) <- c(nms, 'nobs')
+    # Initialise df (remember to remove dummy line)
+    iniflag <- TRUE
+    c <- 0
+    while (iniflag){
+        c <- c + 1
+        lngt <- length(unlist(ss[[1]][[c]])) # Create with dummy first line
+        iniflag <- lngt != nnms
+    }
+    df <- as.data.frame(ss[[1]][[c]])
     for(i in 1:nna){ # nna is length of nobsvec
         nsim <- length(ss[[i]])
         # While loop to avoid taking nobs from a NA run.
@@ -745,18 +752,27 @@ validation.data.frame <- function(ss){
         }
         nobsvec[i] <- ss[[i]][[c]]$nobs[1]
         nobs <- rep(nobsvec[i], nsim)
-        mat <- cbind(matrix(NA, nsim, nnms), nobs)
-        colnames(mat) <- c(nms, 'nobs')
+        # Initialise mat (remember to remove dummy line)
+        iniflag <- TRUE
+        c <- 0
+        while (iniflag){
+            c <- c + 1
+            lngt <- length(unlist(ss[[i]][[c]])) # Create with dummy first line
+            iniflag <- lngt != nnms
+        }
+        mat <- as.data.frame(ss[[i]][[c]])
         for(j in 1:nsim){ # nsim is number of simulations for each nobs
             vals <- unlist(ss[[i]][[j]])
-            namvals <- names(vals)
-            for(k in 1:nnms){ # nnms is number of names
-                ind <- which(namvals==nms[k])
-                if(length(ind)==1) mat[j, k] <- vals[ind]
+            if (length(vals) == nnms){
+                newrow <- try(as.data.frame(ss[[i]][[j]]))
+                if (class(newrow) != 'try-error' & !any(is.na(newrow))){
+                    mat <- rbind(mat, newrow)
+                }
             }
         }
+        mat <- mat[-1, ] # Remove dummy first line create when initialising
         df <- rbind(df, mat)
     }
-    df <- df[-1, ] # Remove dummy first line
+    df <- df[-1, ] # Remove dummy first line create when initialising
     return(df)
 }
