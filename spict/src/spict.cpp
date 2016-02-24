@@ -274,6 +274,7 @@ Type objective_function<Type>::operator() ()
   if(dbg > 0){
     std::cout << "stochmsyused: " << stochmsyused << "  stochmsy: " << stochmsy << "  n: " << n << "  Fmsyflag: " << Fmsyflag << std::endl;
   }
+  
   if(stochmsy == 1 && n > 1 && Fmsyflag == 0){
     // Use stochastic reference points
     Bmsy = Bmsys;
@@ -302,11 +303,13 @@ Type objective_function<Type>::operator() ()
       logFmsyvec(i) = logFmsyd(ind);
     }
   }
+  
+  
   //if(dbg > 0){
-    std::cout << "stochmsyused: " << stochmsyused << "  stochmsy: " << stochmsy << "  n: " << n << "  Fmsyflag: " << Fmsyflag << "  Fmsy: " << Fmsy << "  Fmsys: " << Fmsys << std::endl;
-    //}
+  //std::cout << "stochmsyused: " << stochmsyused << "  stochmsy: " << stochmsy << "  n: " << n << "  Fmsyflag: " << Fmsyflag << "  Fmsy: " << Fmsy << "  Fmsys: " << Fmsys << std::endl;
+  //}
 
-    std::cout << "logFmsyvec: " << logFmsyvec << std::endl;
+    
 
   // These quantities are calculated to enable comparison with the Polacheck et al (1993) parameter estimates
   vector<Type> Emsy(nq);
@@ -717,6 +720,8 @@ Type objective_function<Type>::operator() ()
     logFFmsy(i) = logFs(i) - logFmsyvec(i); 
   }
 
+  //std::cout << "logFFmsy: " << logFFmsy << std::endl;
+
   // 
   Type logbkfrac = logB(0) - logK;
 
@@ -801,6 +806,7 @@ Type objective_function<Type>::operator() ()
   REPORT(Fmsy);
   REPORT(stochmsy);
   REPORT(stochmsyused);
+  REPORT(logFFmsy);
 
   return ans;
 }
