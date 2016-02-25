@@ -133,7 +133,7 @@ get.order <- function() return(c(2, 1, 3, 2))
 #' @name get.colnms
 #' @title Get column names for data.frames.
 #' @return Vector containing column names of data frames.
-get.colnms <- function() return(c('estimate', 'cilow', 'ciupp', 'est.in.log'))
+get.colnms <- function() return(c('estimate', 'cilow', 'ciupp', 'log.est'))
 
 
 #' @name sumspict.parest
@@ -192,12 +192,12 @@ sumspict.parest <- function(rep, numdigits=8){
                             cilow=round(cilow,numdigits),
                             ciupp=round(ciupp,numdigits),
                             true.in.ci=ci,
-                            est.in.log=round(rep$par.fixed,numdigits))
+                            log.est=round(rep$par.fixed,numdigits))
         } else {
             resout <- cbind(estimate=round(est,numdigits),
                             cilow=round(cilow,numdigits),
                             ciupp=round(ciupp,numdigits),
-                            est.in.log=round(rep$par.fixed,numdigits))
+                            log.est=round(rep$par.fixed,numdigits))
         }
         nms[loginds] <- sub('log', '', names(rep$par.fixed[loginds]))
         nms[logitinds] <- sub('logit', '', names(rep$par.fixed[logitinds]))
