@@ -4,15 +4,16 @@
 \alias{validate.spict}
 \title{Simulate data and reestimate parameters}
 \usage{
-validate.spict(inp, nsim = 50, nobsvec = c(15, 60, 240), estinp = NULL,
-  backup = NULL, df.out = FALSE, summ.ex.file = NULL)
+validate.spict(inp, nsim = 50, invec = c(15, 60, 240), estinp = NULL,
+  backup = NULL, df.out = FALSE, summ.ex.file = NULL, type = "nobs",
+  parnames = NULL, exp = NULL, mc.cores = 8)
 }
 \arguments{
 \item{inp}{An inp list with an ini key (see ?check.inp). If you want to use estimated parameters for the simulation create the inp$ini from the pl key of a result of fit.spict().}
 
 \item{nsim}{Number of simulated data sets in each batch.}
 
-\item{nobsvec}{Vector containing the number of simulated observations of each data set in each batch.}
+\item{invec}{Vector containing the number of simulated observations of each data set in each batch.}
 
 \item{estinp}{The estimation uses the true parameters as starting guess. Other initial values to be used for estimation can be specified in estinp$ini.}
 
@@ -21,6 +22,8 @@ validate.spict(inp, nsim = 50, nobsvec = c(15, 60, 240), estinp = NULL,
 \item{df.out}{Output data frame instead of list.}
 
 \item{summ.ex.file}{Save a summary example to this file (to check that parameters have correct priors or are fixed).}
+
+\item{type}{Specify what type of information is contained in invec. If type == 'nobs' then invec is assumed to be a vector containing the number of simulated observations of each data set in each batch. If type == 'logsdc' then invec is assumed to be a vector containing values of logsdc over which to loop.}
 }
 \value{
 A list containing the results of the validation with the following keys:
@@ -44,6 +47,6 @@ rep0 <- fit.spict(pol$albacore)
 inp <- list()
 inp$ini <- rep0$pl
 set.seed(1234)
-validate.spict(inp, nsim=10, nobsvec=c(30, 60), backup='validate.RData')
+validate.spict(inp, nsim=10, invec=c(30, 60), backup='validate.RData')
 }
 

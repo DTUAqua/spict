@@ -12,10 +12,10 @@ Fits a continuous-time surplus production model to data
 rep <- test.spict()
 }
 \author{
-Martin W. Pedersen \email{map@aqua.dtu.dk}
+Martin W. Pedersen \email{mawp@dtu.dk}
 }
 \references{
-\url{https://github.com/martinwpedersen/spict/}
+\url{https://github.com/mawp/spict/}
 }
 \seealso{
 \code{\link{test.spict}}

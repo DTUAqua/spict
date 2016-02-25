@@ -300,11 +300,8 @@ sim.spict <- function(input, nobs=100){
     obsC <- rep(0, inp$nobsC)
     e.c <- exp(rnorm(inp$nobsC, 0, sdc))
     for(i in 1:inp$nobsC){
-        for(j in 1:inp$nc[i]){
-            ind <- inp$ic[i] + j-1
-            C[i] <- C[i] + Csub[ind];
-        }
-        #obsC[i] <- exp(log(C[i]) + rnorm(1, 0, sdc))
+        inds <- inp$ic[i]:(inp$ic[i] + inp$nc[i]-1)
+        C[i] <- sum(Csub[inds])
         obsC[i] <- C[i] * e.c[i]
     }
     if('outliers' %in% names(inp)){
@@ -321,11 +318,8 @@ sim.spict <- function(input, nobs=100){
     obsE <- numeric(inp$nobsE)
     e.e <- exp(rnorm(inp$nobsE, 0, sde))
     for(i in 1:inp$nobsE){
-        for(j in 1:inp$ne[i]){
-            ind <- inp$ie[i] + j-1
-            E[i] <- E[i] + Esub[ind];
-        }
-        #obsE[i] <- exp(log(E[i]) + rnorm(1, 0, sde))
+        inds <- inp$ie[i]:(inp$ie[i] + inp$ne[i]-1)
+        E[i] <- sum(Esub[inds])
         obsE[i] <- E[i] * e.e[i]
     }
     if('outliers' %in% names(inp)){
@@ -567,9 +561,9 @@ extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
             parnames <- c('logFmsy', 'logBmsy', 'MSY', 'logBl', 'logBlBmsy',
                           'logFlFmsy', 'logsdb', 'logsdi')
         }
-
         ss <- list()
-        ss$nobs <- c(nobsc=rep$inp$nobsC, nobsI=rep$inp$nobsI)
+        #ss$nobs <- c(nobsc=rep$inp$nobsC, nobsI=rep$inp$nobsI)
+        ss$nobs <- list(nobsc=rep$inp$nobsC, nobsI=rep$inp$nobsI, nobsE=rep$inp$nobsE)
         # Convergence
         ss$conv <- rep$opt$convergence
         # Fit stats
@@ -601,12 +595,7 @@ extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
             }
             return(list(ci=ci, ciw=ciw, cv=cv, exp=exp))
         }
-        # sdu estimate
-        #if(!is.null(inp)){
-        #    if('logsdu' %in% names(inp$ini) & rep$inp$phases$logsdu > 0) ss$sdu <- calc.simstats('logsdu', rep, exp=FALSE, rep$inp$true$logsdu)
-        #}
-
-        # NEW ---
+        # Calculate simulation statistics
         nparnames <- length(parnames)
         if (length(exp) != nparnames){
             if (length(exp) == 1){
@@ -642,27 +631,6 @@ extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
             true <- ifelse(exp[i], exp(true), true)
             ss[[pn]] <- calc.simstats(pn, rep, exp=exp[i], true)
         }
-        # NEW end ---
-        
-        # OLD ---
-        # Fmsy estimate
-        #ss$Fmsy <- calc.simstats('logFmsy', rep, exp=TRUE, rep$inp$true$Fmsy)
-        # Bmsy estimate
-        #ss$Bmsy <- calc.simstats('logBmsy', rep, exp=TRUE, rep$inp$true$Bmsy)
-        # MSY estimate
-        #ss$MSY <- calc.simstats('MSY', rep, exp=FALSE, rep$inp$true$MSY)
-        # Final biomass estimate
-        #ind <- rep$inp$indlastobs
-        #ss$B <- calc.simstats('logBl', rep, exp=TRUE, rep$inp$true$B[ind])
-        # Final B/Bmsy estimate
-        #ss$BB <- calc.simstats('logBlBmsy', rep, exp=TRUE, rep$inp$true$B[ind]/rep$inp$true$Bmsy)
-        # Final F/Fmsy estimate
-        #ss$FF <- calc.simstats('logFlFmsy', rep, exp=TRUE, rep$inp$true$F[ind]/rep$inp$true$Fmsy)
-        # Biomass process noise
-        #ss$sdb <- calc.simstats('logsdb', rep, exp=TRUE, exp(rep$inp$true$logsdb))
-        # Biomass process noise
-        #ss$sdi <- calc.simstats('logsdi', rep, exp=TRUE, exp(rep$inp$true$logsdi))
-        # OLD end ---
         
         # Convergence for all values
         uss <- unlist(ss)
@@ -672,50 +640,6 @@ extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
         stop('These results do not come from the estimation of a simulated data set!')
     }
 }
-
-
-
-#' @name validation.data.frame.old
-#' @title Collect results from the output of running validate.spict (this function is outdated).
-#' @param ss Output from validation.spict.
-#' @return A data frame containing the formatted validation results.
-#' @export
-validation.data.frame.old <- function(ss){
-    nna <- length(ss)
-    nsima <- length(ss[[1]])
-    i <- 0
-    flag <- TRUE
-    while(flag){
-        i <- i+1        
-        flag <- is.null(ss[[1]][[i]])
-        if(!flag){
-            usso <- unlist(ss[[1]][[i]])
-            nms <- names(usso)
-            flag <- length(nms)<12
-        }
-    }
-    usso <- unlist(ss[[1]][[i]])
-    nms <- names(usso)
-    nnms <- length(nms)
-    v <- list()
-    for(k in 1:nnms){
-        v[[nms[k]]] <- matrix(NA, nsima, nna)
-    }
-    for(i in 1:nna){
-        nsimt <- length(ss[[i]])
-        for(j in 1:nsimt){
-            uss <- unlist(ss[[i]][[j]])
-            if(!is.null(uss)){
-                for(k in 1:nnms){
-                    v[[nms[k]]][j, i] <- uss[k]
-                }
-            }
-        }
-    }
-    v[['convall']][is.na(v[['convall']])] <- 1
-    return(data.frame(v))
-}
-
 
 
 #' @name validation.data.frame
@@ -731,7 +655,6 @@ validation.data.frame <- function(ss){
     if(length(inds)>0) nms <- nms[-inds]
     nnms <- length(nms)
     nna <- length(ss)
-    nobsvec <- numeric(nna)
     # Initialise df (remember to remove dummy line)
     iniflag <- TRUE
     c <- 0
@@ -743,15 +666,6 @@ validation.data.frame <- function(ss){
     df <- as.data.frame(ss[[1]][[c]])
     for(i in 1:nna){ # nna is length of nobsvec
         nsim <- length(ss[[i]])
-        # While loop to avoid taking nobs from a NA run.
-        c <- 0
-        flag <- TRUE
-        while(flag){
-            c <- c+1
-            flag <- (all(is.na(ss[[i]][[c]])) & length(ss[[i]][[c]])==1) | class(ss[[i]][[c]])=='try-error'
-        }
-        nobsvec[i] <- ss[[i]][[c]]$nobs[1]
-        nobs <- rep(nobsvec[i], nsim)
         # Initialise mat (remember to remove dummy line)
         iniflag <- TRUE
         c <- 0
@@ -776,3 +690,4 @@ validation.data.frame <- function(ss){
     df <- df[-1, ] # Remove dummy first line create when initialising
     return(df)
 }
+

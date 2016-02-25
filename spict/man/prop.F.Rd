@@ -4,7 +4,7 @@
 \alias{prop.F}
 \title{Calculate management for changing F by a given factor.}
 \usage{
-prop.F(fac, inpin, repin, dbg = 0)
+prop.F(fac, inpin, repin, corF = TRUE, dbg = 0)
 }
 \arguments{
 \item{fac}{Factor to multiply current F with.}
@@ -12,6 +12,8 @@ prop.F(fac, inpin, repin, dbg = 0)
 \item{inpin}{Input list.}
 
 \item{repin}{Results list.}
+
+\item{corF}{Make correction to F process such that the drift (-0.5*sdf^2*dt) is cancelled and F remains constant in projection mode}
 
 \item{dbg}{Debug flag, dbg=1 some output, dbg=2 more ourput.}
 }

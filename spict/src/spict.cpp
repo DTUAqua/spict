@@ -213,13 +213,15 @@ Type objective_function<Type>::operator() ()
   Type beta = sdc/sdf;
   Type logbeta = log(beta);
 
-  // Put wide smooth distributions on difficult parameters to stabilise optimisation
-  // Note that this contributes to the objective function, which therefore cannot be regarded as a likelihood
+  // Put wide smooth distributions on difficult parameters to stabilise optimisation.
+  // Note that this contributes to the objective function, which therefore cannot be 
+  // regarded as a likelihood to be compared with likelihoods from other models.
   ans -= dnorm(logB(0), Type(10.0), Type(10.0), 1);
   ans -= dnorm(logF(0), Type(0.0), Type(10.0), 1);
-  ans -= dnorm(logn, Type(0.6931472), Type(10.0), 1);
+  ans -= dnorm(logn, Type(0.6931472), Type(10.0), 1); // log(2) = 0.6931472
   ans -= dnorm(logbeta, Type(0.0), Type(10.0), 1);
   for(int i=0; i<nsdi; i++){ ans -= dnorm(logalpha(i), Type(0.0), Type(10.0), 1); }
+  ans -= dnorm(logsde, Type(-0.9162907), Type(10.0), 1); // log(0.4) = -0.9162907
 
   // Initialise vectors
   vector<Type> P(ns-1);
@@ -275,7 +277,11 @@ Type objective_function<Type>::operator() ()
     std::cout << "stochmsyused: " << stochmsyused << "  stochmsy: " << stochmsy << "  n: " << n << "  Fmsyflag: " << Fmsyflag << std::endl;
   }
   
-  if(stochmsy == 1 && n > 1 && Fmsyflag == 0){
+  //Type ntest = value_(n);
+  //double ntest = CppAD::Value(n);
+  double ntest = value(n);
+  //std::cout << "value: " << ntest << std::endl;
+  if(stochmsy == 1 && ntest > 1 && Fmsyflag == 0){
     // Use stochastic reference points
     Bmsy = Bmsys;
     MSY = MSYs;
