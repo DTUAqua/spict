@@ -566,6 +566,8 @@ extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
         ss$nobs <- list(nobsc=rep$inp$nobsC, nobsI=rep$inp$nobsI, nobsE=rep$inp$nobsE)
         # Convergence
         ss$conv <- rep$opt$convergence
+        # SDreport error
+        ss$sderr <- ifelse(is.null(rep$sderr), 0, 1)
         # Fit stats
         ss$stats <- rep$stats
         # OSA residuals p-values

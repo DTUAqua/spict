@@ -247,11 +247,21 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<nm; i++){
     // Deterministic reference points
     Bmsyd(i) = K * pow(1.0/n, 1.0/(n-1.0));
-    Fmsyd(i) = MSYd(i)/Bmsyd(i);
+    Fmsyd(i) = MSYd(i) / Bmsyd(i);
+    // In Bordet and Rivest (2014) they use Fmsy = r, and therefore have a different
+    // definition of r. Normally Fmsy = r/2 is used.
     // Stochastic reference points (NOTE: only proved for n>1, Bordet and Rivest (2014))
-    rbmean(i) = (n-1)/n*gamma*m(i)/K;
-    Bmsys(i) = Bmsyd(i) * (1.0 - (1.0 + rbmean(i)*(p-1.0)/2.0)*sdb2 / (rbmean(i)*pow(2.0-rbmean(i), 2.0)));
-    Fmsys(i) = Fmsyd(i) - (p*(1.0-rbmean(i))*sdb2) / pow(2.0-rbmean(i), 2.0) ;
+    rbmean(i) = (n-1)/n * gamma * m(i) / K;
+    Bmsys(i) = Bmsyd(i) * (1.0 - (1.0 + rbmean(i)*(p-1.0)/2.0)*sdb2 
+                           / (rbmean(i)*pow(2.0-rbmean(i), 2.0)));
+    //Bmsys(i) = Bmsyd(i) * (1.0 - (1.0 + Fmsyd(i)*(p-1.0)/2.0)*sdb2 
+    //                       / (rbmean(i)*pow(2.0-Fmsyd(i), 2.0)));
+
+
+    Fmsys(i) = Fmsyd(i) - (p*(1.0-rbmean(i))*sdb2) / pow(2.0-rbmean(i), 2.0);
+    //Fmsys(i) = Fmsyd(i) - (p*(1.0-Fmsyd(i))*sdb2) / pow(2.0-Fmsyd(i), 2.0);
+
+
     if (Fmsys(i) < 0){
       Fmsyflag = 1;
     }
@@ -813,6 +823,7 @@ Type objective_function<Type>::operator() ()
   REPORT(stochmsy);
   REPORT(stochmsyused);
   REPORT(logFFmsy);
+  REPORT(rbmean);
 
   return ans;
 }

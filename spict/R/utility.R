@@ -153,7 +153,6 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                             T0 <- rep$inp$time[ic]
                             T1 <- rep$inp$time[ic+nc]
                             # Get annual average
-                            #est <- (B1 - B0 + C[, 2]) / (rep$inp$dteuler*rep$inp$nc) 
                             est <- (B1 - B0 + C[, 2]) / (T1-T0)
                         }
                     }
@@ -163,6 +162,8 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
             }
         }
         if(exp==TRUE){
+            # This is the CV of a log-normally distributed random variable
+            # see https://en.wikipedia.org/wiki/Log-normal_distribution
             cv <- sqrt(exp(sd^2) - 1)
             ll <- exp(ll)
             ul <- exp(ul)
