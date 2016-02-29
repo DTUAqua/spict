@@ -48,6 +48,14 @@ Type predictC(const Type &F, const Type &B0, const Type &dt)
   return F*B0*dt;
 }
 
+/* Step function, 0 if n < 1, 1 if n > 1 */
+// Note that p = n - 1;
+template<class Type>
+Type stepfun(const Type &p)
+{
+  return 1.0 / (1.0 + exp(-10000 * p));
+}
+
 /* Main script */
 template<class Type>
 Type objective_function<Type>::operator() ()
@@ -242,18 +250,21 @@ Type objective_function<Type>::operator() ()
   vector<Type> Bmsys(nm);
   vector<Type> Fmsys(nm);
   vector<Type> MSYs(nm);
-  int Fmsyflag = 0;
   for(int i=0; i<nm; i++){
     // Deterministic reference points
     Bmsyd(i) = K * pow(1.0/n, 1.0/(n-1.0));
     Fmsyd(i) = MSYd(i)/Bmsyd(i);
     // Stochastic reference points (NOTE: only proved for n>1, Bordet and Rivest (2014))
-    Bmsys(i) = Bmsyd(i) * (1.0 - (1.0 + Fmsyd(i)*(p-1.0)/2.0)*sdb2 / (Fmsyd(i)*pow(2.0-Fmsyd(i), 2.0)));
-    Fmsys(i) = Fmsyd(i) - (p*(1.0-Fmsyd(i))*sdb2) / pow(2.0-Fmsyd(i), 2.0);
-    if (Fmsys(i) < 0){
-      Fmsyflag = 1;
-    }
-    MSYs(i) = MSYd(i) * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Fmsyd(i), 2.0)));
+    // The stepfun ensures that stochastic reference points are only used if n > 1.
+    Type BmsyStochContr = (1.0 - (1.0 + Fmsyd(i)*(p-1.0)/2.0)*sdb2 / (Fmsyd(i)*pow(2.0-Fmsyd(i), 2.0)));
+    Bmsys(i) = Bmsyd(i) * pow(BmsyStochContr, stepfun(p));
+    //Bmsys(i) = Bmsyd(i) * (1.0 - (1.0 + Fmsyd(i)*(p-1.0)/2.0)*sdb2 / (Fmsyd(i)*pow(2.0-Fmsyd(i), 2.0)));
+    Type FmsyStochContr = (p*(1.0-Fmsyd(i))*sdb2) / pow(2.0-Fmsyd(i), 2.0);
+    Fmsys(i) = Fmsyd(i) - stepfun(p) * FmsyStochContr;
+    //Fmsys(i) = Fmsyd(i) - (p*(1.0-Fmsyd(i))*sdb2) / pow(2.0-Fmsyd(i), 2.0);
+    Type MSYstochContr = (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Fmsyd(i), 2.0)));
+    MSYs(i) = MSYd(i) * pow(MSYstochContr, stepfun(p));
+    //MSYs(i) = MSYd(i) * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Fmsyd(i), 2.0)));
   }
   // log reference points
   vector<Type> logBmsyd = log(Bmsyd);
@@ -270,16 +281,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> logFmsy(nm);
   vector<Type> logMSY(nm);
 
-  int stochmsyused = 0;
-  if(dbg > 0){
-    std::cout << "stochmsyused: " << stochmsyused << "  stochmsy: " << stochmsy << "  n: " << n << "  Fmsyflag: " << Fmsyflag << std::endl;
-  }
-  
-  //Type ntest = value_(n);
-  //double ntest = CppAD::Value(n);
-  double ntest = value(n);
-  //std::cout << "value: " << ntest << std::endl;
-  if(stochmsy == 1 && ntest > 1 && Fmsyflag == 0){
+  if(stochmsy == 1){
     // Use stochastic reference points
     Bmsy = Bmsys;
     MSY = MSYs;
@@ -292,7 +294,6 @@ Type objective_function<Type>::operator() ()
       logBmsyvec(i) = logBmsys(ind);
       logFmsyvec(i) = logFmsys(ind);
     }
-    stochmsyused = 1;
   } else {
     // Use deterministic reference points
     Bmsy = Bmsyd;
@@ -308,13 +309,6 @@ Type objective_function<Type>::operator() ()
     }
   }
   
-  
-  //if(dbg > 0){
-  //std::cout << "stochmsyused: " << stochmsyused << "  stochmsy: " << stochmsy << "  n: " << n << "  Fmsyflag: " << Fmsyflag << "  Fmsy: " << Fmsy << "  Fmsys: " << Fmsys << std::endl;
-  //}
-
-    
-
   // These quantities are calculated to enable comparison with the Polacheck et al (1993) parameter estimates
   vector<Type> Emsy(nq);
   vector<Type> Emsy2(nq);
@@ -809,8 +803,6 @@ Type objective_function<Type>::operator() ()
   REPORT(Bmsy);
   REPORT(Fmsy);
   REPORT(stochmsy);
-  REPORT(stochmsyused);
-  REPORT(logFFmsy);
 
   return ans;
 }
