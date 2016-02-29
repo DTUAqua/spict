@@ -37,52 +37,95 @@ calc.osa.resid <- function(rep){
             rep$inp$osar.method <- 'oneStepGaussianOffMode' # New default
         }
         if(inp$osar.trace) cat('Number of OSAR steps:', length(rep$inp$osar.subset), '\n')
-        osar <- try(oneStepPredict(rep$obj, observation.name = "obssrt", data.term.indicator='keep', method=rep$inp$osar.method, discrete=FALSE, conditional=rep$inp$osar.conditional, subset=rep$inp$osar.subset, trace=inp$osar.trace, parallel=inp$osar.parallel))
+        osar <- try(oneStepPredict(rep$obj,
+                                   observation.name = "obssrt",
+                                   data.term.indicator='keep',
+                                   method=rep$inp$osar.method,
+                                   discrete=FALSE,
+                                   conditional=rep$inp$osar.conditional,
+                                   subset=rep$inp$osar.subset,
+                                   trace=inp$osar.trace,
+                                   parallel=inp$osar.parallel))
         if(class(osar) != 'try-error'){
             osar <- cbind(id=inp$obsidsrt[inp$osar.subset], osar)
-            # Store catch residuals separately
+            # Store catch residuals
             inds <- match(inp$obsidC, osar$id)
             inds <- inds[!is.na(inds)]
             rep$osarC <- osar[inds, ]
             inds2 <- match(osar$id, inp$obsidC)
             inds2 <- inds2[!is.na(inds2)]
             timeC <- inp$timeC[inds2]
-            # Store index residuals separately
-            rep$osarI <- list()
-            timeI <- list()
-            for(i in 1:rep$inp$nindex){
-                inds <- match(inp$obsidI[[i]], osar$id)
-                inds <- inds[!is.na(inds)]
-                rep$osarI[[i]] <- osar[inds,]
-                inds2 <- match(osar$id, inp$obsidI[[i]])
-                inds2 <- inds2[!is.na(inds2)]
-                timeI[[i]] <- inp$timeI[[i]][inds2]
-            }
-            npar <- length(rep$opt$par)
-            if(!'stats' %in% names(rep)) rep$stats <- list()
-            # Catches
+            # Catch residual analysis
             logCpres <- rep$osarC$residual
-            statsCp <- res.stats(logCpres, name='catch')
-            for(nm in names(statsCp$stats)) rep$stats[[nm]] <- statsCp$stats[[nm]]
-            # Indices
-            logIpres <- list()
-            logIpshapiro <- list()
-            logIpbias <- list()
-            statsIp <- list()
-            for(i in 1:inp$nindex){
-                logIpres[[i]] <- rep$osarI[[i]]$residual
-                #logIpres[[i]][1] <- NA # Always omit first residual because it can be difficult to calculate
-                statsIp[[i]] <- res.stats(logIpres[[i]], name=paste0('index', i))
-                logIpshapiro[[i]] <- statsIp[[i]]$shapiro
-                logIpbias[[i]] <- statsIp[[i]]$bias
-                nam <- paste0('acfI', i, '.p')
-                rep$stats[[nam]] <- statsIp[[i]]$stats$acf.p
-                nam <- paste0('shapiroI', i, '.p')
-                rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
-                nam <- paste0('biasI', i, '.p')
-                rep$stats[[nam]] <- logIpbias[[i]]$p.value
+            statsCp <- res.stats(logCpres, 'C', name='catch')
+            for (nm in names(statsCp)){
+                rep$stats[[nm]] <- statsCp[[nm]]
             }
-            rep$osar <- list(timeC=timeC, logCpres=logCpres, logCpbias=statsCp$bias, logCpshapiro=statsCp$shapiro, timeI=timeI, logIpres=logIpres, logIpshapiro=logIpshapiro, logIpbias=logIpbias)
+
+            # Store effortresiduals
+            timeE <- numeric()
+            logEpres <- numeric()
+            if (rep$inp$nobsE > 0){
+                inds <- match(inp$obsidE, osar$id)
+                inds <- inds[!is.na(inds)]
+                rep$osarE <- osar[inds, ]
+                inds2 <- match(osar$id, inp$obsidE)
+                inds2 <- inds2[!is.na(inds2)]
+                timeE <- inp$timeE[inds2]
+                # Effort residual analysis
+                logEpres <- rep$osarE$residual
+                statsEp <- res.stats(logEpres, 'E', name='effort')
+                for (nm in names(statsEp)){
+                    rep$stats[[nm]] <- statsEp[[nm]]
+                }
+            }
+            
+            # Store index residuals
+            timeI <- list()
+            logIpres <- list()
+            #logIpshapiro <- list()
+            #logIpbias <- list()
+            if (inp$nindex > 0){
+                rep$osarI <- list()
+                for(i in 1:rep$inp$nindex){
+                    inds <- match(inp$obsidI[[i]], osar$id)
+                    inds <- inds[!is.na(inds)]
+                    rep$osarI[[i]] <- osar[inds,]
+                    inds2 <- match(osar$id, inp$obsidI[[i]])
+                    inds2 <- inds2[!is.na(inds2)]
+                    timeI[[i]] <- inp$timeI[[i]][inds2]
+                }
+                npar <- length(rep$opt$par)
+                if(!'stats' %in% names(rep)) rep$stats <- list()
+                # Index residual analysis
+                statsIp <- list()
+                for(i in 1:inp$nindex){
+                    logIpres[[i]] <- rep$osarI[[i]]$residual
+                    statsIpi <- res.stats(logIpres[[i]], paste0('I', i), name=paste0('index', i))
+                    for (nm in names(statsIpi)){
+                        rep$stats[[nm]] <- statsIpi[[nm]]
+                    }
+                    #statsIp[[i]] <- res.stats(logIpres[[i]], paste0('I', i), name=paste0('index', i))
+                    #logIpshapiro[[i]] <- statsIp[[i]]$shapiro
+                    #logIpbias[[i]] <- statsIp[[i]]$bias
+                    #nam <- paste0('acfI', i, '.p')
+                    #rep$stats[[nam]] <- statsIp[[i]]$stats$acf.p
+                    #nam <- paste0('shapiroI', i, '.p')
+                    #rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
+                    #nam <- paste0('biasI', i, '.p')
+                    #rep$stats[[nam]] <- logIpbias[[i]]$p.value
+                }
+            }
+            rep$osar <- list(timeC=timeC,
+                             logCpres=logCpres,
+                             #logCpbias=statsCp$bias,
+                             #logCpshapiro=statsCp$shapiro,
+                             timeI=timeI,
+                             logIpres=logIpres,
+                             timeE=timeE,
+                             logEpres=logEpres)
+                             #logIpshapiro=logIpshapiro,
+                             #logIpbias=logIpbias)
         } else {
             stop('Could not calculate OSA residuals.\n')
         }
@@ -99,22 +142,26 @@ calc.osa.resid <- function(rep){
 #' @param name Identifier that will be used in warning messages.
 #' @return List containing residual statistics in 'stats', shapiro output in 'shapiro', and bias output in 'bias'.
 #' @export
-res.stats <- function(resid, name=''){
+res.stats <- function(resid, id, name=''){
     nna <- sum(is.na(resid))
     if(nna > 0) warning(nna, ' NAs found in ', name, ' residuals')
     nnotna <- sum(!is.na(resid))
     stats <- list()
+    acf.p <- NULL
     if(nnotna > 2){
         shapiro <- shapiro.test(resid) # Test for normality of residuals
         bias <- t.test(resid) # Test for bias of residuals
-        stats$acf.p <- min(acf.signf(resid, lag.max=4, return.p=TRUE))
+        acf.p <- min(acf.signf(resid, lag.max=4, return.p=TRUE))
     } else {
         warning('Warning: only ', nnotna, ' non-NAs found in ', name, ' residuals. Not calculating residual statistics')
         bias <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
         shapiro <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
     }
-    stats$shapiro.p <- shapiro$p.value
-    stats$bias.p <- bias$p.value
-    if(is.null(stats$acf.p)) stats$acf.p <- NA
-    return(list(shapiro=shapiro, bias=bias, stats=stats))
+    stats[[paste0('shapiro', id, '.p')]] <- shapiro$p.value
+    stats[[paste0('bias', id, '.p')]] <- bias$p.value
+    stats[[paste0('acf', id, '.p')]] <- NA
+    if (!is.null(acf.p)){
+        stats[[paste0('acf', id, '.p')]] <- acf.p
+    }
+    return(stats)
 }
