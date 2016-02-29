@@ -198,7 +198,6 @@ Type objective_function<Type>::operator() ()
   Type qf = exp(logqf);
   Type n = exp(logn);
   Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
-  Type p = n - 1.0;
   Type lambda = exp(loglambda);
   Type sdf = exp(logsdf);
   Type sdf2 = sdf*sdf;
@@ -236,7 +235,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> logEpred(nobsE);
 
   // Reference points
-  vector<Type> rbmean(nm);
+  Type p = n - 1.0;
   vector<Type> Bmsyd(nm);
   vector<Type> Fmsyd(nm);
   vector<Type> MSYd = m;
@@ -249,13 +248,12 @@ Type objective_function<Type>::operator() ()
     Bmsyd(i) = K * pow(1.0/n, 1.0/(n-1.0));
     Fmsyd(i) = MSYd(i)/Bmsyd(i);
     // Stochastic reference points (NOTE: only proved for n>1, Bordet and Rivest (2014))
-    rbmean(i) = (n-1)/n*gamma*m(i)/K;
-    Bmsys(i) = Bmsyd(i) * (1.0 - (1.0 + rbmean(i)*(p-1.0)/2.0)*sdb2 / (rbmean(i)*pow(2.0-rbmean(i), 2.0)));
-    Fmsys(i) = Fmsyd(i) - (p*(1.0-rbmean(i))*sdb2) / pow(2.0-rbmean(i), 2.0) ;
+    Bmsys(i) = Bmsyd(i) * (1.0 - (1.0 + Fmsyd(i)*(p-1.0)/2.0)*sdb2 / (Fmsyd(i)*pow(2.0-Fmsyd(i), 2.0)));
+    Fmsys(i) = Fmsyd(i) - (p*(1.0-Fmsyd(i))*sdb2) / pow(2.0-Fmsyd(i), 2.0);
     if (Fmsys(i) < 0){
       Fmsyflag = 1;
     }
-    MSYs(i) = MSYd(i) * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-rbmean(i), 2.0)));
+    MSYs(i) = MSYd(i) * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Fmsyd(i), 2.0)));
   }
   // log reference points
   vector<Type> logBmsyd = log(Bmsyd);
