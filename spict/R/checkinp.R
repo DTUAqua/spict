@@ -246,7 +246,11 @@ check.inp <- function(inp){
     base.checks(inp$obsE, inp$timeE, inp$stdevfacE, 'E')
     inp <- remove.neg(inp, 'E')
     inp$nobsE <- length(inp$obsE)
-    inp$obsidE <- (1:inp$nobsE) + inp$nobsC + sum(inp$nobsI)
+    if (inp$nobsE > 0){
+        inp$obsidE <- (1:inp$nobsE) + inp$nobsC + sum(inp$nobsI)
+    } else {
+        inp$obsidE <- numeric()
+    }
     if (length(inp$dte) != inp$nobsE) stop('Effort interval vector (inp$dte) does not match effort observation vector (inp$obsE) in length')
 
     
