@@ -475,14 +475,14 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
             text(time, dum, labels='NA', cex=0.8, col=col)
         }
         # Catches
-        pval <- round(as.list(rep$stats)$biasC.p, 4)
+        pval <- round(as.list(rep$diagn)$biasC.p, 4)
         colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
         fun(rep$osar$timeC, rep$osar$logCpres, add.legend=qlegend, ylab='Catch OSA residuals',
             main=paste0('Bias p-val: ', pval), col.main=colmain)
         abline(h=0, lty=3)
         # Effort
         if (inp$nobsE > 0){
-            pval <- round(as.list(rep$stats)$biasE.p, 4)
+            pval <- round(as.list(rep$diagn)$biasE.p, 4)
             colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
             fun(rep$osar$timeE, rep$osar$logEpres, add.legend=qlegend, ylab='Effort OSA residuals',
                 main=paste0('Bias p-val: ', pval), col.main=colmain)
@@ -490,7 +490,7 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
         }
         # Indices
         if (inp$nindex > 0){
-            pval <- round(as.list(rep$stats)$biasI1.p, 4)
+            pval <- round(as.list(rep$diagn)$biasI1.p, 4)
             colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
             if (collapse.I){
                 ylim <- range(unlist(rep$osar$logIpres), na.rm=TRUE)
@@ -507,10 +507,13 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
                     ylim <- range(rep$osar$logIpres[[i]], na.rm=TRUE)
                     xlim <- range(unlist(rep$osar$timeI[[i]]))
                     if(!collapse.I){
-                        pval <- round(rep$osar$logIpbias[[i]]$p.value, 4)
+                        pval <- round(as.list(rep$diagn)[[paste0('biasI', i, '.p')]], 4)
+                        #pval <- round(rep$osar$logIpbias[[i]]$p.value, 4)
                         colmain <- ifelse(pval<0.05, 'red', 'forestgreen')
                         main <- paste0('I', i, ' bias p-val: ', pval)
-                    } else { main <- '' }
+                    } else {
+                        main <- ''
+                    }
                     fun(rep$osar$timeI[[i]], rep$osar$logIpres[[i]], add=collapse.I, ylab='Index OSA residuals',
                         col=1, pch=i, xlim=xlim, ylim=ylim, main=main, col.main=colmain)
                     if(!collapse.I){
@@ -618,20 +621,20 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
             }
         }
         # Catch QQ
-        pvalC <- round(as.list(rep$stats)$shapiroC.p, 4)
+        pvalC <- round(as.list(rep$diagn)$shapiroC.p, 4)
         osar.qq.plot(resC, 'Catch', pvalC)
         # Effort QQ
         if (inp$nobsE > 0){
-            pvalE <- round(as.list(rep$stats)$shapiroE.p, 4)
+            pvalE <- round(as.list(rep$diagn)$shapiroE.p, 4)
             osar.qq.plot(resE, 'Effort', pvalE)
         }
         # Index QQ
         if (inp$nindex > 0){
-            inds <- grep('shapiroI', names(rep$stats))
-            nms <- names(rep$stats)[inds]
+            inds <- grep('shapiroI', names(rep$diagn))
+            nms <- names(rep$diagn)[inds]
             nos <- as.numeric(unlist(regmatches(nms, gregexpr('[0-9]+', nms))))
             for(i in 1:inp$nindex){
-                pvalI <- round(as.list(rep$stats)[[nms[i]]], 4)
+                pvalI <- round(as.list(rep$diagn)[[nms[i]]], 4)
                 osar.qq.plot(resI[[nos[i]]], paste0('I', nos[i]), pvalI)
             }
         }
@@ -1842,7 +1845,8 @@ plotspict.priors <- function(rep, do.plot=4){
 #' @export
 plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
     inp <- check.inp(inpin)
-    nseries <- inp$nindex + 1 + as.numeric(inp$nobsE > 0)
+    #nseries <- inp$nindex + 1 + as.numeric(inp$nobsE > 0)
+    nseries <- inp$nseries
     if(nseries %in% 1:2) mfrow <- c(2, 1)
     if(nseries %in% 3:4) mfrow <- c(2, 2)
     if(nseries %in% 5:6) mfrow <- c(2, 3)

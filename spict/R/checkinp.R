@@ -253,6 +253,7 @@ check.inp <- function(inp){
     }
     if (length(inp$dte) != inp$nobsE) stop('Effort interval vector (inp$dte) does not match effort observation vector (inp$obsE) in length')
 
+    inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
     
     # -- MODEL OPTIONS --
     if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')

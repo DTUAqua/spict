@@ -2,7 +2,7 @@
 % Please edit documentation in R/summary.R
 \name{sumspict.priors}
 \alias{sumspict.priors}
-\title{Fixed paramters table.}
+\title{Fixed parameters table.}
 \usage{
 sumspict.priors(rep, numdigits = 8)
 }
@@ -15,6 +15,6 @@ sumspict.priors(rep, numdigits = 8)
 data.frame containing fixed parameter information.
 }
 \description{
-Fixed paramters table.
+Fixed parameters table.
 }
 

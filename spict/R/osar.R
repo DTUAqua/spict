@@ -57,9 +57,9 @@ calc.osa.resid <- function(rep){
             timeC <- inp$timeC[inds2]
             # Catch residual analysis
             logCpres <- rep$osarC$residual
-            statsCp <- res.stats(logCpres, 'C', name='catch')
-            for (nm in names(statsCp)){
-                rep$stats[[nm]] <- statsCp[[nm]]
+            diagnCp <- res.diagn(logCpres, 'C', name='catch')
+            for (nm in names(diagnCp)){
+                rep$diagn[[nm]] <- diagnCp[[nm]]
             }
 
             # Store effortresiduals
@@ -74,9 +74,9 @@ calc.osa.resid <- function(rep){
                 timeE <- inp$timeE[inds2]
                 # Effort residual analysis
                 logEpres <- rep$osarE$residual
-                statsEp <- res.stats(logEpres, 'E', name='effort')
-                for (nm in names(statsEp)){
-                    rep$stats[[nm]] <- statsEp[[nm]]
+                diagnEp <- res.diagn(logEpres, 'E', name='effort')
+                for (nm in names(diagnEp)){
+                    rep$diagn[[nm]] <- diagnEp[[nm]]
                 }
             }
             
@@ -96,30 +96,30 @@ calc.osa.resid <- function(rep){
                     timeI[[i]] <- inp$timeI[[i]][inds2]
                 }
                 npar <- length(rep$opt$par)
-                if(!'stats' %in% names(rep)) rep$stats <- list()
+                if(!'diagn' %in% names(rep)) rep$diagn <- list()
                 # Index residual analysis
-                statsIp <- list()
+                diagnIp <- list()
                 for(i in 1:inp$nindex){
                     logIpres[[i]] <- rep$osarI[[i]]$residual
-                    statsIpi <- res.stats(logIpres[[i]], paste0('I', i), name=paste0('index', i))
-                    for (nm in names(statsIpi)){
-                        rep$stats[[nm]] <- statsIpi[[nm]]
+                    diagnIpi <- res.diagn(logIpres[[i]], paste0('I', i), name=paste0('index', i))
+                    for (nm in names(diagnIpi)){
+                        rep$diagn[[nm]] <- diagnIpi[[nm]]
                     }
-                    #statsIp[[i]] <- res.stats(logIpres[[i]], paste0('I', i), name=paste0('index', i))
-                    #logIpshapiro[[i]] <- statsIp[[i]]$shapiro
-                    #logIpbias[[i]] <- statsIp[[i]]$bias
+                    #diagnIp[[i]] <- res.diagn(logIpres[[i]], paste0('I', i), name=paste0('index', i))
+                    #logIpshapiro[[i]] <- diagnIp[[i]]$shapiro
+                    #logIpbias[[i]] <- diagnIp[[i]]$bias
                     #nam <- paste0('acfI', i, '.p')
-                    #rep$stats[[nam]] <- statsIp[[i]]$stats$acf.p
+                    #rep$diagn[[nam]] <- diagnIp[[i]]$diagn$acf.p
                     #nam <- paste0('shapiroI', i, '.p')
-                    #rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
+                    #rep$diagn[[nam]] <- logIpshapiro[[i]]$p.value
                     #nam <- paste0('biasI', i, '.p')
-                    #rep$stats[[nam]] <- logIpbias[[i]]$p.value
+                    #rep$diagn[[nam]] <- logIpbias[[i]]$p.value
                 }
             }
             rep$osar <- list(timeC=timeC,
                              logCpres=logCpres,
-                             #logCpbias=statsCp$bias,
-                             #logCpshapiro=statsCp$shapiro,
+                             #logCpbias=diagnCp$bias,
+                             #logCpshapiro=diagnCp$shapiro,
                              timeI=timeI,
                              logIpres=logIpres,
                              timeE=timeE,
@@ -136,17 +136,17 @@ calc.osa.resid <- function(rep){
 }
 
 
-#' @name res.stats
+#' @name res.diagn
 #' @title Helper function for calc.osar.resid that calculates residual statistics.
 #' @param resid Residuals from either catches or indices.
 #' @param name Identifier that will be used in warning messages.
-#' @return List containing residual statistics in 'stats', shapiro output in 'shapiro', and bias output in 'bias'.
+#' @return List containing residual statistics in 'diagn', shapiro output in 'shapiro', and bias output in 'bias'.
 #' @export
-res.stats <- function(resid, id, name=''){
+res.diagn <- function(resid, id, name=''){
     nna <- sum(is.na(resid))
     if(nna > 0) warning(nna, ' NAs found in ', name, ' residuals')
     nnotna <- sum(!is.na(resid))
-    stats <- list()
+    diagn <- list()
     acf.p <- NULL
     if(nnotna > 2){
         shapiro <- shapiro.test(resid) # Test for normality of residuals
@@ -157,11 +157,11 @@ res.stats <- function(resid, id, name=''){
         bias <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
         shapiro <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
     }
-    stats[[paste0('shapiro', id, '.p')]] <- shapiro$p.value
-    stats[[paste0('bias', id, '.p')]] <- bias$p.value
-    stats[[paste0('acf', id, '.p')]] <- NA
+    diagn[[paste0('shapiro', id, '.p')]] <- shapiro$p.value
+    diagn[[paste0('bias', id, '.p')]] <- bias$p.value
+    diagn[[paste0('acf', id, '.p')]] <- NA
     if (!is.null(acf.p)){
-        stats[[paste0('acf', id, '.p')]] <- acf.p
+        diagn[[paste0('acf', id, '.p')]] <- acf.p
     }
-    return(stats)
+    return(diagn)
 }
