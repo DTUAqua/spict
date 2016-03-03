@@ -121,8 +121,10 @@ fit.spict <- function(inp, dbg=0){
         } else {
             if(inp$do.sd.report){
                 # Calculate SD report
-                rep <- try(TMB::sdreport(obj, bias.correct=inp$bias.correct, bias.correct.control=inp$bias.correct.control))
-                sdfailflag <- class(rep)=='try-error'
+                rep <- try(TMB::sdreport(obj,
+                                         bias.correct=inp$bias.correct,
+                                         bias.correct.control=inp$bias.correct.control))
+                sdfailflag <- class(rep) == 'try-error'
                 if(sdfailflag){
                     warning('Could not calculate sdreport.\n')
                     rep <- NULL

@@ -308,7 +308,7 @@ Type objective_function<Type>::operator() ()
       logFmsyvec(i) = logFmsyd(ind);
     }
   }
-  
+
   // These quantities are calculated to enable comparison with the Polacheck et al (1993) parameter estimates
   vector<Type> Emsy(nq);
   vector<Type> Emsy2(nq);
