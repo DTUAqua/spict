@@ -22,6 +22,21 @@
 setClass("spictcls")
 
 
+#' @name get.version
+#' @title Get version of spict including git sha1 version if available.
+#' @param pkg Name of package.
+#' @return Package version
+get.version <- function(pkg='spict'){
+  pd <- packageDescription(pkg)
+  v <- paste0(pd$Package, "_v", pd$Version)
+  if (is.null(pd$GithubRef)){
+      return(v)
+  } else {
+      paste0(v , "@", pd$GithubSHA1)
+  }
+}
+
+
 #' @name fd
 #' @title Format date
 #' @param d Point in time in years as decimal number.

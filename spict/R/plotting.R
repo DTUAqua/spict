@@ -15,6 +15,35 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#' @name txt.stamp
+#' @title Add spict version to plot
+#' @param string Character string to stamp, if NULL stamp version.
+#' @return Nothing
+#' @export
+txt.stamp <- function(string = NULL) {
+    if (is.null(string)){
+        string <- get.version()
+    }
+    if (string != ''){
+        opar <- par(new = "TRUE", plt = c(0, 1, 0, 1), mfrow=c(1, 1), xpd=FALSE)
+        plot(1, typ='n', xaxt='n', yaxt='n', xlab='', ylab='', bty='n') # Empty plot 
+        #opar <- par(yaxt = "s", xaxt = "s")
+        on.exit(par(opar))
+        plt <- par("plt")
+        usr <- par("usr")
+        xcoord <- usr[2] + (usr[2] - usr[1])/(plt[2] - plt[1]) * (1 - plt[2]) - 0.4 * strwidth("m")
+        ycoord <- usr[3] - diff(usr[3:4])/diff(plt[3:4]) * (plt[3]) + 0.4 * strheight("m")
+        if (par("xlog")){
+            xcoord <- 10^(xcoord)
+        }
+        if (par("ylog")){
+            ycoord <- 10^(ycoord)
+        }
+        text(xcoord, ycoord, string, adj = 1, cex=0.5)
+    }
+}
+
+
 #' @name warning.stamp
 #' @title Add warning sign to plot
 #' @return Nothing
@@ -268,13 +297,16 @@ add.col.legend <- function(){
 #' @param ylab Label of y-axis.
 #' @param rel.axes Plot secondary y-axis contatning relative level of F.
 #' @param rel.ci Plot confidence interval for relative level of F.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.biomass(rep)
 #' @export
-plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NULL, plot.obs=TRUE, qlegend=TRUE, xlab='Time', ylab=NULL, rel.axes=TRUE, rel.ci=TRUE){
+plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NULL,
+                              plot.obs=TRUE, qlegend=TRUE, xlab='Time', ylab=NULL,
+                              rel.axes=TRUE, rel.ci=TRUE, stamp=get.version()){
     if(!'sderr' %in% names(rep)){
         ylabflag <- is.null(ylab)
         omar <- par()$mar
@@ -379,6 +411,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         if (rep$opt$convergence != 0){
             warning.stamp()
         }
+        txt.stamp(stamp)
         par(mar=omar)
     }
 }
@@ -395,13 +428,16 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
 #' @param qlegend If TRUE legend explaining colours of observation data is plotted.
 #' @param lineat Draw horizontal line at this y-value.
 #' @param xlab Label of x-axis.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.bbmsy(rep)
 #' @export
-plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL, plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time'){
+plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL,
+                            plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time',
+                            stamp=get.version()){
     if(!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
@@ -468,6 +504,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
         } else {
             plot(1, typ='n', xlab='', ylab='', xaxt='n', yaxt='n', main=paste('Bmsy=NA!', main))
         }
+        txt.stamp(stamp)
     }
 }
 
@@ -559,6 +596,7 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
 #' @param qlegend If TRUE plot a legend showing quarter of year information.
 #' @param plot.data If TRUE plot data in the top row (this option is only applied if osa residuals have been calculated).
 #' @param mfcol If TRUE plot plots columnwise (FALSE => rowwise).
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @examples
 #' data(pol)
@@ -566,7 +604,8 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
 #' rep <- calc.osa.resid(rep)
 #' plotspict.diagnostic(rep)
 #' @export
-plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, mfcol=FALSE){
+plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, mfcol=FALSE,
+                                 stamp=get.version()){
     repflag <- FALSE
     op <- par()
     if('obsC' %in% names(rep)){ # rep is an input list
@@ -663,6 +702,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
             }
         }
     }
+    txt.stamp(stamp)
     par(op)
 }
 
@@ -680,13 +720,16 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
 #' @param ylab Label of y-axis.
 #' @param rel.axes Plot secondary y-axis contatning relative level of F.
 #' @param rel.ci Plot confidence interval for relative level of F.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.f(rep)
 #' @export
-plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', ylim=NULL, plot.obs=TRUE, qlegend=TRUE, xlab='Time', ylab=NULL, rel.axes=TRUE, rel.ci=TRUE){
+plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', ylim=NULL,
+                        plot.obs=TRUE, qlegend=TRUE, xlab='Time', ylab=NULL, rel.axes=TRUE,
+                        rel.ci=TRUE, stamp=get.version()){
     if(!'sderr' %in% names(rep)){
         ylabflag <- is.null(ylab) # If null then not manually specified
         omar <- par()$mar
@@ -792,6 +835,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         if (rep$opt$convergence != 0){
             warning.stamp()
         }
+        txt.stamp(stamp)
         par(mar=omar)
     }
 }
@@ -808,13 +852,16 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
 #' @param qlegend If TRUE legend explaining colours of observation data is plotted.
 #' @param lineat Draw horizontal line at this y-value.
 #' @param xlab Label of x-axis.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.ffmsy(rep)
 #' @export
-plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality', ylim=NULL, plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time'){
+plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality', ylim=NULL,
+                            plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time',
+                            stamp=get.version()){
     if(!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
@@ -897,6 +944,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             warning.stamp()
         }
         box(lwd=1.5)
+        txt.stamp(stamp)
     }
 }
 
@@ -913,13 +961,15 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
 #' @param ylim Limits of y-axis.
 #' @param labpos Positions of time stamps of start and end points as in pos in text().
 #' @param xlabel Label of x-axis. If NULL not used.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.fb(rep)
 #' @export
-plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE, xlim=NULL, ylim=NULL, labpos=c(1, 1), xlabel=NULL){
+plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE,
+                         xlim=NULL, ylim=NULL, labpos=c(1, 1), xlabel=NULL, stamp=get.version()){
     if(!'sderr' %in% names(rep)){
         omar <- par()$mar
         mar <- c(5.1, 4.3, 4.1, 4.1)
@@ -1074,6 +1124,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         if (rep$opt$convergence != 0){
             warning.stamp()
         }
+        txt.stamp(stamp)
         par(mar=omar)
     }
 }
@@ -1089,13 +1140,15 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
 #' @param lcol Colour of prediction lines.
 #' @param xlab Label of x-axis.
 #' @param ylab Label of y-axis.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.catch(rep)
 #' @export
-plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='blue', xlab='Time', ylab=NULL){
+plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='blue',
+                            xlab='Time', ylab=NULL, stamp=get.version()){
     if(!'sderr' %in% names(rep)){
         ylabflag <- is.null(ylab) # If null then not manually specified
         inp <- rep$inp
@@ -1208,6 +1261,7 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
             warning.stamp()
         }
         box(lwd=1.5)
+        txt.stamp(stamp)
     }
 }
 
@@ -1218,13 +1272,14 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
 #' @param rep A result report as generated by running fit.spict.
 #' @param n.plotyears Plot years next to points if number of points is below n.plotyears. Default: 40.
 #' @param main Title of plot.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.production(rep)
 #' @export
-plotspict.production <- function(rep, n.plotyears=40, main='Production curve'){
+plotspict.production <- function(rep, n.plotyears=40, main='Production curve', stamp=get.version()){
     if (!'sderr' %in% names(rep)){
         inp <- rep$inp
         Kest <- get.par('logK', rep, exp=TRUE)
@@ -1278,6 +1333,7 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve'){
         if (rep$opt$convergence != 0){
             warning.stamp()
         }
+        txt.stamp(stamp)
     }
 }
 
@@ -1287,13 +1343,14 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve'){
 #' @details Plots the time required for the biomass to reach a certain proportion of Bmsy. The time required to reach 95\% of Bmsy is highlighted.
 #' @param rep A result report as generated by running fit.spict.
 #' @param main Title of plot.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.tc(rep)
 #' @export
-plotspict.tc <- function(rep, main='Time to Bmsy'){
+plotspict.tc <- function(rep, main='Time to Bmsy', stamp=get.version()){
     if(!'sderr' %in% names(rep)){
         inp <- rep$inp
         B0cur <- get.par('logBl', rep, exp=TRUE)[2]
@@ -1305,8 +1362,12 @@ plotspict.tc <- function(rep, main='Time to Bmsy'){
         sdbest <- get.par('logsdb', rep, exp=TRUE)
         Fmsy <- tail(get.par('logFmsy', rep, exp=TRUE), 1)
         Bmsy <- tail(get.par('logBmsy', rep, exp=TRUE), 1)
-        if(B0cur < Bmsy[2]) do.flag <- ifelse(B0cur/Bmsy[2]>0.95, FALSE, TRUE)
-        if(B0cur > Bmsy[2]) do.flag <- ifelse(Bmsy[2]/B0cur>0.95, FALSE, TRUE)
+        if(B0cur < Bmsy[2]){
+            do.flag <- ifelse(B0cur/Bmsy[2]>0.95, FALSE, TRUE)
+        }
+        if(B0cur > Bmsy[2]){
+            do.flag <- ifelse(Bmsy[2]/B0cur>0.95, FALSE, TRUE)
+        }
         if(do.flag){
             if(B0cur < Bmsy[2]) facvec <- c(0, 0.75, 0.95, 1)
             if(B0cur > Bmsy[2]) facvec <- c(2, 1.25, 1.05, 1)
@@ -1335,7 +1396,8 @@ plotspict.tc <- function(rep, main='Time to Bmsy'){
             ylim <- range(Bsim[nFvec, ], na.rm=TRUE)
             xlim <- range(time[nFvec, inds])
             xlim[2] <- min(xlim[2], 15) # Max 15 years ahead
-            plot(time[1, ], Bsim[1, ], typ='l', xlim=xlim, ylim=ylim, col=cols[1], ylab='Proportion of Bmsy', xlab='Years to Bmsy', main=main, lwd=1.5)
+            plot(time[1, ], Bsim[1, ], typ='l', xlim=xlim, ylim=ylim, col=cols[1],
+                 ylab='Proportion of Bmsy', xlab='Years to Bmsy', main=main, lwd=1.5)
             abline(h=c(frac, 1/frac), lty=1, col='lightgray')
             abline(h=1, lty=3)
             for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=cols[i], lwd=1.5)
@@ -1345,12 +1407,14 @@ plotspict.tc <- function(rep, main='Time to Bmsy'){
             for(i in 1:nFvec) abline(v=vt[i], col=cols[i], lty=2)
             lgnplace <- 'bottomright'
             if(B0cur > Bmsy[2]) lgnplace <- 'topright'
-            legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=cols[1:nFvec], lwd=rep(1.5,nFvec), bg='white')
+            legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=cols[1:nFvec],
+                   lwd=rep(1.5,nFvec), bg='white')
             points(vt, rep(par('usr')[3], nFvec), col=cols[1:nFvec], pch=4)
-        }
-        box(lwd=1.5)
-        if (rep$opt$convergence != 0){
-            warning.stamp()
+            box(lwd=1.5)
+            if (rep$opt$convergence != 0){
+                warning.stamp()
+            }
+            txt.stamp(stamp)
         }
     }
 }
@@ -1360,9 +1424,10 @@ plotspict.tc <- function(rep, main='Time to Bmsy'){
 #' @title Plot the mean F cycle
 #' @details If seasonal data are available the seasonal cycle in the fishing mortality can be estimated. This function plots this mean F cycle.
 #' @param rep A result report as generated by running fit.spict.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @export
-plotspict.season <- function(rep){
+plotspict.season <- function(rep, stamp=get.version()){
     if(!'par.fixed' %in% names(rep)) stop('Input object was not a valid output from fit.spict()!')
     if(!'sderr' %in% names(rep) & 'logphi' %in% names(rep$par.fixed)){
         jan <- as.POSIXct("2015-01-01 00:00:01 UTC", tz='UTC')
@@ -1422,6 +1487,7 @@ plotspict.season <- function(rep){
         if (rep$opt$convergence != 0){
             warning.stamp()
         }
+        txt.stamp(stamp)
     }
 }
 
@@ -1482,6 +1548,9 @@ plotspict.btrend <- function(rep){
 plot.spictcls <- function(x, ...){
     rep <- x
     logax <- FALSE # Take log of relevant axes? default: FALSE
+    if (!exists('stamp')){
+        stamp <- get.version()
+    }
     if('par.fixed' %in% names(rep) & rep$inp$do.sd.report){
         inp <- rep$inp
         if(inp$reportall){
@@ -1492,17 +1561,17 @@ plot.spictcls <- function(x, ...){
                 par(mfrow=c(3, 3), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
             }
             # Biomass
-            plotspict.biomass(rep, logax=logax)
+            plotspict.biomass(rep, logax=logax, stamp='')
             # F
-            plotspict.f(rep, logax=logax, qlegend=FALSE)
+            plotspict.f(rep, logax=logax, qlegend=FALSE, stamp='')
             # Catch
-            plotspict.catch(rep, qlegend=FALSE)
+            plotspict.catch(rep, qlegend=FALSE, stamp='')
             # B/Bmsy
-            plotspict.bbmsy(rep, logax=logax, qlegend=FALSE)
+            plotspict.bbmsy(rep, logax=logax, qlegend=FALSE, stamp='')
             # F/Fmsy
-            plotspict.ffmsy(rep, logax=logax, qlegend=FALSE)
+            plotspict.ffmsy(rep, logax=logax, qlegend=FALSE, stamp='')
             # F versus B
-            plotspict.fb(rep, logax=logax, plot.legend=TRUE)
+            plotspict.fb(rep, logax=logax, plot.legend=TRUE, stamp='')
         } else {
             cat('inp$reportall = FALSE so not much to plot.\n')
             if('osar' %in% names(rep)){
@@ -1512,27 +1581,36 @@ plot.spictcls <- function(x, ...){
             }
         }
         # Production curve
-        plotspict.production(rep)
+        plotspict.production(rep, stamp='')
         # Seasonal F
-        if(inp$nseasons > 1 & inp$seasontype==1) plotspict.season(rep)
+        if(inp$nseasons > 1 & inp$seasontype==1){
+            plotspict.season(rep, stamp='')
+        }
         # Time constant
-        if(inp$nseasons == 1) plotspict.tc(rep)
+        if(inp$nseasons == 1){
+            plotspict.tc(rep, stamp='')
+        }
         # Priors
-        if('priors' %in% names(rep$inp)) plotspict.priors(rep, do.plot=1)
-        if('osar' %in% names(rep)) plotspict.osar(rep, qlegend=FALSE)
+        if('priors' %in% names(rep$inp)){
+            plotspict.priors(rep, do.plot=1, stamp='')
+        }
+        if('osar' %in% names(rep)){
+            plotspict.osar(rep, qlegend=FALSE)
+        }
         if(inp$reportall){
             if('infl' %in% names(rep)){
                 # Plot influence summary
-                plotspict.inflsum(rep)
+                plotspict.inflsum(rep, stamp='')
             }
         }
     } else {
         if('inp' %in% names(rep)){
-            plotspict.ci(rep$inp)
+            plotspict.ci(rep$inp, stamp='')
         } else {
             stop('Nothing to plot!')
         }
     }
+    txt.stamp(stamp)
 }
 
 
@@ -1557,9 +1635,10 @@ put.xax <- function(rep){
 #' @title Plots influence statistics of observations.
 #' @details TBA
 #' @param rep A valid result from calc.influence().
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @export
-plotspict.infl <- function(rep){
+plotspict.infl <- function(rep, stamp=get.version()){
     inp <- rep$inp
     #sernames <- c('C', paste0('I', 1:inp$nindex))
     dfbeta <- rep$infl$dfbeta
@@ -1623,6 +1702,7 @@ plotspict.infl <- function(rep){
     # Plot of influence
     plotspict.inflsum(rep)
     box(lwd=1.5)
+    txt.stamp(stamp)
 }
 
 
@@ -1630,9 +1710,10 @@ plotspict.infl <- function(rep){
 #' @title Plots summary of influence statistics of observations.
 #' @details TBA
 #' @param rep A valid result from calc.influence().
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @export
-plotspict.inflsum <- function(rep){
+plotspict.inflsum <- function(rep, stamp=get.version()){
     infl <- rep$infl$infl
     nobs <- dim(infl)[1]
     ninfl <- dim(infl)[2]
@@ -1642,6 +1723,7 @@ plotspict.inflsum <- function(rep){
     for(i in 1:nobs) abline(v=i, col=cols[i], lwd=(1+cols[i]/5))
     matplot(infl, pch=1, col=1, add=TRUE)
     put.xax(rep)
+    txt.stamp(stamp)
 }
 
 
@@ -1650,9 +1732,10 @@ plotspict.inflsum <- function(rep){
 #' @details TBA
 #' @param input Result of running likprof.spict().
 #' @param logpar If TRUE log of parameters are shown.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing but shows a plot.
 #' @export
-plotspict.likprof <- function(input, logpar=FALSE){
+plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
     repflag <- 'par.fixed' %in% names(input)
     if(repflag){ # This is a result of fit.spict
         rep <- input
@@ -1691,15 +1774,17 @@ plotspict.likprof <- function(input, logpar=FALSE){
         contour(pv[, 1], pv[, 2], pvals, xlab=pars[1], ylab=pars[2], levels=c(0.5, 0.8, 0.95))
     }
     box(lwd=1.5)
+    txt.stamp(stamp)
 }
 
 
 #' @name plotspict.retro
 #' @title Plot results of retrospective analysis 
 #' @param rep A valid result from fit.spict.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing
 #' @export
-plotspict.retro <- function(rep){
+plotspict.retro <- function(rep, stamp=get.version()){
     par(mfrow=c(2, 2), oma=c(1, 0.2, 0, 2), mar=c(4,4,2,1))
     nretroyear <- length(rep$retro)
     bs <- list()
@@ -1727,15 +1812,17 @@ plotspict.retro <- function(rep){
     plot(time[[1]], ffs[[1]], typ='l', ylim=range(unlist(ffs)), xlab='Time', ylab = expression(F[t]/F[MSY]), lwd=1.5)
     for(i in 2:nretroyear) lines(time[[i]], ffs[[i]], col=i, lwd=1.5)
     box(lwd=1.5)
+    txt.stamp(stamp)
 }
 
 
 #' @name plotspict.ci
 #' @title Plot catch and index data.
 #' @param inp An input list containing data.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing
 #' @export
-plotspict.ci <- function(inp){
+plotspict.ci <- function(inp, stamp=get.version()){
     op <- par()
     inp <- check.inp(inp)
     if (sum(inp$nobsI) > 0){
@@ -1777,7 +1864,7 @@ plotspict.ci <- function(inp){
             box(lwd=1.5)
         }
         # Plot data
-        plotspict.data(inp, MSY=MSY, one.index=1)
+        plotspict.data(inp, MSY=MSY, one.index=1, stamp='')
         # Plot seasonal patterns
         if(inp$nseasons > 1){
             plot.seasondiff(inp$timeC, y, ylab='diff log catch')
@@ -1810,6 +1897,7 @@ plotspict.ci <- function(inp){
     } else {
         plotspict.data(inp)
     }
+    txt.stamp(stamp)
     par(op)
 }
 
@@ -1818,9 +1906,10 @@ plotspict.ci <- function(inp){
 #' @title Plot priors and posterior distribution.
 #' @param rep A result from fit.spict.
 #' @param do.plot Integer defining maximum number of priors to plot.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing
 #' @export
-plotspict.priors <- function(rep, do.plot=4){
+plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
     inp <- rep$inp
     npriors <- length(inp$priors)
     useflags <- numeric(npriors)
@@ -1883,6 +1972,7 @@ plotspict.priors <- function(rep, do.plot=4){
                 }
             }
         }
+        txt.stamp(stamp)
     }
 }
 
@@ -1892,9 +1982,10 @@ plotspict.priors <- function(rep, do.plot=4){
 #' @param inpin An input list containing data.
 #' @param MSY Value of MSY.
 #' @param one.index Integer indicating the number of the index to plot.
+#' @param stamp Stamp plot with this character string.
 #' @return Nothing
 #' @export
-plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
+plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, stamp=get.version()){
     inp <- check.inp(inpin)
     #nseries <- inp$nindex + 1 + as.numeric(inp$nobsE > 0)
     nseries <- inp$nseries
@@ -1944,7 +2035,8 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL){
         add.legend <- inp$nseasons > 1
         plot.col(inp$timeE, inp$obsE, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
         box(lwd=1.5)
-    }    
+    }
+    txt.stamp(stamp)
 }
 
 
