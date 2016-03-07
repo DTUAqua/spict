@@ -15,6 +15,26 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#' @name warning.stamp
+#' @title Add warning sign to plot
+#' @return Nothing
+warning.stamp <- function(){
+    opar <- par(yaxt = "s", xaxt = "s", xpd = NA)
+    on.exit(par(opar))
+    usr <- par("usr")
+    xcoord <- usr[1]
+    ycoord <- usr[4] + 0.035/diff(par()$fig[3:4]) * diff(usr[3:4])
+    if (par("xlog")){
+        xcoord <- 10^(xcoord)
+    }
+    if (par("ylog")){
+        ycoord <- 10^(ycoord)
+    }
+    points(xcoord, ycoord, pch=24, bg='yellow', col='black', cex=2, lwd=1.5)
+    text(xcoord, ycoord, '!', cex=0.8)
+}
+
+
 #' @name add.catchunit
 #' @title Add catch unit to label
 #' @param lab Base label
@@ -341,10 +361,10 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         lines(inp$time, Bmsyvec$msy, col='black')
         # B CI
         #if(inp$phases$logq>0){
-            lines(inp$time[inp$indest], Best[inp$indest,1]/scal, col=4, lty=2, lwd=1.5)
-            lines(inp$time[inp$indest], Best[inp$indest,3]/scal, col=4, lty=2, lwd=1.5)
-            lines(inp$time[inp$indpred], Best[inp$indpred,1]/scal, col=4, lty=2)
-            lines(inp$time[inp$indpred], Best[inp$indpred,3]/scal, col=4, lty=2)
+        lines(inp$time[inp$indest], Best[inp$indest,1]/scal, col=4, lty=2, lwd=1.5)
+        lines(inp$time[inp$indest], Best[inp$indest,3]/scal, col=4, lty=2, lwd=1.5)
+        lines(inp$time[inp$indpred], Best[inp$indpred,1]/scal, col=4, lty=2)
+        lines(inp$time[inp$indpred], Best[inp$indpred,3]/scal, col=4, lty=2)
         #}
         # B/Bmsy CI
         cicol3 <- rgb(0, 0, 1, 0.2)
@@ -356,6 +376,9 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         }
         if('yearsepgrowth' %in% names(inp)) abline(v=inp$yearsepgrowth, col=3)
         box(lwd=1.5)
+        if (rep$opt$convergence != 0){
+            warning.stamp()
+        }
         par(mar=omar)
     }
 }
@@ -403,10 +426,8 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
         BBfininds <- which(is.finite(BB[, 1]) & is.finite(BB[, 3]))
         if(length(ylim) != 2) ylim <- range(c(lineat, BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
         ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
-        #if(main==-1) main <- 'Relative biomass'
         plot(inp$time, BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main=main)
         cicol2 <- rgb(0, 0, 1, 0.1)
-        #polygon(c(inp$time[fininds], rev(inp$time[fininds])), c(BB[fininds,1], rev(BB[fininds,3])), col=cicol2, border=cicol2)
         polygon(c(inp$time[BBfininds], rev(inp$time[BBfininds])), c(BB[BBfininds, 1], rev(BB[BBfininds, 3])), col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
         if(plot.obs){
@@ -440,6 +461,9 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
         lines(inp$time[inp$indpred], BB[inp$indpred,1], col=cicol3, lty=1, lwd=1)
         lines(inp$time[inp$indpred], BB[inp$indpred,3], col=cicol3, lty=1, lwd=1)
         abline(h=lineat)
+        if (rep$opt$convergence != 0){
+            warning.stamp()
+        }
         box(lwd=1.5)
         } else {
             plot(1, typ='n', xlab='', ylab='', xaxt='n', yaxt='n', main=paste('Bmsy=NA!', main))
@@ -765,6 +789,9 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         if(!flag & !'yearsepgrowth' %in% names(inp)) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         lines(inp$time, Fmsyvec$msy, col='black')
         box(lwd=1.5)
+        if (rep$opt$convergence != 0){
+            warning.stamp()
+        }
         par(mar=omar)
     }
 }
@@ -866,6 +893,9 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         if(!flag) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
         if(!flag) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         abline(h=lineat, col='black')
+        if (rep$opt$convergence != 0){
+            warning.stamp()
+        }
         box(lwd=1.5)
     }
 }
@@ -1041,6 +1071,9 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         points(Bl, Fl, pch=22, bg='white')
         text(Bl, Fl, round(tail(fbtime, 1), 2), pos=labpos[2], cex=0.75, offset=0.5, xpd=TRUE)
         box(lwd=1.5)
+        if (rep$opt$convergence != 0){
+            warning.stamp()
+        }
         par(mar=omar)
     }
 }
@@ -1171,6 +1204,9 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
             lines(timep, clp, col=lcol, lwd=1, lty=2)
             lines(timep, cup, col=lcol, lwd=1, lty=2)
         }
+        if (rep$opt$convergence != 0){
+            warning.stamp()
+        }
         box(lwd=1.5)
     }
 }
@@ -1239,6 +1275,9 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve'){
         abline(v=mx, lty=3)
         abline(h=0, lty=3)
         box(lwd=1.5)
+        if (rep$opt$convergence != 0){
+            warning.stamp()
+        }
     }
 }
 
@@ -1310,6 +1349,9 @@ plotspict.tc <- function(rep, main='Time to Bmsy'){
             points(vt, rep(par('usr')[3], nFvec), col=cols[1:nFvec], pch=4)
         }
         box(lwd=1.5)
+        if (rep$opt$convergence != 0){
+            warning.stamp()
+        }
     }
 }
 
@@ -1377,6 +1419,9 @@ plotspict.season <- function(rep){
         }
         axis(1, at=ats, labels=lab)
         box(lwd=1.5)
+        if (rep$opt$convergence != 0){
+            warning.stamp()
+        }
     }
 }
 
@@ -1397,6 +1442,9 @@ plotspict.btrend <- function(rep){
         abline(h=0, col='gray')
         legend('topleft', legend=c('Expected', 'Observed'), lty=1, lwd=c(1, 1.5), col=c(1, 4))
         box(lwd=1.5)
+        if (rep$opt$convergence != 0){
+            warning.stamp()
+        }
     }
 }
 
@@ -1830,6 +1878,9 @@ plotspict.priors <- function(rep, do.plot=4){
                            col=c(1, 3), lwd=1.5)
                 }
                 box(lwd=1.5)
+                if (rep$opt$convergence != 0){
+                    warning.stamp()
+                }
             }
         }
     }
