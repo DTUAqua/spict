@@ -1,4 +1,6 @@
-Package: spict
+
+fn <- 'spict/DESCRIPTION'
+cat('Package: spict
 Type: Package
 Title: Stochastic suplus Production model in Continuous-Time (SPiCT)
 Version: 0.4
@@ -16,4 +18,16 @@ Suggests:
     ellipse,
     parallel,
     mgcv
-LazyData: true
+LazyData: true\n',
+    file=fn)
+
+# Add Git hub stuff
+sha <- system('git rev-parse HEAD', intern=TRUE)
+branch <- system('git rev-parse --abbrev-ref HEAD', intern=TRUE)
+
+cat(paste('GithubRepo: spict\n'), file=fn, append=TRUE)
+cat(paste('GithubRef:', branch, '\n'), file=fn, append=TRUE)
+cat(paste('GithubSHA1:', sha, '\n'), file=fn, append=TRUE)
+
+
+#save('sha', file='spict/data/sha.rda')
