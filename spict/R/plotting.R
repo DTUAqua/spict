@@ -20,7 +20,7 @@
 #' @param string Character string to stamp, if NULL stamp version.
 #' @return Nothing
 #' @export
-txt.stamp <- function(string = NULL) {
+txt.stamp <- function(string = NULL, cex=0.5) {
     if (is.null(string)){
         string <- get.version()
     }
@@ -39,7 +39,7 @@ txt.stamp <- function(string = NULL) {
         if (par("ylog")){
             ycoord <- 10^(ycoord)
         }
-        text(xcoord, ycoord, string, adj = 1, cex=0.5)
+        text(xcoord, ycoord, string, adj = 1, cex=cex)
     }
 }
 
