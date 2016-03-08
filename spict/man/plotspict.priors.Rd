@@ -4,12 +4,14 @@
 \alias{plotspict.priors}
 \title{Plot priors and posterior distribution.}
 \usage{
-plotspict.priors(rep, do.plot = 4)
+plotspict.priors(rep, do.plot = 4, stamp = get.version())
 }
 \arguments{
 \item{rep}{A result from fit.spict.}
 
 \item{do.plot}{Integer defining maximum number of priors to plot.}
+
+\item{stamp}{Stamp plot with this character string.}
 }
 \value{
 Nothing

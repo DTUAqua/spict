@@ -4,10 +4,12 @@
 \alias{plotspict.ci}
 \title{Plot catch and index data.}
 \usage{
-plotspict.ci(inp)
+plotspict.ci(inp, stamp = get.version())
 }
 \arguments{
 \item{inp}{An input list containing data.}
+
+\item{stamp}{Stamp plot with this character string.}
 }
 \value{
 Nothing

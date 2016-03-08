@@ -4,12 +4,14 @@
 \alias{plotspict.likprof}
 \title{Plots result of likelihood profiling.}
 \usage{
-plotspict.likprof(input, logpar = FALSE)
+plotspict.likprof(input, logpar = FALSE, stamp = get.version())
 }
 \arguments{
 \item{input}{Result of running likprof.spict().}
 
 \item{logpar}{If TRUE log of parameters are shown.}
+
+\item{stamp}{Stamp plot with this character string.}
 }
 \value{
 Nothing but shows a plot.

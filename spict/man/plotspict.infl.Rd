@@ -4,10 +4,12 @@
 \alias{plotspict.infl}
 \title{Plots influence statistics of observations.}
 \usage{
-plotspict.infl(rep)
+plotspict.infl(rep, stamp = get.version())
 }
 \arguments{
 \item{rep}{A valid result from calc.influence().}
+
+\item{stamp}{Stamp plot with this character string.}
 }
 \value{
 Nothing.

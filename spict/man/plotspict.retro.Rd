@@ -4,10 +4,12 @@
 \alias{plotspict.retro}
 \title{Plot results of retrospective analysis}
 \usage{
-plotspict.retro(rep)
+plotspict.retro(rep, stamp = get.version())
 }
 \arguments{
 \item{rep}{A valid result from fit.spict.}
+
+\item{stamp}{Stamp plot with this character string.}
 }
 \value{
 Nothing
