@@ -568,11 +568,8 @@ extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
         ss$conv <- rep$opt$convergence
         # SDreport error
         ss$sderr <- ifelse(is.null(rep$sderr), 0, 1)
-        # Fit stats
-        ss$stats <- rep$stats
-        # OSA residuals p-values
-        if('osar' %in% names(rep)) ss$osarpvalC <- rep$osar$logCpboxtest$p.value
-        if('osar' %in% names(rep)) ss$osarpvalI <- rep$osar$logIpboxtest[[1]]$p.value
+        # Residual diagnostics
+        ss$diagn <- rep$diagn
         # Estimates
         calc.simstats <- function(parname, rep, exp=TRUE, true, ind=NULL){
             par <- get.par(parname, rep, exp)

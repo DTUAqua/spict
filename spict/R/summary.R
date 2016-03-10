@@ -534,12 +534,20 @@ sumspict.priors <- function(rep, numdigits=8){
 #' @export
 sumspict.diagnostics <- function(rep, numdigits=8){
     # Diagnostics matrix
-    nms <- names(rep$diagn)
+    diagn <- rep$diagn
+    nms <- names(diagn)
+    # Exclude Ljung-Box test for now, testing phase
+    inds <- grep('LB', nms) 
+    for (i in inds){
+        diagn[[nms[i]]] <- NULL
+    }
+    # Continue with LB removed
+    nms <- names(diagn)
     tests <- unique(substr(nms, 1, 3))
     ntests <- length(tests)
     testnames <- sub('C.p', '', nms[1:ntests])
     seriesnames <- sub('.p', '', sub(testnames[1], '', grep(testnames[1], nms, value=TRUE)))
-    diagnmat <- matrix(round(rep$diagn, numdigits), rep$inp$nseries, ntests, byrow=TRUE)
+    diagnmat <- matrix(round(unlist(diagn), numdigits), rep$inp$nseries, ntests, byrow=TRUE)
     colnames(diagnmat) <- testnames
     rownames(diagnmat) <- seriesnames
     # Stars

@@ -48,6 +48,7 @@ calc.osa.resid <- function(rep){
                                    parallel=inp$osar.parallel))
         if(class(osar) != 'try-error'){
             osar <- cbind(id=inp$obsidsrt[inp$osar.subset], osar)
+            rep$diagn <- list()
             # Store catch residuals
             inds <- match(inp$obsidC, osar$id)
             inds <- inds[!is.na(inds)]
@@ -83,8 +84,6 @@ calc.osa.resid <- function(rep){
             # Store index residuals
             timeI <- list()
             logIpres <- list()
-            #logIpshapiro <- list()
-            #logIpbias <- list()
             if (inp$nindex > 0){
                 rep$osarI <- list()
                 for(i in 1:rep$inp$nindex){
@@ -105,27 +104,14 @@ calc.osa.resid <- function(rep){
                     for (nm in names(diagnIpi)){
                         rep$diagn[[nm]] <- diagnIpi[[nm]]
                     }
-                    #diagnIp[[i]] <- res.diagn(logIpres[[i]], paste0('I', i), name=paste0('index', i))
-                    #logIpshapiro[[i]] <- diagnIp[[i]]$shapiro
-                    #logIpbias[[i]] <- diagnIp[[i]]$bias
-                    #nam <- paste0('acfI', i, '.p')
-                    #rep$diagn[[nam]] <- diagnIp[[i]]$diagn$acf.p
-                    #nam <- paste0('shapiroI', i, '.p')
-                    #rep$diagn[[nam]] <- logIpshapiro[[i]]$p.value
-                    #nam <- paste0('biasI', i, '.p')
-                    #rep$diagn[[nam]] <- logIpbias[[i]]$p.value
                 }
             }
             rep$osar <- list(timeC=timeC,
                              logCpres=logCpres,
-                             #logCpbias=diagnCp$bias,
-                             #logCpshapiro=diagnCp$shapiro,
                              timeI=timeI,
                              logIpres=logIpres,
                              timeE=timeE,
                              logEpres=logEpres)
-                             #logIpshapiro=logIpshapiro,
-                             #logIpbias=logIpbias)
         } else {
             stop('Could not calculate OSA residuals.\n')
         }
@@ -152,14 +138,26 @@ res.diagn <- function(resid, id, name=''){
         shapiro <- shapiro.test(resid) # Test for normality of residuals
         bias <- t.test(resid) # Test for bias of residuals
         acf.p <- min(acf.signf(resid, lag.max=4, return.p=TRUE))
+        # Ljung-Box test
+        maxlag <- 20
+        maxdf <- maxlag - 1
+        lb <- matrix(NA, maxdf, maxlag)
+        colnames(lb) <- paste0('lag', 1:maxlag)
+        rownames(lb) <- paste0('df', 0:(maxdf-1))
+        for (j in 1:maxdf){
+            lb[j, ] <- unlist(lapply(1:maxlag,
+                                     function(x) Box.test(resid, lag=x, fitdf=j-1)$p.value))
+        }
     } else {
         warning('Warning: only ', nnotna, ' non-NAs found in ', name, ' residuals. Not calculating residual statistics')
         bias <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
         shapiro <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
+        lb <- NA
     }
     diagn[[paste0('shapiro', id, '.p')]] <- shapiro$p.value
     diagn[[paste0('bias', id, '.p')]] <- bias$p.value
     diagn[[paste0('acf', id, '.p')]] <- NA
+    diagn[[paste0('LBox', id, '.p')]] <- lb
     if (!is.null(acf.p)){
         diagn[[paste0('acf', id, '.p')]] <- acf.p
     }
