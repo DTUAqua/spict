@@ -568,8 +568,6 @@ extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
         ss$conv <- rep$opt$convergence
         # SDreport error
         ss$sderr <- ifelse(is.null(rep$sderr), 0, 1)
-        # Residual diagnostics
-        ss$diagn <- rep$diagn
         # Estimates
         calc.simstats <- function(parname, rep, exp=TRUE, true, ind=NULL){
             par <- get.par(parname, rep, exp)
@@ -634,6 +632,8 @@ extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
         # Convergence for all values
         uss <- unlist(ss)
         ss$convall <- (any(is.na(uss) | !is.finite(uss)) | ss$conv > 0)
+        # Residual diagnostics
+        ss$diagn <- rep$diagn
         return(ss)
     } else {
         stop('These results do not come from the estimation of a simulated data set!')
