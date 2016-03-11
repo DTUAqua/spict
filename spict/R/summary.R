@@ -536,10 +536,12 @@ sumspict.diagnostics <- function(rep, numdigits=8){
     # Diagnostics matrix
     diagn <- rep$diagn
     nms <- names(diagn)
-    # Exclude Ljung-Box test for now, testing phase
-    inds <- grep('LB', nms) 
-    for (i in inds){
-        diagn[[nms[i]]] <- NULL
+    if (FALSE){
+        # Exclude Ljung-Box test for now, testing phase
+        inds <- grep('LB', nms) 
+        for (i in inds){
+            diagn[[nms[i]]] <- NULL
+        }
     }
     # Continue with LB removed
     nms <- names(diagn)

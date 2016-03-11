@@ -139,15 +139,21 @@ res.diagn <- function(resid, id, name=''){
         bias <- t.test(resid) # Test for bias of residuals
         acf.p <- min(acf.signf(resid, lag.max=4, return.p=TRUE))
         # Ljung-Box test
-        maxlag <- 20
-        maxdf <- maxlag - 1
-        lb <- matrix(NA, maxdf, maxlag)
-        colnames(lb) <- paste0('lag', 1:maxlag)
-        rownames(lb) <- paste0('df', 0:(maxdf-1))
-        for (j in 1:maxdf){
-            lb[j, ] <- unlist(lapply(1:maxlag,
-                                     function(x) Box.test(resid, lag=x, fitdf=j-1)$p.value))
+        if (FALSE){
+            # This was used in a simulation to find the combination of fitdf and lag that
+            # performed best. The result was: lag = 4, fitdf = 1.
+            # See "/production_model/ms/effort/res" for details
+            maxlag <- 20
+            maxdf <- maxlag - 1
+            lb <- matrix(NA, maxdf, maxlag)
+            colnames(lb) <- paste0('lag', 1:maxlag)
+            rownames(lb) <- paste0('df', 0:(maxdf-1))
+            for (j in 1:maxdf){
+                lb[j, ] <- unlist(lapply(1:maxlag,
+                                         function(x) Box.test(resid, lag=x, fitdf=j-1)$p.value))
+            }
         }
+        lb <- Box.test(resid, lag=4, fitdf=1)$p.value
     } else {
         warning('Warning: only ', nnotna, ' non-NAs found in ', name, ' residuals. Not calculating residual statistics')
         bias <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)

@@ -561,7 +561,7 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
                 xlim <- range(rep$osar$timeI[[1]])
             }
             fun(rep$osar$timeI[[1]], rep$osar$logIpres[[1]], ylab='Index OSA residuals',
-                col=1, xlim=xlim, ylim=ylim, main=paste0('I1 bias p-val: ', pval), col.main=colmain)
+                col=1, xlim=xlim, ylim=ylim, main=paste0('Bias p-val: ', pval), col.main=colmain)
             abline(h=0, lty=3)
             if(rep$inp$nindex>1){
                 for(i in 2:rep$inp$nindex){
@@ -571,7 +571,8 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
                         pval <- round(as.list(rep$diagn)[[paste0('biasI', i, '.p')]], 4)
                         #pval <- round(rep$osar$logIpbias[[i]]$p.value, 4)
                         colmain <- ifelse(pval<0.05, 'red', 'forestgreen')
-                        main <- paste0('I', i, ' bias p-val: ', pval)
+                        #main <- paste0('I', i, ' bias p-val: ', pval)
+                        main <- paste0('Bias p-val: ', pval)
                     } else {
                         main <- ''
                     }
@@ -649,47 +650,56 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
     }
    
     # OSAR plots
-    osar.acf.plot <- function(res, main, lag.max){
+    osar.acf.plot <- function(res, lag.max, pval){
         inds <- which(acf.signf(res, lag.max=lag.max))
         if (length(inds) > 0){
-            main <- paste0(main, ', lag.signf: ', paste0(inds, collapse=','))
+            txt <- paste0('lag.signf: ', paste0(inds, collapse=','))
+        } else {
+            txt <- ''
         }
-        colmain <- ifelse(length(inds) > 0, 'red', 'forestgreen')
+        colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
         acf(res, main='', lag.max=lag.max)
-        title(main=main, col.main=colmain)
+        title(main=paste0('LBox p-val: ', pval), col.main=colmain)
+        legend('topright', legend=NA, title=txt, col=2, bty='n', pt.cex=0, text.col=2)
         box(lwd=1.5)
     }
-    osar.qq.plot <- function(res, main, pval){
+    osar.qq.plot <- function(res, pval){
         colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
-        qqnorm(res, main=paste0(main, ', Shapiro p-val: ', pval), col.main=colmain)
+        qqnorm(res, main=paste0('Shapiro p-val: ', pval), col.main=colmain)
         qqline(res)
         box(lwd=1.5)
     }
     if('osar' %in% names(rep)){
         plotspict.osar(rep, collapse.I=FALSE, qlegend=qlegend)
         # Catch ACF
+        pvalacfC <- round(as.list(rep$diagn)$LBoxC.p, 4)
         resC <- rep$osar$logCpres[!is.na(rep$osar$logCpres)]        
-        osar.acf.plot(resC, 'Catch', lag.max)
+        osar.acf.plot(resC, lag.max, pvalacfC)
         # Effort ACF
         if (inp$nobsE > 0){
+            pvalacfE <- round(as.list(rep$diagn)$LBoxE.p, 4)
             resE <- rep$osar$logEpres[!is.na(rep$osar$logEpres)]
-            osar.acf.plot(resE, 'Effort', lag.max)
+            osar.acf.plot(resE, lag.max, pvalacfE)
         }
         # Index ACF
         if (inp$nindex > 0){
+            inds <- grep('LBoxI', names(rep$diagn))
+            nms <- names(rep$diagn)[inds]
+            nos <- as.numeric(unlist(regmatches(nms, gregexpr('[0-9]+', nms))))
             resI <- list()
             for(i in 1:inp$nindex){
+                pvalacfI <- round(as.list(rep$diagn)[[nms[i]]], 4)
                 resI[[i]] <- rep$osar$logIpres[[i]][!is.na(rep$osar$logIpres[[i]])]
-                osar.acf.plot(resI[[i]], paste0('Index', i), lag.max)
+                osar.acf.plot(resI[[nos[i]]], lag.max, pvalacfI)
             }
         }
         # Catch QQ
         pvalC <- round(as.list(rep$diagn)$shapiroC.p, 4)
-        osar.qq.plot(resC, 'Catch', pvalC)
+        osar.qq.plot(resC, pvalC)
         # Effort QQ
         if (inp$nobsE > 0){
             pvalE <- round(as.list(rep$diagn)$shapiroE.p, 4)
-            osar.qq.plot(resE, 'Effort', pvalE)
+            osar.qq.plot(resE, pvalE)
         }
         # Index QQ
         if (inp$nindex > 0){
@@ -698,7 +708,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
             nos <- as.numeric(unlist(regmatches(nms, gregexpr('[0-9]+', nms))))
             for(i in 1:inp$nindex){
                 pvalI <- round(as.list(rep$diagn)[[nms[i]]], 4)
-                osar.qq.plot(resI[[nos[i]]], paste0('I', nos[i]), pvalI)
+                osar.qq.plot(resI[[nos[i]]], pvalI)
             }
         }
     }
