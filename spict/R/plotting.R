@@ -26,6 +26,7 @@ txt.stamp <- function(string = NULL, cex=0.5) {
     }
     if (string != ''){
         opar <- par(new = "TRUE", plt = c(0, 1, 0, 1), mfrow=c(1, 1), xpd=FALSE)
+        on.exit(par(opar))
         plot(1, typ='n', xaxt='n', yaxt='n', xlab='', ylab='', bty='n') # Empty plot 
         #opar <- par(yaxt = "s", xaxt = "s")
         on.exit(par(opar))
@@ -256,10 +257,10 @@ add.col.legend.hor <- function(){
 #' @title Add a legend explaining colors of points (vertical orientation)
 #' @return Nothing.
 add.col.legend <- function(){
-    xpd <- par()$xpd
     rel <- (par()$fin/par()$pin)[2]
     yfac <- 3*rel - 3
-    par(xpd=TRUE)
+    opar <- par(xpd=TRUE)
+    on.exit(par(opar))
     pusr <- par('usr')
     mods <- seq(0, 1, length=13)
     rgbcols <- season.cols(mods)
@@ -280,7 +281,6 @@ add.col.legend <- function(){
     laby <- seq(bary, pymax, length=5)
     labx <- pxmax
     text(labx, laby[1:4], c('Jan', 'Apr', 'Jul', 'Oct'), pos=4, cex=0.8)
-    par(xpd=xpd)
 }
 
 
@@ -309,13 +309,16 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
                               rel.axes=TRUE, rel.ci=TRUE, stamp=get.version()){
     if(!'sderr' %in% names(rep)){
         ylabflag <- is.null(ylab)
-        omar <- par()$mar
         mar <- c(5.1, 4.3, 4.1, 4.1)
         if(dev.cur()==1){ # If plot is not open
-            par(mar=mar)
+            opar <- par(mar=mar)
+            on.exit(par(opar))
         }
         if(dev.cur()==2){ # If plot is open, check if it is a 1x1 plot
-            if(all(par()$mfrow == c(1, 1))) par(mar=mar)
+            if(all(par()$mfrow == c(1, 1))){
+                opar <- par(mar=mar)
+                on.exit(par(opar))
+            }
         }
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
@@ -412,7 +415,6 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             warning.stamp()
         }
         txt.stamp(stamp)
-        par(mar=omar)
     }
 }
 
@@ -608,7 +610,8 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
 plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, mfcol=FALSE,
                                  stamp=get.version()){
     repflag <- FALSE
-    op <- par()
+    mar <- c(4.7, 4.1, 2.2, 2)
+    #op <- par()
     if('obsC' %in% names(rep)){ # rep is an input list
         inp <- check.inp(rep)
         if(inp$nindex==1) mfrow <- c(2, 1)
@@ -631,11 +634,12 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
         #cat('No OSAR found in input, run calc.osa.resid to get all diagnostics.\n')
     }
     if(mfcol){
-        par(mfcol=rev(mfrow))
+        opar <- par(mfcol=rev(mfrow), mar=mar)
     } else {
-        par(mfrow=mfrow)
+        opar <- par(mfrow=mfrow, mar=mar)
     }
-
+    on.exit(par(opar))
+    
     # Plot data
     if(plot.data){
         plot.col(inp$timeC, log(inp$obsC), ylab='log catch data', main='Catch', xlab='Time')
@@ -713,7 +717,6 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
         }
     }
     txt.stamp(stamp)
-    par(op)
 }
 
 
@@ -745,10 +748,14 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         omar <- par()$mar
         mar <- c(5.1, 4.3, 4.1, 4.1)
         if(dev.cur()==1){ # If plot is not open
-            par(mar=mar)
+            opar <- par(mar=mar)
+            on.exit(par(opar))
         }
         if(dev.cur()==2){ # If plot is open, check if it is a 1x1 plot
-            if(all(par()$mfrow == c(1, 1))) par(mar=mar)
+            if(all(par()$mfrow == c(1, 1))){
+                opar <- par(mar=mar)
+                on.exit(par(opar))
+            }
         }
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
@@ -846,7 +853,6 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             warning.stamp()
         }
         txt.stamp(stamp)
-        par(mar=omar)
     }
 }
 
@@ -981,13 +987,17 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
 plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=FALSE,
                          xlim=NULL, ylim=NULL, labpos=c(1, 1), xlabel=NULL, stamp=get.version()){
     if(!'sderr' %in% names(rep)){
-        omar <- par()$mar
+        #omar <- par()$mar
         mar <- c(5.1, 4.3, 4.1, 4.1)
         if(dev.cur()==1){ # If plot is not open
-            par(mar=mar)
+            opar <- par(mar=mar)
+            on.exit(par(opar))
         }
         if(dev.cur()==2){ # If plot is open, check if it is a 1x1 plot
-            if(all(par()$mfrow == c(1, 1))) par(mar=mar)
+            if(all(par()$mfrow == c(1, 1))){
+                opar <- par(mar=mar)
+                on.exit(par(opar))
+            }
         }
         log <- ifelse(logax, 'xy', '')
         inp <- rep$inp
@@ -1135,7 +1145,6 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
             warning.stamp()
         }
         txt.stamp(stamp)
-        par(mar=omar)
     }
 }
 
@@ -1566,9 +1575,9 @@ plot.spictcls <- function(x, ...){
         if(inp$reportall){
             #dev.new(width=10, height=10)
             if('osar' %in% names(rep)){
-                par(mfrow=c(4, 3), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
+                opar <- par(mfrow=c(4, 3), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
             } else {
-                par(mfrow=c(3, 3), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
+                opar <- par(mfrow=c(3, 3), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
             }
             # Biomass
             plotspict.biomass(rep, logax=logax, stamp='')
@@ -1585,10 +1594,11 @@ plot.spictcls <- function(x, ...){
         } else {
             cat('inp$reportall = FALSE so not much to plot.\n')
             if('osar' %in% names(rep)){
-                par(mfrow=c(3, 2), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2,3.5))
+                opar <- par(mfrow=c(3, 2), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2,3.5))
             } else {
-                par(mfrow=c(2, 1), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2,3.5))
+                opar <- par(mfrow=c(2, 1), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2,3.5))
             }
+            on.exit(opar)
         }
         # Production curve
         plotspict.production(rep, stamp='')
@@ -1662,7 +1672,8 @@ plotspict.infl <- function(rep, stamp=get.version()){
     np <- length(parnams)
     rwnms <- rownames(dfbeta)
     infl <- rep$infl$infl
-    par(mfrow=c(2,2))
+    opar <- par(mfrow=c(2,2))
+    on.exit(par(opar))
     # Plot covratio
     dl <- 3*length(rep$par.fixed)/nobs
     covratio <- exp(ddetcov)
@@ -1795,7 +1806,8 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 #' @return Nothing
 #' @export
 plotspict.retro <- function(rep, stamp=get.version()){
-    par(mfrow=c(2, 2), oma=c(1, 0.2, 0, 2), mar=c(4,4,2,1))
+    opar <- par(mfrow=c(2, 2), oma=c(1, 0.2, 0, 2), mar=c(4,4,2,1))
+    on.exit(par(opar))
     nretroyear <- length(rep$retro)
     bs <- list()
     for(i in 1:nretroyear) bs[[i]] <- get.par('logB', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 2]
@@ -1833,7 +1845,7 @@ plotspict.retro <- function(rep, stamp=get.version()){
 #' @return Nothing
 #' @export
 plotspict.ci <- function(inp, stamp=get.version()){
-    op <- par()
+    #op <- par()
     inp <- check.inp(inp)
     if (sum(inp$nobsI) > 0){
         # Remove effort observations as they are not used in this plot
@@ -1864,7 +1876,8 @@ plotspict.ci <- function(inp, stamp=get.version()){
             if(inp$nindex %in% 2:3) mfrow <- c(2, 3)
             if(inp$nindex %in% 4:5) mfrow <- c(2, 4)
         }
-        par(mfrow=mfrow)
+        opar <- par(mfrow=mfrow)
+        on.exit(par(opar))
         plot.seasondiff <- function(time, obs, ylab='Obs'){
             dt <- time[-length(time)]
             dy <- diff(log(obs))
@@ -1908,7 +1921,7 @@ plotspict.ci <- function(inp, stamp=get.version()){
         plotspict.data(inp)
     }
     txt.stamp(stamp)
-    par(op)
+    #par(op)
 }
 
 
@@ -1992,10 +2005,11 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
 #' @param inpin An input list containing data.
 #' @param MSY Value of MSY.
 #' @param one.index Integer indicating the number of the index to plot.
+#' @param qlegend
 #' @param stamp Stamp plot with this character string.
 #' @return Nothing
 #' @export
-plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, stamp=get.version()){
+plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp=get.version()){
     inp <- check.inp(inpin)
     #nseries <- inp$nindex + 1 + as.numeric(inp$nobsE > 0)
     nseries <- inp$nseries
@@ -2004,9 +2018,13 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, stamp=get.version())
     if(nseries %in% 5:6) mfrow <- c(2, 3)
     if(nseries %in% 7:9) mfrow <- c(3, 3)
     if(dev.cur()==1){
-        par(mfrow=mfrow)
+        opar <- par(mfrow=mfrow)
+        on.exit(par(opar))
     } else {
-        if(sum(par()$mfrow)==2) par(mfrow=mfrow)
+        if(sum(par()$mfrow)==2){
+            opar <- par(mfrow=mfrow)
+            on.exit(par(opar))
+        }
     }
     xlim <- range(inp$timeC, unlist(inp$timeI), inp$timeE)
     # Plot catch
@@ -2015,23 +2033,26 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, stamp=get.version())
     ylab <- add.catchunit(ylab, inp$catchunit)
     plot(inp$timeC, inp$obsC, typ='l', ylab=ylab, xlab='Time', main=main, xlim=xlim)
     grid()
-    add.legend <- inp$nseasons > 1
-    plot.col(inp$timeC, inp$obsC, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
+    plot.col(inp$timeC, inp$obsC, do.line=FALSE, cex=0.6, add=TRUE, add.legend=qlegend)
     if(!is.null(MSY)) abline(h=MSY, lty=2)
     box(lwd=1.5)
     # Plot index
     if (inp$nindex > 0){
         i <- 1
         main <- paste0('Nobs I: ', inp$nobsI[i])
-        plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main, xlim=xlim)
+        plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time',
+             main=main, xlim=xlim)
         grid()
-        plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
+        plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE,
+                 add.legend=FALSE)
         if(inp$nindex>1 & is.null(one.index)){
             for(i in 2:inp$nindex){
                 main <- paste0('Nobs I: ', inp$nobsI[i])
-                plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time', main=main, xlim=xlim)
+                plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i),
+                     xlab='Time', main=main, xlim=xlim)
                 grid()
-                plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
+                plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6,
+                         add=TRUE, add.legend=FALSE)
             }
         }
         box(lwd=1.5)
@@ -2042,8 +2063,7 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, stamp=get.version())
         ylab <- 'Effort'
         plot(inp$timeE, inp$obsE, typ='l', ylab=ylab, xlab='Time', main=main, xlim=xlim)
         grid()
-        add.legend <- inp$nseasons > 1
-        plot.col(inp$timeE, inp$obsE, do.line=FALSE, cex=0.6, add=TRUE, add.legend=add.legend)
+        plot.col(inp$timeE, inp$obsE, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
         box(lwd=1.5)
     }
     txt.stamp(stamp)
