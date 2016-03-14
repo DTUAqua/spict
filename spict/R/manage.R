@@ -66,7 +66,7 @@ manage <- function(repin, scenarios='all', dbg=0){
         if(3 %in% scenarios){
             # Fish at Fmsy
             Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
-            Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indpred[1], 2]
+            Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indCpred[1], 2]
             fac3 <- Fmsy / Flast
             repman[[3]] <- prop.F(fac3, inpin, repin, dbg=dbg)
         }
@@ -105,7 +105,7 @@ prop.F <- function(fac, inpin, repin, corF=TRUE, dbg=0){
     inpt <- check.inp(inpin)
     plt <- repin$obj$env$parList(repin$opt$par)
     datint <- make.datin(inpt, dbg=dbg)
-    inds <- inpt$indpred
+    inds <- inpt$indCpred
     ninds <- length(inds)
     # Set F fac
     if (corF){
@@ -139,8 +139,9 @@ take.c <- function(catch, inpin, repin, dbg=0){
     inpc <- check.inp(inpin)
     inpt <- inpin
     plt <- repin$obj$env$parList(repin$opt$par)
-    npred <- length(inpc$indpred)
-    timecatch <- annual(inpc$time[inpc$indpred[-npred]], numeric(length(inpc$indpred[-npred])))$anntime
+    npred <- length(inpc$indCpred)
+    timecatch <- annual(inpc$time[inpc$indCpred[-npred]],
+                        numeric(length(inpc$indCpred[-npred])))$anntime
     ncatch <- length(timecatch)
     obscatch <- rep(catch, ncatch)
     inpt$timeC <- c(inpt$timeC, timecatch)
@@ -174,10 +175,11 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
         val1 <- get.par(parname, repman, exp=TRUE)[indnext, 2]
         return(round((val1 - val)/val*100, 1))
     }
-    indstart <- rep$inp$indpred[1]-1 # Current time (last time interval of last year)
+    #indstart <- which(rep$inp$time == floor(rep$inp$time[rep$inp$indpred[1]])) - 1
+    indstart <- rep$inp$indCpred[1]-1 # Current time (last time interval of last year)
     curtime <- rep$inp$time[indstart+1] # We are at 1 January this year
     indnext <- which(rep$inp$time == curtime+ypred) # Current time + 1 year
-    if(length(indnext)==1){
+    if (length(indnext) == 1){
         indnextC <- which((rep$inp$timeCpred+rep$inp$dtcp) == curtime+ypred)
         nsc <- length(repman)
         Cnextyear <- numeric(nsc)

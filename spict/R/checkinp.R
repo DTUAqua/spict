@@ -462,6 +462,7 @@ check.inp <- function(inp){
     inp$indlastobs <- cut(max(c(inp$timeC, unlist(inp$timeI), inp$timeE)), inp$time, right=FALSE, labels=FALSE)
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
+    inp$indCpred <- which(inp$time >= max(inp$timeC + inp$dtc))
     # Management
     if (!"ffac" %in% names(inp)) inp$ffac <- 1
     if ("ffac" %in% names(inp)){
