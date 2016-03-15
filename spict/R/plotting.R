@@ -610,7 +610,7 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
 plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, mfcol=FALSE,
                                  stamp=get.version()){
     repflag <- FALSE
-    mar <- c(4.7, 4.1, 2.2, 2)
+    mar <- c(4.7, 4.1, 2.5, 2)
     #op <- par()
     if('obsC' %in% names(rep)){ # rep is an input list
         inp <- check.inp(rep)
