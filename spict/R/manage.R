@@ -36,9 +36,14 @@
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' repman <- manage(rep)
-manage <- function(repin, scenarios='all', dbg=0){
-    if(scenarios == 'all') scenarios <- 1:6
-
+manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
+    if (scenarios == 'all'){
+        scenarios <- 1:6
+    }
+    if (is.null(manstart)){
+        manstart <- repin$inp$time[repin$inp$indpred[1]]
+    }
+    maninds <- which(repin$inp$time >= manstart)
     # inpin is a list containing only observations (later prediction horizons are added)
     inpin <- list()
     inpin$dteuler <- repin$inp$dteuler
@@ -56,34 +61,34 @@ manage <- function(repin, scenarios='all', dbg=0){
         if(1 %in% scenarios){
             # 1. Specify the catch, which will be taken each year in the prediction period
             catch <- tail(inpin$obsC, 1)
-            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg)
+            repman[[1]] <- take.c(catch, inpin, repin, maninds, dbg=dbg)
         }
         if(2 %in% scenarios){
             # Keep current F
             fac2 <- 1.0
-            repman[[2]] <- prop.F(fac2, inpin, repin, dbg=dbg)
+            repman[[2]] <- prop.F(fac2, inpin, repin, maninds, dbg=dbg)
         }
         if(3 %in% scenarios){
             # Fish at Fmsy
             Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
-            Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indCpred[1], 2]
+            Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indpred[1], 2]
             fac3 <- Fmsy / Flast
-            repman[[3]] <- prop.F(fac3, inpin, repin, dbg=dbg)
+            repman[[3]] <- prop.F(fac3, inpin, repin, maninds, dbg=dbg)
         }
         if(4 %in% scenarios){
-            # No fishing, reduce to 5% of last F
-            fac4 <- 0.01
-            repman[[4]] <- prop.F(fac4, inpin, repin, dbg=dbg)
+            # No fishing, reduce to 0.1% of last F
+            fac4 <- 0.001
+            repman[[4]] <- prop.F(fac4, inpin, repin, maninds, dbg=dbg)
         }
         if(5 %in% scenarios){
             # Reduce F by X%
             fac5 <- 0.75
-            repman[[5]] <- prop.F(fac5, inpin, repin, corF=TRUE, dbg=dbg)
+            repman[[5]] <- prop.F(fac5, inpin, repin, maninds, dbg=dbg)
         }
         if(6 %in% scenarios){
             # Increase F by X%
             fac6 <- 1.25
-            repman[[6]] <- prop.F(fac6, inpin, repin, dbg=dbg)
+            repman[[6]] <- prop.F(fac6, inpin, repin, maninds, dbg=dbg)
         }
         repin$man <- repman
     } else {
@@ -98,25 +103,26 @@ manage <- function(repin, scenarios='all', dbg=0){
 #' @param fac Factor to multiply current F with.
 #' @param inpin Input list.
 #' @param repin Results list.
+#' @param maninds Indices of time vector for which to apply management.
 #' @param corF Make correction to F process such that the drift (-0.5*sdf^2*dt) is cancelled and F remains constant in projection mode
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
 #' @return List containing results of management calculations.
-prop.F <- function(fac, inpin, repin, corF=TRUE, dbg=0){
+prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
     inpt <- check.inp(inpin)
     plt <- repin$obj$env$parList(repin$opt$par)
     datint <- make.datin(inpt, dbg=dbg)
-    inds <- inpt$indCpred
-    ninds <- length(inds)
+    maninds <- inpt$indpred
+    nmaninds <- length(maninds)
     # Set F fac
     if (corF){
         # This is to compensate for the -0.5*sdf^2*dt term in the logF process
         sdf <- get.par('logsdf', repin, exp=TRUE)[2]
-        ffacvec <- exp(0.5 * sdf^2 * inpt$dt[inds])
+        ffacvec <- exp(0.5 * sdf^2 * inpt$dt[maninds])
     } else {
-        ffacvec <- rep(1, ninds)
+        ffacvec <- rep(1, nmaninds)
     }
     ffacvec[1] <- ffacvec[1] * fac
-    datint$ffacvec[inds] <- ffacvec
+    datint$ffacvec[maninds] <- ffacvec
     # Make object
     objt <- make.obj(datint, plt, inpt, phase=1)
     objt$fn(repin$opt$par)
@@ -133,15 +139,16 @@ prop.F <- function(fac, inpin, repin, corF=TRUE, dbg=0){
 #' @param catch Annual catch to take in the prediction period.
 #' @param inpin Input list.
 #' @param repin Results list.
+#' @param maninds Indices of time vector for which to apply management.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
 #' @return List containing results of management calculations.
-take.c <- function(catch, inpin, repin, dbg=0){
+take.c <- function(catch, inpin, repin, maninds, dbg=0){
     inpc <- check.inp(inpin)
     inpt <- inpin
     plt <- repin$obj$env$parList(repin$opt$par)
-    npred <- length(inpc$indCpred)
-    timecatch <- annual(inpc$time[inpc$indCpred[-npred]],
-                        numeric(length(inpc$indCpred[-npred])))$anntime
+    nmaninds <- length(maninds)
+    timecatch <- annual(inpc$time[maninds[-nmaninds]],
+                        numeric(length(maninds[-nmaninds])))$anntime
     ncatch <- length(timecatch)
     obscatch <- rep(catch, ncatch)
     inpt$timeC <- c(inpt$timeC, timecatch)
@@ -176,7 +183,7 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
         return(round((val1 - val)/val*100, 1))
     }
     #indstart <- which(rep$inp$time == floor(rep$inp$time[rep$inp$indpred[1]])) - 1
-    indstart <- rep$inp$indCpred[1]-1 # Current time (last time interval of last year)
+    indstart <- rep$inp$indpred[1]-1 # Current time (last time interval of last year)
     curtime <- rep$inp$time[indstart+1] # We are at 1 January this year
     indnext <- which(rep$inp$time == curtime+ypred) # Current time + 1 year
     if (length(indnext) == 1){
