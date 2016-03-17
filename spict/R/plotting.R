@@ -350,7 +350,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             ylab <- expression(B[t])
             ylab <- add.catchunit(ylab, inp$catchunit)
         }
-        plot(inp$time, Best[,2]/scal, typ='n', xlab=xlab, ylab=ylab, main=main, ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log)
+        plot(inp$time, Best[,2]/scal, typ='n', xlab=xlab, ylab=ylab, main=main, ylim=ylim, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log)
         if(rel.axes){
             axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
             mtext(expression(B[t]/B[MSY]), side=4, las=0, line=2.2, cex=par('cex'))
@@ -464,7 +464,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
         BBfininds <- which(is.finite(BB[, 1]) & is.finite(BB[, 3]))
         if(length(ylim) != 2) ylim <- range(c(lineat, BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
         ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
-        plot(inp$time, BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log, main=main)
+        plot(inp$time, BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]), ylim=ylim, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log, main=main)
         cicol2 <- rgb(0, 0, 1, 0.1)
         polygon(c(inp$time[BBfininds], rev(inp$time[BBfininds])), c(BB[BBfininds, 1], rev(BB[BBfininds, 3])), col=cicol2, border=cicol2)
         abline(v=inp$time[inp$indlastobs], col='gray')
@@ -562,8 +562,10 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
                 ylim <- range(rep$osar$logIpres[[1]], na.rm=TRUE)
                 xlim <- range(rep$osar$timeI[[1]])
             }
-            fun(rep$osar$timeI[[1]], rep$osar$logIpres[[1]], ylab='Index OSA residuals',
-                col=1, xlim=xlim, ylim=ylim, main=paste0('Bias p-val: ', pval), col.main=colmain)
+            ylab <- ifelse(collapse.I, 'Index OSA residuals', 'Index 1 OSA residuals')
+            main <- paste0(ifelse(collapse.I, 'Index 1 ', ''), 'Bias p-val: ', pval)
+            fun(rep$osar$timeI[[1]], rep$osar$logIpres[[1]], ylab=ylab,
+                col=1, xlim=xlim, ylim=ylim, main=main, col.main=colmain)
             abline(h=0, lty=3)
             if(rep$inp$nindex>1){
                 for(i in 2:rep$inp$nindex){
@@ -578,7 +580,8 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
                     } else {
                         main <- ''
                     }
-                    fun(rep$osar$timeI[[i]], rep$osar$logIpres[[i]], add=collapse.I, ylab='Index OSA residuals',
+                    fun(rep$osar$timeI[[i]], rep$osar$logIpres[[i]], add=collapse.I,
+                        ylab=paste('Index', i, 'OSA residuals'),
                         col=1, pch=i, xlim=xlim, ylim=ylim, main=main, col.main=colmain)
                     if(!collapse.I){
                         abline(h=0, lty=3)
@@ -654,7 +657,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
     }
    
     # OSAR plots
-    osar.acf.plot <- function(res, lag.max, pval){
+    osar.acf.plot <- function(res, lag.max, pval, ylab){
         inds <- which(acf.signf(res, lag.max=lag.max))
         if (length(inds) > 0){
             txt <- paste0('lag.signf: ', paste0(inds, collapse=','))
@@ -662,7 +665,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
             txt <- ''
         }
         colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
-        acf(res, main='', lag.max=lag.max)
+        acf(res, main='', lag.max=lag.max, ylab=ylab)
         title(main=paste0('LBox p-val: ', pval), col.main=colmain)
         legend('topright', legend=NA, title=txt, col=2, bty='n', pt.cex=0, text.col=2)
         box(lwd=1.5)
@@ -678,12 +681,12 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
         # Catch ACF
         pvalacfC <- round(as.list(rep$diagn)$LBoxC.p, 4)
         resC <- rep$osar$logCpres[!is.na(rep$osar$logCpres)]        
-        osar.acf.plot(resC, lag.max, pvalacfC)
+        osar.acf.plot(resC, lag.max, pvalacfC, ylab='Catch ACF')
         # Effort ACF
         if (inp$nobsE > 0){
             pvalacfE <- round(as.list(rep$diagn)$LBoxE.p, 4)
             resE <- rep$osar$logEpres[!is.na(rep$osar$logEpres)]
-            osar.acf.plot(resE, lag.max, pvalacfE)
+            osar.acf.plot(resE, lag.max, pvalacfE, ylab='Effort ACF')
         }
         # Index ACF
         if (inp$nindex > 0){
@@ -694,7 +697,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
             for(i in 1:inp$nindex){
                 pvalacfI <- round(as.list(rep$diagn)[[nms[i]]], 4)
                 resI[[i]] <- rep$osar$logIpres[[i]][!is.na(rep$osar$logIpres[[i]])]
-                osar.acf.plot(resI[[nos[i]]], lag.max, pvalacfI)
+                osar.acf.plot(resI[[nos[i]]], lag.max, pvalacfI, ylab=paste0('Index ', i, ' ACF'))
             }
         }
         # Catch QQ
@@ -820,7 +823,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         if(ylimflag) ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         #if(main==-1) main <- 'Absolute fishing mortality'
         if(ylabflag) ylab <- expression(F[t])
-        plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=ylab, xlab=xlab, xlim=range(c(inp$time, tail(inp$time,1)+1)))
+        plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=ylab, xlab=xlab, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)))
         if(rel.axes){
             axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
             mtext(expression(F[t]/F[MSY]), side=4, las=0, line=2.2, cex=par('cex'))
@@ -939,7 +942,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat)) # Ensure that lineat is included in ylim
         #if(main==-1) main <- 'Relative fishing mortality'
-        plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]), xlab=xlab, xlim=range(c(inp$time, tail(inp$time,1)+1)), log=log)
+        plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]), xlab=xlab, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log)
         cicol2 <- rgb(0, 0, 1, 0.1)
         if(!flag) polygon(c(timef[fininds], rev(timef[fininds])), c(clf[fininds], rev(cuf[fininds])), col=cicol2, border=cicol2)
         if(min(inp$dtc) < 1){ # Plot estimated sub annual F 
@@ -1026,7 +1029,12 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         ns <- dim(Best)[1]
         Fp <- Fest[ns,]
         inds <- c(max(which(names(rep$value)=='logBmsy')), max(which(names(rep$value)=='logFmsy')))
-        cl <- try(make.ellipse(inds, rep))
+        if (rep$opt$convergence == 0){
+            cl <- try(make.ellipse(inds, rep))
+        } else {
+            cl <- numeric()
+            class(cl) <- 'try-error'
+        }
         if(class(cl) == 'try-error'){
             cl <- matrix(c(log(Bmsy[2]), log(Fmsy[2])), 1, 2)
         } 
@@ -1370,7 +1378,7 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve', s
 #' plotspict.tc(rep)
 #' @export
 plotspict.tc <- function(rep, main='Time to Bmsy', stamp=get.version()){
-    if(!'sderr' %in% names(rep)){
+    if(!'sderr' %in% names(rep) & rep$opt$convergence == 0){
         inp <- rep$inp
         B0cur <- get.par('logBl', rep, exp=TRUE)[2]
         Kest <- get.par('logK', rep, exp=TRUE)
