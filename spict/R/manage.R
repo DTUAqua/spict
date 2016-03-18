@@ -41,7 +41,9 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
         scenarios <- 1:6
     }
     if (is.null(manstart)){
-        manstart <- repin$inp$time[repin$inp$indpred[1]]
+        manstart <- repin$inp$manstart
+    } else {
+        repin$inp$manstart <- manstart
     }
     maninds <- which(repin$inp$time >= manstart)
     # inpin is a list containing only observations (later prediction horizons are added)
@@ -182,10 +184,11 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
         val1 <- get.par(parname, repman, exp=TRUE)[indnext, 2]
         return(round((val1 - val)/val*100, 1))
     }
-    #indstart <- which(rep$inp$time == floor(rep$inp$time[rep$inp$indpred[1]])) - 1
-    indstart <- rep$inp$indpred[1]-1 # Current time (last time interval of last year)
-    curtime <- rep$inp$time[indstart+1] # We are at 1 January this year
-    indnext <- which(rep$inp$time == curtime+ypred) # Current time + 1 year
+    indstart <- which(rep$inp$time == rep$inp$manstart) - 1
+    #indstart <- rep$inp$indpred[1]-1 # Current time (last time interval of last year)
+    #curtime <- rep$inp$time[indstart+1]
+    curtime <- rep$inp$manstart
+    indnext <- which(rep$inp$time == curtime+ypred) # Current time + ypred
     if (length(indnext) == 1){
         indnextC <- which((rep$inp$timeCpred+rep$inp$dtcp) == curtime+ypred)
         nsc <- length(repman)

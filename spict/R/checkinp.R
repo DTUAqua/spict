@@ -464,6 +464,7 @@ check.inp <- function(inp){
     inp$indpred <- which(inp$time >= inp$timerange[2])
     inp$indCpred <- which(inp$time >= max(inp$timeC + inp$dtc))
     # Management
+    inp$manstart <- ceiling(inp$time[inp$indpred[1]])
     if (!"ffac" %in% names(inp)) inp$ffac <- 1
     if ("ffac" %in% names(inp)){
         if (inp$ffac < 0){
