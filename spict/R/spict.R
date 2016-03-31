@@ -152,7 +152,10 @@ fit.spict <- function(inp, dbg=0){
                 #rep <- calc.prager.stats(rep)
                 # - Built-in OSAR -
                 if(!inp$osar.method == 'none'){
-                    rep <- calc.osa.resid(rep)
+                    reposar <- try(calc.osa.resid(rep))
+                    if (class(reposar) != 'try-error'){
+                        rep <- reposar
+                    }
                 }
             }
         }

@@ -29,7 +29,14 @@
 #' @import TMB
 calc.osa.resid <- function(rep){
     doflag <- TRUE
-    if('sderr' %in% names(rep)) doflag <- rep$sderr != 1
+    if('sderr' %in% names(rep)){
+        doflag <- rep$sderr != 1
+        errmsg <- 'Could not calculate OSA residuals because sdreport() resulted in an error.\n'
+    }
+    if(rep$opt$convergence > 0){
+        doflag <- FALSE
+        errmsg <- 'Could not calculate OSA residuals because estimation did not converge.\n'
+    }
     if(doflag){
         inp <- rep$inp
         # - Built-in OSAR -
@@ -116,7 +123,7 @@ calc.osa.resid <- function(rep){
             stop('Could not calculate OSA residuals.\n')
         }
     } else {
-        stop('Could not calculate OSA residuals because sdreport() resulted in an error.\n')
+        stop(errmsg)
     }
     return(rep)
 }
