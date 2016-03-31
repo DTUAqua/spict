@@ -326,12 +326,16 @@ Type objective_function<Type>::operator() ()
   vector<Type> logr(nm);
   vector<Type> rc(nm);
   vector<Type> logrc(nm);
+  vector<Type> rp(nm);
+  vector<Type> logrp(nm);
   for(int i=0; i<nm; i++){ 
     //r(i) = sign * gamma * m(i) / K;  // For some reason this doesnt work for n<0
     r(i) =  abs(gamma * m(i) / K);
     logr(i) = log(r(i)); 
     rc(i) = abs(2.0 * r(i) * (n - 1.0) / n);
     logrc(i) = log(rc(i)); 
+    rp(i) = abs(r(i) * (n - 1.0));
+    logrp(i) = log(rp(i)); 
     //std::cout << "sign: " << sign << " -- n: " << n << " -- gamma: " << gamma << n << " -- m(i): " << m(i)<< n << " -- K: " << K << " -- r(i): " << r(i) << " -- logr(i): " << logr(i) << std::endl;
   }
 
@@ -772,6 +776,8 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logr);
   ADREPORT(rc);
   ADREPORT(logrc);
+  ADREPORT(rp);
+  ADREPORT(logrp);
   ADREPORT(K);
   ADREPORT(q);
   //ADREPORT(logq);
