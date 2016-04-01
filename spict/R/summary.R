@@ -215,7 +215,7 @@ sumspict.parest <- function(rep, numdigits=8){
             nalpha <- sum(names(rep$par.fixed) == 'logsdi')
             derout <- rbind(get.par(parname='logbeta', rep, exp=TRUE)[, order],
                             get.par(parname='logr', rep, exp=TRUE)[, order],
-                            get.par(parname='logrc', rep, exp=TRUE)[, order])
+                            get.par(parname='logrp', rep, exp=TRUE)[, order])
             if (nalpha > 0){
                 derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
                                 derout)
@@ -240,10 +240,10 @@ sumspict.parest <- function(rep, numdigits=8){
             }
             if(nr>1 & 'yearsepgrowth' %in% names(rep$inp)){
                 rnms <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
-                rcnms <- c('rc     ', paste0('rc', rep$inp$yearsepgrowth))
+                rpnms <- c('rp     ', paste0('rp', rep$inp$yearsepgrowth))
             } else {
                 rnms <- 'r    '
-                rcnms <- 'rc    '
+                rpnms <- 'rp    '
             }
             if (nalpha > 0){
                 if(nalpha > 1){
@@ -254,7 +254,7 @@ sumspict.parest <- function(rep, numdigits=8){
             } else {
                 alphanms <- NULL
             }
-            rownames(derout) <- c(alphanms, 'beta', rnms, rcnms)
+            rownames(derout) <- c(alphanms, 'beta', rnms, rpnms)
             resout <- rbind(derout, resout)
         }        
         if('true' %in% names(rep$inp)){
