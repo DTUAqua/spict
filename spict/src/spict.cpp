@@ -320,8 +320,8 @@ Type objective_function<Type>::operator() ()
   vector<Type> logEmsy2 = log(Emsy2);
 
   // Calculate growth rate
-  Type sign = 1.0;
-  if(n < 1.0) sign = -1.0; // Following Fletcher (1978)
+  //Type sign = 1.0;
+  //if(n < 1.0) sign = -1.0; // Following Fletcher (1978)
   vector<Type> r(nm);
   vector<Type> logr(nm);
   vector<Type> rc(nm);
@@ -329,14 +329,13 @@ Type objective_function<Type>::operator() ()
   vector<Type> rp(nm);
   vector<Type> logrp(nm);
   for(int i=0; i<nm; i++){ 
-    //r(i) = sign * gamma * m(i) / K;  // For some reason this doesnt work for n<0
     r(i) =  abs(gamma * m(i) / K);
     logr(i) = log(r(i)); 
     rc(i) = abs(2.0 * r(i) * (n - 1.0) / n);
     logrc(i) = log(rc(i)); 
     rp(i) = abs(r(i) * (n - 1.0));
     logrp(i) = log(rp(i)); 
-    //std::cout << "sign: " << sign << " -- n: " << n << " -- gamma: " << gamma << n << " -- m(i): " << m(i)<< n << " -- K: " << K << " -- r(i): " << r(i) << " -- logr(i): " << logr(i) << std::endl;
+    //std::cout << " -- n: " << n << " -- gamma: " << gamma << n << " -- m(i): " << m(i)<< n << " -- K: " << K << " -- r(i): " << r(i) << " -- logr(i): " << logr(i) << std::endl;
   }
 
   Type likval;
