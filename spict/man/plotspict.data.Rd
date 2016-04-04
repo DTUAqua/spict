@@ -4,7 +4,8 @@
 \alias{plotspict.data}
 \title{Plot input data}
 \usage{
-plotspict.data(inpin, MSY = NULL, one.index = NULL, stamp = get.version())
+plotspict.data(inpin, MSY = NULL, one.index = NULL, qlegend = FALSE,
+  stamp = get.version())
 }
 \arguments{
 \item{inpin}{An input list containing data.}
@@ -12,6 +13,8 @@ plotspict.data(inpin, MSY = NULL, one.index = NULL, stamp = get.version())
 \item{MSY}{Value of MSY.}
 
 \item{one.index}{Integer indicating the number of the index to plot.}
+
+\item{qlegend}{}
 
 \item{stamp}{Stamp plot with this character string.}
 }
