@@ -17,17 +17,20 @@ The package requires [`TMB`](http://www.tmb-project.org) to be installed. TMB is
 
 ## Installing the spict package
 
-To install spict from GitHub (not on Windows) use
+To install spict from GitHub use
 
 ```
 library(devtools)
-install_github("mawp/spict/spict")
+install_github("mawp/spict/spict")            # master branch
+install_github("mawp/spict/spict", ref="dev") # development branch
 ```
 
 Windows
 -------
+The above procedure using install_github() should now work on Windows (make sure to remove spict before trying to reinstall). If it doesn't work the old, but tedious, procedure can be used:
+
 1. Start 64 bit R and change working directory to the (cloned or unzipped) ```spict``` folder.
 
 2. From R run: ```source("install_windows.R")```
 
-This requires that Rtools is installed, which is probably the case if TMB is installed. If not Rtools can be obtained [`here`](https://cran.r-project.org/bin/windows/Rtools/). When running install_windows.R remember to set your working directory to the spict directory containing install_windows.R.
+This requires that Rtools is installed. Rtools can be obtained [`here`](https://cran.r-project.org/bin/windows/Rtools/). When running install_windows.R remember to set your working directory to the spict directory containing install_windows.R.
