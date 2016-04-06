@@ -650,7 +650,7 @@ check.inp <- function(inp){
         }
         return(priorvec)
     }
-    possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq', 'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy', 'logFFmsy', 'logsdb', 'logsdf', 'logsdi', 'logsde', 'logsdc')
+    possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logrp', 'logK', 'logm', 'logq', 'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy', 'logFFmsy', 'logsdb', 'logsdf', 'logsdi', 'logsde', 'logsdc')
     repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
     npossiblepriors <- length(possiblepriors)
     if (!"priors" %in% names(inp)){
@@ -671,7 +671,8 @@ check.inp <- function(inp){
     if (!'logn' %in% names(inp$priors)) inp$priors$logn <- c(logn, lognsd)
     if (!'logalpha' %in% names(inp$priors)) inp$priors$logalpha <- c(logalpha, logalphasd) 
     if (!'logbeta' %in% names(inp$priors)) inp$priors$logbeta <- c(logbeta, logbetasd)
-    
+
+    # Remaining priors, set to something, but will not be used
     if ("priors" %in% names(inp)){
         # Remove wrong priors names
         nms <- names(inp$priors)
