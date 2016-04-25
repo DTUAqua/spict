@@ -17,30 +17,32 @@
 
 #' @name txt.stamp
 #' @title Add spict version to plot
-#' @param string Character string to stamp, if NULL stamp version.
+#' @param string Character string to stamp.
 #' @return Nothing
 #' @export
-txt.stamp <- function(string = NULL, cex=0.5) {
-    if (is.null(string)){
-        string <- get.version()
-    }
-    if (string != ''){
-        opar <- par(new = "TRUE", plt = c(0, 1, 0, 1), mfrow=c(1, 1), xpd=FALSE)
-        on.exit(par(opar))
-        plot(1, typ='n', xaxt='n', yaxt='n', xlab='', ylab='', bty='n') # Empty plot 
-        #opar <- par(yaxt = "s", xaxt = "s")
-        on.exit(par(opar))
-        plt <- par("plt")
-        usr <- par("usr")
-        xcoord <- usr[2] + (usr[2] - usr[1])/(plt[2] - plt[1]) * (1 - plt[2]) - 0.4 * strwidth("m")
-        ycoord <- usr[3] - diff(usr[3:4])/diff(plt[3:4]) * (plt[3]) + 0.4 * strheight("m")
-        if (par("xlog")){
-            xcoord <- 10^(xcoord)
+txt.stamp <- function(string = get.version(), cex=0.5) {
+    #if (string == 'undef'){
+    #    string <- get.version()
+    #}
+    if (!is.null(string)){
+        if (string != '' & !is.na(string)){
+            opar <- par(new = "TRUE", plt = c(0, 1, 0, 1), mfrow=c(1, 1), xpd=FALSE)
+            on.exit(par(opar))
+            plot(1, typ='n', xaxt='n', yaxt='n', xlab='', ylab='', bty='n') # Empty plot 
+            #opar <- par(yaxt = "s", xaxt = "s")
+            on.exit(par(opar))
+            plt <- par("plt")
+            usr <- par("usr")
+            xcoord <- usr[2] + (usr[2] - usr[1])/(plt[2] - plt[1]) * (1 - plt[2]) - 0.4 * strwidth("m")
+            ycoord <- usr[3] - diff(usr[3:4])/diff(plt[3:4]) * (plt[3]) + 0.4 * strheight("m")
+            if (par("xlog")){
+                xcoord <- 10^(xcoord)
+            }
+            if (par("ylog")){
+                ycoord <- 10^(ycoord)
+            }
+            text(xcoord, ycoord, string, adj = 1, cex=cex)
         }
-        if (par("ylog")){
-            ycoord <- 10^(ycoord)
-        }
-        text(xcoord, ycoord, string, adj = 1, cex=cex)
     }
 }
 
