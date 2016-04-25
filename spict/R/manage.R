@@ -174,9 +174,10 @@ take.c <- function(catch, inpin, repin, maninds, dbg=0){
 #' @param rep Result list as output from manage().
 #' @param ypred Show results for ypred years into the future.
 #' @param include.EBinf Include EBinf/Bmsy in the output.
+#' @param verbose Print more details on observed and predicted time intervals.
 #' @return Data frame containing management summary.
 #' @export
-mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
+mansummary <- function(rep, ypred=1, include.EBinf=FALSE, verbose=TRUE){
     repman <- rep$man
     # Calculate percent difference.
     get.pdelta <- function(rep, repman, indstart, indnext, parname='logB'){
@@ -206,9 +207,17 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
             Bnextyear[i] <- get.par('logB', repman[[i]], exp=TRUE)[indnext, 2]
             Fnextyear[i] <- get.par('logF', repman[[i]], exp=TRUE)[indnext, 2]
         }
+        FBtime <- fd(curtime+ypred)
+        Ctime1 <- fd(rep$inp$timeCpred[indnextC])
+        Ctime2 <- fd(rep$inp$timeCpred[indnextC]+rep$inp$dtcp[indnextC])
         Cn <- paste0('C')
         Bn <- paste0('B')
         Fn <- paste0('F')
+        if (!verbose){
+            Cn <- paste0('C', Ctime1)
+            Bn <- paste0('B', FBtime)
+            Fn <- paste0('F', FBtime)
+        }
         BBn <- paste0('BqBmsy') # Should use / instead of q, but / is not accepted in varnames
         FFn <- paste0('FqFmsy')
         EBinfBn <- paste0('EBinfqBmsy')
@@ -229,15 +238,32 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
         timerangeI <- range(unlist(rep$inp$timeI))
         timerangeC <- range(rep$inp$timeC)
         lastcatchseen <- tail(rep$inp$timeC+rep$inp$dtc, 1)
-        cat(paste0('Observed interval, index:  ', fd(timerangeI[1]), ' - ', fd(timerangeI[2]), '\n'))
-        cat(paste0('Observed interval, catch:  ', fd(timerangeC[1]), ' - ', fd(lastcatchseen), '\n\n'))
-        cat(paste0('Fishing mortality (F) prediction: ', fd(curtime+ypred), '\n'))
-        cat(paste0('Biomass (B) prediction:           ', fd(curtime+ypred), '\n'))
-        cat(paste0('Catch (C) prediction interval:    ', fd(rep$inp$timeCpred[indnextC]), ' - ', fd(rep$inp$timeCpred[indnextC]+rep$inp$dtcp[indnextC]), '\n\n'))
-        if(rep$inp$catchunit != ''){
-            cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n\n'))
+        # Start printing stuff
+        if (verbose){ # Time interval information
+            cat(paste0('Observed interval, index:  ',
+                       fd(timerangeI[1]),
+                       ' - ',
+                       fd(timerangeI[2]),
+                       '\n'))
+            cat(paste0('Observed interval, catch:  ',
+                       fd(timerangeC[1]),
+                       ' - ',
+                       fd(lastcatchseen),
+                       '\n\n'))
+            cat(paste0('Fishing mortality (F) prediction: ',
+                       FBtime, '\n'))
+            cat(paste0('Biomass (B) prediction:           ',
+                       FBtime, '\n'))
+            cat(paste0('Catch (C) prediction interval:    ',
+                       Ctime1,
+                       ' - ',
+                       Ctime2,
+                       '\n\n'))
+            if(rep$inp$catchunit != ''){
+                cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n\n'))
+            }
+            cat('Predictions\n')
         }
-        cat('Predictions\n')
         print(df)
         invisible(df)
     } else {
