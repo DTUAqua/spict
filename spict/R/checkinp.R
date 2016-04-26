@@ -319,21 +319,31 @@ check.inp <- function(inp){
 
     # Options for simple model
     if (!"simple" %in% names(inp)) inp$simple <- 0
-    if (inp$simple==1){ # Set parameters for the simple model (catch assumed known, no F process).
-        umodtimeC <- unique(inp$timeC%%1)
-        if (length(umodtimeC) != 1) stop('When inp$simple = 1, inp$timeC must have a fixed regular time step of 1 year!')
-        if (umodtimeC != 0) inp$timeC <- floor(inp$timeC)
+    if (inp$simple == 1){ # Set parameters for the simple model (catch assumed known, no F process).
+        umodtimeC <- unique(inp$timeC %% 1)
+        if (length(umodtimeC) != 1){
+            stop('When inp$simple = 1, inp$timeC must have a fixed regular time step of 1 year!')
+        }
+        if (umodtimeC != 0){
+            inp$timeC <- floor(inp$timeC)
+        }
         for (i in inp$nindexseq){
-            umodtimeI <- unique(inp$timeI[[i]]%%1)
-            if (length(umodtimeI) != 1) stop('When inp$simple = 1, inp$timeI must have a fixed regular time step of 1 year!')
-            if (umodtimeI != 0) inp$timeI[[i]] <- floor(inp$timeI[[i]])
+            umodtimeI <- unique(inp$timeI[[i]] %% 1)
+            if (length(umodtimeI) != 1){
+                stop('When inp$simple = 1, inp$timeI must have a fixed regular time step of 1 year!')
+            }
+            if (umodtimeI != 0){
+                inp$timeI[[i]] <- floor(inp$timeI[[i]])
+            }
         }
         inp$dteuler <- 1
         # Fix parameters
-        inp$phases <- list()
         inp$phases$logF <- -1
         inp$phases$logsdf <- -1
-        inp$phases$logbeta <- -1
+        #inp$phases$logbeta <- -1
+        inp$phases$logsdc <- -1
+        # Disable priors
+        inp$priors$logbeta <- c(log(1), 1, 0)
         # Prediction not possible
         inp$dtpredc <- NULL
         inp$timepredc <- max(inp$timeC)
@@ -908,7 +918,11 @@ check.inp <- function(inp){
             stop('phase specified for invalid parameter(s): ', paste(nms[inds], collapse=', '))
         }
     }
-    if ("phases" %in% names(inp)) for (i in 1:length(forcefixpars)) inp$phases[[forcefixpars[i]]] <- -1
+    if ("phases" %in% names(inp)){
+        for (i in 1:length(forcefixpars)){
+            inp$phases[[forcefixpars[i]]] <- -1
+        }
+    }
     # Assign phase 1 to parameters without a phase
     nms <- names(inp$parlist)
     nnms <- length(nms)
