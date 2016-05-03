@@ -36,9 +36,10 @@ latex.figure <- function(figfile, reportfile, caption=''){
 #' @param summaryoutfile Output of the summary will be stored in this file as plain text.
 #' @param keep.figurefiles If TRUE generated figure files will not be cleaned up.
 #' @param keep.txtfiles If TRUE generated txt files will not be cleaned up.
+#' @param keep.texfiles If TRUE generated tex file will not be cleaned up.
 #' @return Nothing.
 #' @export
-make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryoutfile='summaryout.txt', keep.figurefiles=FALSE, keep.txtfiles=FALSE){
+make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryoutfile='summaryout.txt', keep.figurefiles=FALSE, keep.txtfiles=FALSE, keep.texfiles=FALSE){
     latexstart <- '\\documentclass[12pt]{article}\n\\usepackage{graphicx}\n\\usepackage{verbatim}\n\\begin{document}\n'
     latexend <- '\\end{document}\n'
     cat(reporttitle, '- report compiled', as.character(Sys.time()), '\n', file=summaryoutfile)
@@ -88,7 +89,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     # Data plot
     figfile3 <- 'data.pdf'
     pdf(figfile3, width=7, height=9)
-    plotspict.ci(rep$inp)
+    plotspict.data(rep$inp)
     dev.off()
     latex.figure(figfile3, reportfile, caption='Data.')
 
@@ -103,6 +104,9 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     #file.remove(paste0('../res/', substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.log'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
+    if(!keep.texfiles){
+        file.remove(reportfile)
+    }
     if(!keep.txtfiles){
         file.remove(summaryoutfile)
         if('man' %in% names(rep)) file.remove(mansummaryoutfile)
