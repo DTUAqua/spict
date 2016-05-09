@@ -1031,7 +1031,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, ext=TRUE, rel.axes=
         ns <- dim(Best)[1]
         Fp <- Fest[ns,]
         inds <- c(max(which(names(rep$value)=='logBmsy')), max(which(names(rep$value)=='logFmsy')))
-        if (rep$opt$convergence == 0){
+        if (rep$opt$convergence == 0 & rep$inp$getReportCovariance){
             cl <- try(make.ellipse(inds, rep))
         } else {
             cl <- numeric()
@@ -1391,59 +1391,61 @@ plotspict.tc <- function(rep, main='Time to Bmsy', stamp=get.version()){
         sdbest <- get.par('logsdb', rep, exp=TRUE)
         Fmsy <- tail(get.par('logFmsy', rep, exp=TRUE), 1)
         Bmsy <- tail(get.par('logBmsy', rep, exp=TRUE), 1)
-        if(B0cur < Bmsy[2]){
-            do.flag <- ifelse(B0cur/Bmsy[2]>0.95, FALSE, TRUE)
-        }
-        if(B0cur > Bmsy[2]){
-            do.flag <- ifelse(Bmsy[2]/B0cur>0.95, FALSE, TRUE)
-        }
-        if(do.flag){
-            if(B0cur < Bmsy[2]) facvec <- c(0, 0.75, 0.95, 1)
-            if(B0cur > Bmsy[2]) facvec <- c(2, 1.25, 1.05, 1)
-            cols <- c('green3', 'blue', 'red', 'orange', 5:8)
-            Fvec <- round(facvec*Fmsy[2], digits=4)
-            nFvec <- length(Fvec)
-            g <- function(F, K, m, n, sdb, B0, dt){
-                return(exp( log(B0) + (gamma*m/K - gamma*m/K*(B0/K)^(n-1) - F - 0.5*sdb^2)*dt ))
+        if (!is.na(Bmsy[2])){
+            if(B0cur < Bmsy[2]){
+                do.flag <- ifelse(B0cur/Bmsy[2]>0.95, FALSE, TRUE)
             }
-            simdt <- 0.01
-            nt <- 10000
-            Bsim <- matrix(0, nFvec, nt)
-            time <- matrix(0, nFvec, nt)
-            for(i in 1:nFvec){
-                time[i, ] <- seq(0, simdt*(nt-1), by=simdt)
-                Bsim[i, ] <- rep(0, nt)
-                Bsim[i, 1] <- B0cur
-                for(j in 2:nt){
-                    Bsim[i, j] <- g(Fvec[i], Kest[2], mmean, n[2], sdbest[2], Bsim[i, j-1], simdt)
+            if(B0cur > Bmsy[2]){
+                do.flag <- ifelse(Bmsy[2]/B0cur>0.95, FALSE, TRUE)
+            }
+            if(do.flag){
+                if(B0cur < Bmsy[2]) facvec <- c(0, 0.75, 0.95, 1)
+                if(B0cur > Bmsy[2]) facvec <- c(2, 1.25, 1.05, 1)
+                cols <- c('green3', 'blue', 'red', 'orange', 5:8)
+                Fvec <- round(facvec*Fmsy[2], digits=4)
+                nFvec <- length(Fvec)
+                g <- function(F, K, m, n, sdb, B0, dt){
+                    return(exp( log(B0) + (gamma*m/K - gamma*m/K*(B0/K)^(n-1) - F - 0.5*sdb^2)*dt ))
                 }
+                simdt <- 0.01
+                nt <- 10000
+                Bsim <- matrix(0, nFvec, nt)
+                time <- matrix(0, nFvec, nt)
+                for(i in 1:nFvec){
+                    time[i, ] <- seq(0, simdt*(nt-1), by=simdt)
+                    Bsim[i, ] <- rep(0, nt)
+                    Bsim[i, 1] <- B0cur
+                    for(j in 2:nt){
+                        Bsim[i, j] <- g(Fvec[i], Kest[2], mmean, n[2], sdbest[2], Bsim[i, j-1], simdt)
+                    }
+                }
+                Bsim <- Bsim/Bmsy[2]
+                frac <- 0.95
+                if(B0cur < Bmsy[2]) inds <- which(Bsim[nFvec, ]<0.99)
+                if(B0cur > Bmsy[2]) inds <- which(Bsim[nFvec, ]>(1/0.99))
+                ylim <- range(Bsim[nFvec, ], na.rm=TRUE)
+                xlim <- range(time[nFvec, inds])
+                xlim[2] <- min(xlim[2], 15) # Max 15 years ahead
+                plot(time[1, ], Bsim[1, ], typ='l', xlim=xlim, ylim=ylim, col=cols[1],
+                     ylab='Proportion of Bmsy', xlab='Years to Bmsy', main=main, lwd=1.5)
+                abline(h=c(frac, 1/frac), lty=1, col='lightgray')
+                abline(h=1, lty=3)
+                for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=cols[i], lwd=1.5)
+                vt <- rep(0, nFvec)
+                if(B0cur < Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(Bsim[i, ]<frac))]
+                if(B0cur > Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(1/Bsim[i, ]<frac))]
+                for(i in 1:nFvec) abline(v=vt[i], col=cols[i], lty=2)
+                lgnplace <- 'bottomright'
+                if(B0cur > Bmsy[2]) lgnplace <- 'topright'
+                legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=cols[1:nFvec],
+                       lwd=rep(1.5,nFvec), bg='white')
+                points(vt, rep(par('usr')[3], nFvec), col=cols[1:nFvec], pch=4)
+                box(lwd=1.5)
+                if (rep$opt$convergence != 0){
+                    warning.stamp()
+                }
+                txt.stamp(stamp)
             }
-            Bsim <- Bsim/Bmsy[2]
-            frac <- 0.95
-            if(B0cur < Bmsy[2]) inds <- which(Bsim[nFvec, ]<0.99)
-            if(B0cur > Bmsy[2]) inds <- which(Bsim[nFvec, ]>(1/0.99))
-            ylim <- range(Bsim[nFvec, ], na.rm=TRUE)
-            xlim <- range(time[nFvec, inds])
-            xlim[2] <- min(xlim[2], 15) # Max 15 years ahead
-            plot(time[1, ], Bsim[1, ], typ='l', xlim=xlim, ylim=ylim, col=cols[1],
-                 ylab='Proportion of Bmsy', xlab='Years to Bmsy', main=main, lwd=1.5)
-            abline(h=c(frac, 1/frac), lty=1, col='lightgray')
-            abline(h=1, lty=3)
-            for(i in 2:nFvec) lines(time[i, ], Bsim[i, ], col=cols[i], lwd=1.5)
-            vt <- rep(0, nFvec)
-            if(B0cur < Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(Bsim[i, ]<frac))]
-            if(B0cur > Bmsy[2]) for(i in 1:nFvec) vt[i] <- time[i, max(which(1/Bsim[i, ]<frac))]
-            for(i in 1:nFvec) abline(v=vt[i], col=cols[i], lty=2)
-            lgnplace <- 'bottomright'
-            if(B0cur > Bmsy[2]) lgnplace <- 'topright'
-            legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=cols[1:nFvec],
-                   lwd=rep(1.5,nFvec), bg='white')
-            points(vt, rep(par('usr')[3], nFvec), col=cols[1:nFvec], pch=4)
-            box(lwd=1.5)
-            if (rep$opt$convergence != 0){
-                warning.stamp()
-            }
-            txt.stamp(stamp)
         }
     }
 }
