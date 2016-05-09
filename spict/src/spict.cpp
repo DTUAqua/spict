@@ -251,6 +251,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> Bmsys(nm);
   vector<Type> Fmsys(nm);
   vector<Type> MSYs(nm);
+  int flag = asDouble(n) > 1; // Cast n as double to calc flag
   for(int i=0; i<nm; i++){
     // Deterministic reference points
     Bmsyd(i) = K * pow(1.0/n, 1.0/(n-1.0));
@@ -258,15 +259,32 @@ Type objective_function<Type>::operator() ()
     // Stochastic reference points (NOTE: only proved for n>1, Bordet and Rivest (2014))
     // The stepfun ensures that stochastic reference points are only used if n > 1.
     Type BmsyStochContr = (1.0 - (1.0 + Fmsyd(i)*(p-1.0)/2.0)*sdb2 / (Fmsyd(i)*pow(2.0-Fmsyd(i), 2.0)));
-    Bmsys(i) = Bmsyd(i) * pow(BmsyStochContr, stepfun(p));
+    //Bmsys(i) = Bmsyd(i) * pow(BmsyStochContr, stepfun(p));
     //Bmsys(i) = Bmsyd(i) * (1.0 - (1.0 + Fmsyd(i)*(p-1.0)/2.0)*sdb2 / (Fmsyd(i)*pow(2.0-Fmsyd(i), 2.0)));
     Type FmsyStochContr = (p*(1.0-Fmsyd(i))*sdb2) / pow(2.0-Fmsyd(i), 2.0);
-    Fmsys(i) = Fmsyd(i) - stepfun(p) * FmsyStochContr;
+    //Fmsys(i) = Fmsyd(i) - stepfun(p) * FmsyStochContr;
     //Fmsys(i) = Fmsyd(i) - (p*(1.0-Fmsyd(i))*sdb2) / pow(2.0-Fmsyd(i), 2.0);
     Type MSYstochContr = (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Fmsyd(i), 2.0)));
-    MSYs(i) = MSYd(i) * pow(MSYstochContr, stepfun(p));
+    //MSYs(i) = MSYd(i) * pow(MSYstochContr, stepfun(p));
     //MSYs(i) = MSYd(i) * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Fmsyd(i), 2.0)));
+
+
+    //flag = asDouble(n) > 1 & asDouble(BmsyStochContr) > 0;
+    if(flag){
+      Bmsys(i) = Bmsyd(i) * BmsyStochContr;
+      Fmsys(i) = Fmsyd(i) - FmsyStochContr;
+      MSYs(i) = MSYd(i) * MSYstochContr;
+    } else {
+      Bmsys(i) = Bmsyd(i);
+      Fmsys(i) = Fmsyd(i);
+      MSYs(i) = MSYd(i);
+    }
+    //std::cout << "flag: " << flag << std::endl;
+    //std::cout << "BmsyStochContr: " << BmsyStochContr << std::endl;
+    //std::cout << "Bmsyd(i): " << Bmsyd(i) << std::endl;
+    //std::cout << "Bmsys(i): " << Bmsys(i) << std::endl;
   }
+
   // log reference points
   vector<Type> logBmsyd = log(Bmsyd);
   vector<Type> logMSYd = log(MSYd);
@@ -281,6 +299,13 @@ Type objective_function<Type>::operator() ()
   vector<Type> logBmsy(nm);
   vector<Type> logFmsy(nm);
   vector<Type> logMSY(nm);
+
+  vector<Type> Bmsy2(nm);
+  if(flag){
+    Bmsy2 = Bmsys;
+  } else {
+    Bmsy2 = Bmsyd;
+  }
 
   if(stochmsy == 1){
     // Use stochastic reference points
@@ -736,6 +761,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(Bmsy);  
   ADREPORT(Bmsyd);
   ADREPORT(Bmsys);
+  ADREPORT(Bmsy2);
   ADREPORT(logBmsy);
   ADREPORT(logBmsyd);
   ADREPORT(logBmsys);
