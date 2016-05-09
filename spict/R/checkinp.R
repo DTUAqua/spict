@@ -287,7 +287,7 @@ check.inp <- function(inp){
     if (!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
     if (!"bias.correct" %in% names(inp)) inp$bias.correct <- FALSE # This is time consuming
     if (!"bias.correct.control" %in% names(inp)) inp$bias.correct.control <- list(sd=FALSE) # This is time consuming
-    if (!"getReportCovariance" %in% names(inp)) inp$getReportCovariance <- FALSE
+    if (!"getReportCovariance" %in% names(inp)) inp$getReportCovariance <- TRUE # Set to FALSE to save memory
     # Simulation options
     #if (!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
     # When simulating using sim.comm.cpue == TRUE, the simulation calculates

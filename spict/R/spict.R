@@ -124,7 +124,7 @@ fit.spict <- function(inp, dbg=0){
                 # Check if TMB version is higher than or equal to 1.7.1
                 # Versions below this don't have the getReportCovariance argument
                 verflag <- as.numeric(gsub('[.]', '', as.character(packageVersion('TMB')))) >= 171
-                if (verflag){
+                if (verflag & inp$getReportCovariance){
                     rep <- try(TMB::sdreport(obj,
                                              bias.correct=inp$bias.correct,
                                              bias.correct.control=inp$bias.correct.control,
