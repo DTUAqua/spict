@@ -109,7 +109,7 @@ Type objective_function<Type>::operator() ()
   // Priors
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorr);         // Prior vector for r, [log(mean), stdev in log, useflag]
-  DATA_VECTOR(priorrp);        // Prior vector for rp, [log(mean), stdev in log, useflag]
+  //DATA_VECTOR(priorrp);        // Prior vector for rp, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorq);         // Prior vector for q, [log(mean), stdev in log, useflag]
@@ -352,15 +352,19 @@ Type objective_function<Type>::operator() ()
   vector<Type> logr(nm);
   vector<Type> rc(nm);
   vector<Type> logrc(nm);
-  vector<Type> rp(nm);
-  vector<Type> logrp(nm);
+  vector<Type> rold(nm);
+  vector<Type> logrold(nm);
+  //vector<Type> rp(nm);
+  //vector<Type> logrp(nm);
   for(int i=0; i<nm; i++){ 
-    r(i) =  abs(gamma * m(i) / K);
-    logr(i) = log(r(i)); 
-    rc(i) = abs(2.0 * r(i) * (n - 1.0) / n);
+    rold(i) =  abs(gamma * m(i) / K);
+    logrold(i) = log(rold(i)); 
+    rc(i) = abs(2.0 * rold(i) * (n - 1.0) / n);
     logrc(i) = log(rc(i)); 
-    rp(i) = abs(r(i) * (n - 1.0));
-    logrp(i) = log(rp(i)); 
+    //rp(i) = abs(r(i) * (n - 1.0));
+    //logrp(i) = log(rp(i)); 
+    r(i) = m(i)/K * pow(n,(n/(n-1.0))); //abs(r(i) * (n - 1.0));
+    logr(i) = log(r(i)); 
     //std::cout << " -- n: " << n << " -- gamma: " << gamma << n << " -- m(i): " << m(i)<< n << " -- K: " << K << " -- r(i): " << r(i) << " -- logr(i): " << logr(i) << std::endl;
   }
 
@@ -408,7 +412,7 @@ Type objective_function<Type>::operator() ()
   }
   if(priorn(2) == 1) ans-= dnorm(logn, priorn(0), priorn(1), 1); // Prior for logn
   if(priorr(2) == 1 & nm == 1) ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
-  if(priorrp(2) == 1 & nm == 1) ans-= dnorm(logrp(0), priorrp(0), priorrp(1), 1); // Prior for logrp
+  //if(priorrp(2) == 1 & nm == 1) ans-= dnorm(logrp(0), priorrp(0), priorrp(1), 1); // Prior for logrp
   if(priorK(2) == 1) ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
   if(priorm(2) == 1 & nm == 1) ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
   if(priorq(2) == 1 & nq == 1) ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq
@@ -803,8 +807,10 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logr);
   ADREPORT(rc);
   ADREPORT(logrc);
-  ADREPORT(rp);
-  ADREPORT(logrp);
+  //ADREPORT(rp);
+  //ADREPORT(logrp);
+  ADREPORT(rold);
+  ADREPORT(logrold);
   ADREPORT(K);
   ADREPORT(q);
   //ADREPORT(logq);

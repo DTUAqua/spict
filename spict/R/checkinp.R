@@ -661,7 +661,7 @@ check.inp <- function(inp){
         }
         return(priorvec)
     }
-    possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logrp', 'logK', 'logm', 'logq', 'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy', 'logFFmsy', 'logsdb', 'logsdf', 'logsdi', 'logsde', 'logsdc')
+    possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq', 'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy', 'logFFmsy', 'logsdb', 'logsdf', 'logsdi', 'logsde', 'logsdc')
     repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
     npossiblepriors <- length(possiblepriors)
     if (!"priors" %in% names(inp)){
@@ -728,16 +728,18 @@ check.inp <- function(inp){
         if (!'logm' %in% names(inp$ini)){
             inp$ini$logm <- unname(log(guess.m(inp)))
         }
-        r <- inp$ini$gamma * exp(inp$ini$logm) / exp(inp$ini$logK) # n > 1
-        if (n>1){
-            inp$ini$logr <- log(r)
-        } else {
-            inp$ini$logr <- log(-r)
-        }
+        r <- exp(inp$ini$logm)/exp(inp$ini$logK) * n^(n/(n-1))
+        inp$ini$logr <- log(r)
+        #r <- inp$ini$gamma * exp(inp$ini$logm) / exp(inp$ini$logK) # n > 1 # rold
+        #if (n>1){
+        #    inp$ini$logr <- log(r)
+        #} else {
+        #    inp$ini$logr <- log(-r)
+        #}
     }
     if ('logr' %in% names(inp$ini)){
         nr <- length(inp$ini$logr)
-        if (!'ir' %in% names(inp) | nr==1){
+        if (!'ir' %in% names(inp) | nr == 1){
             inp$ir <- rep(0, inp$ns)
             for (i in 1:nr){
                 frac <- 1/nr
@@ -746,7 +748,9 @@ check.inp <- function(inp){
                 inp$ir[inds] <- i
             }
         } else {
-            if (length(unique(inp$ir)) != nr) stop('Mismatch between specified inp$ir and inp$ini$logr!')
+            if (length(unique(inp$ir)) != nr){
+                stop('Mismatch between specified inp$ir and inp$ini$logr!')
+            }
             nir <- length(inp$ir)
             if (nir != inp$ns){
                 if (nir == inp$nobsC){ # Assume that inp$ir fits with inp$timeC
@@ -821,12 +825,14 @@ check.inp <- function(inp){
         gamma <- inp$ini$gamma
         r <- exp(inp$ini$logr)
         K <- exp(inp$ini$logK)
-        m <- r * K / gamma # n > 1
-        if (n>1){
-            inp$ini$logm <- log(m)
-        } else {
-            inp$ini$logm <- log(-m)
-        }
+        n <- exp(inp$ini$logn)
+        m <- r * K / (n^(n/(n-1)))
+        #m <- r * K / gamma # n > 1 # rold
+        #if (n>1){
+        #    inp$ini$logm <- log(m)
+        #} else {
+        #    inp$ini$logm <- log(-m)
+        #}
     }
     # Fill in unspecified (more rarely user defined) model parameter values
     if (!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)

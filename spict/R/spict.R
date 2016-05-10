@@ -248,7 +248,7 @@ make.datin <- function(inp, dbg=0){
                   stochmsy=ifelse(inp$msytype=='s', 1, 0),
                   priorn=inp$priors$logn,
                   priorr=inp$priors$logr,
-                  priorrp=inp$priors$logrp,
+                  #priorrp=inp$priors$logrp,
                   priorK=inp$priors$logK,
                   priorm=inp$priors$logm,
                   priorq=inp$priors$logq,

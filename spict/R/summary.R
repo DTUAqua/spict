@@ -215,8 +215,8 @@ sumspict.parest <- function(rep, numdigits=8){
             nalpha <- sum(names(rep$par.fixed) == 'logsdi')
             derout <- rbind(get.par(parname='logbeta', rep, exp=TRUE)[, order],
                             get.par(parname='logr', rep, exp=TRUE)[, order],
-                            get.par(parname='logrp', rep, exp=TRUE)[, order],
-                            get.par(parname='logrc', rep, exp=TRUE)[, order])
+                            get.par(parname='logrc', rep, exp=TRUE)[, order],
+                            get.par(parname='logrold', rep, exp=TRUE)[, order])
             if (nalpha > 0){
                 derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
                                 derout)
@@ -240,13 +240,13 @@ sumspict.parest <- function(rep, numdigits=8){
                 derout <- cbind(est=derout[, 1], true=dertrue, ll=derout[, 2], ul=derout[, 3], tic=cider, eil=derout[, 4])
             }
             if(nr>1 & 'yearsepgrowth' %in% names(rep$inp)){
-                rnms <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
-                rpnms <- c('rp     ', paste0('rp', rep$inp$yearsepgrowth))
-                rcnms <- c('rc     ', paste0('rc', rep$inp$yearsepgrowth))
+                rnms <- c('r   ', paste0('r', rep$inp$yearsepgrowth))
+                roldnms <- c('rold   ', paste0('rold', rep$inp$yearsepgrowth))
+                rcnms <- c('rc   ', paste0('rc', rep$inp$yearsepgrowth))
             } else {
-                rnms <- 'r    '
-                rpnms <- 'rp    '
-                rcnms <- 'rc    '
+                rnms <- 'r  '
+                roldnms <- 'rold  '
+                rcnms <- 'rc  '
             }
             if (nalpha > 0){
                 if(nalpha > 1){
@@ -257,7 +257,7 @@ sumspict.parest <- function(rep, numdigits=8){
             } else {
                 alphanms <- NULL
             }
-            rownames(derout) <- c(alphanms, 'beta', rnms, rpnms, rcnms)
+            rownames(derout) <- c(alphanms, 'beta', rnms, rcnms, roldnms)
             resout <- rbind(derout, resout)
         }        
         if('true' %in% names(rep$inp)){
