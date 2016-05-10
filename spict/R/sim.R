@@ -466,6 +466,7 @@ sim.spict <- function(input, nobs=100){
 #' @param df.out Output data frame instead of list.
 #' @param summ.ex.file Save a summary example to this file (to check that parameters have correct priors or are fixed).
 #' @param type Specify what type of information is contained in invec. If type == 'nobs' then invec is assumed to be a vector containing the number of simulated observations of each data set in each batch. If type == 'logsdc' then invec is assumed to be a vector containing values of logsdc over which to loop.
+#' @param model If 'spict' estimate using SPiCT. If 'meyermillar' estimate using the model of Meyer & Millar (1999), this requires rjags and coda packages.
 #' @return A list containing the results of the validation with the following keys:
 #' \itemize{
 #'  \item{"osarpvals"}{ P-values of the Ljung-Box test for uncorrelated one-step-ahead residuals.}
@@ -482,7 +483,7 @@ sim.spict <- function(input, nobs=100){
 #' @export
 validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, backup=NULL,
                            df.out=FALSE, summ.ex.file=NULL, type='nobs', parnames=NULL, exp=NULL,
-                           mc.cores=8){
+                           mc.cores=8, model='spict'){
     if (is.null(parnames)){
         parnames <- c('logFmsy', 'logBmsy', 'MSY', 'logBl', 'logBlBmsy',
                       'logFlFmsy', 'logsdb', 'logsdi')
@@ -493,23 +494,45 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
     fun <- function(i, inp, nobs, estinp, backup, type, val, parnames, exp){
         #cat(paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4)))
         sim <- sim.spict(inp, nobs)
-        #if(!is.null(estinp)) sim$ini <- estinp$ini
-        if (!is.null(estinp)){
-            for (nm in names(estinp$priors)){
-                sim$priors[[nm]] <- estinp$priors[[nm]]
+        if (model == 'spict'){
+            #if(!is.null(estinp)) sim$ini <- estinp$ini
+            if (!is.null(estinp)){
+                for (nm in names(estinp$priors)){
+                    sim$priors[[nm]] <- estinp$priors[[nm]]
+                }
+            }
+            rep <- try(fit.spict(sim))
+            s <- NA
+            str <- paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4))
+            if (!class(rep)=='try-error'){
+                s <- extract.simstats(rep, inp, exp=exp, parnames=parnames)
+                if (!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file) # This line causes problems when running simulation2.R, the problem is that log cannot be taken of the derout variable of the summary.
+                s$type <- type
+                s[[type]] <- val
+                cat(str, ' convall:', as.numeric(s$convall), '\n')
+            } else {
+                cat(str, ' Error in fit.spict()\n')
             }
         }
-        rep <- try(fit.spict(sim))
-        s <- NA
-        str <- paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4))
-        if (!class(rep)=='try-error'){
-            s <- extract.simstats(rep, inp, exp=exp, parnames=parnames)
-            if (!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file) # This line causes problems when running simulation2.R, the problem is that log cannot be taken of the derout variable of the summary.
-            s$type <- type
-            s[[type]] <- val
-            cat(str, ' convall:', as.numeric(s$convall), '\n')
-        } else {
-            cat(str, ' Error in fit.spict()\n')
+        if (model == 'meyermillar'){
+            fit.jags <- function(inp, niter, n.chains=1){
+                N <- inp$nobsC
+                datain <- list(C=inp$obsC, I=inp$obsI[[1]], N=N)
+                initsin <- list(P=rep(0.5, N), r=exp(inp$ini$logr), K=exp(inp$ini$logK), iq=1/exp(inp$ini$logq),
+                                isigma2=1/exp(inp$ini$logsdb)^2, itau2=1/exp(inp$ini$logsdi)^2)
+                # Parameters
+                pars <- c('P', 'r', 'K', 'iq', 'isigma2', 'itau2')
+                # Number of iteration
+                jags <- jags.model(file='surplus2.bug', data=datain, inits=initsin, n.chains=n.chains)
+                samples <- coda.samples(jags, pars, n.iter=niter, thin=100)
+                return(samples)
+            }
+            
+
+        }
+        if (model == 'simple'){
+            # Not implemented yet
+            s <- NULL
         }
         return(s)
     }
