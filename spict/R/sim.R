@@ -428,9 +428,9 @@ sim.spict <- function(input, nobs=100){
     R <- (n-1)/n * gamma * mean(m[inp$ir]) / K
     p <- n-1
     sim$true$R <- R
-    sim$true$logr <- log(abs(gamma * mean(m[inp$ir]) / K))
+    sim$true$logrold <- log(abs(gamma * mean(m[inp$ir]) / K))
+    sim$true$logr <- log(mean(m[inp$ir]) / K * n^(n/(n-1.0)))
     sim$true$logrc <- log(2 * R)
-    sim$true$logrp <- log(sim$true$logr * (n-1))
     # Deterministic reference points
     sim$true$Bmsyd <- K/(n^(1/(n-1)))
     sim$true$MSYd <- mean(m[inp$ir])
