@@ -317,7 +317,13 @@ check.inp <- function(inp){
     if (!"verbosity" %in% names(inp$aspic)) inp$aspic$verbosity <- '102'
     if (!"nboot" %in% names(inp$aspic)) inp$aspic$nboot <- 1000
     if (!"ciperc" %in% names(inp$aspic)) inp$aspic$ciperc <- 95
-
+    # Meyer & Millar model options
+    if (!"meyermillar" %in% names(inp)) inp$meyermillar <- list()    
+    if (!"niter" %in% names(inp$meyermillar)) inp$meyermillar$niter <- 225000
+    if (!"burnin" %in% names(inp$meyermillar)) inp$meyermillar$burnin <- 25000
+    if (!"thin" %in% names(inp$meyermillar)) inp$meyermillar$thin <- 25
+    if (!"cleanup" %in% names(inp$meyermillar)) inp$meyermillar$cleanup <- TRUE
+    
     # Options for simple model
     if (!"simple" %in% names(inp)) inp$simple <- 0
     if (inp$simple == 1){ # Set parameters for the simple model (catch assumed known, no F process).
