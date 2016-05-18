@@ -14,6 +14,8 @@ plotspict.data(inpin, MSY = NULL, one.index = NULL, qlegend = FALSE,
 
 \item{one.index}{Integer indicating the number of the index to plot.}
 
+\item{qlegend}{If TRUE legend explaining colours of observation data is plotted.}
+
 \item{stamp}{Stamp plot with this character string.}
 }
 \value{

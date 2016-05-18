@@ -22,6 +22,30 @@
 setClass("spictcls")
 
 
+#' @name meanvar2shaperate
+#' @title Convert mean and variance to shape and rate of gamma distribution
+#' @param mean Mean value.
+#' @param var Variance.
+#' @return Vector containing shape and rate parameters.
+meanvar2shaperate <- function(mean, var){
+    vec <- c(mean^2/var, mean/var)
+    names(vec) <- c('shape', 'rate')
+    return(vec)
+}
+
+
+#' @name shaperate2meanvar
+#' @title Convert shape and rate of gamma distribution to mean and variance
+#' @param shape Shape parameter
+#' @param rate Rate parameter (scale = 1/rate).
+#' @return Vector containing mean and var parameters.
+shaperate2meanvar <- function(shape, rate){
+    vec <- c(shape/rate, shape/rate^2, sqrt(shape/rate^2))
+    names(vec) <- c('mean', 'var', 'sd')
+    return(vec)
+}
+
+
 #' @name get.version
 #' @title Get version of spict including git sha1 version if available.
 #' @param pkg Name of package.

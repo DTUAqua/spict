@@ -113,13 +113,19 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorq);         // Prior vector for q, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(prioriqgamma);   // Prior vector for q, inverse gamma distribution, [shape, rate, useflag]
   DATA_VECTOR(priorqf);        // Prior vector for qf, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorbkfrac);    // Prior vector for B0/K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorsdb);       // Prior vector for sdb, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorisdb2gamma);// Prior vector for sdb2, inv. gamma distribution, [shape, rate, useflag]
   DATA_VECTOR(priorsdf);       // Prior vector for sdf, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorisdf2gamma);// Prior vector for sdf2, inv. gamma distribution, [shape, rate, useflag]
   DATA_VECTOR(priorsdi);       // Prior vector for sdi, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorisdi2gamma);// Prior vector for sdi2, inv. gamma distribution, [shape, rate, useflag]
   DATA_VECTOR(priorsde);       // Prior vector for sde, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorisde2gamma);// Prior vector for sde2, inv. gamma distribution, [shape, rate, useflag]
   DATA_VECTOR(priorsdc);       // Prior vector for sdc, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorisdc2gamma);// Prior vector for sdc2, inv. gamma distribution, [shape, rate, useflag]
   DATA_VECTOR(prioralpha);     // Prior vector for alpha, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorbeta);      // Prior vector for beta, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorB);         // Prior vector for B, [log(mean), stdev in log, useflag, year, ib]
@@ -210,14 +216,26 @@ Type objective_function<Type>::operator() ()
   Type lambda = exp(loglambda);
   Type sdf = exp(logsdf);
   Type sdf2 = sdf*sdf;
+  Type isdf2 = 1.0/sdf2;
   vector<Type> sdu = exp(logsdu);
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
+  Type isdb2 = 1.0/sdb2;
   vector<Type> sdi = exp(logsdi);
+  vector<Type> sdi2(nsdi);
+  vector<Type> isdi2(nsdi);
+  for(int i=0; i<nsdi; i++){
+    sdi2(i) = sdi(i)*sdi(i);
+    isdi2(i) = 1.0/sdi2(i);
+  }
   vector<Type> alpha = sdi/sdb;
   vector<Type> logalpha = log(alpha);
   Type sde = exp(logsde);
+  Type sde2 = sde*sde;
+  Type isde2 = 1.0/sde2;
   Type sdc = exp(logsdc);
+  Type sdc2 = sdc*sdc;
+  Type isdc2 = 1.0/sdc2;
   Type beta = sdc/sdf;
   Type logbeta = log(beta);
 
@@ -410,12 +428,36 @@ Type objective_function<Type>::operator() ()
     std::cout << "PRIOR: priorm(0): " << priorm(0) << " -- priorm(1): " << priorm(1) << " -- priorm(2): " << priorm(2) << std::endl;
     std::cout << "PRIOR: priorq(0): " << priorq(0) << " -- priorq(1): " << priorq(1) << " -- priorq(2): " << priorq(2) << std::endl;
   }
+  // Inverse gamma priors
+  // TMB uses shape and scale parameterisation, but spict uses shape and rate similar to jags.
+  // Prior for q. 
+  if(prioriqgamma(2) == 1 & nq == 1){
+    ans-= dgamma(1.0/exp(logq(0)), prioriqgamma(0), 1.0/prioriqgamma(1), 1); 
+  }
+  if(priorisdb2gamma(2) == 1){
+    ans-= dgamma(1.0/sdb2, priorisdb2gamma(0), 1.0/priorisdb2gamma(1), 1); 
+  }
+  if(priorisdf2gamma(2) == 1){
+    ans-= dgamma(1.0/sdf2, priorisdf2gamma(0), 1.0/priorisdf2gamma(1), 1); 
+  }
+  if(priorisdi2gamma(2) == 1){
+    for(int i=0; i<nsdi; i++){
+      ans-= dgamma(1.0/sdi2(i), priorisdi2gamma(0), 1.0/priorisdi2gamma(1), 1); 
+    }
+  }
+  if(priorisde2gamma(2) == 1){
+    ans-= dgamma(1.0/sde2, priorisde2gamma(0), 1.0/priorisde2gamma(1), 1); 
+  }
+  if(priorisdi2gamma(2) == 1){
+    //ans-= dgamma(1.0/exp(2.0*logsdi), priorisdi2gamma(0), 1.0/priorisdi2gamma(1), 1); 
+  }
+  // Log-normal priors
   if(priorn(2) == 1) ans-= dnorm(logn, priorn(0), priorn(1), 1); // Prior for logn
   if(priorr(2) == 1 & nm == 1) ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
   //if(priorrp(2) == 1 & nm == 1) ans-= dnorm(logrp(0), priorrp(0), priorrp(1), 1); // Prior for logrp
   if(priorK(2) == 1) ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
   if(priorm(2) == 1 & nm == 1) ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
-  if(priorq(2) == 1 & nq == 1) ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq
+  if(priorq(2) == 1 & nq == 1) ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq - log-normal
   if(priorqf(2) == 1) ans-= dnorm(logqf, priorqf(0), priorqf(1), 1); // Prior for logqf
   if(priorbkfrac(2) == 1) ans-= dnorm(logB(0) - logK, priorbkfrac(0), priorbkfrac(1), 1); // Prior for logbkfrac
   if(priorsdb(2) == 1) ans-= dnorm(logsdb, priorsdb(0), priorsdb(1), 1); // Prior for logsdb
@@ -823,6 +865,11 @@ Type objective_function<Type>::operator() ()
   ADREPORT(sde);
   ADREPORT(sdb);
   ADREPORT(sdi);
+  ADREPORT(isdf2);
+  ADREPORT(isdc2);
+  ADREPORT(isde2);
+  ADREPORT(isdb2);
+  ADREPORT(isdi2);
   ADREPORT(logalpha);
   ADREPORT(logbeta);
   if(reportall){ 

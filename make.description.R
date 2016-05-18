@@ -17,7 +17,9 @@ LinkingTo: TMB, RcppEigen
 Suggests:
     ellipse,
     parallel,
-    mgcv
+    mgcv,
+    rjags,
+    coda
 LazyData: true\n',
     file=fn)
 

@@ -71,6 +71,8 @@ summary.spictcls <- function(object, ...){
     indso <- which(rep$inp$priorsuseflag==1)
     if(length(indso)>0){
         usepriors <- names(rep$inp$priors)[indso]
+        gammainds <- grep('gamma', usepriors)
+        usepriors <- gsub('gamma', '', usepriors) # Strip gamma-text away
         npriors <- length(usepriors)
         repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
         if(any(repriors %in% usepriors)){
@@ -82,7 +84,17 @@ summary.spictcls <- function(object, ...){
         cat(paste('\nPriors\n'))
         maxchar <- max(nchar(usepriors))
         for(i in 1:npriors){
-            str[i] <- paste0('~  N[log(', round(exp(rep$inp$priors[[indso[i]]][1]), 3), '), ', round(rep$inp$priors[[indso[i]]][2], 3), '^2]', ifelse(rep$inp$priors[[indso[i]]][2] <= 1e-3, ' (fixed)', ''))
+            if (i %in% gammainds){
+                shape <- rep$inp$priors[[indso[i]]][1]
+                rate <- rep$inp$priors[[indso[i]]][2]
+                vec <- shaperate2meanvar(shape, rate)
+                str[i] <- paste0('~  gamma[', round(shape, 3),
+                                 ', ', round(rate, 3), '] (mean=', vec[1], ', sd=', vec[3], ')')
+            } else {
+                str[i] <- paste0('~  N[log(', round(exp(rep$inp$priors[[indso[i]]][1]), 3),
+                                 '), ', round(rep$inp$priors[[indso[i]]][2], 3), '^2]',
+                                 ifelse(rep$inp$priors[[indso[i]]][2] <= 1e-3, ' (fixed)', ''))
+            }
             usepriors[i] <- formatC(usepriors[i], width = maxchar, flag = 0)
             cat(paste0(' ', usepriors[i], '  ', str[i], '\n'))
         }

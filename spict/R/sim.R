@@ -404,6 +404,7 @@ sim.spict <- function(input, nobs=100){
     sim$nseasons <- inp$nseasons
     sim$seasontype <- inp$seasontype
     sim$sim.comm.cpue <- inp$sim.comm.cpue
+    sim$meyermillar <- inp$meyermillar
     sim$true <- pl
     sim$true$logalpha <- sim$true$logsdi - sim$true$logsdb
     sim$true$logbeta <- sim$true$logsdc - sim$true$logsdf
@@ -515,20 +516,36 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
             }
         }
         if (model == 'meyermillar'){
-            fit.jags <- function(inp, niter, n.chains=1){
-                N <- inp$nobsC
-                datain <- list(C=inp$obsC, I=inp$obsI[[1]], N=N)
-                initsin <- list(P=rep(0.5, N), r=exp(inp$ini$logr), K=exp(inp$ini$logK), iq=1/exp(inp$ini$logq),
-                                isigma2=1/exp(inp$ini$logsdb)^2, itau2=1/exp(inp$ini$logsdi)^2)
-                # Parameters
-                pars <- c('P', 'r', 'K', 'iq', 'isigma2', 'itau2')
-                # Number of iteration
-                jags <- jags.model(file='surplus2.bug', data=datain, inits=initsin, n.chains=n.chains)
-                samples <- coda.samples(jags, pars, n.iter=niter, thin=100)
-                return(samples)
-            }
+            sim <- check.inp(sim)
+            # Fit Meyer & Millar model
+            res <- fit.meyermillar(sim)
             
-
+            # Extract relevant values
+            resmat <- res$resmat
+            nms <- rownames(resmat)
+            parnms <- c('Fmsy', 'Bmsy', 'MSY', 'BBlast', 'Blast')
+            inds <- match(parnms, nms)
+            resmatc <- resmat[inds, ]
+            cicov <- numeric(length(parnms))
+            # Fmsy
+            ind <- which(parnms == 'Fmsy')
+            cicov[ind] <- resmatc[ind, 3] < sim$true$Fmsy & resmatc[ind, 4] > sim$true$Fmsy
+            # Bmsy
+            ind <- which(parnms == 'Bmsy')
+            cicov[ind] <- resmatc[ind, 3] < sim$true$Bmsy & resmatc[ind, 4] > sim$true$Bmsy
+            # MSY
+            ind <- which(parnms == 'MSY')
+            cicov[ind] <- resmatc[ind, 3] < sim$true$MSY & resmatc[ind, 4] > sim$true$MSY
+            # BBlast
+            indt <- sim$indlastobs
+            true <- sim$true$B[indt] / sim$true$Bmsy
+            ind <- which(parnms == 'BBlast')
+            cicov[ind] <- resmatc[ind, 3] < true & resmatc[ind, 4] > true
+            # BBlast
+            true <- sim$true$B[indt]
+            ind <- which(parnms == 'Blast')
+            cicov[ind] <- resmatc[ind, 3] < true & resmatc[ind, 4] > true
+            s <- cbind(cicov, CV=resmatc[, 5], convall=rep(res$diag$convall, length(cicov)))
         }
         if (model == 'simple'){
             # Not implemented yet
@@ -562,7 +579,9 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
         if (!is.null(backup)) save(ss, file=backup)
     }
     
-    if (df.out) ss <- validation.data.frame(ss)
+    if (df.out & model == 'spict'){
+        ss <- validation.data.frame(ss)
+    }
     return(ss)
 }
 
