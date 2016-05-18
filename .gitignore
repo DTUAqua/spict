@@ -1,11 +1,13 @@
 *~
 *.o
 *.so
+*.orig
 .Rhistory
 Rgrid.pe*
 Rgrid.po*
 Rgrid.e*
 Rgrid.o*
+DESCRIPTION
 f1b2list1
 f1b2list12
 f1b2list13

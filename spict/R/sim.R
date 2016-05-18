@@ -507,7 +507,11 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
             str <- paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4))
             if (!class(rep)=='try-error'){
                 s <- extract.simstats(rep, inp, exp=exp, parnames=parnames)
-                if (!is.null(summ.ex.file)) capture.output(summary(rep), file=summ.ex.file) # This line causes problems when running simulation2.R, the problem is that log cannot be taken of the derout variable of the summary.
+                if (!is.null(summ.ex.file)){
+                    # This line causes problems when running simulation2.R, the problem is
+                    # that log cannot be taken of the derout variable of the summary.
+                    capture.output(summary(rep), file=summ.ex.file) 
+                }
                 s$type <- type
                 s[[type]] <- val
                 cat(str, ' convall:', as.numeric(s$convall), '\n')
@@ -546,6 +550,11 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
             ind <- which(parnms == 'Blast')
             cicov[ind] <- resmatc[ind, 3] < true & resmatc[ind, 4] > true
             s <- cbind(cicov, CV=resmatc[, 5], convall=rep(res$diag$convall, length(cicov)))
+            if (!is.null(summ.ex.file)){
+                capture.output(res$resmat, file=summ.ex.file)
+            }
+            str <- paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4))
+            cat(str, ' convall:', as.numeric(res$diag$convall), '\n')
         }
         if (model == 'simple'){
             # Not implemented yet

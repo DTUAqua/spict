@@ -54,7 +54,7 @@ fit.meyermillar <- function(mminp){
     
     # Write tmeporary .bug file
     bugfn <- mminp$meyermillar$bugfn
-    write.bug.file(fn=bugfn, mminp$meyermillar$priors)
+    write.bug.file(mminp$meyermillar$priors, fn=bugfn)
 
     # Fit model
     res <- list()
@@ -162,10 +162,10 @@ plot.priors <- function(nm, priorsin, add=TRUE, ...){
 
 #' @name write.bug.file
 #' @title Write the BUGS code to a text file
-#' @param fn Filename of to put BUGS code in.
 #' @param priors List of priors, typically coming from inp$meyermillar$priors.
+#' @param fn Filename of to put BUGS code in.
 #' @return Nothing.
-write.bug.file <- function(fn='tmp.bug', priors){
+write.bug.file <- function(priors, fn='tmp.bug'){
     cat('model{\n# prior distribution of K: lognormal with 10% and 90% quantile at 80 and 300\n', file=fn)
     cat(paste0('K ~ dlnorm(', priors$K[1], ',', priors$K[2], ')I(10,1000);\n'), file=fn, append=TRUE)
     cat('# prior distribution of r: lognormal with 10% and 90% quantile at 0.13 and 0.48\n', file=fn, append=TRUE)
@@ -176,9 +176,9 @@ write.bug.file <- function(fn='tmp.bug', priors){
     cat(paste0('isigma2 ~ dgamma(', priors$isigma2[1], ',', priors$isigma2[2], ');\nsigma2 <- 1/isigma2;\n'), file=fn, append=TRUE)
     cat('# prior distribution of tau2: inv. gamma with 10% and 90% qu. at 0.05 and 0.15\n', file=fn, append=TRUE)
     cat(paste0('itau2 ~ dgamma(', priors$itau2[1], ',', priors$itau2[2], ');\ntau2 <- 1/itau2;\n'), file=fn, append=TRUE)
-    cat('# (conditional) prior distribution of Ps (from state equations):
-Pmed[1] <- 0;
-P[1] ~ dlnorm(Pmed[1],isigma2) #I(0.001,2.0)
+    cat('# (conditional) prior distribution of Ps (from state equations):\n', file=fn, append=TRUE)
+    cat(paste0('Pmed[1] <- ', priors$logPini, ';\n'), file=fn, append=TRUE)
+    cat('P[1] ~ dlnorm(Pmed[1],isigma2) #I(0.001,2.0)
 for (t in 2:N) { 
     Pmed[t] <- log(max(P[t-1] + r*P[t-1]*(1-P[t-1]) - C[t-1]/K, 0.001));
     P[t] ~ dlnorm(Pmed[t],isigma2) #I(0.001,2.0) 

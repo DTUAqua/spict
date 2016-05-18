@@ -27,6 +27,7 @@ setClass("spictcls")
 #' @param mean Mean value.
 #' @param var Variance.
 #' @return Vector containing shape and rate parameters.
+#' @export
 meanvar2shaperate <- function(mean, var){
     vec <- c(mean^2/var, mean/var)
     names(vec) <- c('shape', 'rate')
@@ -39,6 +40,7 @@ meanvar2shaperate <- function(mean, var){
 #' @param shape Shape parameter
 #' @param rate Rate parameter (scale = 1/rate).
 #' @return Vector containing mean and var parameters.
+#' @export
 shaperate2meanvar <- function(shape, rate){
     vec <- c(shape/rate, shape/rate^2, sqrt(shape/rate^2))
     names(vec) <- c('mean', 'var', 'sd')
