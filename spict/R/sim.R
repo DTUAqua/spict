@@ -405,6 +405,7 @@ sim.spict <- function(input, nobs=100){
     sim$seasontype <- inp$seasontype
     sim$sim.comm.cpue <- inp$sim.comm.cpue
     sim$meyermillar <- inp$meyermillar
+    sim$aspic <- inp$aspic
     sim$true <- pl
     sim$true$logalpha <- sim$true$logsdi - sim$true$logsdb
     sim$true$logbeta <- sim$true$logsdc - sim$true$logsdf
@@ -557,6 +558,47 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
             }
             str <- paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4))
             cat(str, ' convall:', as.numeric(res$diag$convall), '\n')
+        }
+        if (model == 'aspic'){
+            #sim$aspic$ciperc <- 95
+            #sim$aspic$nboot <- 1000
+            sim <- check.inp(sim)
+            filebase <- paste0('aspic', i)
+            res <- try(fit.aspic(sim, do.boot=TRUE, verbose=FALSE, filebase=filebase))
+            if (class(res) != 'try-error'){
+                a <- res$boot[c(2, 3, 7, 9, 10), c(1, 4, 5)]
+                parnms <- c('MSY', 'Fmsy', 'Bmsy', 'BBlast', 'FFlast')
+                cicov <- numeric(length(parnms))
+                names(cicov) <- parnms
+                # MSY
+                cicov[1] <- a[1, 2] < sim$true$MSY & a[1, 3] > sim$true$MSY
+                # Fmsy
+                cicov[2] <- a[2, 2] < sim$true$Fmsy & a[2, 3] > sim$true$Fmsy
+                # Bmsy
+                cicov[3] <- a[3, 2] < sim$true$Bmsy & a[3, 3] > sim$true$Bmsy
+                # BBlast
+                indt <- sim$indlastobs
+                true <- sim$true$B[indt] / sim$true$Bmsy
+                cicov[4] <- a[4, 2] < true & a[4, 3] > true
+                # FFlast
+                true <- sim$true$F[indt] / sim$true$Fmsy
+                cicov[5] <- a[5, 2] < true & a[5, 3] > true
+                cv <- (a[, 3]-a[, 2])/(2*1.96)/a[, 1]
+                names(cv) <- parnms
+                convall <- 0
+                s <- list(ci=cicov, cv=cv, convall=convall, nobs=nobs)
+            } else {
+                s <- NA
+                convall <- 1
+            }
+            if (!is.null(summ.ex.file)){
+                capture.output(res, file=summ.ex.file)
+            }
+            # Clean up temporary files
+            unlink(paste0(filebase, '.*'))
+            # Print information to screen
+            str <- paste(Sys.time(), '- validating:  i:', i, ' type:', type, ' val:', round(val, 4))
+            cat(str, ' convall:', convall, '\n')
         }
         if (model == 'simple'){
             # Not implemented yet

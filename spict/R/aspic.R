@@ -244,13 +244,13 @@ read.aspic.res <- function(filename){
 #' @param input A spict input list containing observations.
 #' @param do.boot Do bootstrap to get uncertainties of estimates?
 #' @param nboot Number of bootstrap runs (only used if do.boot=TRUE). Prager suggests in the ASPIC manual p. 13 to use nboot > 1000 if ciperc > 80.
-#' @param ciperc Coverage percentage of bootstrapped confidence intervals.
+#' @param ciperc Coverage percentage (integer between 0 and 100) of bootstrapped confidence intervals.
 #' @param verbose If TRUE write information to screen.
+#' @param filebase Basename of all generated aspic files.
 #' @return List containing aspic results.
 #' @export
-fit.aspic <- function(input, do.boot=FALSE, nboot=3000, ciperc=95, verbose=FALSE){
+fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FALSE, filebase='tmp'){
     # Write aspic input file
-    filebase <- 'tmp'
     fn <- paste0(filebase, '.a7inp')
     write.aspic(input, filename=fn, verbose=verbose)
 
@@ -268,8 +268,13 @@ fit.aspic <- function(input, do.boot=FALSE, nboot=3000, ciperc=95, verbose=FALSE
         # Bootstrap aspic to get uncertainties
         inpaspic <- input
         inpaspic$aspic$mode <- 'BOT'
-        inpaspic$aspic$nboot <- nboot
-        inpaspic$aspic$ciperc <- ciperc
+        if (!is.null(nboot)){
+            inpaspic$aspic$nboot <- nboot
+        }
+        if (!is.null(ciperc)){
+            stopifnot(ciperc > 0, ciperc < 100)
+            inpaspic$aspic$ciperc <- ciperc
+        }
         write.aspic(inpaspic, filename=fn, verbose=verbose)
         if (file.exists(paste0(filebase, '.bot'))){
             file.remove(paste0(filebase, '.bot'))
@@ -280,9 +285,9 @@ fit.aspic <- function(input, do.boot=FALSE, nboot=3000, ciperc=95, verbose=FALSE
         filename <- paste0(filebase, '.bot')
         aspicres <- readLines(filename)
         ind <- grep('ESTIMATES FROM BOOTSTRAP ANALYSIS', aspicres)
-        res <- read.table(filename, skip=ind+5, sep='', nrows=11, strip.white=TRUE)
-        rnms <- as.character(res[, 1])
-        bootres <- res[, -1]
+        bootres <- read.table(filename, skip=ind+5, sep='', nrows=11, strip.white=TRUE)
+        rnms <- as.character(bootres[, 1])
+        bootres <- bootres[, -1]
         rownames(bootres) <- rnms
         colnames(bootres) <- c('estimate', 'low80', 'upp80', 'low95', 'upp95', 'IQR', 'rIQR')
         res$boot <- bootres
