@@ -521,6 +521,7 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
         }
         if (model == 'meyermillar'){
             sim <- check.inp(sim)
+            sim$meyermillar$bugfn <- paste0('sp', i, '.bug')
             # Fit Meyer & Millar model
             res <- fit.meyermillar(sim)
             
@@ -549,7 +550,7 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
             true <- sim$true$B[indt]
             ind <- which(parnms == 'Blast')
             cicov[ind] <- resmatc[ind, 3] < true & resmatc[ind, 4] > true
-            s <- cbind(cicov, CV=resmatc[, 5], convall=rep(res$diag$convall, length(cicov)))
+            s <- list(ci=cicov, cv=resmatc[, 5], convall=res$diag$convall, nobs=nobs)
             if (!is.null(summ.ex.file)){
                 capture.output(res$resmat, file=summ.ex.file)
             }
