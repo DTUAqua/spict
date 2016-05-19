@@ -274,7 +274,8 @@ fit.aspic <- function(input, do.boot=FALSE, nboot=3000, ciperc=95, verbose=FALSE
         if (file.exists(paste0(filebase, '.bot'))){
             file.remove(paste0(filebase, '.bot'))
         }
-        system(paste0('aspic7.exe ', filebase, '.a7inp'), intern=!verbose)
+        #system(paste0('aspic7.exe ', filebase, '.a7inp'), intern=!verbose)
+        system(paste0('wine aspic7 ', filebase, '.a7inp'), intern=!verbose)
         # Read aspic bootstrap results
         filename <- paste0(filebase, '.bot')
         aspicres <- readLines(filename)
