@@ -48,8 +48,25 @@
 fit.meyermillar <- function(mminp){
     mminp <- check.inp(mminp)
 
+    check.prior <- function(nm){
+        if (!nm %in% names(mminp$meyermillar$priors)){
+            stop(paste('Prior for', nm, 'is missing!'))
+        } else {
+            stopifnot(length(mminp$meyermillar$priors[[nm]]) > 1)
+        }
+    }
+    # Check priors
     if (!"priors" %in% names(mminp$meyermillar)){
         stop('Cannot continue because no priors were specified for Meyer & Millar model, see example of fit.meyermillar for how to do that.')
+    } else {
+        check.prior('K')
+        check.prior('r')
+        check.prior('iq')
+        check.prior('isigma2')
+        check.prior('itau2')
+        if (!'logPini' %in% names(mminp$meyermillar$priors)){
+            stop(paste('Prior for logPini is missing!'))
+        }
     }
     
     # Write tmeporary .bug file
