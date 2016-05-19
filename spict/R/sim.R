@@ -532,6 +532,7 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
             inds <- match(parnms, nms)
             resmatc <- resmat[inds, ]
             cicov <- numeric(length(parnms))
+            names(cicov) <- parnms
             # Fmsy
             ind <- which(parnms == 'Fmsy')
             cicov[ind] <- resmatc[ind, 3] < sim$true$Fmsy & resmatc[ind, 4] > sim$true$Fmsy
