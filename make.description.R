@@ -3,7 +3,7 @@ fn <- 'spict/DESCRIPTION'
 cat('Package: spict
 Type: Package
 Title: Stochastic suplus Production model in Continuous-Time (SPiCT)
-Version: 0.4
+Version: 0.5
 Date: 2016-01-28
 Author: Martin Waever Pedersen
 Maintainer: Martin Waever Pedersen <mawp@dtu.dk>
