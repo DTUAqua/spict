@@ -1968,8 +1968,8 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
             j <- inds[i]
             priorvec <- inp$priors[[j]]
             nm <- names(inp$priors)[j]
-            if (grep('gamma', nm) == 1){
-                if (grep('sd', nm) == 1){
+            if (length(grep('gamma', nm)) == 1){
+                if (length(grep('sd', nm)) == 1){
                     gpnm <- paste0('log', substr(nm, 2, 4))
                     par <- get.par(gpnm, rep, exp=FALSE)
                 }
