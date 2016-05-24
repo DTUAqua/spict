@@ -242,9 +242,9 @@ Type objective_function<Type>::operator() ()
   // Put wide smooth distributions on difficult parameters to stabilise optimisation.
   // Note that this contributes to the objective function, which therefore cannot be 
   // regarded as a likelihood to be compared with likelihoods from other models.
-  ans -= dnorm(logB(0) - logK, Type(0.0), Type(10.0), 1);
+  ans -= dnorm(logB(0) - logK, Type(-0.2234), Type(10.0), 1);
   //ans -= dnorm(logB(0), Type(10.0), Type(10.0), 1);
-  ans -= dnorm(logF(0), Type(0.0), Type(10.0), 1);
+  ans -= dnorm(logF(0), Type(-0.2234), Type(10.0), 1);
   ans -= dnorm(logn, Type(0.6931472), Type(10.0), 1); // log(2) = 0.6931472
   ans -= dnorm(logbeta, Type(0.0), Type(10.0), 1);
   for(int i=0; i<nsdi; i++){ ans -= dnorm(logalpha(i), Type(0.0), Type(10.0), 1); }
