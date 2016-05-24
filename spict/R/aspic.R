@@ -233,6 +233,12 @@ read.aspic.res <- function(filename){
     out$states <- read.table(filename, skip=ind+6, sep='', nrows=nobs, strip.white=TRUE)
     colnames(out$states) <- c('obs', 'time', 'Fest', 'B0est', 'Best', 'Catch', 'Cest', 'Pest', 'FFmsy', 'BBmsy')
     out$pars <- c(r=r, K=K, q=q, Fmsy=Fmsy, Bmsy=Bmsy, MSY=MSY)
+    # Time spent
+    string <- strsplit(aspicres[length(aspicres)], ' ')
+    et <- as.numeric(c(string[[1]][3], string[[1]][5], string[[1]][8]))
+    timespent <- et[1]*60*60 + et[2]*60 + et[3]
+    #names(timespent) <- c('hr', 'min', 'sec')
+    out$timespent <- timespent
     return(out)
 }
 
@@ -247,9 +253,10 @@ read.aspic.res <- function(filename){
 #' @param ciperc Coverage percentage (integer between 0 and 100) of bootstrapped confidence intervals.
 #' @param verbose If TRUE write information to screen.
 #' @param filebase Basename of all generated aspic files.
+#' @param savefile Save results to this file.
 #' @return List containing aspic results.
 #' @export
-fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FALSE, filebase='tmp'){
+fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FALSE, filebase='tmp', savefile=NULL){
     # Write aspic input file
     fn <- paste0(filebase, '.a7inp')
     write.aspic(input, filename=fn, verbose=verbose)
@@ -264,6 +271,7 @@ fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FAL
     # Read aspic results
     res <- read.aspic.res(paste0(filebase, '.fit'))
 
+    #if (do.boot & res$timespent < input$aspic$bootlimtime){
     if (do.boot){
         # Bootstrap aspic to get uncertainties
         inpaspic <- input
@@ -275,25 +283,50 @@ fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FAL
             stopifnot(ciperc > 0, ciperc < 100)
             inpaspic$aspic$ciperc <- ciperc
         }
-        write.aspic(inpaspic, filename=fn, verbose=verbose)
+
+        # Run 10 bootstrap samples to check calculation time
+        inpaspictest <- inpaspic
+        inpaspictest$aspic$nboot <- 10
+        write.aspic(inpaspictest, filename=fn, verbose=verbose)
         if (file.exists(paste0(filebase, '.bot'))){
             file.remove(paste0(filebase, '.bot'))
         }
-        #system(paste0('aspic7.exe ', filebase, '.a7inp'), intern=!verbose)
         system(paste0('wine aspic7 ', filebase, '.a7inp'), intern=!verbose)
-        # Read aspic bootstrap results
         filename <- paste0(filebase, '.bot')
         aspicres <- readLines(filename)
-        ind <- grep('ESTIMATES FROM BOOTSTRAP ANALYSIS', aspicres)
-        bootres <- read.table(filename, skip=ind+5, sep='', nrows=11, strip.white=TRUE)
-        rnms <- as.character(bootres[, 1])
-        bootres <- bootres[, -1]
-        rownames(bootres) <- rnms
-        colnames(bootres) <- c('estimate', 'low80', 'upp80', 'low95', 'upp95', 'IQR', 'rIQR')
-        res$boot <- bootres
+        string <- strsplit(aspicres[length(aspicres)], ' ')
+        string <- subset(string[[1]], string[[1]] != '') # Remove blanks
+        et <- as.numeric(c(string[3], string[5], string[7]))
+        boottime <- et[1]*60*60 + et[2]*60 + et[3]
+
+        if (boottime < input$aspic$bootlimtime){
+            # Run full bootstrap with all samples
+            write.aspic(inpaspic, filename=fn, verbose=verbose)
+            if (file.exists(paste0(filebase, '.bot'))){
+                file.remove(paste0(filebase, '.bot'))
+            }
+            #system(paste0('aspic7.exe ', filebase, '.a7inp'), intern=!verbose)
+            system(paste0('wine aspic7 ', filebase, '.a7inp'), intern=!verbose)
+            
+            # Read aspic bootstrap results
+            filename <- paste0(filebase, '.bot')
+            aspicres <- readLines(filename)
+            ind <- grep('ESTIMATES FROM BOOTSTRAP ANALYSIS', aspicres)
+            bootres <- read.table(filename, skip=ind+5, sep='', nrows=11, strip.white=TRUE)
+            rnms <- as.character(bootres[, 1])
+            bootres <- bootres[, -1]
+            rownames(bootres) <- rnms
+            colnames(bootres) <- c('estimate', 'low80', 'upp80', 'low95', 'upp95', 'IQR', 'rIQR')
+            res$boot <- bootres
+        }
+    }
+
+    # Save results
+    if (!is.null(savefile)){
+        save('res', file=savefile)
     }
     
-    # Clean files temporary files
+    # Clean temporary files
     
     return(res)
 }

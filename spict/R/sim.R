@@ -560,12 +560,12 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
             cat(str, ' convall:', as.numeric(res$diag$convall), '\n')
         }
         if (model == 'aspic'){
-            #sim$aspic$ciperc <- 95
-            #sim$aspic$nboot <- 1000
             sim <- check.inp(sim)
             filebase <- paste0('aspic', i)
-            res <- try(fit.aspic(sim, do.boot=TRUE, verbose=FALSE, filebase=filebase))
-            if (class(res) != 'try-error'){
+            savefile <- paste0(filebase, '.RData')
+            res <- try(fit.aspic(sim, do.boot=TRUE, verbose=FALSE, filebase=filebase,
+                                 savefile=savefile))
+            if (class(res) != 'try-error' & 'boot' %in% names(res)){
                 a <- res$boot[c(2, 3, 7, 9, 10), c(1, 4, 5)]
                 parnms <- c('MSY', 'Fmsy', 'Bmsy', 'BBlast', 'FFlast')
                 cicov <- numeric(length(parnms))

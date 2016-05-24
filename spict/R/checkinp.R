@@ -317,6 +317,7 @@ check.inp <- function(inp){
     if (!"verbosity" %in% names(inp$aspic)) inp$aspic$verbosity <- '102'
     if (!"nboot" %in% names(inp$aspic)) inp$aspic$nboot <- 1000
     if (!"ciperc" %in% names(inp$aspic)) inp$aspic$ciperc <- 95
+    if (!"bootlimtime" %in% names(inp$aspic)) inp$aspic$bootlimtime <- 100 # Seconds
     # Meyer & Millar model options
     if (!"meyermillar" %in% names(inp)) inp$meyermillar <- list()    
     if (!"n.iter" %in% names(inp$meyermillar)) inp$meyermillar$n.iter <- 225000
