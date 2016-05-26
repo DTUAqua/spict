@@ -110,8 +110,10 @@ sim.spict <- function(input, nobs=100){
         nm <- names(inp)
         if(!'timeE' %in% nm){
             if(!'obsE' %in% nm){
-                inp$nobsE <- inp$nobsC
-                inp$timeE <- inp$timeC
+                #inp$nobsE <- inp$nobsC
+                #inp$timeE <- inp$timeC
+                inp$nobsE <- 0
+                inp$timeE <- numeric(0)
                 inp$stdevfacE <- NULL
                 inp$timeprede <- NULL
                 use.effort.flag <<- FALSE
@@ -122,7 +124,9 @@ sim.spict <- function(input, nobs=100){
         } else {
             inp$nobsE <- length(inp$timeE)
         }
-        if(!'obsE' %in% nm) inp$obsE <- rep(10, inp$nobsE) # Insert dummy
+        if(!'obsE' %in% nm){
+            inp$obsE <- numeric(inp$nobsE) # Insert dummy
+        }
         return(inp)
     }
     check.index <- function(inp){
@@ -316,17 +320,19 @@ sim.spict <- function(input, nobs=100){
     C <- rep(0, inp$nobsC)
     obsC <- rep(0, inp$nobsC)
     e.c <- exp(rnorm(inp$nobsC, 0, sdc))
-    for(i in 1:inp$nobsC){
-        inds <- inp$ic[i]:(inp$ic[i] + inp$nc[i]-1)
-        C[i] <- sum(Csub[inds])
-        obsC[i] <- C[i] * e.c[i]
-    }
-    if('outliers' %in% names(inp)){
-        if('noutC' %in% names(inp$outliers)){
-            fac <- invlogp1(inp$ini$logp1robfac)
-            inp$outliers$orgobsC <- obsC
-            inp$outliers$indsoutC <- sample(1:inp$nobsC, inp$outliers$noutC)
-            obsC[inp$outliers$indsoutC] <- exp(log(obsC[inp$outliers$indsoutC]) + rnorm(inp$outliers$noutC, 0, fac*sdc))
+    if (inp$nobsC > 0){
+        for(i in 1:inp$nobsC){
+            inds <- inp$ic[i]:(inp$ic[i] + inp$nc[i]-1)
+            C[i] <- sum(Csub[inds])
+            obsC[i] <- C[i] * e.c[i]
+        }
+        if('outliers' %in% names(inp)){
+            if('noutC' %in% names(inp$outliers)){
+                fac <- invlogp1(inp$ini$logp1robfac)
+                inp$outliers$orgobsC <- obsC
+                inp$outliers$indsoutC <- sample(1:inp$nobsC, inp$outliers$noutC)
+                obsC[inp$outliers$indsoutC] <- exp(log(obsC[inp$outliers$indsoutC]) + rnorm(inp$outliers$noutC, 0, fac*sdc))
+            }
         }
     }
     # - Effort observations -
@@ -334,17 +340,19 @@ sim.spict <- function(input, nobs=100){
     E <- numeric(inp$nobsE)
     obsE <- numeric(inp$nobsE)
     e.e <- exp(rnorm(inp$nobsE, 0, sde))
-    for(i in 1:inp$nobsE){
-        inds <- inp$ie[i]:(inp$ie[i] + inp$ne[i]-1)
-        E[i] <- sum(Esub[inds])
-        obsE[i] <- E[i] * e.e[i]
-    }
-    if('outliers' %in% names(inp)){
-        if('noutE' %in% names(inp$outliers)){
-            fac <- invlogp1(inp$ini$logp1robfae)
-            inp$outliers$orgobsE <- obsE
-            inp$outliers$indsoutE <- sample(1:inp$nobsE, inp$outliers$noutE)
-            obsE[inp$outliers$indsoutE] <- exp(log(obsE[inp$outliers$indsoutE]) + rnorm(inp$outliers$noutE, 0, fac*sde))
+    if (inp$nobsE > 0){
+        for(i in 1:inp$nobsE){
+            inds <- inp$ie[i]:(inp$ie[i] + inp$ne[i]-1)
+            E[i] <- sum(Esub[inds])
+            obsE[i] <- E[i] * e.e[i]
+        }
+        if('outliers' %in% names(inp)){
+            if('noutE' %in% names(inp$outliers)){
+                fac <- invlogp1(inp$ini$logp1robfae)
+                inp$outliers$orgobsE <- obsE
+                inp$outliers$indsoutE <- sample(1:inp$nobsE, inp$outliers$noutE)
+                obsE[inp$outliers$indsoutE] <- exp(log(obsE[inp$outliers$indsoutE]) + rnorm(inp$outliers$noutE, 0, fac*sde))
+            }
         }
     }
     # - Index observations -
@@ -358,12 +366,14 @@ sim.spict <- function(input, nobs=100){
         errI[[I]] <- rep(0, inp$nobsI[I])
         logItrue[[I]] <- numeric(inp$nobsI[I])
         e.i[[I]] <- exp(rnorm(inp$nobsI[I], 0, sdi))
-        for(i in 1:inp$nobsI[I]){
-            errI[[I]][i] <- rnorm(1, 0, sdi)
-            logItrue[[I]][i] <- log(q[I]) + log(B[inp$ii[[I]][i]])
-            obsI[[I]][i] <- exp(logItrue[[I]][i]) * e.i[[I]][i]
+        if (inp$nobsI[[I]] > 0){
+            for(i in 1:inp$nobsI[I]){
+                errI[[I]][i] <- rnorm(1, 0, sdi)
+                logItrue[[I]][i] <- log(q[I]) + log(B[inp$ii[[I]][i]])
+                obsI[[I]][i] <- exp(logItrue[[I]][i]) * e.i[[I]][i]
+            }
+            Itrue[[I]] <- exp(logItrue[[I]])
         }
-        Itrue[[I]] <- exp(logItrue[[I]])
     }
     if('outliers' %in% names(inp)){
         if('noutI' %in% names(inp$outliers)){
@@ -373,9 +383,11 @@ sim.spict <- function(input, nobs=100){
             fac <- invlogp1(inp$ini$logp1robfac)
             inp$outliers$orgobsI <- obsI
             inp$outliers$indsoutI <- list()
-            for(i in 1:inp$nindex){
-                inp$outliers$indsoutI[[i]] <- sample(1:inp$nobsI[i], inp$outliers$noutI[i])
-                obsI[[i]][inp$outliers$indsoutI[[i]]] <- exp(log(obsI[[i]][inp$outliers$indsoutI[[i]]]) + rnorm(inp$outliers$noutI[i], 0, fac*sdi))
+            if (inp$nobsI[[I]] > 0){
+                for(i in 1:inp$nindex){
+                    inp$outliers$indsoutI[[i]] <- sample(1:inp$nobsI[i], inp$outliers$noutI[i])
+                    obsI[[i]][inp$outliers$indsoutI[[i]]] <- exp(log(obsI[[i]][inp$outliers$indsoutI[[i]]]) + rnorm(inp$outliers$noutI[i], 0, fac*sdi))
+                }
             }
         }
     }
