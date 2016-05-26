@@ -600,7 +600,8 @@ Type objective_function<Type>::operator() ()
       logBpred(i+1) = predictlogB(B(i), F(i), gamma, mvec(i), K, dt(i), n, sdb2);
     } else {
       Type Ftmp = 0.0;
-      Type Bpredtmp = exp(predictlogB(B(i), Ftmp, gamma, mvec(i), K, dt(i), n, sdb2)) - exp(logobsC(i));
+      // Use naive approach
+      Type Bpredtmp = exp(predictlogB(B(i), Ftmp, gamma, mvec(i), K, dt(i), n, sdb2) + 0.5*sdb2*dt(i)) - exp(logobsC(i));
       if(Bpredtmp < 0) Bpredtmp = 1e-8; // Ugly ugly ugly hack to avoid taking log of negative
       logBpred(i+1) = log(Bpredtmp);
       logFs(i) = logobsC(i) - logB(i); // Calculate fishing mortality
