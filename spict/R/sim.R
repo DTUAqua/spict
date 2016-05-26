@@ -606,7 +606,7 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
         }
         return(s)
     }
-    #asd <- fun(1, inp, nobs, estinp, backup)
+    #asd <- fun(1, inp, nobs, estinp, backup, type, val=nobs)
     ninvec <- length(invec)
     if (type == 'nobs'){
         inp$timeC <- NULL

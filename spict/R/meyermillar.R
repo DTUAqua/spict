@@ -105,7 +105,7 @@ fit.meyermillar <- function(mminp){
         # Determine overall convergence of chain
         cn <- chainno # Chain number
         ntests <- dim(res$diag$heidel.diag[[cn]])[1] + length(res$diag$geweke.diag[[cn]]$z)
-        no.failed <- res$diag$hd.no.failed + res$diag$gd.no.failed
+        no.failed <- res$diag$hd.no.failed[chainno] + res$diag$gd.no.failed[chainno]
         res$diag$pfail[chainno] <- no.failed/ntests
         # convall = 0 means converged
         res$diag$convall[chainno] <- as.numeric(res$diag$pfail[chainno] > alpha) 
