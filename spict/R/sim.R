@@ -25,9 +25,17 @@
 #' @param n Pella-Tomlinson exponent.
 #' @param dt Time step.
 #' @param sdb Standard deviation of biomass process.
+#' @param efforttype If 'lamperti' use Lamperti transformed equation, if 'naive' use naive formulation.
 #' @return Predicted biomass at the end of dt.
-predict.b <- function(B0, F0, gamma, m, K, n, dt, sdb){
-    exp( log(B0) + (gamma*m/K - gamma*m/K*(B0/K)^(n-1.0) - F0 - 0.5*sdb^2)*dt )
+predict.b <- function(B0, F0, gamma, m, K, n, dt, sdb, btype){
+    if (btype == 'lamperti'){
+        B <- exp( log(B0) + (gamma*m/K - gamma*m/K*(B0/K)^(n-1.0) - F0 - 0.5*sdb^2)*dt )
+    }
+    if (btype == 'naive'){
+        # Include hack (max) to avoid negative values of biomass
+        B <- max(B0 + (gamma*m*B0/K - gamma*m*(B0/K)^n - F0*B0) * dt, 1e-3)
+    }
+    return(B)
 }
 
 
@@ -102,8 +110,10 @@ sim.spict <- function(input, nobs=100){
         nm <- names(inp)
         if(!'timeE' %in% nm){
             if(!'obsE' %in% nm){
-                inp$nobsE <- inp$nobsC
-                inp$timeE <- inp$timeC
+                #inp$nobsE <- inp$nobsC
+                #inp$timeE <- inp$timeC
+                inp$nobsE <- 0
+                inp$timeE <- numeric(0)
                 inp$stdevfacE <- NULL
                 inp$timeprede <- NULL
                 use.effort.flag <<- FALSE
@@ -114,7 +124,9 @@ sim.spict <- function(input, nobs=100){
         } else {
             inp$nobsE <- length(inp$timeE)
         }
-        if(!'obsE' %in% nm) inp$obsE <- rep(10, inp$nobsE) # Insert dummy
+        if(!'obsE' %in% nm){
+            inp$obsE <- numeric(inp$nobsE) # Insert dummy
+        }
         return(inp)
     }
     check.index <- function(inp){
@@ -227,14 +239,9 @@ sim.spict <- function(input, nobs=100){
     sdb <- exp(pl$logsdb)
     sdu <- exp(pl$logsdu)
     sdf <- exp(pl$logsdf)
-    #alpha <- exp(pl$logalpha)
-    #beta <- exp(pl$logbeta)
     sdi <- exp(pl$logsdi)
     sdc <- exp(pl$logsdc)
     sde <- exp(pl$logsde)
-    #sdi <- alpha * sdb
-    #sdc <- beta * sdf
-    #A <- inp$A
     lambda <- exp(pl$loglambda)
     omega <- inp$omega
     
@@ -256,7 +263,9 @@ sim.spict <- function(input, nobs=100){
         logFbase <- numeric(nt)
         logFbase[1] <- log(F0)
         e.f <- rnorm(nt-1, 0, sdf*sqrt(dt))
-        for(t in 2:nt) logFbase[t] <- predict.logf(logFbase[t-1], dt, sdf, inp$efforttype) + e.f[t-1]
+        for(t in 2:nt){
+            logFbase[t] <- predict.logf(logFbase[t-1], dt, sdf, inp$efforttype) + e.f[t-1]
+        }
         #ef <- arima.sim(inp$armalistF, nt-1) * sdf*sqrt(dt) # Used to simulate other than white noise in F
         #logFbase <- c(log(F0), log(F0) + cumsum(ef)) # Fishing mortality
         # Impose seasons
@@ -274,7 +283,9 @@ sim.spict <- function(input, nobs=100){
                 sduana <- sqrt(sdu[j]^2/(2*lambda)*(1-exp(-2*lambda*dt)))
                 u[, 1] <- c(0.1, 0) # Set an initial state different from zero to get some action!
                 omegain <- omega*j
-                for(i in 2:inp$ns) u[, i] <- rnorm(2, expmosc(lambda, omegain, dt) %*% u[, i-1], sduana)
+                for(i in 2:inp$ns){
+                    u[, i] <- rnorm(2, expmosc(lambda, omegain, dt) %*% u[, i-1], sduana)
+                }
                 season <- season + u[1, ]
             }
         }
@@ -283,33 +294,45 @@ sim.spict <- function(input, nobs=100){
         B <- numeric(nt)
         B[1] <- B0
         e.b <- exp(rnorm(nt-1, 0, sdb*sqrt(dt)))
-        for(t in 2:nt) B[t] <- predict.b(B[t-1], F[t-1], gamma, m[inp$ir[t]], K, n, dt, sdb) * e.b[t-1]
+        for(t in 2:nt){
+            B[t] <- predict.b(B[t-1], F[t-1], gamma, m[inp$ir[t]], K, n, dt, sdb, inp$btype) * e.b[t-1]
+        }
         flag <- any(B <= 0) # Negative biomass not allowed
         recount <- recount+1
-        if(recount > 10) stop('Having problems simulating data where B > 0, check parameter values!')
+        if(recount > 10){
+            stop('Having problems simulating data where B > 0, check parameter values!')
+        }
     }
-    if(any(B > 1e15)) warning('Some simulated biomass values are larger than 1e15.')
+    if(any(B > 1e15)){
+        warning('Some simulated biomass values are larger than 1e15.')
+    }
     # - Catch -
     Csub <- rep(0,nt)
-    for(t in 1:nt) Csub[t] <- F[t]*B[t]*dt
+    for(t in 1:nt){
+        Csub[t] <- F[t] * B[t] * dt
+    }
     # - Production -
     Psub <- rep(0,nt)
-    for(t in 2:nt) Psub[t-1] <- B[t] - B[t-1] + Csub[t-1]
+    for(t in 2:nt){
+        Psub[t-1] <- B[t] - B[t-1] + Csub[t-1]
+    }
     # - Catch observations -
     C <- rep(0, inp$nobsC)
     obsC <- rep(0, inp$nobsC)
     e.c <- exp(rnorm(inp$nobsC, 0, sdc))
-    for(i in 1:inp$nobsC){
-        inds <- inp$ic[i]:(inp$ic[i] + inp$nc[i]-1)
-        C[i] <- sum(Csub[inds])
-        obsC[i] <- C[i] * e.c[i]
-    }
-    if('outliers' %in% names(inp)){
-        if('noutC' %in% names(inp$outliers)){
-            fac <- invlogp1(inp$ini$logp1robfac)
-            inp$outliers$orgobsC <- obsC
-            inp$outliers$indsoutC <- sample(1:inp$nobsC, inp$outliers$noutC)
-            obsC[inp$outliers$indsoutC] <- exp(log(obsC[inp$outliers$indsoutC]) + rnorm(inp$outliers$noutC, 0, fac*sdc))
+    if (inp$nobsC > 0){
+        for(i in 1:inp$nobsC){
+            inds <- inp$ic[i]:(inp$ic[i] + inp$nc[i]-1)
+            C[i] <- sum(Csub[inds])
+            obsC[i] <- C[i] * e.c[i]
+        }
+        if('outliers' %in% names(inp)){
+            if('noutC' %in% names(inp$outliers)){
+                fac <- invlogp1(inp$ini$logp1robfac)
+                inp$outliers$orgobsC <- obsC
+                inp$outliers$indsoutC <- sample(1:inp$nobsC, inp$outliers$noutC)
+                obsC[inp$outliers$indsoutC] <- exp(log(obsC[inp$outliers$indsoutC]) + rnorm(inp$outliers$noutC, 0, fac*sdc))
+            }
         }
     }
     # - Effort observations -
@@ -317,17 +340,19 @@ sim.spict <- function(input, nobs=100){
     E <- numeric(inp$nobsE)
     obsE <- numeric(inp$nobsE)
     e.e <- exp(rnorm(inp$nobsE, 0, sde))
-    for(i in 1:inp$nobsE){
-        inds <- inp$ie[i]:(inp$ie[i] + inp$ne[i]-1)
-        E[i] <- sum(Esub[inds])
-        obsE[i] <- E[i] * e.e[i]
-    }
-    if('outliers' %in% names(inp)){
-        if('noutE' %in% names(inp$outliers)){
-            fac <- invlogp1(inp$ini$logp1robfae)
-            inp$outliers$orgobsE <- obsE
-            inp$outliers$indsoutE <- sample(1:inp$nobsE, inp$outliers$noutE)
-            obsE[inp$outliers$indsoutE] <- exp(log(obsE[inp$outliers$indsoutE]) + rnorm(inp$outliers$noutE, 0, fac*sde))
+    if (inp$nobsE > 0){
+        for(i in 1:inp$nobsE){
+            inds <- inp$ie[i]:(inp$ie[i] + inp$ne[i]-1)
+            E[i] <- sum(Esub[inds])
+            obsE[i] <- E[i] * e.e[i]
+        }
+        if('outliers' %in% names(inp)){
+            if('noutE' %in% names(inp$outliers)){
+                fac <- invlogp1(inp$ini$logp1robfae)
+                inp$outliers$orgobsE <- obsE
+                inp$outliers$indsoutE <- sample(1:inp$nobsE, inp$outliers$noutE)
+                obsE[inp$outliers$indsoutE] <- exp(log(obsE[inp$outliers$indsoutE]) + rnorm(inp$outliers$noutE, 0, fac*sde))
+            }
         }
     }
     # - Index observations -
@@ -341,23 +366,28 @@ sim.spict <- function(input, nobs=100){
         errI[[I]] <- rep(0, inp$nobsI[I])
         logItrue[[I]] <- numeric(inp$nobsI[I])
         e.i[[I]] <- exp(rnorm(inp$nobsI[I], 0, sdi))
-        for(i in 1:inp$nobsI[I]){
-            errI[[I]][i] <- rnorm(1, 0, sdi)
-            logItrue[[I]][i] <- log(q[I]) + log(B[inp$ii[[I]][i]])
-            #obsI[[I]][i] <- exp(logItrue[[I]][i] + errI[[I]][i])
-            obsI[[I]][i] <- exp(logItrue[[I]][i]) * e.i[[I]][i]
+        if (inp$nobsI[[I]] > 0){
+            for(i in 1:inp$nobsI[I]){
+                errI[[I]][i] <- rnorm(1, 0, sdi)
+                logItrue[[I]][i] <- log(q[I]) + log(B[inp$ii[[I]][i]])
+                obsI[[I]][i] <- exp(logItrue[[I]][i]) * e.i[[I]][i]
+            }
+            Itrue[[I]] <- exp(logItrue[[I]])
         }
-        Itrue[[I]] <- exp(logItrue[[I]])
     }
     if('outliers' %in% names(inp)){
         if('noutI' %in% names(inp$outliers)){
-            if(length(inp$outliers$noutI)==1) inp$outliers$noutI <- rep(inp$outliers$noutI, inp$nindex)
+            if(length(inp$outliers$noutI)==1){
+                inp$outliers$noutI <- rep(inp$outliers$noutI, inp$nindex)
+            }
             fac <- invlogp1(inp$ini$logp1robfac)
             inp$outliers$orgobsI <- obsI
             inp$outliers$indsoutI <- list()
-            for(i in 1:inp$nindex){
-                inp$outliers$indsoutI[[i]] <- sample(1:inp$nobsI[i], inp$outliers$noutI[i])
-                obsI[[i]][inp$outliers$indsoutI[[i]]] <- exp(log(obsI[[i]][inp$outliers$indsoutI[[i]]]) + rnorm(inp$outliers$noutI[i], 0, fac*sdi))
+            if (inp$nobsI[[I]] > 0){
+                for(i in 1:inp$nindex){
+                    inp$outliers$indsoutI[[i]] <- sample(1:inp$nobsI[i], inp$outliers$noutI[i])
+                    obsI[[i]][inp$outliers$indsoutI[[i]]] <- exp(log(obsI[[i]][inp$outliers$indsoutI[[i]]]) + rnorm(inp$outliers$noutI[i], 0, fac*sdi))
+                }
             }
         }
     }
@@ -437,10 +467,20 @@ sim.spict <- function(input, nobs=100){
     sim$true$Bmsyd <- K/(n^(1/(n-1)))
     sim$true$MSYd <- mean(m[inp$ir])
     sim$true$Fmsyd <- sim$true$MSYd/sim$true$Bmsyd
-    # From Bordet & Rivest (2014)
-    sim$true$Bmsy <- K/(p+1)^(1/p) * (1- (1+R*(p-1)/2)/(R*(2-R)^2)*sdb^2)
-    sim$true$Fmsy <- R - p*(1-R)*sdb^2/((2-R)^2)
-    sim$true$MSY <- K*R/((p+1)^(1/p)) * (1 - (p+1)/2*sdb^2/(1-(1-R)^2))
+    # Stochastic reference points from Bordet & Rivest (2014)
+    sim$true$Bmsys <- K/(p+1)^(1/p) * (1- (1+R*(p-1)/2)/(R*(2-R)^2)*sdb^2)
+    sim$true$Fmsys <- R - p*(1-R)*sdb^2/((2-R)^2)
+    sim$true$MSYs <- K*R/((p+1)^(1/p)) * (1 - (p+1)/2*sdb^2/(1-(1-R)^2))
+    if (inp$msytype == 's'){
+        sim$true$Bmsy <- sim$true$Bmsys
+        sim$true$Fmsy <- sim$true$Fmsys
+        sim$true$MSY <- sim$true$MSYs
+    } else {
+        sim$true$Bmsy <- sim$true$Bmsyd
+        sim$true$Fmsy <- sim$true$Fmsyd
+        sim$true$MSY <- sim$true$MSYd
+    }
+    # Calculate relative B and F
     sim$true$BBmsy <- B/sim$true$Bmsy
     sim$true$FFmsy <- F/sim$true$Fmsy
     # include the log of some quantities

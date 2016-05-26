@@ -35,6 +35,7 @@
 #' priors$iq <- c(0.001, 0.0012)
 #' priors$itau2 <- c(1.709, 0.00861342)
 #' priors$isigma2 <- c(3.785518, 0.0102232)
+#' priors$logPini <- -0.223
 #' data(pol)
 #' inp <- pol$albacore
 #' inp$meyermillar$n.iter <- 10000

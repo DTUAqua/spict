@@ -251,7 +251,9 @@ check.inp <- function(inp){
     } else {
         inp$obsidE <- numeric()
     }
-    if (length(inp$dte) != inp$nobsE) stop('Effort interval vector (inp$dte) does not match effort observation vector (inp$obsE) in length')
+    if (length(inp$dte) != inp$nobsE){
+        stop('Effort interval vector (inp$dte, ', length(inp$dte), ') does not match effort observation vector (inp$obsE, ', inp$nobsE, ') in length')
+    }
 
     inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
     
@@ -330,6 +332,7 @@ check.inp <- function(inp){
     # Options for simple model
     if (!"simple" %in% names(inp)) inp$simple <- 0
     if (inp$simple == 1){ # Set parameters for the simple model (catch assumed known, no F process).
+        if (!"btype" %in% names(inp)) inp$btype <- 'naive'
         umodtimeC <- unique(inp$timeC %% 1)
         if (length(umodtimeC) != 1){
             stop('When inp$simple = 1, inp$timeC must have a fixed regular time step of 1 year!')
@@ -347,7 +350,7 @@ check.inp <- function(inp){
             }
         }
         inp$dteuler <- 1
-        # Fix parameters
+        # Fix parameters that are not used
         inp$phases$logF <- -1
         inp$phases$logsdf <- -1
         #inp$phases$logbeta <- -1
@@ -359,11 +362,15 @@ check.inp <- function(inp){
         inp$timepredc <- max(inp$timeC)
         inp$timepredi <- max(unlist(inp$timeI))
     }
+    # Biomass related
+    if (!"btype" %in% names(inp)) inp$btype <- 'lamperti'
     # MSY type options
     if (!"msytype" %in% names(inp)){
         inp$msytype <- 's'
     } else {
-        if (!inp$msytype %in% c('s', 'd')) stop('inp$msytype must be either "s" (stochastic) or "d" (deterministic!')
+        if (!inp$msytype %in% c('s', 'd')){
+            stop('inp$msytype must be either "s" (stochastic) or "d" (deterministic!')
+        }
     }
 
     # - Prediction horizons -
