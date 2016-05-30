@@ -421,6 +421,9 @@ sim.spict <- function(input, nobs=100){
         }
     }
     sim$ini <- plin
+    for (nm in inp$RE){
+        sim$ini[[nm]] <- NULL
+    }
     sim$do.sd.report <- inp$do.sd.report
     sim$reportall <- inp$reportall
     sim$dteuler <- inp$dteuler
@@ -715,19 +718,22 @@ extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
                 ci <- unname(true > par[1] & true < par[3])
                 ciw <- unname(par[3] - par[1])
                 cv <- par[5]
+                err <- (par[2] - true) / true
             } else {
                 np <- dim(par)[1]
                 ci <- numeric(np)
                 ciw <- numeric(np)
                 cv <- numeric(np)
+                err <- numeric(np)
                 if(length(true)==1) true <- rep(true, np)
                 for(i in 1:np){
                     ci[i] <- unname(true[i] > par[i, 1] & true[i] < par[i, 3])
                     ciw[i] <- unname(par[i, 3] - par[i, 1])
                     cv[i] <- par[i, 5]
+                    err[i] <- (par[i, 2] - true[i]) / true[i]
                 }
             }
-            return(list(ci=ci, ciw=ciw, cv=cv, exp=exp))
+            return(list(ci=ci, ciw=ciw, cv=cv, err=err, exp=exp))
         }
         # Calculate simulation statistics
         nparnames <- length(parnames)
