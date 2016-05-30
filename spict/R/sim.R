@@ -621,23 +621,30 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
                 parnms <- c('MSY', 'Fmsy', 'Bmsy', 'BBlast', 'FFlast')
                 cicov <- numeric(length(parnms))
                 names(cicov) <- parnms
+                err <- cicov
                 # MSY
                 cicov[1] <- a[1, 2] < sim$true$MSY & a[1, 3] > sim$true$MSY
+                err[1] <- (res$pars[6] - sim$true$MSY) / sim$true$MSY
                 # Fmsy
                 cicov[2] <- a[2, 2] < sim$true$Fmsy & a[2, 3] > sim$true$Fmsy
+                err[2] <- (res$pars[4] - sim$true$Fmsy) / sim$true$Fmsy
                 # Bmsy
                 cicov[3] <- a[3, 2] < sim$true$Bmsy & a[3, 3] > sim$true$Bmsy
+                err[3] <- (res$pars[5] - sim$true$Bmsy) / sim$true$Bmsy
                 # BBlast
                 indt <- sim$indlastobs
                 true <- sim$true$B[indt] / sim$true$Bmsy
                 cicov[4] <- a[4, 2] < true & a[4, 3] > true
+                err[4] <- (res$states$BBmsy[dim(res$states)[1]] - true) / true
                 # FFlast
                 true <- sim$true$F[indt] / sim$true$Fmsy
                 cicov[5] <- a[5, 2] < true & a[5, 3] > true
+                err[5] <- (res$states$FFmsy[dim(res$states)[1]] - true) / true
+                # Other summaries
                 cv <- (a[, 3]-a[, 2])/(2*1.96)/a[, 1]
                 names(cv) <- parnms
                 convall <- 0
-                s <- list(ci=cicov, cv=cv, convall=convall, nobs=nobs)
+                s <- list(ci=cicov, cv=cv, err=err, convall=convall, nobs=nobs)
             } else {
                 s <- NA
                 convall <- 1

@@ -300,7 +300,7 @@ fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FAL
         boottime <- et[1]*60*60 + et[2]*60 + et[3]
 
         if (boottime < input$aspic$bootlimtime){
-            # Run full bootstrap with all samples
+            # Run full bootstrap with all samples if preliminary run was quick enough
             write.aspic(inpaspic, filename=fn, verbose=verbose)
             if (file.exists(paste0(filebase, '.bot'))){
                 file.remove(paste0(filebase, '.bot'))
