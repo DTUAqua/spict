@@ -577,25 +577,33 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
             resmatc <- resmat[inds, ]
             cicov <- numeric(length(parnms))
             names(cicov) <- parnms
+            err <- cicov
             # Fmsy
             ind <- which(parnms == 'Fmsy')
             cicov[ind] <- resmatc[ind, 3] < sim$true$Fmsy & resmatc[ind, 4] > sim$true$Fmsy
+            err[ind] <- (resmatc[ind, 5] - sim$true$Fmsy) / sim$true$Fmsy
             # Bmsy
             ind <- which(parnms == 'Bmsy')
             cicov[ind] <- resmatc[ind, 3] < sim$true$Bmsy & resmatc[ind, 4] > sim$true$Bmsy
+            err[ind] <- (resmatc[ind, 5] - sim$true$Bmsy) / sim$true$Bmsy
             # MSY
             ind <- which(parnms == 'MSY')
             cicov[ind] <- resmatc[ind, 3] < sim$true$MSY & resmatc[ind, 4] > sim$true$MSY
+            err[ind] <- (resmatc[ind, 5] - sim$true$MSY) / sim$true$MSY
             # BBlast
             indt <- sim$indlastobs
             true <- sim$true$B[indt] / sim$true$Bmsy
             ind <- which(parnms == 'BBlast')
             cicov[ind] <- resmatc[ind, 3] < true & resmatc[ind, 4] > true
+            err[ind] <- (resmatc[ind, 5] - true) / true
             # BBlast
             true <- sim$true$B[indt]
             ind <- which(parnms == 'Blast')
             cicov[ind] <- resmatc[ind, 3] < true & resmatc[ind, 4] > true
-            s <- list(ci=cicov, cv=resmatc[, 5], convall=res$diag$convall, nobs=nobs)
+            err[ind] <- (resmatc[ind, 5] - true) / true
+            # Save results
+            s <- list(ci=cicov, cv=resmatc[, 6], err=err, convall=res$diag$convall, nobs=nobs)
+            # Capture output
             if (!is.null(summ.ex.file)){
                 capture.output(res$resmat, file=summ.ex.file)
             }

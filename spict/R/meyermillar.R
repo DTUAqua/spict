@@ -114,8 +114,8 @@ fit.meyermillar <- function(mminp){
 
     # Save a summary of results
     sum <- summary(res$jags)
-    resmat <- cbind(sum$statistics[, 1:2],
-                    sum$quantiles[, c(1, 5)])
+    resmat <- cbind(sum$statistics[, 1:2], sum$quantiles[, c(1, 5)],
+                    median=sum$quantiles[, 3])
     resmat <- resmat[-grep('P', rownames(resmat)), ]
     resmat <- cbind(resmat, CV=resmat[, 2]/resmat[, 1])
     res$resmat <- resmat
@@ -141,34 +141,41 @@ plot.priors <- function(nm, priorsin, add=TRUE, ...){
         mu <- priorsin$K[1]
         sd <- 1/sqrt(priorsin$K[2])
         vec <- exp(seq(mu-3*sd, mu+3*sd, length=100))
-        val <- dnorm(log(vec), mu, sd)
+        val <- dlnorm(vec, mu, sd)
     }
     if (nm == 'r'){    
         mu <- priorsin$r[1]
         sd <- 1/sqrt(priorsin$r[2])
         vec <- exp(seq(mu-3*sd, mu+3*sd, length=100))
-        val <- dnorm(log(vec), mu, sd)
-    }
-    if (nm == 'isigma2'){
-        require(pscl) # for densigamma
-        sigmashape <- priorsin$isigma2[1]
-        sigmarate <- priorsin$isigma2[2]
-        vec <- seq(1e-6, 0.02, length=200)
-        val <- densigamma(vec, sigmashape, sigmarate)
-    }
-    if (nm == 'itau2'){
-        require(pscl) # for densigamma
-        taushape <- priorsin$itau2[1]
-        taurate <- priorsin$itau2[2]
-        vec <- seq(1e-6, 0.05, length=200)
-        val <- densigamma(vec, taushape, taurate)
+        #val <- dnorm(log(vec), mu, sd)
+        val <- dlnorm(vec, mu, sd)
     }
     if (nm == 'iq'){
         require(pscl) # for densigamma
         qshape <- priorsin$iq[1]
         qrate <- priorsin$iq[2]
-        vec <- seq(1e-6, 0.6, length=200)
-        val <- densigamma(vec, qshape, qrate)
+        vec <- seq(0.1, 100, length=1000)
+        #val <- densigamma(vec, qshape, qrate)
+        val <- dgamma(vec, shape=qshape, rate=qrate)
+        #vec <- 1/vec
+    }
+    if (nm == 'isigma2'){
+        require(pscl) # for densigamma
+        sigmashape <- priorsin$isigma2[1]
+        sigmarate <- priorsin$isigma2[2]
+        vec <- seq(1, 500, length=200)
+        #vec <- seq(1e-6, 0.02, length=200)
+        #val <- densigamma(vec, sigmashape, sigmarate)
+        val <- dgamma(vec, sigmashape, sigmarate)
+    }
+    if (nm == 'itau2'){
+        require(pscl) # for densigamma
+        taushape <- priorsin$itau2[1]
+        taurate <- priorsin$itau2[2]
+        vec <- seq(1, 500, length=200)
+        #vec <- seq(1e-6, 0.05, length=200)
+        #val <- densigamma(vec, taushape, taurate)
+        val <- dgamma(vec, taushape, taurate)
     }
     if (add){
         lines(vec, val, ...)
