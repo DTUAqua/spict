@@ -219,6 +219,13 @@ read.aspic.res <- function(filename){
         ind2 <- gregexpr('[0-9.]*E[+-][0-9]*', aspicres[ind])
         as.numeric(unlist(regmatches(aspicres[ind], ind2)))[1]
     }
+    # Error code
+    errind <- grep('error code', aspicres)[1]
+    out$errorcode <- regmatches(aspicres[errind], regexpr('[0-9]+$', aspicres[errind]))
+    out$convmsg <- aspicres[errind + 2]
+    norestartind <- grep('Number of restarts', aspicres)
+    out$no.restarts <- as.numeric(regmatches(aspicres[norestartind],
+                                             regexpr('[0-9]+$', aspicres[norestartind])))
     # Parameters
     bkfrac <- get.num('^B1/K', aspicres)
     MSY <- get.num('^MSY', aspicres)
@@ -272,7 +279,7 @@ fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FAL
     res <- read.aspic.res(paste0(filebase, '.fit'))
 
     #if (do.boot & res$timespent < input$aspic$bootlimtime){
-    if (do.boot){
+    if (do.boot & res$errorcode == '0'){
         # Bootstrap aspic to get uncertainties
         inpaspic <- input
         inpaspic$aspic$mode <- 'BOT'
@@ -318,6 +325,8 @@ fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FAL
             rownames(bootres) <- rnms
             colnames(bootres) <- c('estimate', 'low80', 'upp80', 'low95', 'upp95', 'IQR', 'rIQR')
             res$boot <- bootres
+        } else {
+            res$booterrorcode <- paste('Bootstrap of', inpaspictest$aspic$nboot, 'trials took', boottime, 'seconds, which was longer than allowed:', input$aspic$bootlimtime)
         }
     }
 
