@@ -13,27 +13,24 @@ An R-package for fittng surplus production models in continuous-time to fisherie
 
 ## Package requirements
 
-The package requires [`TMB`](http://www.tmb-project.org) to be installed. TMB is available on CRAN and can therefore be installed using the install.packages() command. However, it appears that on Windows spict is incompatible with version 1.6.5 of TMB. Instead it is recommended to use TMB version 1.6.2, which can be obtained from [`github`](https://github.com/kaskr/adcomp/tree/v1.6.2). On Windows: download ZIP, unzip and use the install_windows.R installer to install TMB.
+The package requires [`TMB`](http://www.tmb-project.org) to be installed. TMB is now a part of CRAN and can therefore be installed using the install.packages() command. For more information about TMB click [`here`](https://github.com/kaskr/adcomp).
 
-For more information about TMB click [`here`](https://github.com/kaskr/adcomp).
+## Installing the spict package
 
-## Linux
-
-The package can be installed from github:
+To install spict from GitHub use
 
 ```
 library(devtools)
-install_github("mawp/spict/spict")
+install_github("mawp/spict/spict")            # master branch
+install_github("mawp/spict/spict", ref="dev") # development branch
 ```
 
 Windows
 -------
-Important: on Windows the spict package has been tested and works with version 1.6.2 of TMB (but not 1.6.5). Get version 1.6.2 as described above.
+The above procedure using install_github() should now work on Windows (make sure to remove spict before trying to reinstall). If it doesn't work the old, but tedious, procedure can be used:
 
-1. Download the compressed spict source code by clicking the Download ZIP button. Alternatively install git and clone the spict repository.
+1. Start 64 bit R and change working directory to the (cloned or unzipped) ```spict``` folder.
 
-2. Start 64 bit R and change working directory to the (cloned or unzipped) ```spict``` folder.
+2. From R run: ```source("install_windows.R")```
 
-3. From R run: ```source("install_windows.R")```
-
-This requires that Rtools is installed, which may be the case if TMB is installed. If not Rtools can be obtained [`here`](https://cran.r-project.org/bin/windows/Rtools/). When running install_windows.R remember to set your working directory to the spict directory containing install_windows.R. 
+This requires that Rtools is installed. Rtools can be obtained [`here`](https://cran.r-project.org/bin/windows/Rtools/). When running install_windows.R remember to set your working directory to the spict directory containing install_windows.R.
