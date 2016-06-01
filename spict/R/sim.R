@@ -624,7 +624,7 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
                     parnms <- c('MSY', 'Fmsy', 'Bmsy', 'BBlast', 'FFlast')
                     cicov <- numeric(length(parnms))
                     names(cicov) <- parnms
-                    err <- cicov
+                    err <- c(cicov, Blast=0)
                     # MSY
                     cicov[1] <- a[1, 2] < sim$true$MSY & a[1, 3] > sim$true$MSY
                     err[1] <- (res$pars[6] - sim$true$MSY) / sim$true$MSY
@@ -643,6 +643,9 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
                     true <- sim$true$F[indt] / sim$true$Fmsy
                     cicov[5] <- a[5, 2] < true & a[5, 3] > true
                     err[5] <- (res$states$FFmsy[dim(res$states)[1]] - true) / true
+                    # Blast (this one doesn't have uncertainty, only an estimated value)
+                    true <- sim$true$B[indt]
+                    err[6] <- (res$states$B0est[dim(res$states)[1]] - true) / true
                     # Other summaries
                     cv <- (a[, 3]-a[, 2])/(2*1.96)/a[, 1]
                     names(cv) <- parnms
