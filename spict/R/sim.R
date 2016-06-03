@@ -616,54 +616,62 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
             savefile <- paste0(filebase, '.RData')
             res <- try(fit.aspic(sim, do.boot=TRUE, verbose=FALSE, filebase=filebase,
                                  savefile=savefile))
-            if (class(res) != 'try-error' & res$errorcode == '0'){
-                # Model converged according to ASPIC
-                if ('boot' %in% names(res)){
-                    # Bootstrap was performed
-                    a <- res$boot[c(2, 3, 7, 9, 10), c(1, 4, 5)]
-                    parnms <- c('MSY', 'Fmsy', 'Bmsy', 'BBlast', 'FFlast')
-                    cicov <- numeric(length(parnms))
-                    names(cicov) <- parnms
-                    err <- c(cicov, Blast=0)
-                    # MSY
-                    cicov[1] <- a[1, 2] < sim$true$MSY & a[1, 3] > sim$true$MSY
-                    err[1] <- (res$pars[6] - sim$true$MSY) / sim$true$MSY
-                    # Fmsy
-                    cicov[2] <- a[2, 2] < sim$true$Fmsy & a[2, 3] > sim$true$Fmsy
-                    err[2] <- (res$pars[4] - sim$true$Fmsy) / sim$true$Fmsy
-                    # Bmsy
-                    cicov[3] <- a[3, 2] < sim$true$Bmsy & a[3, 3] > sim$true$Bmsy
-                    err[3] <- (res$pars[5] - sim$true$Bmsy) / sim$true$Bmsy
-                    # BBlast
-                    indt <- sim$indlastobs
-                    true <- sim$true$B[indt] / sim$true$Bmsy
-                    cicov[4] <- a[4, 2] < true & a[4, 3] > true
-                    err[4] <- (res$states$BBmsy[dim(res$states)[1]] - true) / true
-                    # FFlast
-                    true <- sim$true$F[indt] / sim$true$Fmsy
-                    cicov[5] <- a[5, 2] < true & a[5, 3] > true
-                    err[5] <- (res$states$FFmsy[dim(res$states)[1]] - true) / true
-                    # Blast (this one doesn't have uncertainty, only an estimated value)
-                    true <- sim$true$B[indt]
-                    err[6] <- (res$states$B0est[dim(res$states)[1]] - true) / true
-                    # Other summaries
-                    cv <- (a[, 3]-a[, 2])/(2*1.96)/a[, 1]
-                    names(cv) <- parnms
-                    convall <- 0
-                    s <- list(ci=cicov, cv=cv, err=err, convall=convall, nobs=nobs)
-                } else {
-                    # Bootstrap was not performed because too slow
-                    s <- res
-                    s$errtype <- 'booterr'
-                    convall <- 2
-                    s$convall <- convall
-                }
-            } else {
-                # Model did not converge according to ASPIC
+            if (class(res) == 'try-error'){
+                # Model failed entirely
                 s <- res
                 s$errtype <- 'fiterr'
                 convall <- 1
                 s$convall <- convall
+            } else {
+                if (res$errorcode != '0'){
+                    # Model ran but did not converge according to ASPIC
+                    s <- res
+                    s$errtype <- 'fiterr'
+                    convall <- 1
+                    s$convall <- convall
+                } else {
+                    # Model converged according to ASPIC
+                    if ('boot' %in% names(res)){
+                        # Bootstrap was performed
+                        a <- res$boot[c(2, 3, 7, 9, 10), c(1, 4, 5)]
+                        parnms <- c('MSY', 'Fmsy', 'Bmsy', 'BBlast', 'FFlast')
+                        cicov <- numeric(length(parnms))
+                        names(cicov) <- parnms
+                        err <- c(cicov, Blast=0)
+                        # MSY
+                        cicov[1] <- a[1, 2] < sim$true$MSY & a[1, 3] > sim$true$MSY
+                        err[1] <- (res$pars[6] - sim$true$MSY) / sim$true$MSY
+                        # Fmsy
+                        cicov[2] <- a[2, 2] < sim$true$Fmsy & a[2, 3] > sim$true$Fmsy
+                        err[2] <- (res$pars[4] - sim$true$Fmsy) / sim$true$Fmsy
+                        # Bmsy
+                        cicov[3] <- a[3, 2] < sim$true$Bmsy & a[3, 3] > sim$true$Bmsy
+                        err[3] <- (res$pars[5] - sim$true$Bmsy) / sim$true$Bmsy
+                        # BBlast
+                        indt <- sim$indlastobs
+                        true <- sim$true$B[indt] / sim$true$Bmsy
+                        cicov[4] <- a[4, 2] < true & a[4, 3] > true
+                        err[4] <- (res$states$BBmsy[dim(res$states)[1]] - true) / true
+                        # FFlast
+                        true <- sim$true$F[indt] / sim$true$Fmsy
+                        cicov[5] <- a[5, 2] < true & a[5, 3] > true
+                        err[5] <- (res$states$FFmsy[dim(res$states)[1]] - true) / true
+                        # Blast (this one doesn't have uncertainty, only an estimated value)
+                        true <- sim$true$B[indt]
+                        err[6] <- (res$states$B0est[dim(res$states)[1]] - true) / true
+                        # Other summaries
+                        cv <- (a[, 3]-a[, 2])/(2*1.96)/a[, 1]
+                        names(cv) <- parnms
+                        convall <- 0
+                        s <- list(ci=cicov, cv=cv, err=err, convall=convall, nobs=nobs)
+                    } else {
+                        # Bootstrap was not performed because too slow
+                        s <- res
+                        s$errtype <- 'booterr'
+                        convall <- 2
+                        s$convall <- convall
+                    }
+                }
             }
             if (!is.null(summ.ex.file)){
                 capture.output(res, file=summ.ex.file)
