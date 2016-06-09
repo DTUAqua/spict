@@ -1,5 +1,5 @@
 # Stochastic surplus Production model in Continuous-Time (SPiCT)
-#    Copyright (C) 2015  Martin Waever Pedersen, mawp@dtu.dk or wpsgodd@gmail.com
+#    Copyright (C) 2015-2016  Martin W. Pedersen, mawp@dtu.dk, wpsgodd@gmail.com
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@
 #'   \item{"logU"}{ Log of the state of the coupled SDE system used to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
 #'   \item{"loglambda"}{ Log of damping parameter when using the coupled SDE system to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
 #'   \item{"logsdu"}{ Log of standard deviation of process error of U_t (the state of the coupled SDE system) used to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
+#'   \item{"logsde"}{ Log of standard deviation of observation error of effort data. Only used if effort data is part of input.}
 #'   \item{"logp1robfac"}{ Log plus one of the coefficient to the standard deviation of the observation error when using a mixture distribution robust toward outliers, i.e. when either inp$robflag = 1 and/or inp$robflagi = 1.}
 #'   \item{"logitpp"}{Logit of the proportion of narrow distribution when using a mixture distribution robust toward outliers, i.e. when either inp$robflag = 1 and/or inp$robflagi = 1.}
 #' }
@@ -84,88 +85,113 @@ fit.spict <- function(inp, dbg=0){
     inp <- check.inp(inp)
     datin <- make.datin(inp, dbg)
     pl <- inp$parlist
+    tic <- Sys.time()
     # Cycle through phases
-    for(i in 1:inp$nphases){
-        if(inp$nphases>1) cat(paste('Estimating - phase',i,'\n'))
+    for (i in 1:inp$nphases){
+        if (inp$nphases > 1) cat(paste('Estimating - phase', i, '\n'))
         # Create TMB object
         obj <- make.obj(datin, pl, inp, phase=i)
-        if(dbg<1){
+        if (dbg<1){
             # Do estimation
-            if(inp$optimiser == 'nlminb'){
+            if (inp$optimiser == 'nlminb'){
                 opt <- try(nlminb(obj$par, obj$fn, obj$gr, control=inp$optimiser.control))
-                if(class(opt)!='try-error'){
+                if (class(opt)!='try-error'){
                     pl <- obj$env$parList(opt$par)
                 }
             }
-            if(inp$optimiser == 'optim'){
+            if (inp$optimiser == 'optim'){
                 opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method='BFGS', control=inp$optimiser.control))
-                if(class(opt)!='try-error'){
+                if (class(opt) != 'try-error'){
                     opt$objective <- opt$value
                     pl <- obj$env$parList(opt$par)
                 }
             }
         }
     }
-    optfailflag <- class(opt)=='try-error'
-    sdfailflag <- FALSE
-    if(optfailflag){ # Optimisation failed
-        cat('obj$par:\n')
-        print(obj$par)
-        cat('obj$fn:\n')
-        print(obj$fn())
-        cat('obj$gr:\n')
-        print(obj$gr())
-        stop('Could not fit model. Error msg:', opt)
-    } else {
-        if(inp$do.sd.report & dbg<1){
-            # Calculate SD report
-            rep <- try(TMB::sdreport(obj))
-            sdfailflag <- class(rep)=='try-error'
-            if(sdfailflag){
-                warning('Could not calculate sdreport.\n')
-                rep <- NULL
+    if (dbg<1){
+        optfailflag <- class(opt)=='try-error'
+        sdfailflag <- FALSE
+        if (optfailflag){ # Optimisation failed
+            cat('obj$par:\n')
+            print(obj$par)
+            cat('obj$fn:\n')
+            print(obj$fn())
+            cat('obj$gr:\n')
+            print(obj$gr())
+            stop('Could not fit model. Error msg:', opt)
+        } else {
+            if (inp$do.sd.report){
+                # Calculate SD report
+                # Check if TMB version is higher than or equal to 1.7.1
+                # Versions below this don't have the getReportCovariance argument
+                verflag <- as.numeric(gsub('[.]', '', as.character(packageVersion('TMB')))) >= 171
+                if (verflag & inp$getReportCovariance){
+                    rep <- try(TMB::sdreport(obj,
+                                             bias.correct=inp$bias.correct,
+                                             bias.correct.control=inp$bias.correct.control,
+                                             getReportCovariance = inp$getReportCovariance))
+                } else {
+                    rep <- try(TMB::sdreport(obj,
+                                             bias.correct=inp$bias.correct,
+                                             bias.correct.control=inp$bias.correct.control))
+                }
+                sdfailflag <- class(rep) == 'try-error'
+                if (sdfailflag){
+                    warning('Could not calculate sdreport.\n')
+                    rep <- NULL
+                }
             }
-        }
-        if(is.null(rep)){ # If sdreport failed or was not calculated
-            rep <- list()
-            if(sdfailflag){
+            if (is.null(rep)){ # If sdreport failed or was not calculated
                 rep <- list()
-                rep$sderr <- 1
-                rep$par.fixed <- opt$par
-                rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
+                if (sdfailflag){
+                    rep <- list()
+                    rep$sderr <- 1
+                    rep$par.fixed <- opt$par
+                    rep$cov.fixed <- matrix(NA, length(opt$par), length(opt$par))
+                }
             }
-        }
-        rep$inp <- inp
-        rep$obj <- obj
-        rep$opt <- opt
-        rep$pl <- obj$env$parList(opt$par)
-        obj$fn()
-        rep$Cp <- obj$report()$Cp
-        rep$report <- obj$report()
-        if(!sdfailflag & inp$reportall){
-            #  - Calculate Prager's statistics -
-            #rep <- calc.prager.stats(rep)
-            # - Built-in OSAR -
-            if(!inp$osar.method == 'none'){
-                rep <- calc.osa.resid(rep)
+            rep$inp <- inp
+            rep$obj <- obj
+            rep$opt <- opt
+            rep$opt$gr <- rep$obj$gr(rep$opt$par)
+            rep$pl <- obj$env$parList(opt$par)
+            obj$fn()
+            rep$Cp <- obj$report()$Cp
+            rep$report <- obj$report()
+            if (!sdfailflag & inp$reportall){
+                #  - Calculate Prager's statistics -
+                #rep <- calc.prager.stats(rep)
+                # - Built-in OSAR -
+                if (!inp$osar.method == 'none'){
+                    reposar <- try(calc.osa.resid(rep))
+                    if (class(reposar) != 'try-error'){
+                        rep <- reposar
+                    }
+                }
             }
         }
     }
-    if(!is.null(rep)) class(rep) <- "spictcls"
+    toc <- Sys.time()
+    if (!is.null(rep)){
+        rep$computing.time <- as.numeric(toc - tic)
+        class(rep) <- "spictcls"
+    }
     return(rep)
 }
 
 
 
 calc.prager.stats <- function(rep){
-    if(!'stats' %in% names(rep)) rep$stats <- list()
+    if (!'stats' %in% names(rep)){
+        rep$stats <- list()
+    }
     K <- get.par('logK', rep, exp=TRUE)[2]
     Bests <- get.par('logB', rep, exp=TRUE)[rep$inp$indest, 2]
     Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
-    if(!any(is.na(Bests)) & !is.na(Bmsy)){
+    if (!any(is.na(Bests)) & !is.na(Bmsy)){
         Bdiff <- Bmsy - Bests
         # Prager's nearness
-        if(any(diff(sign(Bdiff))!=0)){
+        if (any(diff(sign(Bdiff))!=0)){
             rep$stats$nearness <- 1
         } else {
             rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
@@ -188,16 +214,23 @@ make.datin <- function(inp, dbg=0){
                   dtpredcinds=inp$dtpredcinds,
                   dtpredcnsteps=inp$dtpredcnsteps,
                   dtprediind=inp$dtprediind,
+                  dtpredeinds=inp$dtpredeinds,
+                  dtpredensteps=inp$dtpredensteps,
                   indlastobs=inp$indlastobs,
                   obssrt=inp$obssrt,
                   stdevfacc=inp$stdevfacC,
                   stdevfaci=inp$stdevfacIin,
+                  stdevface=inp$stdevfacE,
                   isc=inp$isc,
                   isi=inp$isi,
+                  ise=inp$ise,
                   nobsC=inp$nobsC,
                   nobsI=sum(inp$nobsI),
+                  nobsE=inp$nobsE,
                   ic=inp$ic,
                   nc=inp$nc,
+                  ie=inp$ie,
+                  ne=inp$ne,
                   ii=inp$iiin,
                   iq=inp$iqin,
                   isdi=inp$isdiin,
@@ -208,22 +241,32 @@ make.datin <- function(inp, dbg=0){
                   splinematfine=inp$splinematfine,
                   omega=inp$omega,
                   seasontype=inp$seasontype,
+                  efforttype=inp$efforttype,
                   ffacvec=inp$ffacvec,
                   fconvec=inp$fconvec,
                   indpred=inp$indpred,
                   robflagc=inp$robflagc,
                   robflagi=inp$robflagi,
+                  robflage=inp$robflage,
                   stochmsy=ifelse(inp$msytype=='s', 1, 0),
                   priorn=inp$priors$logn,
                   priorr=inp$priors$logr,
                   priorK=inp$priors$logK,
                   priorm=inp$priors$logm,
                   priorq=inp$priors$logq,
+                  prioriqgamma=inp$priors$iqgamma,
+                  priorqf=inp$priors$logqf,
                   priorbkfrac=inp$priors$logbkfrac,
                   priorsdb=inp$priors$logsdb,
+                  priorisdb2gamma=inp$priors$isdb2gamma,
                   priorsdf=inp$priors$logsdf,
+                  priorisdf2gamma=inp$priors$isdf2gamma,
                   priorsdi=inp$priors$logsdi,
+                  priorisdi2gamma=inp$priors$isdi2gamma,
+                  priorsde=inp$priors$logsde,
+                  priorisde2gamma=inp$priors$isde2gamma,
                   priorsdc=inp$priors$logsdc,
+                  priorisdc2gamma=inp$priors$isdc2gamma,
                   prioralpha=inp$priors$logalpha,
                   priorbeta=inp$priors$logbeta,
                   priorB=inp$priors$logB,
@@ -246,7 +289,8 @@ make.datin <- function(inp, dbg=0){
 #' @export
 #' @import TMB
 make.obj <- function(datin, pl, inp, phase=1){
-    obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map[[phase]])
+    obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname,
+                          hessian=TRUE, map=inp$map[[phase]])
     TMB:::config(trace.optimize=0, DLL=inp$scriptname)
     verbose <- FALSE
     obj$env$tracemgc <- verbose

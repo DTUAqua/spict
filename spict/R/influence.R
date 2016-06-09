@@ -1,5 +1,5 @@
 # Stochastic surplus Production model in Continuous-Time (SPiCT)
-#    Copyright (C) 2015  Martin Waever Pedersen, mawp@dtu.dk or wpsgodd@gmail.com
+#    Copyright (C) 2015-2016  Martin W. Pedersen, mawp@dtu.dk, wpsgodd@gmail.com
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -23,7 +23,9 @@
 #' @export
 calc.influence <- function(rep){
     #parnams <- c('logFmsy', 'MSY', 'logCp', 'logBlBmsy')
-    if(!'osar' %in% names(rep)) stop('Need to calculate one-step-ahead residuals before calculating influence statistics. Use the calc.osa.resid() function.')
+    if (!'osar' %in% names(rep)){
+        stop('Need to calculate one-step-ahead residuals before calculating influence statistics. Use the calc.osa.resid() function.')
+    }
     inp <- rep$inp
     #parnams <- c('logFmsy', 'MSY')
     parnams <- c('logm', 'logBmsy', 'logFmsy', 'logsdf', 'logsdb')
@@ -33,12 +35,16 @@ calc.influence <- function(rep){
     doexp[grep('log', parnams)] <- 1
     parmat <- matrix(0, np, 5)
     rownames(parmat) <- parnamsnolog
-    for(k in 1:np) parmat[k, ] <- get.par(parnams[k], rep)
+    for (k in 1:np){
+        parmat[k, ] <- get.par(parnams[k], rep)
+    }
     detcov <- unlist(determinant(rep$cov.fixed, logarithm=TRUE))[1]
     likval <- rep$opt$objective
     osarpvals <- get.osar.pvals(rep)
     rwnms <- paste0('C_', inp$timeC)
-    for(i in 1:inp$nindex) rwnms <- c(rwnms, paste0('I', i, '_', inp$timeI[[i]]))
+    for (i in 1:inp$nindex){
+        rwnms <- c(rwnms, paste0('I', i, '_', inp$timeI[[i]]))
+    }
     nser <- inp$nindex+1
     nobs <- inp$nobsC + sum(inp$nobsI)
     pararr <- array(0, dim=c(np, nobs, 4))
@@ -53,7 +59,7 @@ calc.influence <- function(rep){
         #cat(c, '.. ')
         inp2 <- inp
         inp2$osar.trace <- FALSE
-        if(c <= inp$nobsC){
+        if (c <= inp$nobsC){
             # Loop over catches
             inp2$obsC <- inp$obsC[-c]
             inp2$timeC <- inp$timeC[-c]
@@ -63,7 +69,7 @@ calc.influence <- function(rep){
             breaks <- inp$nobsC + cumsum(c(0, inp$nobsI[-inp$nindex]))
             j <- sum(c > breaks)
             i <- c - breaks[j]
-            if(class(inp$obsI)=='numeric'){
+            if (class(inp$obsI)=='numeric'){
                 inp2$obsI <- inp$obsI[-i]
                 inp2$timeI <- inp$timeI[-i]
             } else {
@@ -76,14 +82,16 @@ calc.influence <- function(rep){
         # Calculate diagnostics
         np <- length(parnams)
         parmat <- matrix(0, np, 5)
-        for(k in 1:np) parmat[k, ] <- get.par(parnams[k], rep2)
+        for (k in 1:np){
+            parmat[k, ] <- get.par(parnams[k], rep2)
+        }
         detcov <- unlist(determinant(rep2$cov.fixed, logarithm=TRUE))[1]
         dosarpvals <- get.osar.pvals(rep2)
         return(list(parmat=parmat, detcov=detcov, dosarpvals=dosarpvals))
     }
     # Calculate influence
-    if(Sys.info()['sysname']!='Linux'){
-    #if(class(partry)=='try-error'){
+    if (Sys.info()['sysname']!='Linux'){
+    #if (class(partry)=='try-error'){
         single.inflfun <- function(c, inp, parnams, nobs){
             res <- inflfun(c, inp, parnams)
             ## Send progress update
@@ -97,13 +105,13 @@ calc.influence <- function(rep){
         multi.inflfun <- function(c, inp, parnams, nobs, progfile){
             res <- inflfun(c, inp, parnams)
             ## Send progress update
-            if(class(progfile)[1]=='fifo') writeBin(1/nobs, progfile)
+            if (class(progfile)[1]=='fifo') writeBin(1/nobs, progfile)
             return(res)
         }
         ## Open fifo progress file
         progfile <- fifo(tempfile(), open="w+b", blocking=T)
-        #if(inherits(fork(), "masterProcess")) {
-        if(inherits(parallel:::mcfork(), "masterProcess")) {
+        #if (inherits(fork(), "masterProcess")) {
+        if (inherits(parallel:::mcfork(), "masterProcess")) {
             ## Child
             progress <- 0.0
             while (progress < 1 && !isIncomplete(progfile)) {
@@ -119,17 +127,19 @@ calc.influence <- function(rep){
     }
     cat('\n')
     # Gather results
-    for(i in 1:nobs){
+    for (i in 1:nobs){
         ddetcov[i] <- detcov - res[[i]]$detcov
         dosarpvals[i, ] <- res[[i]]$dosarpvals
-        for(k in 1:np) pararr[k, i, ] <- res[[i]]$parmat[k, ]
+        for (k in 1:np){
+            pararr[k, i, ] <- res[[i]]$parmat[k, ]
+        }
     }
     dfbeta <- matrix(0, nobs, np)
     colnames(dfbeta) <- parnamsnolog
     rownames(dfbeta) <- rwnms
     dpar <- dfbeta
-    for(k in 1:np){
-        if(doexp[k]==0){
+    for (k in 1:np){
+        if (doexp[k]==0){
             dpar[, k] <- parmat[k, 2]-pararr[k, , 2]
         } else {
             dpar[, k] <- exp(parmat[k, 2])-exp(pararr[k, , 2])
@@ -153,7 +163,9 @@ calc.influence <- function(rep){
     orgres <- osarpvals < alpha
     newres <- dosarpvals < alpha
     chgmat <- matrix(0, nobs, nser)
-    for(i in 1:nser) chgmat[, i] <- newres[, i]-orgres[i]
+    for (i in 1:nser){
+        chgmat[, i] <- newres[, i]-orgres[i]
+    }
     tmp <- matrix(NA, nobs, nser)
     inds <- which(chgmat!=0)
     tmp[inds] <- 1
@@ -167,7 +179,7 @@ calc.influence <- function(rep){
     infl[, (2+nser):(1+nser+np)] <- tmp
     # Compile influence
     ninfl <- dim(infl)[2]
-    for(i in 1:ninfl){
+    for (i in 1:ninfl){
         inds <- which(infl[, i]==1)
         infl[inds, i] <- i
     }

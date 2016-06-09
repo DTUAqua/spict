@@ -1,5 +1,5 @@
 # Stochastic surplus Production model in Continuous-Time (SPiCT)
-#    Copyright (C) 2015  Martin Waever Pedersen, mawp@dtu.dk or wpsgodd@gmail.com
+#    Copyright (C) 2015-2016  Martin W. Pedersen, mawp@dtu.dk, wpsgodd@gmail.com
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -36,9 +36,10 @@ latex.figure <- function(figfile, reportfile, caption=''){
 #' @param summaryoutfile Output of the summary will be stored in this file as plain text.
 #' @param keep.figurefiles If TRUE generated figure files will not be cleaned up.
 #' @param keep.txtfiles If TRUE generated txt files will not be cleaned up.
+#' @param keep.texfiles If TRUE generated tex file will not be cleaned up.
 #' @return Nothing.
 #' @export
-make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryoutfile='summaryout.txt', keep.figurefiles=FALSE, keep.txtfiles=FALSE){
+make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryoutfile='summaryout.txt', keep.figurefiles=FALSE, keep.txtfiles=FALSE, keep.texfiles=FALSE){
     latexstart <- '\\documentclass[12pt]{article}\n\\usepackage{graphicx}\n\\usepackage{verbatim}\n\\begin{document}\n'
     latexend <- '\\end{document}\n'
     cat(reporttitle, '- report compiled', as.character(Sys.time()), '\n', file=summaryoutfile)
@@ -59,7 +60,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     cat(paste0('\\verbatiminput{', summaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
 
     # Management summary
-    if('man' %in% names(rep)){
+    if ('man' %in% names(rep)){
         mansummaryoutfile <- 'mansummaryout.txt'
         cat('Management results\n\n', file=mansummaryoutfile)
         mansummaryout <- capture.output(mansummary(rep), file=mansummaryoutfile, append=TRUE)
@@ -68,7 +69,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     }
     
     # Retrospective analysis plot
-    if('retro' %in% names(rep)){
+    if ('retro' %in% names(rep)){
         figfile1b <- 'retro.pdf'
         pdf(figfile1b)
         plotspict.retro(rep)
@@ -77,7 +78,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     }
     
     # Diagnostic plot
-    if('osar' %in% names(rep)){
+    if ('osar' %in% names(rep)){
         figfile2 <- 'diag.pdf'
         pdf(figfile2, width=7, height=9)
         plotspict.diagnostic(rep)
@@ -88,7 +89,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     # Data plot
     figfile3 <- 'data.pdf'
     pdf(figfile3, width=7, height=9)
-    plotspict.ci(rep$inp)
+    plotspict.data(rep$inp)
     dev.off()
     latex.figure(figfile3, reportfile, caption='Data.')
 
@@ -103,14 +104,23 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     #file.remove(paste0('../res/', substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.log'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
-    if(!keep.txtfiles){
-        file.remove(summaryoutfile)
-        if('man' %in% names(rep)) file.remove(mansummaryoutfile)
+    if (!keep.texfiles){
+        file.remove(reportfile)
     }
-    if(!keep.figurefiles){
+    if (!keep.txtfiles){
+        file.remove(summaryoutfile)
+        if ('man' %in% names(rep)){
+            file.remove(mansummaryoutfile)
+        }
+    }
+    if (!keep.figurefiles){
         file.remove(figfile1)
-        if('retro' %in% names(rep)) file.remove(figfile1b)
-        if('osar' %in% names(rep)) file.remove(figfile2)
+        if ('retro' %in% names(rep)){
+            file.remove(figfile1b)
+        }
+        if ('osar' %in% names(rep)){
+            file.remove(figfile2)
+        }
         file.remove(figfile3)
     }
 }

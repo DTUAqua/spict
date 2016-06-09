@@ -1,5 +1,5 @@
 # Stochastic surplus Production model in Continuous-Time (SPiCT)
-#    Copyright (C) 2015  Martin Waever Pedersen, mawp@dtu.dk or wpsgodd@gmail.com
+#    Copyright (C) 2015-2016  Martin W. Pedersen, mawp@dtu.dk, wpsgodd@gmail.com
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -29,91 +29,156 @@
 #' @import TMB
 calc.osa.resid <- function(rep){
     doflag <- TRUE
-    if('sderr' %in% names(rep)) doflag <- rep$sderr != 1
-    if(doflag){
+    if ('sderr' %in% names(rep)){
+        doflag <- rep$sderr != 1
+        errmsg <- 'Could not calculate OSA residuals because sdreport() resulted in an error.\n'
+    }
+    if (rep$opt$convergence > 0){
+        doflag <- FALSE
+        errmsg <- 'Could not calculate OSA residuals because estimation did not converge.\n'
+    }
+    if (doflag){
         inp <- rep$inp
         # - Built-in OSAR -
-        if(rep$inp$osar.method == 'none'){
+        if (rep$inp$osar.method == 'none'){
             rep$inp$osar.method <- 'oneStepGaussianOffMode' # New default
         }
-        if(inp$osar.trace) cat('Number of OSAR steps:', length(rep$inp$osar.subset), '\n')
-        osar <- try(oneStepPredict(rep$obj, observation.name = "obssrt", data.term.indicator='keep', method=rep$inp$osar.method, discrete=FALSE, conditional=rep$inp$osar.conditional, subset=rep$inp$osar.subset, trace=inp$osar.trace, parallel=inp$osar.parallel))
-        if(class(osar) != 'try-error'){
+        if (inp$osar.trace){
+            cat('Number of OSAR steps:', length(rep$inp$osar.subset), '\n')
+        }
+        osar <- try(oneStepPredict(rep$obj,
+                                   observation.name = "obssrt",
+                                   data.term.indicator='keep',
+                                   method=rep$inp$osar.method,
+                                   discrete=FALSE,
+                                   conditional=rep$inp$osar.conditional,
+                                   subset=rep$inp$osar.subset,
+                                   trace=inp$osar.trace,
+                                   parallel=inp$osar.parallel))
+        if (class(osar) != 'try-error'){
             osar <- cbind(id=inp$obsidsrt[inp$osar.subset], osar)
-            # Store catch residuals separately
+            rep$diagn <- list()
+            # Store catch residuals
             inds <- match(inp$obsidC, osar$id)
             inds <- inds[!is.na(inds)]
             rep$osarC <- osar[inds, ]
             inds2 <- match(osar$id, inp$obsidC)
             inds2 <- inds2[!is.na(inds2)]
             timeC <- inp$timeC[inds2]
-            # Store index residuals separately
-            rep$osarI <- list()
-            timeI <- list()
-            for(i in 1:rep$inp$nindex){
-                inds <- match(inp$obsidI[[i]], osar$id)
-                inds <- inds[!is.na(inds)]
-                rep$osarI[[i]] <- osar[inds,]
-                inds2 <- match(osar$id, inp$obsidI[[i]])
-                inds2 <- inds2[!is.na(inds2)]
-                timeI[[i]] <- inp$timeI[[i]][inds2]
-            }
-            npar <- length(rep$opt$par)
-            if(!'stats' %in% names(rep)) rep$stats <- list()
-            # Catches
+            # Catch residual analysis
             logCpres <- rep$osarC$residual
-            statsCp <- res.stats(logCpres, name='catch')
-            for(nm in names(statsCp$stats)) rep$stats[[nm]] <- statsCp$stats[[nm]]
-            # Indices
-            logIpres <- list()
-            logIpshapiro <- list()
-            logIpbias <- list()
-            statsIp <- list()
-            for(i in 1:inp$nindex){
-                logIpres[[i]] <- rep$osarI[[i]]$residual
-                #logIpres[[i]][1] <- NA # Always omit first residual because it can be difficult to calculate
-                statsIp[[i]] <- res.stats(logIpres[[i]], name=paste0('index', i))
-                logIpshapiro[[i]] <- statsIp[[i]]$shapiro
-                logIpbias[[i]] <- statsIp[[i]]$bias
-                nam <- paste0('acfI', i, '.p')
-                rep$stats[[nam]] <- statsIp[[i]]$stats$acf.p
-                nam <- paste0('shapiroI', i, '.p')
-                rep$stats[[nam]] <- logIpshapiro[[i]]$p.value
-                nam <- paste0('biasI', i, '.p')
-                rep$stats[[nam]] <- logIpbias[[i]]$p.value
+            diagnCp <- res.diagn(logCpres, 'C', name='catch')
+            for (nm in names(diagnCp)){
+                rep$diagn[[nm]] <- diagnCp[[nm]]
             }
-            rep$osar <- list(timeC=timeC, logCpres=logCpres, logCpbias=statsCp$bias, logCpshapiro=statsCp$shapiro, timeI=timeI, logIpres=logIpres, logIpshapiro=logIpshapiro, logIpbias=logIpbias)
+
+            # Store effortresiduals
+            timeE <- numeric()
+            logEpres <- numeric()
+            if (rep$inp$nobsE > 0){
+                inds <- match(inp$obsidE, osar$id)
+                inds <- inds[!is.na(inds)]
+                rep$osarE <- osar[inds, ]
+                inds2 <- match(osar$id, inp$obsidE)
+                inds2 <- inds2[!is.na(inds2)]
+                timeE <- inp$timeE[inds2]
+                # Effort residual analysis
+                logEpres <- rep$osarE$residual
+                diagnEp <- res.diagn(logEpres, 'E', name='effort')
+                for (nm in names(diagnEp)){
+                    rep$diagn[[nm]] <- diagnEp[[nm]]
+                }
+            }
+            
+            # Store index residuals
+            timeI <- list()
+            logIpres <- list()
+            if (inp$nindex > 0){
+                rep$osarI <- list()
+                for (i in 1:rep$inp$nindex){
+                    inds <- match(inp$obsidI[[i]], osar$id)
+                    inds <- inds[!is.na(inds)]
+                    rep$osarI[[i]] <- osar[inds,]
+                    inds2 <- match(osar$id, inp$obsidI[[i]])
+                    inds2 <- inds2[!is.na(inds2)]
+                    timeI[[i]] <- inp$timeI[[i]][inds2]
+                }
+                npar <- length(rep$opt$par)
+                if (!'diagn' %in% names(rep)) rep$diagn <- list()
+                # Index residual analysis
+                diagnIp <- list()
+                for (i in 1:inp$nindex){
+                    logIpres[[i]] <- rep$osarI[[i]]$residual
+                    diagnIpi <- res.diagn(logIpres[[i]], paste0('I', i), name=paste0('index', i))
+                    for (nm in names(diagnIpi)){
+                        rep$diagn[[nm]] <- diagnIpi[[nm]]
+                    }
+                }
+            }
+            rep$osar <- list(timeC=timeC,
+                             logCpres=logCpres,
+                             timeI=timeI,
+                             logIpres=logIpres,
+                             timeE=timeE,
+                             logEpres=logEpres)
         } else {
             stop('Could not calculate OSA residuals.\n')
         }
     } else {
-        stop('Could not calculate OSA residuals because sdreport() resulted in an error.\n')
+        stop(errmsg)
     }
     return(rep)
 }
 
 
-#' @name res.stats
+#' @name res.diagn
 #' @title Helper function for calc.osar.resid that calculates residual statistics.
 #' @param resid Residuals from either catches or indices.
+#' @param id Identifier for residuals e.g. "C".
 #' @param name Identifier that will be used in warning messages.
-#' @return List containing residual statistics in 'stats', shapiro output in 'shapiro', and bias output in 'bias'.
+#' @return List containing residual statistics in 'diagn', shapiro output in 'shapiro', and bias output in 'bias'.
 #' @export
-res.stats <- function(resid, name=''){
+res.diagn <- function(resid, id, name=''){
     nna <- sum(is.na(resid))
-    if(nna > 0) warning(nna, ' NAs found in ', name, ' residuals')
+    if (nna > 0){
+        warning(nna, ' NAs found in ', name, ' residuals')
+    }
     nnotna <- sum(!is.na(resid))
-    stats <- list()
-    if(nnotna > 5){
+    diagn <- list()
+    acf.p <- NULL
+    if (nnotna > 2){
         shapiro <- shapiro.test(resid) # Test for normality of residuals
         bias <- t.test(resid) # Test for bias of residuals
-        stats$acf.p <- min(acf.signf(resid, lag.max=4, return.p=TRUE))
-        stats$shapiro.p <- shapiro$p.value
-        stats$bias.p <- bias$p.value
+        acf.p <- min(acf.signf(resid, lag.max=4, return.p=TRUE))
+        # Ljung-Box test
+        if (FALSE){
+            # This was used in a simulation to find the combination of fitdf and lag that
+            # performed best. The result was: lag = 4, fitdf = 1.
+            # See "/production_model/ms/effort/res" for details
+            maxlag <- 20
+            maxdf <- maxlag - 1
+            lb <- matrix(NA, maxdf, maxlag)
+            colnames(lb) <- paste0('lag', 1:maxlag)
+            rownames(lb) <- paste0('df', 0:(maxdf-1))
+            for (j in 1:maxdf){
+                lb[j, ] <- unlist(lapply(1:maxlag,
+                                         function(x) Box.test(resid, lag=x, fitdf=j-1)$p.value))
+            }
+        }
+        lb <- Box.test(resid, lag=4, fitdf=1)$p.value
     } else {
-        warning('Warning: only ', nnotna, ' non-NAs found in ', name, ' residuals. Not calculating residual statistics')
-        bias <- NA
-        shapiro <- NA
+        warning('Warning: only ', nnotna, ' non-NAs found in ', name,
+                ' residuals. Not calculating residual statistics')
+        bias <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
+        shapiro <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
+        lb <- NA
     }
-    return(list(shapiro=shapiro, bias=bias, stats=stats))
+    diagn[[paste0('shapiro', id, '.p')]] <- shapiro$p.value
+    diagn[[paste0('bias', id, '.p')]] <- bias$p.value
+    diagn[[paste0('acf', id, '.p')]] <- NA
+    diagn[[paste0('LBox', id, '.p')]] <- lb
+    if (!is.null(acf.p)){
+        diagn[[paste0('acf', id, '.p')]] <- acf.p
+    }
+    return(diagn)
 }

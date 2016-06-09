@@ -1,5 +1,5 @@
 PACKAGE=spict
-VERSION=0.3
+VERSION=1.0
 TARBALL=${PACKAGE}_${VERSION}.tar.gz
 ZIPFILE=${PACKAGE}_${VERSION}.zip
 
@@ -14,6 +14,7 @@ doc-update:
 #echo "library(roxygen2);roxygenize(\"$(PACKAGE)\",roclets = c(\"collate\", \"rd\"))" | R --slave	
 
 build-package:
+	echo 'source("make.description.R")' | R --vanilla
 	R CMD build --resave-data=no $(PACKAGE)
 
 install:

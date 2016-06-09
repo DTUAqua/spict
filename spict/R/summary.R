@@ -1,5 +1,5 @@
 # Stochastic surplus Production model in Continuous-Time (SPiCT)
-#    Copyright (C) 2015  Martin Waever Pedersen, mawp@dtu.dk or wpsgodd@gmail.com
+#    Copyright (C) 2015-2016  Martin W. Pedersen, mawp@dtu.dk, wpsgodd@gmail.com
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -28,11 +28,11 @@
 #' @export
 summary.spictcls <- function(object, ...){
     #object <- x
-    if(!exists('digits')) digits <- 8
+    if(!exists('digits')) digits <- 7
     numdigits <- digits # Present values with this number of digits after the dot.
     rep <- object
     cat(paste('Convergence: ', rep$opt$convergence, '  MSG: ', rep$opt$message, '\n', sep=''))
-    if(rep$opt$convergence>0){
+    if (rep$opt$convergence > 0){
         cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and cannot be trusted.\n')
         grad <- rep$obj$gr()
         names(grad) <- names(rep$par.fixed)
@@ -41,26 +41,39 @@ summary.spictcls <- function(object, ...){
         cat('\n')
     }
     if('sderr' %in% names(rep)) cat('WARNING: Could not calculate standard deviations. The optimum found may be invalid. Proceed with caution.\n')
-    cat(paste0('Objective function at optimum: ', round(rep$opt$objective, numdigits), '\n'))
-    cat(paste0('Euler time step: 1/', 1/rep$inp$dteuler, ' or ', rep$inp$dteuler, '\n'))
-    cat(paste0('Nobs C: ', rep$inp$nobsC, paste0(paste0(',  Nobs I', 1:rep$inp$nindex), ': ', rep$inp$nobsI, collapse=''), '\n'))
+    if (rep$opt$convergence > 0){
+        txtobj <- 'Objective function: '
+    } else {
+        txtobj <- 'Objective function at optimum: '
+    }
+    cat(paste0(txtobj, round(rep$obj$fn(), numdigits), '\n'))
+    #cat(paste0('Computing time (seconds): ', round(rep$computing.time, 3), '\n'))
+    cat(paste0('Euler time step (years):  1/', round(1/rep$inp$dteuler, 2),
+               ' or ', round(rep$inp$dteuler, 5), '\n'))
+    str <- paste0('Nobs C: ', rep$inp$nobsC)
+    if (rep$inp$nindex > 0){
+        str <- paste0(str, paste0(paste0(',  Nobs I', 1:rep$inp$nindex),
+                                                      ': ', rep$inp$nobsI, collapse=''))
+    }
+    if (rep$inp$nobsE > 0) str <- paste0(str, paste0(',  Nobs E: ', rep$inp$nobsE))
+    cat(paste0(str, '\n'))
     # -- Catch/biomass unit --
     if(rep$inp$catchunit != ''){
         cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n'))
     }
     # -- Residual diagnostics --
-    statout <- unlist(rep$stats)
-    if(length(statout)>0){
-        cat('\nResidual diagnostics\n')
-        inds <- grep('.p', names(statout))
-        sig <- which(statout[inds]<0.05)
-        names(statout)[inds][sig] <- paste0('*', names(statout)[inds][sig])
-        cat('', paste(capture.output(statout),' \n'))
+    if (length(rep$diagn) > 0){
+        cat('\nResidual diagnostics (p-values)\n')
+        #cat('.: 0.1>p>0.05, *: 0.05>p>0.1, **: 0.01>p>0.001, ***: 0.001>p\n')
+        diagout <- sumspict.diagnostics(rep, numdigits=4)
+        cat('', paste(capture.output(diagout),' \n'))
     }
     # -- Priors --
     indso <- which(rep$inp$priorsuseflag==1)
     if(length(indso)>0){
         usepriors <- names(rep$inp$priors)[indso]
+        gammainds <- grep('gamma', usepriors)
+        usepriors <- gsub('gamma', '', usepriors) # Strip gamma-text away
         npriors <- length(usepriors)
         repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
         if(any(repriors %in% usepriors)){
@@ -72,7 +85,17 @@ summary.spictcls <- function(object, ...){
         cat(paste('\nPriors\n'))
         maxchar <- max(nchar(usepriors))
         for(i in 1:npriors){
-            str[i] <- paste0('~  N[log(', round(exp(rep$inp$priors[[indso[i]]][1]), 3), '), ', round(rep$inp$priors[[indso[i]]][2], 3), '^2]', ifelse(rep$inp$priors[[indso[i]]][2] <= 1e-3, ' (fixed)', ''))
+            if (i %in% gammainds){
+                shape <- rep$inp$priors[[indso[i]]][1]
+                rate <- rep$inp$priors[[indso[i]]][2]
+                vec <- shaperate2meanvar(shape, rate)
+                str[i] <- paste0('~  dgamma[', round(shape, 3),
+                                 ', ', round(rate, 3), '] (mean=', round(vec[1], 3), ', sd=', round(vec[3], 3), ')')
+            } else {
+                str[i] <- paste0('~  dnorm[log(', round(exp(rep$inp$priors[[indso[i]]][1]), 3),
+                                 '), ', round(rep$inp$priors[[indso[i]]][2], 3), '^2]',
+                                 ifelse(rep$inp$priors[[indso[i]]][2] <= 1e-3, ' (fixed)', ''))
+            }
             usepriors[i] <- formatC(usepriors[i], width = maxchar, flag = 0)
             cat(paste0(' ', usepriors[i], '  ', str[i], '\n'))
         }
@@ -105,7 +128,6 @@ summary.spictcls <- function(object, ...){
             cat(paste0('\nPredictions w 95% CI (inp$msytype: ', rep$inp$msytype, ')\n'))
             predout <- sumspict.predictions(rep, numdigits=numdigits)
             cat('', paste(capture.output(predout),' \n'))
-
         } else {
             cat(paste0('\nPredictions omitted because inp$reportall = FALSE\n'))
         }
@@ -122,7 +144,7 @@ get.order <- function() return(c(2, 1, 3, 2))
 #' @name get.colnms
 #' @title Get column names for data.frames.
 #' @return Vector containing column names of data frames.
-get.colnms <- function() return(c('estimate', 'cilow', 'ciupp', 'est.in.log'))
+get.colnms <- function() return(c('estimate', 'cilow', 'ciupp', 'log.est'))
 
 
 #' @name sumspict.parest
@@ -173,10 +195,20 @@ sumspict.parest <- function(rep, numdigits=8){
             truepar[logitinds] <- invlogit(truepar[logitinds])
             truepar[logp1inds] <- invlogp1(truepar[logp1inds])
             ci <- rep(0, npar)
-            for(i in 1:npar) ci[i] <- as.numeric(truepar[i] > cilow[i] & truepar[i] < ciupp[i])
-            resout <- cbind(estimate=round(est,numdigits), true=round(truepar,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), true.in.ci=ci, est.in.log=round(rep$par.fixed,numdigits))
+            for(i in 1:npar){
+                ci[i] <- as.numeric(truepar[i] > cilow[i] & truepar[i] < ciupp[i])
+            }
+            resout <- cbind(estimate=round(est,numdigits),
+                            true=round(truepar,numdigits),
+                            cilow=round(cilow,numdigits),
+                            ciupp=round(ciupp,numdigits),
+                            true.in.ci=ci,
+                            log.est=round(rep$par.fixed,numdigits))
         } else {
-            resout <- cbind(estimate=round(est,numdigits), cilow=round(cilow,numdigits), ciupp=round(ciupp,numdigits), est.in.log=round(rep$par.fixed,numdigits))
+            resout <- cbind(estimate=round(est,numdigits),
+                            cilow=round(cilow,numdigits),
+                            ciupp=round(ciupp,numdigits),
+                            log.est=round(rep$par.fixed,numdigits))
         }
         nms[loginds] <- sub('log', '', names(rep$par.fixed[loginds]))
         nms[logitinds] <- sub('logit', '', names(rep$par.fixed[logitinds]))
@@ -194,14 +226,22 @@ sumspict.parest <- function(rep, numdigits=8){
         # Derived variables
         if(!'sderr' %in% names(rep)){
             nalpha <- sum(names(rep$par.fixed) == 'logsdi')
-            derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
-                            get.par(parname='logbeta', rep, exp=TRUE)[, order],
-                            get.par(parname='logr', rep, exp=TRUE)[, order])
+            derout <- rbind(get.par(parname='logbeta', rep, exp=TRUE)[, order],
+                            get.par(parname='logr', rep, exp=TRUE)[, order],
+                            get.par(parname='logrc', rep, exp=TRUE)[, order],
+                            get.par(parname='logrold', rep, exp=TRUE)[, order])
+            if (nalpha > 0){
+                derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
+                                derout)
+            }
             derout[, 4] <- log(derout[, 4])
             derout <- round(derout, numdigits)
             nr <- dim(derout)[1]
             if('true' %in% names(rep$inp)){
-                dertrue <- exp(c(rep(rep$inp$true$logalpha, nalpha), rep$inp$true$logbeta, rep$inp$true$logr))
+                dertrue <- exp(c(rep$inp$true$logbeta, rep$inp$true$logr))
+                if (nalpha > 0){
+                    dertrue <- c(rep(exp(rep$inp$true$logalpha), nalpha), dertrue)
+                }
                 ndertrue <- length(dertrue)
                 if(ndertrue == nr){
                     cider <- numeric(ndertrue)
@@ -213,16 +253,24 @@ sumspict.parest <- function(rep, numdigits=8){
                 derout <- cbind(est=derout[, 1], true=dertrue, ll=derout[, 2], ul=derout[, 3], tic=cider, eil=derout[, 4])
             }
             if(nr>1 & 'yearsepgrowth' %in% names(rep$inp)){
-                rnms <- c('r     ', paste0('r', rep$inp$yearsepgrowth))
+                rnms <- c('r   ', paste0('r', rep$inp$yearsepgrowth))
+                roldnms <- c('rold   ', paste0('rold', rep$inp$yearsepgrowth))
+                rcnms <- c('rc   ', paste0('rc', rep$inp$yearsepgrowth))
             } else {
-                rnms <- 'r    '
+                rnms <- 'r  '
+                roldnms <- 'rold  '
+                rcnms <- 'rc  '
             }
-            if(nalpha > 1){
-                alphanms <- paste0('alpha', 1:nalpha)
+            if (nalpha > 0){
+                if(nalpha > 1){
+                    alphanms <- paste0('alpha', 1:nalpha)
+                } else {
+                    alphanms <- 'alpha'
+                }
             } else {
-                alphanms <- 'alpha'
+                alphanms <- NULL
             }
-            rownames(derout) <- c(alphanms, 'beta', rnms)
+            rownames(derout) <- c(alphanms, 'beta', rnms, rcnms, roldnms)
             resout <- rbind(derout, resout)
         }        
         if('true' %in% names(rep$inp)){
@@ -323,8 +371,21 @@ sumspict.states <- function(rep, numdigits=8){
     stateout[, 4] <- log(stateout[, 4])
     stateout <- round(stateout, numdigits)
     colnames(stateout) <- colnms
-    et <- fd(rep$inp$time[rep$inp$indlastobs])
+    indl <- rep$inp$indlastobs
+    et <- fd(rep$inp$time[indl])
     rownames(stateout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'))
+    if('true' %in% names(rep$inp)){
+        truest <- c(rep$inp$true$B[indl], rep$inp$true$F[indl], rep$inp$true$B[indl]/rep$inp$true$Bmsy,
+                    rep$inp$true$F[indl]/rep$inp$true$Fmsy)
+        nst <- length(truest)
+        cist <- numeric(nst)
+        for (i in 1:nst){
+            cist <- as.numeric(truest[i] > stateout[i, 2] & truest[i] < stateout[i, 3])
+        }
+        stateout <- cbind(stateout[, 1], round(truest, numdigits), stateout[, 2:3],
+                          cist, stateout[, 4])
+        colnames(stateout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
+    }
     return(stateout)
 }
 
@@ -352,9 +413,13 @@ sumspict.predictions <- function(rep, numdigits=8){
     predout[inds, 4] <- log(predout[inds, 4])
     predout <- round(predout, numdigits)
     colnames(predout) <- c('prediction', colnms[2:4])
-    et <- fd(rep$inp$time[rep$inp$dtprediind])
-    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_', fd(tail(rep$inp$timeCpred,1))), 'E(B_inf)')
-    if(rep$inp$dtpredc == 0) predout <- predout[-dim(predout)[1], ]
+    indp <- rep$inp$dtprediind
+    et <- fd(rep$inp$time[indp])
+    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'),
+                           paste0('F_',et,'/Fmsy'), paste0('Catch_', fd(tail(rep$inp$timeCpred,1))), 'E(B_inf)')
+    if(rep$inp$dtpredc == 0){
+        predout <- predout[-dim(predout)[1], ]
+    }
     return(predout)
 }
 
@@ -390,8 +455,16 @@ sumspict.fixedpars <- function(rep, numdigits=8){
     # Remove random effects
     reinds <- which(nms %in% rep$inp$RE)
     if(length(reinds)>0) nms <- nms[-reinds]
+    # Were index observations used? 
+    if (sum(rep$inp$nobsI) == 0){
+        nms <- nms[-match(c('logsdi', 'logq'), nms)]
+    }
+    # Were effort observations used? 
+    if (rep$inp$nobsE == 0){
+        nms <- nms[-match(c('logsde', 'logqf'), nms)]
+    }
     # Are robust options used? if not remove
-    if(!any(rep$inp$robflagi | rep$inp$robflagc)){
+    if(!any(rep$inp$robflagi | rep$inp$robflagc | rep$inp$robflage)){
         nms <- nms[-match(c('logitpp', 'logp1robfac'), nms)]
     }
     # Are seasonal spline used? if not remove
@@ -462,7 +535,7 @@ trans2real <- function(vals, nms, chgnms=TRUE){
 
 
 #' @name sumspict.priors
-#' @title Fixed paramters table.
+#' @title Fixed parameters table.
 #' @param rep A result report as generated by running fit.spict.
 #' @param numdigits Present values with this number of digits after the dot.
 #' @return data.frame containing fixed parameter information.
@@ -485,5 +558,43 @@ sumspict.priors <- function(rep, numdigits=8){
     }
     df <- data.frame(mean=means, std=stds)
     rownames(df) <- priornms
+    return(df)
+}
+
+
+#' @name sumspict.diagnostics
+#' @title Diagnostics table
+#' @param rep A result report as generated by running fit.spict.
+#' @param numdigits Present values with this number of digits after the dot.
+#' @return data.frame containing diagnostics information.
+#' @export
+sumspict.diagnostics <- function(rep, numdigits=8){
+    # Diagnostics matrix
+    diagn <- rep$diagn
+    nms <- names(diagn)
+    if (FALSE){
+        # Exclude Ljung-Box test for now, testing phase
+        inds <- grep('LB', nms) 
+        for (i in inds){
+            diagn[[nms[i]]] <- NULL
+        }
+    }
+    # Continue with LB removed
+    nms <- names(diagn)
+    tests <- unique(substr(nms, 1, 3))
+    ntests <- length(tests)
+    testnames <- sub('C.p', '', nms[1:ntests])
+    seriesnames <- sub('.p', '', sub(testnames[1], '', grep(testnames[1], nms, value=TRUE)))
+    diagnmat <- matrix(round(unlist(diagn), numdigits), rep$inp$nseries, ntests, byrow=TRUE)
+    colnames(diagnmat) <- testnames
+    rownames(diagnmat) <- seriesnames
+    # Stars
+    stars <- array('-', dim=dim(diagnmat))
+    colnames(stars) <- testnames
+    stars[diagnmat < 0.1] <- '.'
+    stars[diagnmat < 0.05] <- '*'
+    stars[diagnmat < 0.01] <- '**'
+    stars[diagnmat < 0.001] <- '***'
+    df <- cbind(as.data.frame(diagnmat), as.data.frame(stars))
     return(df)
 }

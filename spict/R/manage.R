@@ -1,5 +1,5 @@
 # Stochastic surplus Production model in Continuous-Time (SPiCT)
-#    Copyright (C) 2015  Martin Waever Pedersen, mawp@dtu.dk or wpsgodd@gmail.com
+#    Copyright (C) 2015-2016  Martin W. Pedersen, mawp@dtu.dk, wpsgodd@gmail.com
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #' }
 #' @param repin Result list from fit.spict().
 #' @param scenarios Vector of integers specifying which scenarios to run. Default: 'all'.
+#' @param manstart Year that management should be initiated.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
 #' @return List containing results of management calculations.
 #' @export
@@ -36,9 +37,16 @@
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' repman <- manage(rep)
-manage <- function(repin, scenarios='all', dbg=0){
-    if(scenarios == 'all') scenarios <- 1:6
-
+manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
+    if (scenarios == 'all'){
+        scenarios <- 1:6
+    }
+    if (is.null(manstart)){
+        manstart <- repin$inp$manstart
+    } else {
+        repin$inp$manstart <- manstart
+    }
+    maninds <- which(repin$inp$time >= manstart)
     # inpin is a list containing only observations (later prediction horizons are added)
     inpin <- list()
     inpin$dteuler <- repin$inp$dteuler
@@ -47,51 +55,43 @@ manage <- function(repin, scenarios='all', dbg=0){
     inpin$timeI <- repin$inp$timeI
     inpin$obsI <- repin$inp$obsI
     timelastobs <- repin$inp$time[repin$inp$indlastobs]
-    if(!repin$inp$timepredc < timelastobs+1){
+    if (!repin$inp$timepredc < timelastobs+1){
         # Always predict at least two years
         inpin$timepredc <- repin$inp$timepredc
         inpin$timepredi <- repin$inp$timepredi
         inp <- list()
         repman <- list() # Output list
-
-        if(1 %in% scenarios){
-            #cat('1\n')
+        if (1 %in% scenarios){
             # 1. Specify the catch, which will be taken each year in the prediction period
-            #catch <- get.par('MSY', repin)[2]
             catch <- tail(inpin$obsC, 1)
-            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg)
+            repman[[1]] <- take.c(catch, inpin, repin, maninds, dbg=dbg)
         }
-        if(2 %in% scenarios){
-            #cat('1\n')
+        if (2 %in% scenarios){
             # Keep current F
             fac2 <- 1.0
-            repman[[2]] <- prop.F(fac2, inpin, repin, dbg=dbg)
+            repman[[2]] <- prop.F(fac2, inpin, repin, maninds, dbg=dbg)
         }
-        if(3 %in% scenarios){
-            #cat('1\n')
+        if (3 %in% scenarios){
             # Fish at Fmsy
             Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
             Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indpred[1], 2]
             fac3 <- Fmsy / Flast
-            repman[[3]] <- prop.F(fac3, inpin, repin, dbg=dbg)
+            repman[[3]] <- prop.F(fac3, inpin, repin, maninds, dbg=dbg)
         }
-        if(4 %in% scenarios){
-            #cat('1\n')
-            # No fishing, reduce to 5% of last F
-            fac4 <- 0.01
-            repman[[4]] <- prop.F(fac4, inpin, repin, dbg=dbg)
+        if (4 %in% scenarios){
+            # No fishing, reduce to 0.1% of last F
+            fac4 <- 0.001
+            repman[[4]] <- prop.F(fac4, inpin, repin, maninds, dbg=dbg)
         }
-        if(5 %in% scenarios){
-            #cat('1\n')
+        if (5 %in% scenarios){
             # Reduce F by X%
             fac5 <- 0.75
-            repman[[5]] <- prop.F(fac5, inpin, repin, dbg=dbg)
+            repman[[5]] <- prop.F(fac5, inpin, repin, maninds, dbg=dbg)
         }
-        if(6 %in% scenarios){
-            #cat('1\n')
+        if (6 %in% scenarios){
             # Increase F by X%
             fac6 <- 1.25
-            repman[[6]] <- prop.F(fac6, inpin, repin, dbg=dbg)
+            repman[[6]] <- prop.F(fac6, inpin, repin, maninds, dbg=dbg)
         }
         repin$man <- repman
     } else {
@@ -106,24 +106,35 @@ manage <- function(repin, scenarios='all', dbg=0){
 #' @param fac Factor to multiply current F with.
 #' @param inpin Input list.
 #' @param repin Results list.
+#' @param maninds Indices of time vector for which to apply management.
+#' @param corF Make correction to F process such that the drift (-0.5*sdf^2*dt) is cancelled and F remains constant in projection mode
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
 #' @return List containing results of management calculations.
-prop.F <- function(fac, inpin, repin, dbg=0){
+prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
     inpt <- check.inp(inpin)
     plt <- repin$obj$env$parList(repin$opt$par)
     datint <- make.datin(inpt, dbg=dbg)
-    inds <- inpt$indpred
-    ninds <- length(inds)
-    ffacvec <- rep(1, ninds)
+    maninds <- inpt$indpred
+    nmaninds <- length(maninds)
     # Set F fac
-    ffacvec[1] <- fac
-    datint$ffacvec[inds] <- ffacvec
+    if (corF){
+        # This is to compensate for the -0.5*sdf^2*dt term in the logF process
+        sdf <- get.par('logsdf', repin, exp=TRUE)[2]
+        ffacvec <- exp(0.5 * sdf^2 * inpt$dt[maninds])
+    } else {
+        ffacvec <- rep(1, nmaninds)
+    }
+    ffacvec[1] <- ffacvec[1] * fac
+    datint$ffacvec[maninds] <- ffacvec
+    # Make object
     objt <- make.obj(datint, plt, inpt, phase=1)
     objt$fn(repin$opt$par)
     repmant <- sdreport(objt)
     repmant$inp <- inpt
     repmant$obj <- objt
-    if(!is.null(repmant)) class(repmant) <- "spictcls"
+    if (!is.null(repmant)){
+        class(repmant) <- "spictcls"
+    }
     return(repmant)
 }
 
@@ -133,14 +144,16 @@ prop.F <- function(fac, inpin, repin, dbg=0){
 #' @param catch Annual catch to take in the prediction period.
 #' @param inpin Input list.
 #' @param repin Results list.
+#' @param maninds Indices of time vector for which to apply management.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
 #' @return List containing results of management calculations.
-take.c <- function(catch, inpin, repin, dbg=0){
+take.c <- function(catch, inpin, repin, maninds, dbg=0){
     inpc <- check.inp(inpin)
     inpt <- inpin
     plt <- repin$obj$env$parList(repin$opt$par)
-    npred <- length(inpc$indpred)
-    timecatch <- annual(inpc$time[inpc$indpred[-npred]], numeric(length(inpc$indpred[-npred])))$anntime
+    nmaninds <- length(maninds)
+    timecatch <- annual(inpc$time[maninds[-nmaninds]],
+                        numeric(length(maninds[-nmaninds])))$anntime
     ncatch <- length(timecatch)
     obscatch <- rep(catch, ncatch)
     inpt$timeC <- c(inpt$timeC, timecatch)
@@ -154,7 +167,9 @@ take.c <- function(catch, inpin, repin, dbg=0){
     repmant <- sdreport(objt)
     repmant$inp <- inpt
     repmant$obj <- objt
-    if(!is.null(repmant)) class(repmant) <- "spictcls"
+    if (!is.null(repmant)){
+        class(repmant) <- "spictcls"
+    }
     return(repmant)
 }
 
@@ -164,9 +179,10 @@ take.c <- function(catch, inpin, repin, dbg=0){
 #' @param rep Result list as output from manage().
 #' @param ypred Show results for ypred years into the future.
 #' @param include.EBinf Include EBinf/Bmsy in the output.
+#' @param verbose Print more details on observed and predicted time intervals.
 #' @return Data frame containing management summary.
 #' @export
-mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
+mansummary <- function(rep, ypred=1, include.EBinf=FALSE, verbose=TRUE){
     repman <- rep$man
     # Calculate percent difference.
     get.pdelta <- function(rep, repman, indstart, indnext, parname='logB'){
@@ -174,10 +190,12 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
         val1 <- get.par(parname, repman, exp=TRUE)[indnext, 2]
         return(round((val1 - val)/val*100, 1))
     }
-    indstart <- rep$inp$indpred[1] # Current time
-    curtime <- rep$inp$time[indstart] # We are at 1 January this year
-    indnext <- which(rep$inp$time == curtime+ypred) # Current time + 1 year
-    if(length(indnext)==1){
+    indstart <- which(rep$inp$time == rep$inp$manstart) - 1
+    #indstart <- rep$inp$indpred[1]-1 # Current time (last time interval of last year)
+    #curtime <- rep$inp$time[indstart+1]
+    curtime <- rep$inp$manstart
+    indnext <- which(rep$inp$time == curtime+ypred) # Current time + ypred
+    if (length(indnext) == 1){
         indnextC <- which((rep$inp$timeCpred+rep$inp$dtcp) == curtime+ypred)
         nsc <- length(repman)
         Cnextyear <- numeric(nsc)
@@ -186,7 +204,7 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
         perc.dB <- numeric(nsc)
         perc.dF <- numeric(nsc)
         EBinf <- numeric(nsc)
-        for(i in 1:nsc){
+        for (i in 1:nsc){
             EBinf[i] <- get.EBinf(repman[[i]])
             perc.dB[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logB')
             perc.dF[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logF')
@@ -194,9 +212,17 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
             Bnextyear[i] <- get.par('logB', repman[[i]], exp=TRUE)[indnext, 2]
             Fnextyear[i] <- get.par('logF', repman[[i]], exp=TRUE)[indnext, 2]
         }
+        FBtime <- fd(curtime+ypred)
+        Ctime1 <- fd(rep$inp$timeCpred[indnextC])
+        Ctime2 <- fd(rep$inp$timeCpred[indnextC]+rep$inp$dtcp[indnextC])
         Cn <- paste0('C')
         Bn <- paste0('B')
         Fn <- paste0('F')
+        if (!verbose){
+            Cn <- paste0('C', Ctime1)
+            Bn <- paste0('B', FBtime)
+            Fn <- paste0('F', FBtime)
+        }
         BBn <- paste0('BqBmsy') # Should use / instead of q, but / is not accepted in varnames
         FFn <- paste0('FqFmsy')
         EBinfBn <- paste0('EBinfqBmsy')
@@ -208,24 +234,44 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE){
         df[[BBn]] <- round(Bnextyear/Bmsy, 2)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
         df[[FFn]] <- round(Fnextyear/Fmsy, 2)
-        if(include.EBinf & rep$inp$nseasons==1) df[[EBinfBn]] <- round(EBinf/Bmsy, 2)
+        if (include.EBinf & rep$inp$nseasons==1){
+            df[[EBinfBn]] <- round(EBinf/Bmsy, 2)
+        }
         df <- cbind(as.data.frame(df), perc.dB, perc.dF)
-        rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy', '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')
+        rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy',
+                '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')
         rownames(df) <- rn
         colnames(df)[4:6] <- sub('q', '/', colnames(df)[4:6]) # Replace q with /
         #cat('Management summary\n')
         timerangeI <- range(unlist(rep$inp$timeI))
         timerangeC <- range(rep$inp$timeC)
         lastcatchseen <- tail(rep$inp$timeC+rep$inp$dtc, 1)
-        cat(paste0('Observed interval, index:  ', fd(timerangeI[1]), ' - ', fd(timerangeI[2]), '\n'))
-        cat(paste0('Observed interval, catch:  ', fd(timerangeC[1]), ' - ', fd(lastcatchseen), '\n\n'))
-        cat(paste0('Fishing mortality (F) prediction: ', fd(curtime+ypred), '\n'))
-        cat(paste0('Biomass (B) prediction:           ', fd(curtime+ypred), '\n'))
-        cat(paste0('Catch (C) prediction interval:    ', fd(rep$inp$timeCpred[indnextC]), ' - ', fd(rep$inp$timeCpred[indnextC]+rep$inp$dtcp[indnextC]), '\n\n'))
-        if(rep$inp$catchunit != ''){
-            cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n\n'))
+        # Start printing stuff
+        if (verbose){ # Time interval information
+            cat(paste0('Observed interval, index:  ',
+                       fd(timerangeI[1]),
+                       ' - ',
+                       fd(timerangeI[2]),
+                       '\n'))
+            cat(paste0('Observed interval, catch:  ',
+                       fd(timerangeC[1]),
+                       ' - ',
+                       fd(lastcatchseen),
+                       '\n\n'))
+            cat(paste0('Fishing mortality (F) prediction: ',
+                       FBtime, '\n'))
+            cat(paste0('Biomass (B) prediction:           ',
+                       FBtime, '\n'))
+            cat(paste0('Catch (C) prediction interval:    ',
+                       Ctime1,
+                       ' - ',
+                       Ctime2,
+                       '\n\n'))
+            if (rep$inp$catchunit != ''){
+                cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n\n'))
+            }
+            cat('Predictions\n')
         }
-        cat('Predictions\n')
         print(df)
         invisible(df)
     } else {
