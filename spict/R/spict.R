@@ -43,6 +43,7 @@
 #'   \item{"logU"}{ Log of the state of the coupled SDE system used to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
 #'   \item{"loglambda"}{ Log of damping parameter when using the coupled SDE system to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
 #'   \item{"logsdu"}{ Log of standard deviation of process error of U_t (the state of the coupled SDE system) used to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
+#'   \item{"logsde"}{ Log of standard deviation of observation error of effort data. Only used if effort data is part of input.}
 #'   \item{"logp1robfac"}{ Log plus one of the coefficient to the standard deviation of the observation error when using a mixture distribution robust toward outliers, i.e. when either inp$robflag = 1 and/or inp$robflagi = 1.}
 #'   \item{"logitpp"}{Logit of the proportion of narrow distribution when using a mixture distribution robust toward outliers, i.e. when either inp$robflag = 1 and/or inp$robflagi = 1.}
 #' }
@@ -86,31 +87,31 @@ fit.spict <- function(inp, dbg=0){
     pl <- inp$parlist
     tic <- Sys.time()
     # Cycle through phases
-    for(i in 1:inp$nphases){
-        if(inp$nphases>1) cat(paste('Estimating - phase', i, '\n'))
+    for (i in 1:inp$nphases){
+        if (inp$nphases > 1) cat(paste('Estimating - phase', i, '\n'))
         # Create TMB object
         obj <- make.obj(datin, pl, inp, phase=i)
-        if(dbg<1){
+        if (dbg<1){
             # Do estimation
-            if(inp$optimiser == 'nlminb'){
+            if (inp$optimiser == 'nlminb'){
                 opt <- try(nlminb(obj$par, obj$fn, obj$gr, control=inp$optimiser.control))
-                if(class(opt)!='try-error'){
+                if (class(opt)!='try-error'){
                     pl <- obj$env$parList(opt$par)
                 }
             }
-            if(inp$optimiser == 'optim'){
+            if (inp$optimiser == 'optim'){
                 opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method='BFGS', control=inp$optimiser.control))
-                if(class(opt)!='try-error'){
+                if (class(opt) != 'try-error'){
                     opt$objective <- opt$value
                     pl <- obj$env$parList(opt$par)
                 }
             }
         }
     }
-    if(dbg<1){
+    if (dbg<1){
         optfailflag <- class(opt)=='try-error'
         sdfailflag <- FALSE
-        if(optfailflag){ # Optimisation failed
+        if (optfailflag){ # Optimisation failed
             cat('obj$par:\n')
             print(obj$par)
             cat('obj$fn:\n')
@@ -119,7 +120,7 @@ fit.spict <- function(inp, dbg=0){
             print(obj$gr())
             stop('Could not fit model. Error msg:', opt)
         } else {
-            if(inp$do.sd.report){
+            if (inp$do.sd.report){
                 # Calculate SD report
                 # Check if TMB version is higher than or equal to 1.7.1
                 # Versions below this don't have the getReportCovariance argument
@@ -135,14 +136,14 @@ fit.spict <- function(inp, dbg=0){
                                              bias.correct.control=inp$bias.correct.control))
                 }
                 sdfailflag <- class(rep) == 'try-error'
-                if(sdfailflag){
+                if (sdfailflag){
                     warning('Could not calculate sdreport.\n')
                     rep <- NULL
                 }
             }
-            if(is.null(rep)){ # If sdreport failed or was not calculated
+            if (is.null(rep)){ # If sdreport failed or was not calculated
                 rep <- list()
-                if(sdfailflag){
+                if (sdfailflag){
                     rep <- list()
                     rep$sderr <- 1
                     rep$par.fixed <- opt$par
@@ -157,11 +158,11 @@ fit.spict <- function(inp, dbg=0){
             obj$fn()
             rep$Cp <- obj$report()$Cp
             rep$report <- obj$report()
-            if(!sdfailflag & inp$reportall){
+            if (!sdfailflag & inp$reportall){
                 #  - Calculate Prager's statistics -
                 #rep <- calc.prager.stats(rep)
                 # - Built-in OSAR -
-                if(!inp$osar.method == 'none'){
+                if (!inp$osar.method == 'none'){
                     reposar <- try(calc.osa.resid(rep))
                     if (class(reposar) != 'try-error'){
                         rep <- reposar
@@ -171,7 +172,7 @@ fit.spict <- function(inp, dbg=0){
         }
     }
     toc <- Sys.time()
-    if(!is.null(rep)){
+    if (!is.null(rep)){
         rep$computing.time <- as.numeric(toc - tic)
         class(rep) <- "spictcls"
     }
@@ -181,14 +182,16 @@ fit.spict <- function(inp, dbg=0){
 
 
 calc.prager.stats <- function(rep){
-    if(!'stats' %in% names(rep)) rep$stats <- list()
+    if (!'stats' %in% names(rep)){
+        rep$stats <- list()
+    }
     K <- get.par('logK', rep, exp=TRUE)[2]
     Bests <- get.par('logB', rep, exp=TRUE)[rep$inp$indest, 2]
     Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
-    if(!any(is.na(Bests)) & !is.na(Bmsy)){
+    if (!any(is.na(Bests)) & !is.na(Bmsy)){
         Bdiff <- Bmsy - Bests
         # Prager's nearness
-        if(any(diff(sign(Bdiff))!=0)){
+        if (any(diff(sign(Bdiff))!=0)){
             rep$stats$nearness <- 1
         } else {
             rep$stats$nearness <- 1 - min(abs(Bdiff))/Bmsy
@@ -248,7 +251,6 @@ make.datin <- function(inp, dbg=0){
                   stochmsy=ifelse(inp$msytype=='s', 1, 0),
                   priorn=inp$priors$logn,
                   priorr=inp$priors$logr,
-                  #priorrp=inp$priors$logrp,
                   priorK=inp$priors$logK,
                   priorm=inp$priors$logm,
                   priorq=inp$priors$logq,
@@ -287,7 +289,8 @@ make.datin <- function(inp, dbg=0){
 #' @export
 #' @import TMB
 make.obj <- function(datin, pl, inp, phase=1){
-    obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname, hessian=TRUE, map=inp$map[[phase]])
+    obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname,
+                          hessian=TRUE, map=inp$map[[phase]])
     TMB:::config(trace.optimize=0, DLL=inp$scriptname)
     verbose <- FALSE
     obj$env$tracemgc <- verbose

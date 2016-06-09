@@ -29,21 +29,23 @@
 #' @import TMB
 calc.osa.resid <- function(rep){
     doflag <- TRUE
-    if('sderr' %in% names(rep)){
+    if ('sderr' %in% names(rep)){
         doflag <- rep$sderr != 1
         errmsg <- 'Could not calculate OSA residuals because sdreport() resulted in an error.\n'
     }
-    if(rep$opt$convergence > 0){
+    if (rep$opt$convergence > 0){
         doflag <- FALSE
         errmsg <- 'Could not calculate OSA residuals because estimation did not converge.\n'
     }
-    if(doflag){
+    if (doflag){
         inp <- rep$inp
         # - Built-in OSAR -
-        if(rep$inp$osar.method == 'none'){
+        if (rep$inp$osar.method == 'none'){
             rep$inp$osar.method <- 'oneStepGaussianOffMode' # New default
         }
-        if(inp$osar.trace) cat('Number of OSAR steps:', length(rep$inp$osar.subset), '\n')
+        if (inp$osar.trace){
+            cat('Number of OSAR steps:', length(rep$inp$osar.subset), '\n')
+        }
         osar <- try(oneStepPredict(rep$obj,
                                    observation.name = "obssrt",
                                    data.term.indicator='keep',
@@ -53,7 +55,7 @@ calc.osa.resid <- function(rep){
                                    subset=rep$inp$osar.subset,
                                    trace=inp$osar.trace,
                                    parallel=inp$osar.parallel))
-        if(class(osar) != 'try-error'){
+        if (class(osar) != 'try-error'){
             osar <- cbind(id=inp$obsidsrt[inp$osar.subset], osar)
             rep$diagn <- list()
             # Store catch residuals
@@ -93,7 +95,7 @@ calc.osa.resid <- function(rep){
             logIpres <- list()
             if (inp$nindex > 0){
                 rep$osarI <- list()
-                for(i in 1:rep$inp$nindex){
+                for (i in 1:rep$inp$nindex){
                     inds <- match(inp$obsidI[[i]], osar$id)
                     inds <- inds[!is.na(inds)]
                     rep$osarI[[i]] <- osar[inds,]
@@ -102,10 +104,10 @@ calc.osa.resid <- function(rep){
                     timeI[[i]] <- inp$timeI[[i]][inds2]
                 }
                 npar <- length(rep$opt$par)
-                if(!'diagn' %in% names(rep)) rep$diagn <- list()
+                if (!'diagn' %in% names(rep)) rep$diagn <- list()
                 # Index residual analysis
                 diagnIp <- list()
-                for(i in 1:inp$nindex){
+                for (i in 1:inp$nindex){
                     logIpres[[i]] <- rep$osarI[[i]]$residual
                     diagnIpi <- res.diagn(logIpres[[i]], paste0('I', i), name=paste0('index', i))
                     for (nm in names(diagnIpi)){
@@ -132,16 +134,19 @@ calc.osa.resid <- function(rep){
 #' @name res.diagn
 #' @title Helper function for calc.osar.resid that calculates residual statistics.
 #' @param resid Residuals from either catches or indices.
+#' @param id Identifier for residuals e.g. "C".
 #' @param name Identifier that will be used in warning messages.
 #' @return List containing residual statistics in 'diagn', shapiro output in 'shapiro', and bias output in 'bias'.
 #' @export
 res.diagn <- function(resid, id, name=''){
     nna <- sum(is.na(resid))
-    if(nna > 0) warning(nna, ' NAs found in ', name, ' residuals')
+    if (nna > 0){
+        warning(nna, ' NAs found in ', name, ' residuals')
+    }
     nnotna <- sum(!is.na(resid))
     diagn <- list()
     acf.p <- NULL
-    if(nnotna > 2){
+    if (nnotna > 2){
         shapiro <- shapiro.test(resid) # Test for normality of residuals
         bias <- t.test(resid) # Test for bias of residuals
         acf.p <- min(acf.signf(resid, lag.max=4, return.p=TRUE))
@@ -162,7 +167,8 @@ res.diagn <- function(resid, id, name=''){
         }
         lb <- Box.test(resid, lag=4, fitdf=1)$p.value
     } else {
-        warning('Warning: only ', nnotna, ' non-NAs found in ', name, ' residuals. Not calculating residual statistics')
+        warning('Warning: only ', nnotna, ' non-NAs found in ', name,
+                ' residuals. Not calculating residual statistics')
         bias <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
         shapiro <- list(statistic=NA, p.value=NA, method=NA, data.name=NA)
         lb <- NA

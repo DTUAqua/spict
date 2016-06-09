@@ -37,25 +37,25 @@ read.aspic <- function(filename){
     i <- 0
     iq <- 0
     found <- FALSE
-    while(c<16){
+    while(c < 16){
         i <- i+1
         found <- !substr(rawdat[i],1,1)=='#'
         c <- c + found
-        if(c==1 & found) dat$version <- rawdat[i]
-        if(c==2 & found) dat$title <- rawdat[i]
+        if (c==1 & found) dat$version <- rawdat[i]
+        if (c==2 & found) dat$title <- rawdat[i]
         # Number of observations
-        if(c==5 & found) dat$nobs <- as.numeric(read.table(filename, skip=i-1, nrows=1)[1])
+        if (c==5 & found) dat$nobs <- as.numeric(read.table(filename, skip=i-1, nrows=1)[1])
         # Number of data series
-        if(c==5 & found){
+        if (c==5 & found){
             dat$nseries <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
             dat$qini <- rep(0, dat$nseries)
         }
         # Initial parameters
-        if(c==10 & found) dat$B1Kini <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
-        if(c==11 & found) dat$MSYini <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
-        if(c==12 & found) dat$Fmsyini <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
-        if('nseries' %in% names(dat)){
-            if(c==(13+iq) & found & iq<dat$nseries){
+        if (c==10 & found) dat$B1Kini <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
+        if (c==11 & found) dat$MSYini <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
+        if (c==12 & found) dat$Fmsyini <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
+        if ('nseries' %in% names(dat)){
+            if (c==(13+iq) & found & iq < dat$nseries){
                 iq <- iq+1
                 dat$qini[iq] <- as.numeric(read.table(filename, skip=i-1, nrows=1)[2])
             }
@@ -67,29 +67,29 @@ read.aspic <- function(filename){
     idat <- which(rawdat=='DATA')
     type <- rep('', dat$nseries)
     name <- rep('', dat$nseries)
-    for(j in 1:dat$nseries){
+    for (j in 1:dat$nseries){
         c <- 0
         i <- 0
-        while(c<2){
+        while(c < 2){
             i <- i+1
             c <- c + !substr(rawdat[idat+i],1,1)=='#'
-            if(c==1) name[j] <- rawdat[idat+i]
-            if(c==2) type[j] <- rawdat[idat+i]
+            if (c==1) name[j] <- rawdat[idat+i]
+            if (c==2) type[j] <- rawdat[idat+i]
         }
         datstart <- idat+i
         obsdat[[j]] <- read.table(filename, skip=datstart, sep='', nrows=dat$nobs)
         obsdat[[j]][obsdat[[j]]<0] <- NA
-        if(type[j]=='CE'){
+        if (type[j] == 'CE'){
             obsdat[[j]] <- obsdat[[j]][, 1:3]
             colnames(obsdat[[j]]) <- c('time', 'effort', 'catch')
             obsdat[[j]] <- cbind(obsdat[[j]], cpue=obsdat[[j]]$catch/obsdat[[j]]$effort)
         }
-        if(type[j]=='CC'){
+        if (type[j] == 'CC'){
             obsdat[[j]] <- obsdat[[j]][, 1:3]
             colnames(obsdat[[j]]) <- c('time', 'cpue', 'catch')
         }
         # ASPIC differentiates between these index types, but SPiCT does not (yet). See the ASPIC manual for details.
-        if(type[j] %in% c('I0','I1','I2','B0','B1','B2')){ 
+        if (type[j] %in% c('I0','I1','I2','B0','B1','B2')){ 
             obsdat[[j]] <- obsdat[[j]][, 1:2]
             colnames(obsdat[[j]]) <- c('time', 'index')
         }
@@ -104,27 +104,21 @@ read.aspic <- function(filename){
     # Insertindices
     inp$timeI <- list()
     inp$obsI <- list()
-    for(j in 1:dat$nseries){
-        if(type[j] %in% c('CC', 'CE')){
+    for (j in 1:dat$nseries){
+        if (type[j] %in% c('CC', 'CE')){
             inp$timeI[[j]] <- obsdat[[j]]$time[!is.na(obsdat[[j]]$cpue)]
             inp$obsI[[j]] <- obsdat[[j]]$cpue[!is.na(obsdat[[j]]$cpue)]
         }
-        if(type[j] %in% c('I0','I1','I2','B0','B1','B2')){
+        if (type[j] %in% c('I0','I1','I2','B0','B1','B2')){
             inp$timeI[[j]] <- obsdat[[j]]$time[!is.na(obsdat[[j]]$index)]
             inp$obsI[[j]] <- obsdat[[j]]$index[!is.na(obsdat[[j]]$index)]
         }
     }
     # Insert initial values
     inp$ini <- list()
-    #inp$ini$logbkfrac <- log(dat$B1Kini)
     inp$ini$logr <- log(2*dat$Fmsyini)
     inp$ini$logK <- log(2*dat$MSYini/dat$Fmsyini)
     inp$ini$logq <- log(dat$qini)
-    #inp$ini$logsdf <- log(1)
-    #inp$ini$logsdb <- log(1)
-    #inp$lamperti <- 1
-    #inp$euler <- 1
-    #inp$dteuler <- 1
     return(inp)
 }
 
@@ -143,9 +137,13 @@ read.aspic <- function(filename){
 #' @export
 write.aspic <- function(input, filename='spictout.a7inp', verbose=FALSE){
     inp <- check.inp(input)
-    if(any(c(inp$timeC, unlist(inp$timeI)) %% 1 != 0)) cat('Warning (write.aspic): Observation times were rounded down (floored) to integers. Consider providing only integer observation times.\n')
+    if (any(c(inp$timeC, unlist(inp$timeI)) %% 1 != 0)){
+        cat('Warning (write.aspic): Observation times were rounded down (floored) to integers. Consider providing only integer observation times.\n')
+    }
     inp$timeC <- floor(inp$timeC)
-    for(i in 1:inp$nindex) inp$timeI[[i]] <- floor(inp$timeI[[i]])
+    for (i in 1:inp$nindex){
+        inp$timeI[[i]] <- floor(inp$timeI[[i]])
+    }
     timeobs <- sort(unique(c(inp$timeC, inp$timeI[[1]])))
     nobs <- length(timeobs)
     dat <- cbind(timeobs, rep(-1, nobs), rep(-1, nobs))
@@ -157,12 +155,16 @@ write.aspic <- function(input, filename='spictout.a7inp', verbose=FALSE){
         cat('Writing input to:', filename, '\n')
     }
     cat('ASPIC-V7\n', file=filename)
-    cat(paste('# File generated by SPiCT function write.aspic at', Sys.time(), '\n'), file=filename, append=TRUE)
+    cat(paste('# File generated by SPiCT function write.aspic at', Sys.time(), '\n'),
+        file=filename, append=TRUE)
     cat('"Unknown stock"\n', file=filename, append=TRUE)
-    cat('# Program mode (FIT/BOT), verbosity, N bootstraps, [opt] user percentile:\n', file=filename, append=TRUE)
-    cat(paste0(inp$aspic$mode, '  ', inp$aspic$verbosity, '  ', inp$aspic$nboot, '  ', inp$aspic$ciperc, '\n'), file=filename, append=TRUE)
+    cat('# Program mode (FIT/BOT), verbosity, N bootstraps, [opt] user percentile:\n',
+        file=filename, append=TRUE)
+    cat(paste0(inp$aspic$mode, '  ', inp$aspic$verbosity, '  ', inp$aspic$nboot, '  ',
+               inp$aspic$ciperc, '\n'), file=filename, append=TRUE)
     #cat('BOT  102  1000  95\n', file=filename, append=TRUE)
-    cat('# Model shape, conditioning (YLD/EFT), obj. fn. (SSE/LAV/MLE/MAP):\n', file=filename, append=TRUE)
+    cat('# Model shape, conditioning (YLD/EFT), obj. fn. (SSE/LAV/MLE/MAP):\n',
+        file=filename, append=TRUE)
     cat('LOGISTIC  YLD  SSE\n', file=filename, append=TRUE)
     cat('# N years, N series:\n', file=filename, append=TRUE)
     cat(paste0(nobs, '  ', inp$nindex, '\n'), file=filename, append=TRUE)
@@ -176,27 +178,47 @@ write.aspic <- function(input, filename='spictout.a7inp', verbose=FALSE){
     cat('1234\n', file=filename, append=TRUE)
     cat('# Initial guesses and bounds follow:\n', file=filename, append=TRUE)
     estbkfrac <- 1
-    if(!is.null(inp$phases$logbkfrac)) if(inp$phases$logbkfrac==-1) estbkfrac <- 0
+    if (!is.null(inp$phases$logbkfrac)){
+        if (inp$phases$logbkfrac==-1){
+            estbkfrac <- 0
+        }
+    }
     #estbkfrac <- 0
-    if(!'logbkfrac' %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
-    cat(sprintf('B1K   %3.2E  %i  %3.2E  %3.2E  penalty  %3.2E\n', exp(inp$ini$logbkfrac), estbkfrac, 0.01*exp(inp$ini$logbkfrac), 100*exp(inp$ini$logbkfrac), 0), file=filename, append=TRUE)
+    if (!'logbkfrac' %in% names(inp$ini)){
+        inp$ini$logbkfrac <- log(0.8)
+    }
+    cat(sprintf('B1K   %3.2E  %i  %3.2E  %3.2E  penalty  %3.2E\n',
+                exp(inp$ini$logbkfrac), estbkfrac, 0.01*exp(inp$ini$logbkfrac),
+                100*exp(inp$ini$logbkfrac), 0), file=filename, append=TRUE)
     MSY <- exp(inp$ini$logK + inp$ini$logr)/4
-    cat(sprintf('MSY   %3.2E  1  %3.2E  %3.2E\n', MSY, 0.03*MSY, 5000*MSY), file=filename, append=TRUE)
+    cat(sprintf('MSY   %3.2E  1  %3.2E  %3.2E\n', MSY, 0.03*MSY, 5000*MSY),
+        file=filename, append=TRUE)
     Fmsy <- exp(inp$ini$logr)/2
-    cat(sprintf('Fmsy  %3.2E  1  %3.2E  %3.2E\n', Fmsy, 0.01*Fmsy, 100*Fmsy), file=filename, append=TRUE)
-    for(i in 1:inp$nindex) cat(sprintf('q     %3.2E  1  %3.2E  %3.2E  %3.2E\n', exp(inp$ini$logq[i]), 1, 0.001*exp(inp$ini$logq[i]), 100*exp(inp$ini$logq[i])), file=filename, append=TRUE)
+    cat(sprintf('Fmsy  %3.2E  1  %3.2E  %3.2E\n', Fmsy, 0.01*Fmsy, 100*Fmsy),
+        file=filename, append=TRUE)
+    for (i in 1:inp$nindex){
+        cat(sprintf('q     %3.2E  1  %3.2E  %3.2E  %3.2E\n',
+                    exp(inp$ini$logq[i]), 1, 0.001*exp(inp$ini$logq[i]),
+                    100*exp(inp$ini$logq[i])), file=filename, append=TRUE)
+    }
     cat('DATA\n', file=filename, append=TRUE)
     cat('"Combined-Fleet Index, Total Landings"\n', file=filename, append=TRUE)
     cat('CC\n', file=filename, append=TRUE) # CC refers to CPUE annual average, catch annual total.
-    for(i in 1:nobs) cat(sprintf('  %4i    % 6.4E    % 6.4E\n', timeobs[i], dat[i, 2], dat[i, 3]), file=filename, append=TRUE)
-    if(inp$nindex>1){
-        for(I in 2:inp$nindex){
+    for (i in 1:nobs){
+        cat(sprintf('  %4i    % 6.4E    % 6.4E\n', timeobs[i], dat[i, 2],
+                    dat[i, 3]), file=filename, append=TRUE)
+    }
+    if (inp$nindex>1){
+        for (I in 2:inp$nindex){
             cat(paste0('"Index',I-1,'"\n'), file=filename, append=TRUE)
             cat('I1\n', file=filename, append=TRUE)
             dat <- cbind(timeobs, rep(-1, nobs))
             inds <- match(inp$timeI[[I]], timeobs)
             dat[inds, 2] <- inp$obsI[[I]]
-            for(i in 1:nobs) cat(sprintf('  %4i    % 6.4E\n', dat[i ,1], dat[i, 2]), file=filename, append=TRUE)
+            for (i in 1:nobs){
+                cat(sprintf('  %4i    % 6.4E\n', dat[i ,1], dat[i, 2]),
+                    file=filename, append=TRUE)
+            }
         }
     }
 }

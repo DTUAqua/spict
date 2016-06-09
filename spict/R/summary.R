@@ -48,7 +48,8 @@ summary.spictcls <- function(object, ...){
     }
     cat(paste0(txtobj, round(rep$obj$fn(), numdigits), '\n'))
     #cat(paste0('Computing time (seconds): ', round(rep$computing.time, 3), '\n'))
-    cat(paste0('Euler time step (years):  1/', 1/rep$inp$dteuler, ' or ', rep$inp$dteuler, '\n'))
+    cat(paste0('Euler time step (years):  1/', round(1/rep$inp$dteuler, 2),
+               ' or ', round(rep$inp$dteuler, 5), '\n'))
     str <- paste0('Nobs C: ', rep$inp$nobsC)
     if (rep$inp$nindex > 0){
         str <- paste0(str, paste0(paste0(',  Nobs I', 1:rep$inp$nindex),
