@@ -23,7 +23,7 @@
 
 \item{sdb}{Standard deviation of biomass process.}
 
-\item{efforttype}{If 'lamperti' use Lamperti transformed equation, if 'naive' use naive formulation.}
+\item{btype}{If 'lamperti' use Lamperti transformed equation, if 'naive' use naive formulation.}
 }
 \value{
 Predicted biomass at the end of dt.

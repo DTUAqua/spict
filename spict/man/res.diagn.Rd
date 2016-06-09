@@ -9,6 +9,8 @@ res.diagn(resid, id, name = "")
 \arguments{
 \item{resid}{Residuals from either catches or indices.}
 
+\item{id}{Identifier for residuals e.g. "C".}
+
 \item{name}{Identifier that will be used in warning messages.}
 }
 \value{

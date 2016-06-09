@@ -41,6 +41,7 @@ Other parameters (which are only needed in certain cases):
   \item{"logU"}{ Log of the state of the coupled SDE system used to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
   \item{"loglambda"}{ Log of damping parameter when using the coupled SDE system to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
   \item{"logsdu"}{ Log of standard deviation of process error of U_t (the state of the coupled SDE system) used to represent seasonal variation, i.e. when inp$nseasons > 1 and inp$seasontype = 2.}
+  \item{"logsde"}{ Log of standard deviation of observation error of effort data. Only used if effort data is part of input.}
   \item{"logp1robfac"}{ Log plus one of the coefficient to the standard deviation of the observation error when using a mixture distribution robust toward outliers, i.e. when either inp$robflag = 1 and/or inp$robflagi = 1.}
   \item{"logitpp"}{Logit of the proportion of narrow distribution when using a mixture distribution robust toward outliers, i.e. when either inp$robflag = 1 and/or inp$robflagi = 1.}
 }

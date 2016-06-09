@@ -8,6 +8,8 @@ txt.stamp(string = get.version(), cex = 0.5)
 }
 \arguments{
 \item{string}{Character string to stamp.}
+
+\item{cex}{Stamp cex.}
 }
 \value{
 Nothing

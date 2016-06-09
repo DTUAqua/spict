@@ -11,6 +11,8 @@ manage(repin, scenarios = "all", manstart = NULL, dbg = 0)
 
 \item{scenarios}{Vector of integers specifying which scenarios to run. Default: 'all'.}
 
+\item{manstart}{Year that management should be initiated.}
+
 \item{dbg}{Debug flag, dbg=1 some output, dbg=2 more ourput.}
 }
 \value{
