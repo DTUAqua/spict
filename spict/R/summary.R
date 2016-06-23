@@ -48,7 +48,8 @@ summary.spictcls <- function(object, ...){
     }
     cat(paste0(txtobj, round(rep$obj$fn(), numdigits), '\n'))
     #cat(paste0('Computing time (seconds): ', round(rep$computing.time, 3), '\n'))
-    cat(paste0('Euler time step (years):  1/', 1/rep$inp$dteuler, ' or ', rep$inp$dteuler, '\n'))
+    cat(paste0('Euler time step (years):  1/', round(1/rep$inp$dteuler, 2),
+               ' or ', round(rep$inp$dteuler, 5), '\n'))
     str <- paste0('Nobs C: ', rep$inp$nobsC)
     if (rep$inp$nindex > 0){
         str <- paste0(str, paste0(paste0(',  Nobs I', 1:rep$inp$nindex),
@@ -370,8 +371,21 @@ sumspict.states <- function(rep, numdigits=8){
     stateout[, 4] <- log(stateout[, 4])
     stateout <- round(stateout, numdigits)
     colnames(stateout) <- colnms
-    et <- fd(rep$inp$time[rep$inp$indlastobs])
+    indl <- rep$inp$indlastobs
+    et <- fd(rep$inp$time[indl])
     rownames(stateout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'))
+    if('true' %in% names(rep$inp)){
+        truest <- c(rep$inp$true$B[indl], rep$inp$true$F[indl], rep$inp$true$B[indl]/rep$inp$true$Bmsy,
+                    rep$inp$true$F[indl]/rep$inp$true$Fmsy)
+        nst <- length(truest)
+        cist <- numeric(nst)
+        for (i in 1:nst){
+            cist <- as.numeric(truest[i] > stateout[i, 2] & truest[i] < stateout[i, 3])
+        }
+        stateout <- cbind(stateout[, 1], round(truest, numdigits), stateout[, 2:3],
+                          cist, stateout[, 4])
+        colnames(stateout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
+    }
     return(stateout)
 }
 
@@ -399,9 +413,13 @@ sumspict.predictions <- function(rep, numdigits=8){
     predout[inds, 4] <- log(predout[inds, 4])
     predout <- round(predout, numdigits)
     colnames(predout) <- c('prediction', colnms[2:4])
-    et <- fd(rep$inp$time[rep$inp$dtprediind])
-    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'), paste0('Catch_', fd(tail(rep$inp$timeCpred,1))), 'E(B_inf)')
-    if(rep$inp$dtpredc == 0) predout <- predout[-dim(predout)[1], ]
+    indp <- rep$inp$dtprediind
+    et <- fd(rep$inp$time[indp])
+    rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'),
+                           paste0('F_',et,'/Fmsy'), paste0('Catch_', fd(tail(rep$inp$timeCpred,1))), 'E(B_inf)')
+    if(rep$inp$dtpredc == 0){
+        predout <- predout[-dim(predout)[1], ]
+    }
     return(predout)
 }
 

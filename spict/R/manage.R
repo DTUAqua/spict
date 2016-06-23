@@ -29,6 +29,7 @@
 #' }
 #' @param repin Result list from fit.spict().
 #' @param scenarios Vector of integers specifying which scenarios to run. Default: 'all'.
+#' @param manstart Year that management should be initiated.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
 #' @return List containing results of management calculations.
 #' @export
@@ -54,40 +55,40 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
     inpin$timeI <- repin$inp$timeI
     inpin$obsI <- repin$inp$obsI
     timelastobs <- repin$inp$time[repin$inp$indlastobs]
-    if(!repin$inp$timepredc < timelastobs+1){
+    if (!repin$inp$timepredc < timelastobs+1){
         # Always predict at least two years
         inpin$timepredc <- repin$inp$timepredc
         inpin$timepredi <- repin$inp$timepredi
         inp <- list()
         repman <- list() # Output list
-        if(1 %in% scenarios){
+        if (1 %in% scenarios){
             # 1. Specify the catch, which will be taken each year in the prediction period
             catch <- tail(inpin$obsC, 1)
             repman[[1]] <- take.c(catch, inpin, repin, maninds, dbg=dbg)
         }
-        if(2 %in% scenarios){
+        if (2 %in% scenarios){
             # Keep current F
             fac2 <- 1.0
             repman[[2]] <- prop.F(fac2, inpin, repin, maninds, dbg=dbg)
         }
-        if(3 %in% scenarios){
+        if (3 %in% scenarios){
             # Fish at Fmsy
             Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
             Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indpred[1], 2]
             fac3 <- Fmsy / Flast
             repman[[3]] <- prop.F(fac3, inpin, repin, maninds, dbg=dbg)
         }
-        if(4 %in% scenarios){
+        if (4 %in% scenarios){
             # No fishing, reduce to 0.1% of last F
             fac4 <- 0.001
             repman[[4]] <- prop.F(fac4, inpin, repin, maninds, dbg=dbg)
         }
-        if(5 %in% scenarios){
+        if (5 %in% scenarios){
             # Reduce F by X%
             fac5 <- 0.75
             repman[[5]] <- prop.F(fac5, inpin, repin, maninds, dbg=dbg)
         }
-        if(6 %in% scenarios){
+        if (6 %in% scenarios){
             # Increase F by X%
             fac6 <- 1.25
             repman[[6]] <- prop.F(fac6, inpin, repin, maninds, dbg=dbg)
@@ -131,7 +132,9 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
     repmant <- sdreport(objt)
     repmant$inp <- inpt
     repmant$obj <- objt
-    if(!is.null(repmant)) class(repmant) <- "spictcls"
+    if (!is.null(repmant)){
+        class(repmant) <- "spictcls"
+    }
     return(repmant)
 }
 
@@ -164,7 +167,9 @@ take.c <- function(catch, inpin, repin, maninds, dbg=0){
     repmant <- sdreport(objt)
     repmant$inp <- inpt
     repmant$obj <- objt
-    if(!is.null(repmant)) class(repmant) <- "spictcls"
+    if (!is.null(repmant)){
+        class(repmant) <- "spictcls"
+    }
     return(repmant)
 }
 
@@ -286,7 +291,7 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE, include.unc=TRUE, verb
                        ' - ',
                        Ctime2,
                        '\n\n'))
-            if(rep$inp$catchunit != ''){
+            if (rep$inp$catchunit != ''){
                 cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n\n'))
             }
             cat('Predictions\n')

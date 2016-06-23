@@ -38,7 +38,7 @@
 #'  \item{"inp$nseasons"}{ Number of within-year seasons in data. If inp$nseasons > 1 then a seasonal pattern is used in F. Valid values of inp$nseasons are 1, 2 or 4. Default: number of unique within-year time points present in data.}
 #' }
 #' 
-#' - Parameters
+#' - Initial parameter values
 #' 
 #' \itemize{
 #'  \item{"inp$ini$logn"}{ Pella-Tomlinson exponent determining shape of production function. Default: log(2) corresponding to the Schaefer formulation.}
@@ -54,7 +54,7 @@
 #'  \item{"inp$ini$loglambda"}{ Initial value for loglambda (log damping parameter of the coupled SDE representation of seasonality). Default: log(0.1).}
 #' }
 #'
-#' - Unobserved states estimated as random effects
+#' - Initial values for unobserved states estimated as random effects
 #' 
 #' \itemize{
 #'   \item{"inp$ini$logF"}{ Log fishing mortality. Default: log(0.2*r), with r derived from m and K.}
@@ -64,7 +64,7 @@
 #' 
 #' - Priors
 #' 
-#' Priors on model parameters are assumed Gaussian and specified in a vector of length 2: c(log(mean), stdev in log domain, useflag [optional]). NOTE: if specifying a prior for logB, then a 4th element is required specifying the year the prior should be applied.
+#' Priors on model parameters are assumed generally assumed Gaussian and specified in a vector of length 2: c(log(mean), stdev in log domain, useflag [optional]). NOTE: if specifying a prior for a value in a temporal vector e.g. logB, then a fourth element is required specifying the year the prior should be applied.
 #' log(mean): log of the mean of the prior distribution.
 #' stdev in log: standard deviation of the prior distribution in log domain.
 #' useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
@@ -75,6 +75,8 @@
 #' Example: Biomass prior of 200 in 1985
 #'  inp$priors$logB <- c(log(200), 0.2, 1985)
 #'  inp$priors$logB <- c(log(200), 0.2, 1, 1985) # This includes the optional useflag
+#' Example: Inverse gamma prior on sdb^2:
+#'  inp$priors$isdb2gamma <- meanvar2shaperate(1/exp(inp$ini$logsdb)^2, 150^2)
 #' 
 #' - Settings/Options/Preferences
 #' 
@@ -95,7 +97,9 @@
 #'  \item{"inp$catchunit"}{ Specify unit of catches to be used in plotting legends. Default: ''.}
 #'  \item{"inp$stdevfacC"}{ Factors to multiply the observation error standard deviation of each individual catch observation. Can be used if some observations are more uncertain than others. Must be same length as observation vector. Default: 1.}
 #'  \item{"inp$stdevfacI"}{ Factors to multiply the observation error standard deviation of each individual index observation. Can be used if some observations are more uncertain than others. A list with vectors of same length as observation vectors. Default: 1.}
+#'  \item{"inp$stdevfacE"}{ Factors to multiply the observation error standard deviation of each individual effort observation. Can be used if some observations are more uncertain than others. A list with vectors of same length as observation vectors. Default: 1.}
 #'  \item{"inp$mapsdi"}{ Vector of length equal to the number of index series specifying which indices that should use the same sdi. For example: in case of 3 index series use inp$mapsdi <- c(1, 1, 2) to have series 1 and 2 share sdi and have a separate sdi for series 3. Default: 1:nindex, where nindex is number of index series.}
+#'  \item{"inp$seasontype"}{ If set to 1 use the spline-based representation of seasonality. If set to 2 use the oscillatory SDE system (this is more unstable and difficult to fit, but also more flexible).}
 #' }
 #' @param inp List of input variables, see details for required variables.
 #' @return An updated list of input variables checked for consistency and with defaults added.
@@ -105,7 +109,9 @@
 #' @export
 check.inp <- function(inp){
     check.ini <- function(parname, inp, min=NULL, max=NULL){
-        if (!parname %in% names(inp$ini)) stop('Please specify an initial value for ', parname, '!')
+        if (!parname %in% names(inp$ini)){
+            stop('Please specify an initial value for ', parname, '!')
+        }
     }
     rm.neg <- function(tmpin, nam, nms, j=''){
         tmpout <- tmpin
@@ -113,7 +119,9 @@ check.inp <- function(inp){
             nnms <- length(nms)
             neg <- which(tmpin[[nms[1]]]<=0 | is.na(tmpin[[nms[1]]]))
             if (length(neg)>0){
-                for (i in 1:nnms) tmpout[[nms[i]]] <- tmpin[[nms[i]]][-neg]
+                for (i in 1:nnms){
+                    tmpout[[nms[i]]] <- tmpin[[nms[i]]][-neg]
+                }
                 cat('Removing zero, negative, and NAs in ', nam, ' series ', j, ' \n')
             }
             return(tmpout)
@@ -128,25 +136,39 @@ check.inp <- function(inp){
             if (nna>0){
                 for (j in 1:nna){
                     tmp <- list()
-                    for (i in 1:nnms) tmp[[nms[i]]] <- inp[[nms[i]]][[j]]
+                    for (i in 1:nnms){
+                        tmp[[nms[i]]] <- inp[[nms[i]]][[j]]
+                    }
                     tmpup <- rm.neg(tmp, nam, nms, j)
-                    for (i in 1:nnms) inp[[nms[i]]][[j]] <- tmpup[[nms[i]]]
+                    for (i in 1:nnms){
+                        inp[[nms[i]]][[j]] <- tmpup[[nms[i]]]
+                    }
                 }
             }
         } else {
             tmp <- list()
             if (length(inp[[nms[1]]] > 0)){ # nms[1] is the obs name
-                for (i in 1:nnms) tmp[[nms[i]]] <- inp[[nms[i]]]
+                for (i in 1:nnms){
+                    tmp[[nms[i]]] <- inp[[nms[i]]]
+                }
                 tmpup <- rm.neg(tmp, nam, nms)
-                for (i in 1:nnms) inp[[nms[i]]] <- tmpup[[nms[i]]]
+                for (i in 1:nnms){
+                    inp[[nms[i]]] <- tmpup[[nms[i]]]
+                }
             }
         }
         return(inp)
     }
     base.checks <- function(obs, time, stdevfac, nam){
-        if (length(obs) != length(time)) stop('Time and observation vector do not match in length for  ', nam, ' series.')
-        if (length(obs) != length(stdevfac)) stop('stdevfac and observation vector do not match in length for ', nam, ' series.')
-        if (sum(stdevfac <= 0) > 0) stop('Non-positive values entered in stdevfac for ', nam, 'series.')
+        if (length(obs) != length(time)){
+            stop('Time and observation vector do not match in length for  ', nam, ' series.')
+        }
+        if (length(obs) != length(stdevfac)){
+            stop('stdevfac and observation vector do not match in length for ', nam, ' series.')
+        }
+        if (sum(stdevfac <= 0) > 0){
+            stop('Non-positive values entered in stdevfac for ', nam, 'series.')
+        }
     }
     make.list <- function(invar){
         if (class(invar)!='list'){
@@ -176,7 +198,9 @@ check.inp <- function(inp){
     # Check catch observations
     if ('obsC' %in% names(inp)){
         inp <- make.time(inp, 'C')
-        if (any(diff(inp$timeC)<=0)) stop('Catch times are not strictly increasing!')
+        if (any(diff(inp$timeC)<=0)){
+            stop('Catch times are not strictly increasing!')
+        }
         # Catch intervals (dtc)
         if (!"dtc" %in% names(inp)){
             dtc <- diff(inp$timeC)
@@ -187,8 +211,12 @@ check.inp <- function(inp){
                 cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 2. Assuming an interval of 1 year.\n'))
             }
         }
-        if (length(inp$dtc) == 1) inp$dtc <- rep(inp$dtc, length(inp$obsC))
-        if (!'stdevfacC' %in% names(inp)) inp$stdevfacC <- rep(1, length(inp$obsC))
+        if (length(inp$dtc) == 1){
+            inp$dtc <- rep(inp$dtc, length(inp$obsC))
+        }
+        if (!'stdevfacC' %in% names(inp)){
+            inp$stdevfacC <- rep(1, length(inp$obsC))
+        }
         base.checks(inp$obsC, inp$timeC, inp$stdevfacC, 'C')
         inp <- remove.neg(inp, 'C', extrakeys='dtc')
         inp$nobsC <- length(inp$obsC)
@@ -196,32 +224,48 @@ check.inp <- function(inp){
     } else {
         stop('No catch observations included. Please include them as a vector in inp$obsC.')
     }
-    if (length(inp$dtc) != inp$nobsC) stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
+    if (length(inp$dtc) != inp$nobsC){
+        stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
+    }
     
-    if (!any(c('obsI', 'obsE') %in% names(inp))) stop('No effort or index observations. Please include index observations as a vector in inp$obsI and effort observations in inp$obsE.')
+    if (!any(c('obsI', 'obsE') %in% names(inp))){
+        stop('No effort or index observations. Please include index observations as a vector in inp$obsI and effort observations in inp$obsE.')
+    }
     
     # Check index observations
     inp$obsI <- make.list(inp$obsI)
     inp$nindex <- length(inp$obsI)
-    if (inp$nindex > 0) inp$nindexseq <- 1:inp$nindex
+    if (inp$nindex > 0){
+        inp$nindexseq <- 1:inp$nindex
+    }
     # Time vector
     inp <- make.time(inp, 'I')
     inp$timeI <- make.list(inp$timeI)
     # Standard deviation factor
     if (!'stdevfacI' %in% names(inp)){
         inp$stdevfacI <- list()
-        for (i in inp$nindexseq) inp$stdevfacI[[i]] <- rep(1, length(inp$obsI[[i]]))
+        for (i in inp$nindexseq){
+            inp$stdevfacI[[i]] <- rep(1, length(inp$obsI[[i]]))
+        }
     }
     inp$stdevfacI <- make.list(inp$stdevfacI)
-    if (inp$nindex != length(inp$timeI)) stop('length(inp$timeI) is not equal to length(inp$obsI)!')
-    if (inp$nindex != length(inp$stdevfacI)) stop('length(inp$stdevfacI) is not equal to length(inp$obsI)!')
-    for (i in inp$nindexseq) base.checks(inp$obsI[[i]], inp$timeI[[i]], inp$stdevfacI[[i]], paste0('I', i))
+    if (inp$nindex != length(inp$timeI)){
+        stop('length(inp$timeI) is not equal to length(inp$obsI)!')
+    }
+    if (inp$nindex != length(inp$stdevfacI)){
+        stop('length(inp$stdevfacI) is not equal to length(inp$obsI)!')
+    }
+    for (i in inp$nindexseq){
+        base.checks(inp$obsI[[i]], inp$timeI[[i]], inp$stdevfacI[[i]], paste0('I', i))
+    }
     inp <- remove.neg(inp, 'I')
     inp$nobsI <- rep(0, inp$nindex) # Need to be after negative have been removed
-    for (i in inp$nindexseq) inp$nobsI[i] <- length(inp$obsI[[i]])
+    for (i in inp$nindexseq){
+        inp$nobsI[i] <- length(inp$obsI[[i]])
+    }
     inp$obsidI <- list()
     for (i in inp$nindexseq){
-        if (i==1){
+        if (i == 1){
             inp$obsidI[[i]] <- (1:inp$nobsI[i]) + inp$nobsC
         } else {
             inp$obsidI[[i]] <- (1:inp$nobsI[i]) + tail(inp$obsidI[[i-1]], 1)
@@ -230,7 +274,9 @@ check.inp <- function(inp){
 
     # Check effort observations
     inp <- make.time(inp, 'E')
-    if (any(diff(inp$timeE) <= 0)) stop('Effort times are not strictly increasing!')
+    if (any(diff(inp$timeE) <= 0)){
+        stop('Effort times are not strictly increasing!')
+    }
     # Effort intervals (dte)
     if (!"dte" %in% names(inp) & length(inp$obsE) > 0){
         dte <- diff(inp$timeE)
@@ -241,8 +287,12 @@ check.inp <- function(inp){
             cat(paste('Effort interval (dte) not specified and length of effort time series shorter than 2. Assuming an interval of 1 year.\n'))
         }
     }
-    if (length(inp$dte) == 1) inp$dte <- rep(inp$dte, length(inp$obsE))
-    if (!'stdevfacE' %in% names(inp)) inp$stdevfacE <- rep(1, length(inp$obsE))
+    if (length(inp$dte) == 1){
+        inp$dte <- rep(inp$dte, length(inp$obsE))
+    }
+    if (!'stdevfacE' %in% names(inp)){
+        inp$stdevfacE <- rep(1, length(inp$obsE))
+    }
     base.checks(inp$obsE, inp$timeE, inp$stdevfacE, 'E')
     inp <- remove.neg(inp, 'E')
     inp$nobsE <- length(inp$obsE)
@@ -252,7 +302,9 @@ check.inp <- function(inp){
         inp$obsidE <- numeric()
     }
     if (length(inp$dte) != inp$nobsE){
-        stop('Effort interval vector (inp$dte, ', length(inp$dte), ') does not match effort observation vector (inp$obsE, ', inp$nobsE, ') in length')
+        stop('Effort interval vector (inp$dte, ', length(inp$dte),
+             ') does not match effort observation vector (inp$obsE, ',
+             inp$nobsE, ') in length')
     }
 
     inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
@@ -390,14 +442,20 @@ check.inp <- function(inp){
     if (!"timepredc" %in% names(inp)){
         inp$timepredc <- max(timeobsall)
     } else {
-        if (inp$timepredc < max(inp$timeC)) cat('inp$timepredc:', inp$timepredc, ' must be equal to or later than last catch observation: ', max(inp$timeC), '!')
+        if (inp$timepredc < max(inp$timeC)){
+            cat('inp$timepredc:', inp$timepredc,
+                ' must be equal to or later than last catch observation: ',
+                max(inp$timeC), '!')
+        }
     }
     # Time point to predict indices until
     if (!"timepredi" %in% names(inp)){
         inp$timepredi <- max(timeobsall)
     } else {
         if (sum(inp$nobsI) > 0){
-            if (inp$timepredi < max(unlist(inp$timeI))) stop('inp$timepredi must be equal to or later than last index observation!')
+            if (inp$timepredi < max(unlist(inp$timeI))){
+                stop('inp$timepredi must be equal to or later than last index observation!')
+            }
         }
     }
     # Effort prediction time step (dtprede)
@@ -422,25 +480,42 @@ check.inp <- function(inp){
         }
     } else {
         if (inp$nobsE > 0){
-            if (inp$timeprede < max(inp$timeE)) cat('inp$timeprede:', inp$timeprede, ' must be equal to or later than last effort observation: ', max(inp$timeE), '!')
+            if (inp$timeprede < max(inp$timeE)){
+                cat('inp$timeprede:', inp$timeprede,
+                    ' must be equal to or later than last effort observation: ', max(inp$timeE), '!')
+            }
         }
     }
 
     # This may give a problem if effort data has later time points than catches or index
     if (inp$nobsE > 0 & sum(inp$nobsI) > 0){
-        if (max(inp$timeE) > max(unlist(inp$timeI), inp$timeC)) stop('Effort data must overlap temporally with index or catches')
+        if (max(inp$timeE) > max(unlist(inp$timeI), inp$timeC)){
+            stop('Effort data must overlap temporally with index or catches')
+        }
     }
     
     # Numerical Euler discretisation time used by SDE solver
     # Euler time step
-    if (!"dteuler" %in% names(inp)) inp$dteuler <- 1/16
+    if (!"dteuler" %in% names(inp)){
+        inp$dteuler <- 1/16
+    }
     if ("dteuler" %in% names(inp)){
+        if (inp$dteuler > 1){
+            inp$dteuler <- 1
+            cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')            
+        }
+    }
+    if (FALSE){
         alloweddteuler <- 1/2^(6:0)
         if (!inp$dteuler %in% alloweddteuler){ # Check if dteuler is among the alloweddteuler
             ind <- cut(inp$dteuler, alloweddteuler, right=FALSE, labels=FALSE)
             if (is.na(ind)){
-                if (inp$dteuler > max(alloweddteuler)) inp$dteuler <- max(alloweddteuler)
-                if (inp$dteuler < min(alloweddteuler)) inp$dteuler <- min(alloweddteuler)
+                if (inp$dteuler > max(alloweddteuler)){
+                    inp$dteuler <- max(alloweddteuler)
+                }
+                if (inp$dteuler < min(alloweddteuler)){
+                    inp$dteuler <- min(alloweddteuler)
+                }
             } else {
                 inp$dteuler <- alloweddteuler[ind]
             }
@@ -529,14 +604,18 @@ check.inp <- function(inp){
         }
     }
     if ("nseasons" %in% names(inp)){
-       if (!inp$nseasons %in% c(1, 2, 4)) stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
+       if (!inp$nseasons %in% c(1, 2, 4)){
+           stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
+       }
     }
     if (inp$nseasons == 1) inp$seasontype <- 0 # seasontype = 0 means seasons are disabled.
     # Calculate seasonal spline
     if ("splineorder" %in% names(inp)){
-        if (inp$nseasons<4 & inp$splineorder>2) inp$splineorder <- 2
+        if (inp$nseasons < 4 & inp$splineorder > 2){
+            inp$splineorder <- 2
+        }
     } else {
-        inp$splineorder <- ifelse(inp$nseasons<4, 2, 3)
+        inp$splineorder <- ifelse(inp$nseasons < 4, 2, 3)
     }
     inp$splinemat <- make.splinemat(inp$nseasons, inp$splineorder, dtfine=inp$dteuler)
     inp$splinematfine <- make.splinemat(inp$nseasons, inp$splineorder, dtfine=1/100)
@@ -560,8 +639,12 @@ check.inp <- function(inp){
     inp$ic <- cut(inp$timeCpred, inp$time, right=FALSE, labels=FALSE)
     # nc is number of states to integrate a catch observation over
     inp$nc <- rep(0, inp$nobsCp)
-    for (i in 1:inp$nobsCp) inp$nc[i] <- sum(inp$time >= inp$timeCpred[i] & inp$time < (inp$timeCpred[i]+inp$dtcp[i]))
-    if (any(inp$nc == 0)) stop('Current inp$dteuler is too large to accommodate some catch intervals. Make inp$dteuler smaller!')
+    for (i in 1:inp$nobsCp){
+        inp$nc[i] <- sum(inp$time >= inp$timeCpred[i] & inp$time < (inp$timeCpred[i]+inp$dtcp[i]))
+    }
+    if (any(inp$nc == 0)){
+        stop('Current inp$dteuler is too large to accommodate some catch intervals. Make inp$dteuler smaller!')
+    }
 
     # ie is the indices of inp$time to which effort observations correspond
     if (length(inp$dte)>0){
@@ -585,10 +668,14 @@ check.inp <- function(inp){
                              & inp$time < (inp$timeEpred[i]+inp$dtep[i]))
         }
     }
-    if (any(inp$ne == 0)) stop('Current inp$dteuler is too large to accommodate some effort intervals. Make inp$dteuler smaller!')
+    if (any(inp$ne == 0)){
+        stop('Current inp$dteuler is too large to accommodate some effort intervals. Make inp$dteuler smaller!')
+    }
     # ii is the indices of inp$time to which index observations correspond
     inp$ii <- list()
-    for (i in inp$nindexseq) inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
+    for (i in inp$nindexseq){
+        inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
+    }
     # Translate index observations from a list to a vector
     inp$obsIin <- unlist(inp$obsI)
     inp$stdevfacIin <- unlist(inp$stdevfacI)
@@ -628,8 +715,14 @@ check.inp <- function(inp){
     } else {
         inp$ise <- numeric(0)
     }
-    if (sum(inp$nobsI) != length(inp$isi)) warning('Mismatch between length(inp$isi) ', length(inp$isi), ' and sum(inp$nobsI) ', sum(inp$nobsI), '.')
-    if (sum(inp$nobsE) != length(inp$ise)) warning('Mismatch between length(inp$ise) ', length(inp$ise), ' and sum(inp$nobsE) ', sum(inp$nobsE), '.')
+    if (sum(inp$nobsI) != length(inp$isi)){
+        warning('Mismatch between length(inp$isi) ', length(inp$isi),
+                ' and sum(inp$nobsI) ', sum(inp$nobsI), '.')
+    }
+    if (sum(inp$nobsE) != length(inp$ise)){
+        warning('Mismatch between length(inp$ise) ', length(inp$ise),
+                ' and sum(inp$nobsE) ', sum(inp$nobsE), '.')
+    }
     inp$osar.conditional <- which(inp$timeobssrt < inp$time[1]+1) # Condition on the first year of data.
     inp$osar.subset <- setdiff(1:length(inp$obssrt), inp$osar.conditional)
 
@@ -643,7 +736,8 @@ check.inp <- function(inp){
         if (priorname %in% repriors){ # RE priors
             if (length(priorvec) < 3){
                 priorvec <- rep(0, 5)
-                warning('Invalid prior length specified for', priorname, ', must be 3 (without useflag or 4 (with useflag). Not using this prior.')
+                warning('Invalid prior length specified for', priorname,
+                        ', must be 3 (without useflag or 4 (with useflag). Not using this prior.')
             }
             if (length(priorvec) == 3){
                 #warning('Length of ', priorname, ' is 3. Proceeding assuming useflag has not been specified.')
@@ -661,7 +755,8 @@ check.inp <- function(inp){
         } else { # FE priors
             if (!length(priorvec) %in% 2:3){
                 priorvec <- rep(0, 3)
-                warning('Invalid prior length specified for', priorname, ', must be 2 (without useflag or 3 (with useflag). Not using this prior.')
+                warning('Invalid prior length specified for', priorname,
+                        ', must be 2 (without useflag or 3 (with useflag). Not using this prior.')
             }
             if (length(priorvec) == 2){
                 #warning('Length of ', priorname, ' is 2. Proceeding assuming useflag has not been specified.')
@@ -671,7 +766,8 @@ check.inp <- function(inp){
         if (priorvec[3] == 1){
             # Check st dev
             if (priorvec[2] <= 0){
-                warning('Invalid standard deviation specified in prior for', priorname, '(must be > 0). Not using this prior.')
+                warning('Invalid standard deviation specified in prior for', priorname,
+                        '(must be > 0). Not using this prior.')
                 priorvec[3] <- 0
             }
         }
@@ -727,14 +823,18 @@ check.inp <- function(inp){
     }
     npriors <- length(inp$priors)
     inp$priorsuseflags <- numeric(npriors)
-    for (i in 1:npriors) inp$priorsuseflags[i] <- inp$priors[[i]][3]
+    for (i in 1:npriors){
+        inp$priorsuseflags[i] <- inp$priors[[i]][3]
+    }
            
     # -- MODEL PARAMETERS --
     # logn
     if (!"logn" %in% names(inp$ini)){
         inp$ini$logn <- logn
     } else {
-        if (inp$ini$logn==0) stop('Initial value for logn == 0, that is not valid!')
+        if (inp$ini$logn==0){
+            stop('Initial value for logn == 0, that is not valid!')
+        }
     }
     # Calculate gamma from n
     n <- exp(inp$ini$logn)
@@ -742,7 +842,9 @@ check.inp <- function(inp){
     # logK
     if (!'logK' %in% names(inp$ini)) inp$ini$logK <- log(4*max(inp$obsC))
     # logr
-    if ('logr' %in% names(inp$ini) & 'logm' %in% names(inp$ini)) inp$ini$logr <- NULL # If both r and m are specified use m and discard r
+    if ('logr' %in% names(inp$ini) & 'logm' %in% names(inp$ini)){
+        inp$ini$logr <- NULL # If both r and m are specified use m and discard r
+    }
     if (!'logr' %in% names(inp$ini)){
         if (!'logm' %in% names(inp$ini)){
             inp$ini$logm <- unname(log(guess.m(inp)))
@@ -805,7 +907,9 @@ check.inp <- function(inp){
                 if (length(inp$ini[[nam]]) == 1){
                     inp$ini[[nam]] <- rep(inp$ini[[nam]], inp[[nnam]])
                 } else {
-                    stop('The length of ', nam, ' in inp$ini (', length(inp$ini[[nam]]), ') does not fit with the number of parameters to be estimated (', inp[[nam]], ').')
+                    stop('The length of ', nam, ' in inp$ini (', length(inp$ini[[nam]]),
+                         ') does not fit with the number of parameters to be estimated (',
+                         inp[[nam]], ').')
                 }
             }
         }
@@ -869,13 +973,17 @@ check.inp <- function(inp){
         inp$ini$logF <- rep(log(0.2) + inp$ini$logr[1], inp$ns)
     } else {
         if (length(inp$ini$logF) != inp$ns){
-            warning('Wrong length of inp$ini$logF: ', length(inp$ini$logF), ' Should be equal to inp$ns: ', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
+            warning('Wrong length of inp$ini$logF: ', length(inp$ini$logF),
+                    ' Should be equal to inp$ns: ', inp$ns,
+                    ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
             inp$ini$logF <- inp$ini$logF[1:inp$ns]
         }
     }
     if ("logu" %in% names(inp$ini)){
         if (dim(inp$ini$logu)[1] != 2*length(inp$ini$logsdu) & dim(inp$ini$logu)[2] != inp$ns){
-            warning('Wrong dimension of inp$ini$logu: ', dim(inp$ini$logu)[1], 'x', dim(inp$ini$logu)[2], ' should be equal to 2*length(inp$ini$logsdu) x inp$ns: ', 2*length(inp$ini$logsdu), 'x', inp$ns,', Filling with log(1).')
+            warning('Wrong dimension of inp$ini$logu: ', dim(inp$ini$logu)[1], 'x',
+                    dim(inp$ini$logu)[2], ' should be equal to 2*length(inp$ini$logsdu) x inp$ns: ',
+                    2*length(inp$ini$logsdu), 'x', inp$ns,', Filling with log(1).')
             inp$ini$logu <- NULL
         }
     }
@@ -886,7 +994,9 @@ check.inp <- function(inp){
         inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
     } else {
         if (length(inp$ini$logB) != inp$ns){
-            warning('Wrong length of inp$ini$logB: ', length(inp$ini$logB), ' Should be equal to inp$ns: ', inp$ns, ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
+            warning('Wrong length of inp$ini$logB: ', length(inp$ini$logB),
+                    ' Should be equal to inp$ns: ', inp$ns,
+                    ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
             inp$ini$logB <- inp$ini$logB[1:inp$ns]
         }
     }
@@ -928,8 +1038,12 @@ check.inp <- function(inp){
     if (inp$robflagc==0 & inp$robflagi==0 & inp$robflage==0){
         forcefixpars <- c('logitpp', 'logp1robfac', forcefixpars)
     }
-    if (inp$nobsE == 0) forcefixpars <- c('logqf', 'logsde', forcefixpars)
-    if (sum(inp$nobsI) == 0) forcefixpars <- c('logq', 'logsdi', forcefixpars)
+    if (inp$nobsE == 0){
+        forcefixpars <- c('logqf', 'logsde', forcefixpars)
+    }
+    if (sum(inp$nobsI) == 0){
+        forcefixpars <- c('logq', 'logsdi', forcefixpars)
+    }
     # Determine phases
     if (!"phases" %in% names(inp)){
         inp$phases <- list()
@@ -940,7 +1054,7 @@ check.inp <- function(inp){
         }
         nms <- names(inp$phases)
         inds <- which(is.na(match(nms, c(names(inp$ini), 'logalpha', 'logbeta'))))
-        if (length(inds)>0){
+        if (length(inds) > 0){
             stop('phase specified for invalid parameter(s): ', paste(nms[inds], collapse=', '))
         }
     }
@@ -981,7 +1095,9 @@ check.inp <- function(inp){
     inpphases <- unlist(inp$phases)
     inpphases <- inpphases[inpphases > 0] # Don't include phase -1 (fixed value)
     inp$nphases <- length(unique(inpphases))
-    if (!is.null(inp)) class(inp) <- "spictcls"
+    if (!is.null(inp)){
+        class(inp) <- "spictcls"
+    }
     return(inp)
 }
 

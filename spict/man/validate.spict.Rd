@@ -25,6 +25,12 @@ validate.spict(inp, nsim = 50, invec = c(15, 60, 240), estinp = NULL,
 
 \item{type}{Specify what type of information is contained in invec. If type == 'nobs' then invec is assumed to be a vector containing the number of simulated observations of each data set in each batch. If type == 'logsdc' then invec is assumed to be a vector containing values of logsdc over which to loop.}
 
+\item{parnames}{Vector of parameter names to extract stats for.}
+
+\item{exp}{Should exp be taken of parameters?}
+
+\item{mc.cores}{Number of cores to use.}
+
 \item{model}{If 'spict' estimate using SPiCT. If 'meyermillar' estimate using the model of Meyer & Millar (1999), this requires rjags and coda packages.}
 }
 \value{

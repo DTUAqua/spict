@@ -99,7 +99,7 @@ test.spict <- function(dataset='albacore'){
     # Load data
     data(pol)
     inp <- pol[[dataset]]
-    if(dataset=='albacore'){
+    if (dataset=='albacore'){
         inp$ffac <- 0.8
         nopredcyears <- 3 # Number of years to predict catch
         inp$dtpredc <- 1 # Time step when predicting catch
@@ -144,47 +144,47 @@ calc.gamma <- function(n) n^(n/(n-1)) / (n-1)
 #' Best <- get.par('logB', rep, exp=TRUE)
 #' K <- get.par('logK', rep, exp=TRUE)
 get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
-    if(!'sderr' %in% names(rep)){
+    if (!'sderr' %in% names(rep)){
         indran <- which(names(rep$par.random)==parname)
         indfix <- which(names(rep$par.fixed)==parname)
         indsdr <- which(names(rep$value)==parname)
         indopt <- which(names(rep$opt$par)==parname)
         est <- NULL
-        if(length(indran)>0){
+        if (length(indran)>0){
             est <- rep$par.random[indran]
             sd <- sqrt(rep$diag.cov.random[indran])
             ll <- est - 1.96*sd
             ul <- est + 1.96*sd
         }
-        if(length(indfix)>0){
+        if (length(indfix)>0){
             est <- rep$par.fixed[indfix]
             sd <- sqrt(diag(rep$cov.fixed))[indfix]
             ll <- est - 1.96*sd
             ul <- est + 1.96*sd
         }
-        if(length(indsdr)>0){
+        if (length(indsdr)>0){
             est <- rep$value[indsdr]
             sd <- rep$sd[indsdr]
             ll <- est - 1.96*sd
             ul <- est + 1.96*sd
         }
-        if(length(est)==0){
+        if (length(est)==0){
             ll <- NA
             ul <- NA
             sd <- NA
             est <- NA
-            if(length(indopt)>0){
+            if (length(indopt)>0){
                 est <- rep$opt$par[indopt]
             } else {
-                if('phases' %in% names(rep$inp)){
-                    if(parname %in% names(rep$inp$phases)){
-                        if(rep$inp$phases[[parname]] == -1){
+                if ('phases' %in% names(rep$inp)){
+                    if (parname %in% names(rep$inp$phases)){
+                        if (rep$inp$phases[[parname]] == -1){
                             est <- rep$inp$parlist[[parname]]
                             ll <- est
                             ul <- est
                         }
                     }else {
-                        if(parname == 'P'){
+                        if (parname == 'P'){
                             B <- get.par('logB', rep, exp=TRUE)
                             C <- get.par('logCpred', rep, exp=TRUE)
                             ic <- rep$inp$ic
@@ -202,7 +202,7 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                 }
             }
         }
-        if(exp==TRUE){
+        if (exp==TRUE){
             # This is the CV of a log-normally distributed random variable
             # see https://en.wikipedia.org/wiki/Log-normal_distribution
             cv <- sqrt(exp(sd^2) - 1)
@@ -214,7 +214,9 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
             cv <- sd/est
         }
         out <- cbind(ll, est, ul, sd, cv)
-        if(parname %in% c('logB', 'logF', 'logBBmsy', 'logFFmsy')) rownames(out) <- rep$inp$time
+        if (parname %in% c('logB', 'logF', 'logBBmsy', 'logFFmsy')){
+            rownames(out) <- rep$inp$time
+        }
         return(out)
     }
 }
@@ -230,7 +232,7 @@ get.msyvec <- function(inp, msy){
     ul <- rep(0, inp$ns)
     ll <- rep(0, inp$ns)
     nr <- length(inp$ini$logr)
-    for(i in 1:nr){
+    for (i in 1:nr){
         vec[inp$ir==i] <- msy[i, 2]
         ul[inp$ir==i] <- msy[i, 3]
         ll[inp$ir==i] <- msy[i, 1]
@@ -247,24 +249,24 @@ get.msyvec <- function(inp, msy){
 #' @return Spline design matrix.
 #' @export
 make.splinemat <- function(nseasons, order, dtfine=1/100){
-    if(dtfine==1){
+    if (dtfine==1){
         d <- matrix(1, 1, 1)
     } else {
         dtspl <- 1/nseasons
         knots <- seq(0, 1, by=dtspl)
         x <- seq(0, 1-dtfine, by=dtfine)
-        if(order > 1){
+        if (order > 1){
             #require(mgcv)
             d <- mgcv::cSplineDes(x, knots, ord=order)
         } else {
-            if(order < 1){
+            if (order < 1){
                 warning('Specified spline order (', order, ') not valid!')
                 order <- 1
             }
             nx <- length(x)
             nknots <- length(knots)
             d <- matrix(0, nx, nknots-1)
-            for(i in 1:(nknots-1)){
+            for (i in 1:(nknots-1)){
                 inds <- which(x >= knots[i] & x < knots[i+1])
                 d[inds, i] <- 1
             }
@@ -329,7 +331,7 @@ invlogp1 <- function(a) 1 + exp(a)
 guess.m <- function(inp, all.return=FALSE){
     y <- inp$obsC
     if (length(inp$obsI)>0){
-        if(class(inp$obsI)=='list'){
+        if (class(inp$obsI)=='list'){
             z <- inp$obsI[[1]]
         } else {
             z <- inp$obsI
@@ -337,14 +339,16 @@ guess.m <- function(inp, all.return=FALSE){
     } else {
         z <- NULL
     }
-    if(length(y) == length(z)){
+    if (length(y) == length(z)){
         x <- y/z
         mod0 <- lm(z ~ x)
         a <- mod0$coefficients[1]
         b <- mod0$coefficients[2]
         MSY <- -0.25*a^2/b # p. 284 in FAO's book on tropical stock assessment
-        if(MSY <= 0) MSY <- mean(y) # Mean catch
-        if(all.return){
+        if (MSY <= 0){
+            MSY <- mean(y) # Mean catch
+        }
+        if (all.return){
             Emsy <- -0.5*a/b # p. 284 in FAO's book on tropical stock assessment
             return(list(MSY=MSY, Emsy=Emsy, a=a, b=b, x=x, y=y, z=z, mod0=mod0))
         } else {
@@ -382,7 +386,7 @@ get.EBinf <- function(rep){
     Fmsyall <- get.par('logFmsy', rep, exp=TRUE)
     Fmsy <- tail(Fmsyall, 1)
     logFest <- get.par('logFs', rep)
-    if(min(rep$inp$dtc) < 1){
+    if (min(rep$inp$dtc) < 1){
         alf <- annual(rep$inp$time, logFest[, 2])
         fff <- exp(alf$annvec)
     } else {
@@ -405,12 +409,14 @@ acf.signf <- function(resid, lag.max=4, return.p=FALSE){
     calc.pval <- function(corval, acf) 2-2*pnorm(abs(corval)*sqrt(acf$n.used))
     calc.limval <- function(p, acf) qnorm((2-p)/2)/sqrt(acf$n.used)
     inds <- which(is.na(resid))
-    if(length(inds)>0) resid <- resid[-inds]
-    if(length(inds)>1){
+    if (length(inds)>0){
+        resid <- resid[-inds]
+    }
+    if (length(inds) > 1){
         warning(length(inds), 'NAs in residuals! this could create problems with the calculated ACF.')
     }
     acfC <- acf(resid, plot=FALSE, lag.max=lag.max, na.action=na.pass)
-    if(return.p){
+    if (return.p){
         corvals <- acfC$acf[-1]
         #out <- paste(round(calc.pval(corvals, acfC), 3), collapse=', ')
         out <- calc.pval(corvals, acfC)
@@ -429,10 +435,14 @@ acf.signf <- function(resid, lag.max=4, return.p=FALSE){
 #' @return Vector of p-values of length equal to the number of data series.
 get.osar.pvals <- function(rep){
     pvals <- numeric(rep$inp$nindex+1)
-    if('osarC' %in% names(rep)) pvals[1] <- round(min(acf.signf(rep$osarC$residual, return.p=TRUE)), 3)
-    if('osarI' %in% names(rep)){
+    if ('osarC' %in% names(rep)){
+        pvals[1] <- round(min(acf.signf(rep$osarC$residual, return.p=TRUE)), 3)
+    }
+    if ('osarI' %in% names(rep)){
         ni <- length(rep$osarI)
-        for(i in 1:ni) pvals[i+1] <- round(min(acf.signf(rep$osarI[[i]]$residual, return.p=TRUE)), 3)
+        for (i in 1:ni){
+            pvals[i+1] <- round(min(acf.signf(rep$osarI[[i]]$residual, return.p=TRUE)), 3)
+        }
     }
     return(pvals)
 }
@@ -448,7 +458,7 @@ get.osar.pvals <- function(rep){
 #' @export
 get.cov <- function(rep, parname1, parname2, cor=FALSE){
     inds <- match(c(parname1, parname2), names(rep$value))
-    if(cor){
+    if (cor){
         return(cov2cor(rep$cov[inds, inds]))
     } else {
         return(rep$cov[inds, inds])

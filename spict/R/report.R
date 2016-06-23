@@ -60,7 +60,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     cat(paste0('\\verbatiminput{', summaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
 
     # Management summary
-    if('man' %in% names(rep)){
+    if ('man' %in% names(rep)){
         mansummaryoutfile <- 'mansummaryout.txt'
         cat('Management results\n\n', file=mansummaryoutfile)
         mansummaryout <- capture.output(mansummary(rep), file=mansummaryoutfile, append=TRUE)
@@ -69,7 +69,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     }
     
     # Retrospective analysis plot
-    if('retro' %in% names(rep)){
+    if ('retro' %in% names(rep)){
         figfile1b <- 'retro.pdf'
         pdf(figfile1b)
         plotspict.retro(rep)
@@ -78,7 +78,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     }
     
     # Diagnostic plot
-    if('osar' %in% names(rep)){
+    if ('osar' %in% names(rep)){
         figfile2 <- 'diag.pdf'
         pdf(figfile2, width=7, height=9)
         plotspict.diagnostic(rep)
@@ -104,17 +104,23 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     #file.remove(paste0('../res/', substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.log'))
     file.remove(paste0(substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
-    if(!keep.texfiles){
+    if (!keep.texfiles){
         file.remove(reportfile)
     }
-    if(!keep.txtfiles){
+    if (!keep.txtfiles){
         file.remove(summaryoutfile)
-        if('man' %in% names(rep)) file.remove(mansummaryoutfile)
+        if ('man' %in% names(rep)){
+            file.remove(mansummaryoutfile)
+        }
     }
-    if(!keep.figurefiles){
+    if (!keep.figurefiles){
         file.remove(figfile1)
-        if('retro' %in% names(rep)) file.remove(figfile1b)
-        if('osar' %in% names(rep)) file.remove(figfile2)
+        if ('retro' %in% names(rep)){
+            file.remove(figfile1b)
+        }
+        if ('osar' %in% names(rep)){
+            file.remove(figfile2)
+        }
         file.remove(figfile3)
     }
 }

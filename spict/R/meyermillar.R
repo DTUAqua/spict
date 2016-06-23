@@ -48,7 +48,6 @@
 #' @export
 fit.meyermillar <- function(mminp){
     mminp <- check.inp(mminp)
-
     check.prior <- function(nm){
         if (!nm %in% names(mminp$meyermillar$priors)){
             stop(paste('Prior for', nm, 'is missing!'))
@@ -194,16 +193,26 @@ plot.priors <- function(nm, priorsin, add=TRUE, ...){
 #' @return Nothing.
 write.bug.file <- function(priors, fn='tmp.bug'){
     cat('model{\n# prior distribution of K: lognormal with 10% and 90% quantile at 80 and 300\n', file=fn)
-    cat(paste0('K ~ dlnorm(', priors$K[1], ',', priors$K[2], ')I(10,1000);\n'), file=fn, append=TRUE)
-    cat('# prior distribution of r: lognormal with 10% and 90% quantile at 0.13 and 0.48\n', file=fn, append=TRUE)
-    cat(paste0('r ~ dlnorm(', priors$r[1], ',', priors$r[2], ')I(0.01,1.2);\n'), file=fn, append=TRUE)
-    cat('# prior distribution of q: instead of improper (prop. to 1/q) use just proper IG\n', file=fn, append=TRUE)
-    cat(paste0('iq ~ dgamma(', priors$iq[1], ',', priors$iq[2], ')I(0.5,100);\nq <- 1/iq;\n'), file=fn, append=TRUE)
-    cat('# prior distribution of sigma2: inv. gamma with 10% and 90% qu. at 0.04 and 0.08\n', file=fn, append=TRUE)
-    cat(paste0('isigma2 ~ dgamma(', priors$isigma2[1], ',', priors$isigma2[2], ');\nsigma2 <- 1/isigma2;\n'), file=fn, append=TRUE)
-    cat('# prior distribution of tau2: inv. gamma with 10% and 90% qu. at 0.05 and 0.15\n', file=fn, append=TRUE)
-    cat(paste0('itau2 ~ dgamma(', priors$itau2[1], ',', priors$itau2[2], ');\ntau2 <- 1/itau2;\n'), file=fn, append=TRUE)
-    cat('# (conditional) prior distribution of Ps (from state equations):\n', file=fn, append=TRUE)
+    cat(paste0('K ~ dlnorm(', priors$K[1], ',', priors$K[2], ')I(10,1000);\n'),
+        file=fn, append=TRUE)
+    cat('# prior distribution of r: lognormal with 10% and 90% quantile at 0.13 and 0.48\n',
+        file=fn, append=TRUE)
+    cat(paste0('r ~ dlnorm(', priors$r[1], ',', priors$r[2], ')I(0.01,1.2);\n'),
+        file=fn, append=TRUE)
+    cat('# prior distribution of q: instead of improper (prop. to 1/q) use just proper IG\n',
+        file=fn, append=TRUE)
+    cat(paste0('iq ~ dgamma(', priors$iq[1], ',', priors$iq[2], ')I(0.5,100);\nq <- 1/iq;\n'),
+        file=fn, append=TRUE)
+    cat('# prior distribution of sigma2: inv. gamma with 10% and 90% qu. at 0.04 and 0.08\n',
+        file=fn, append=TRUE)
+    cat(paste0('isigma2 ~ dgamma(', priors$isigma2[1], ',', priors$isigma2[2],
+               ');\nsigma2 <- 1/isigma2;\n'), file=fn, append=TRUE)
+    cat('# prior distribution of tau2: inv. gamma with 10% and 90% qu. at 0.05 and 0.15\n',
+        file=fn, append=TRUE)
+    cat(paste0('itau2 ~ dgamma(', priors$itau2[1], ',', priors$itau2[2],
+               ');\ntau2 <- 1/itau2;\n'), file=fn, append=TRUE)
+    cat('# (conditional) prior distribution of Ps (from state equations):\n',
+        file=fn, append=TRUE)
     cat(paste0('Pmed[1] <- ', priors$logPini, ';\n'), file=fn, append=TRUE)
     cat('P[1] ~ dlnorm(Pmed[1],isigma2) #I(0.001,2.0)
 for (t in 2:N) { 

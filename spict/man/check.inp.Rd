@@ -34,7 +34,7 @@ Optional inputs:
  \item{"inp$nseasons"}{ Number of within-year seasons in data. If inp$nseasons > 1 then a seasonal pattern is used in F. Valid values of inp$nseasons are 1, 2 or 4. Default: number of unique within-year time points present in data.}
 }
 
-- Parameters
+- Initial parameter values
 
 \itemize{
  \item{"inp$ini$logn"}{ Pella-Tomlinson exponent determining shape of production function. Default: log(2) corresponding to the Schaefer formulation.}
@@ -50,7 +50,7 @@ Optional inputs:
  \item{"inp$ini$loglambda"}{ Initial value for loglambda (log damping parameter of the coupled SDE representation of seasonality). Default: log(0.1).}
 }
 
-- Unobserved states estimated as random effects
+- Initial values for unobserved states estimated as random effects
 
 \itemize{
   \item{"inp$ini$logF"}{ Log fishing mortality. Default: log(0.2*r), with r derived from m and K.}
@@ -60,7 +60,7 @@ Optional inputs:
 
 - Priors
 
-Priors on model parameters are assumed Gaussian and specified in a vector of length 2: c(log(mean), stdev in log domain, useflag [optional]). NOTE: if specifying a prior for logB, then a 4th element is required specifying the year the prior should be applied.
+Priors on model parameters are assumed generally assumed Gaussian and specified in a vector of length 2: c(log(mean), stdev in log domain, useflag [optional]). NOTE: if specifying a prior for a value in a temporal vector e.g. logB, then a fourth element is required specifying the year the prior should be applied.
 log(mean): log of the mean of the prior distribution.
 stdev in log: standard deviation of the prior distribution in log domain.
 useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
@@ -71,6 +71,8 @@ Example: intrinsic growth rate of 0.8
 Example: Biomass prior of 200 in 1985
  inp$priors$logB <- c(log(200), 0.2, 1985)
  inp$priors$logB <- c(log(200), 0.2, 1, 1985) # This includes the optional useflag
+Example: Inverse gamma prior on sdb^2:
+ inp$priors$isdb2gamma <- meanvar2shaperate(1/exp(inp$ini$logsdb)^2, 150^2)
 
 - Settings/Options/Preferences
 
@@ -91,7 +93,9 @@ Example: Biomass prior of 200 in 1985
  \item{"inp$catchunit"}{ Specify unit of catches to be used in plotting legends. Default: ''.}
  \item{"inp$stdevfacC"}{ Factors to multiply the observation error standard deviation of each individual catch observation. Can be used if some observations are more uncertain than others. Must be same length as observation vector. Default: 1.}
  \item{"inp$stdevfacI"}{ Factors to multiply the observation error standard deviation of each individual index observation. Can be used if some observations are more uncertain than others. A list with vectors of same length as observation vectors. Default: 1.}
+ \item{"inp$stdevfacE"}{ Factors to multiply the observation error standard deviation of each individual effort observation. Can be used if some observations are more uncertain than others. A list with vectors of same length as observation vectors. Default: 1.}
  \item{"inp$mapsdi"}{ Vector of length equal to the number of index series specifying which indices that should use the same sdi. For example: in case of 3 index series use inp$mapsdi <- c(1, 1, 2) to have series 1 and 2 share sdi and have a separate sdi for series 3. Default: 1:nindex, where nindex is number of index series.}
+ \item{"inp$seasontype"}{ If set to 1 use the spline-based representation of seasonality. If set to 2 use the oscillatory SDE system (this is more unstable and difficult to fit, but also more flexible).}
 }
 }
 \examples{

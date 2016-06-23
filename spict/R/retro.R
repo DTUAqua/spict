@@ -31,7 +31,7 @@
 retro <- function(rep, nretroyear=5){
     inp1 <- rep$inp
     inpall <- list()
-    for(i in 1:nretroyear){
+    for (i in 1:nretroyear){
         inpall[[i]] <- list()
         #inpall[[i]]$ini <- as.list(rep$par.fixed)
         #inpall[[i]]$dtpredc <- 0
@@ -40,14 +40,14 @@ retro <- function(rep, nretroyear=5){
         inpall[[i]]$timeC <- inp1$timeC[indsC]
         inpall[[i]]$obsI <- list()
         inpall[[i]]$timeI <- list()
-        for(j in 1:inp1$nindex){
+        for (j in 1:inp1$nindex){
             indsI <- which(inp1$timeI[[j]] <= inp1$timeI[[j]][inp1$nobsI[j]]-i)
             inpall[[i]]$obsI[[j]] <- inp1$obsI[[j]][indsI]
             inpall[[i]]$timeI[[j]] <- inp1$timeI[[j]][indsI]
         }
     }
     asd <- try(parallel::mclapply(inpall, fit.spict))
-    if(class(asd) == 'try-error'){
+    if (class(asd) == 'try-error'){
         rep$retro <- asd
     } else {
         rep$retro <- lapply(inpall, fit.spict)
