@@ -201,9 +201,11 @@ true.col <- function() rgb(1, 165/255, 0, alpha=0.7) # 'orange'
 #' @param typ Plot type.
 #' @param do.line If TRUE draw a line between points.
 #' @param add.legend If TRUE add legend containing information on quarters.
+#' @param add.vline.at If not NULL will draw a vertical line at the given time point.
 #' @param ... Additional plotting arguments.
 #' @return Nothing.
-plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TRUE, add.legend=FALSE, ...){
+plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TRUE,
+                     add.legend=FALSE, add.vline.at=NULL, ...){
     if (is.null(obsx)){
         x <- time
     } else {
@@ -214,6 +216,9 @@ plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TR
     cols <- season.cols(mods)
     if (!add){
         plot(x, obs, typ='n', ...)
+    }
+    if (!is.null(add.vline.at)){
+        abline(v=add.vline.at, lty=3, col='gray')
     }
     if (typ=='p' & do.line){
         lines(x, obs, col='lightgray')
@@ -232,7 +237,8 @@ plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TR
             }
         } else {
             lines(x, obs, col='lightgray')
-            warning('More than four observed sub-annual time points (', nintv, '), plotting only one line.')
+            warning('More than four observed sub-annual time points (', nintv,
+                    '), plotting only one line.')
         }
     }
     if (add.legend){
@@ -567,10 +573,15 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
         inp <- rep$inp
         Cscal <- 1
         Cpred <- rep$osar$logCpred
-        fun <- function(time, res, add=FALSE, add.legend=FALSE, col=1, pch=1, ...){
+        fun <- function(time, res, add=FALSE, add.legend=FALSE, col=1, pch=1,
+                        add.vline.at=NULL, ...){
             nrem <- length(time) - length(res)
-            if (nrem>0) time <- time[-nrem]
-            plot.col(time, res, pch=pch, add=add, add.legend=add.legend, typ='p', xlab='Time', ...)
+            if (nrem > 0){
+                time <- time[-nrem]
+                warning('length of residual vector and length of corresponding time vector are not equal!')
+            }
+            plot.col(time, res, pch=pch, add=add, add.legend=add.legend, typ='p', xlab='Time',
+                     add.vline.at=add.vline.at, ...)
             dum <- rep(NA, length(res))
             dum[is.na(res)] <- 0
             text(time, dum, labels='NA', cex=0.8, col=col)
@@ -579,14 +590,16 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
         pval <- round(as.list(rep$diagn)$biasC.p, 4)
         colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
         fun(rep$osar$timeC, rep$osar$logCpres, add.legend=qlegend, ylab='Catch OSA residuals',
-            main=paste0('Bias p-val: ', pval), col.main=colmain)
+            main=paste0('Bias p-val: ', pval), col.main=colmain, xlim=range(rep$inp$timeC),
+            add.vline.at=rep$osar$timeC[1])
         abline(h=0, lty=3)
         # Effort
         if (inp$nobsE > 0){
             pval <- round(as.list(rep$diagn)$biasE.p, 4)
             colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
             fun(rep$osar$timeE, rep$osar$logEpres, add.legend=qlegend, ylab='Effort OSA residuals',
-                main=paste0('Bias p-val: ', pval), col.main=colmain)
+                main=paste0('Bias p-val: ', pval), col.main=colmain, xlim=range(rep$inp$timeE),
+                add.vline.at=rep$osar$timeE[1])
             abline(h=0, lty=3)
         }
         # Indices
@@ -598,29 +611,34 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
                 xlim <- range(unlist(rep$osar$timeI))
             } else {
                 ylim <- range(rep$osar$logIpres[[1]], na.rm=TRUE)
-                xlim <- range(rep$osar$timeI[[1]])
+                #xlim <- range(rep$osar$timeI[[1]])
+                xlim <- range(rep$inp$timeI[[1]]) # Use observed time range
             }
             ylab <- ifelse(collapse.I, 'Index OSA residuals', 'Index 1 OSA residuals')
             main <- paste0(ifelse(collapse.I, 'Index 1 ', ''), 'Bias p-val: ', pval)
             fun(rep$osar$timeI[[1]], rep$osar$logIpres[[1]], ylab=ylab,
-                col=1, xlim=xlim, ylim=ylim, main=main, col.main=colmain)
+                col=1, xlim=xlim, ylim=ylim, main=main, col.main=colmain,
+                add.vline.at=rep$osar$timeI[[1]][1])
             abline(h=0, lty=3)
-            if (rep$inp$nindex>1){
+            if (rep$inp$nindex > 1){
                 for (i in 2:rep$inp$nindex){
                     ylim <- range(rep$osar$logIpres[[i]], na.rm=TRUE)
-                    xlim <- range(unlist(rep$osar$timeI[[i]]))
+                    #xlim <- range(unlist(rep$osar$timeI[[i]]))
+                    xlim <- range(unlist(rep$inp$timeI[[i]])) # Use observed time range
                     if (!collapse.I){
                         pval <- round(as.list(rep$diagn)[[paste0('biasI', i, '.p')]], 4)
                         #pval <- round(rep$osar$logIpbias[[i]]$p.value, 4)
-                        colmain <- ifelse(pval<0.05, 'red', 'forestgreen')
+                        colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
                         #main <- paste0('I', i, ' bias p-val: ', pval)
                         main <- paste0('Bias p-val: ', pval)
+                        add.vline.at <- rep$osar$timeI[[i]][1]
                     } else {
                         main <- ''
+                        add.vline.at <- NULL
                     }
                     fun(rep$osar$timeI[[i]], rep$osar$logIpres[[i]], add=collapse.I,
-                        ylab=paste('Index', i, 'OSA residuals'),
-                        col=1, pch=i, xlim=xlim, ylim=ylim, main=main, col.main=colmain)
+                        ylab=paste('Index', i, 'OSA residuals'), col=1, pch=i, xlim=xlim,
+                        ylim=ylim, main=main, col.main=colmain, add.vline.at=add.vline.at)
                     if (!collapse.I){
                         abline(h=0, lty=3)
                     }
@@ -683,14 +701,17 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
     
     # Plot data
     if (plot.data){
-        plot.col(inp$timeC, log(inp$obsC), ylab='log catch data', main='Catch', xlab='Time')
+        plot.col(inp$timeC, log(inp$obsC), ylab='log catch data', main='Catch', xlab='Time',
+                 add.vline.at=rep$osar$timeC[1])
         if (inp$nobsE > 0){
-            plot.col(inp$timeE, log(inp$obsE), ylab='log effort data', main='Effort', xlab='Time')
+            plot.col(inp$timeE, log(inp$obsE), ylab='log effort data', main='Effort',
+                     xlab='Time', add.vline.at=rep$osar$timeE[1])
         }
         if (inp$nindex > 0){
             for (i in 1:inp$nindex){
                 plot.col(inp$timeI[[i]], log(inp$obsI[[i]]), ylab=paste('log index',i,'data'),
-                         main=paste('Index', i), pch=i, xlab='Time')
+                         main=paste('Index', i), pch=i, xlab='Time',
+                         add.vline.at=rep$osar$timeI[[i]][1])
             }
         }
     }

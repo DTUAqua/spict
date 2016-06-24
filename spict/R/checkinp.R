@@ -723,11 +723,13 @@ check.inp <- function(inp){
         warning('Mismatch between length(inp$ise) ', length(inp$ise),
                 ' and sum(inp$nobsE) ', sum(inp$nobsE), '.')
     }
-    inp$osar.conditional <- which(inp$timeobssrt < inp$time[1]+1) # Condition on the first year of data.
+    # Condition on the first year of data.
+    inp$osar.conditional <- which(inp$timeobssrt < (inp$time[1]+1))
     inp$osar.subset <- setdiff(1:length(inp$obssrt), inp$osar.conditional)
 
     # -- PRIORS --
-    # Priors are assumed Gaussian and specified in a vector of length 3: c(log(mean), stdev in log, useflag).
+    # Priors are assumed Gaussian and specified in a vector of length 3:
+    # c(log(mean), stdev in log, useflag).
     # log(mean): log of the mean of the prior distribution.
     # stdev in log: standard deviation of the prior distribution in log domain.
     # useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
