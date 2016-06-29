@@ -113,27 +113,47 @@ check.inp <- function(inp){
             stop('Please specify an initial value for ', parname, '!')
         }
     }
-    rm.neg <- function(tmpin, nam, nms, j=''){
+    rm.neg <- function(tmpin, nam, nms, j='', sii=''){
         tmpout <- tmpin
         if (!is.null(tmpin[[nms[1]]])){
             nnms <- length(nms)
-            neg <- which(tmpin[[nms[1]]]<=0 | is.na(tmpin[[nms[1]]]))
-            if (length(neg)>0){
+            neg <- which(tmpin[[nms[1]]] <= 0 | is.na(tmpin[[nms[1]]]))
+            if (length(neg) > 0){
                 for (i in 1:nnms){
                     tmpout[[nms[i]]] <- tmpin[[nms[i]]][-neg]
                 }
-                cat('Removing zero, negative, and NAs in ', nam, ' series ', j, ' \n')
+                cat('Removing zero, negative, and NAs in ', nam, ' series ', j, ' stock ', sii, '\n')
             }
             return(tmpout)
         }
     }
+    remove.neg2 <- function(inp, nam, sii, extrakeys=NULL){
+        # sii is stock index
+        nms <- c(paste0(c('obs', 'time', 'stdevfac'), nam), extrakeys)
+        nnms <- length(nms)
+        nna <- length(inp[[nms[1]]][[sii]]) # Number of index series
+        if (nna > 0){
+            for (j in 1:nna){
+                tmp <- list()
+                for (i in 1:nnms){
+                    tmp[[nms[i]]] <- inp[[nms[i]]][[sii]][[j]]
+                }
+                tmpup <- rm.neg(tmp, nam, nms, j, sii)
+                for (i in 1:nnms){
+                    inp[[nms[i]]][[sii]][[j]] <- tmpup[[nms[i]]]
+                }
+            }
+        }
+        return(inp)
+    }
+
     remove.neg <- function(inp, nam, extrakeys=NULL){
         nms <- c(paste0(c('obs', 'time', 'stdevfac'), nam), extrakeys)
         nnms <- length(nms)
         flag <- class(inp[[nms[1]]]) == 'list'
         if (flag){
             nna <- length(inp[[nms[1]]])
-            if (nna>0){
+            if (nna > 0){
                 for (j in 1:nna){
                     tmp <- list()
                     for (i in 1:nnms){
@@ -171,7 +191,7 @@ check.inp <- function(inp){
         }
     }
     make.list <- function(invar){
-        if (class(invar)!='list'){
+        if (class(invar) != 'list'){
             outvar <- list()
             outvar[[1]] <- invar
         } else {
@@ -179,7 +199,7 @@ check.inp <- function(inp){
         }
         return(outvar)
     }
-    make.time <- function(inp, nam){
+    make.time <- function(inp, nam, sii=NULL){
         time <- paste0('time', nam)
         obs <- paste0('obs', nam)
         nobs <- length(unlist(inp[[obs]]))
@@ -195,7 +215,7 @@ check.inp <- function(inp){
     }
 
     # -- DATA --
-    # Check catch observations
+    # CHECK CATCH OBSERVATIONS
     if ('obsC' %in% names(inp)){
         inp <- make.time(inp, 'C')
         if (any(diff(inp$timeC)<=0)){
@@ -232,81 +252,134 @@ check.inp <- function(inp){
         stop('No effort or index observations. Please include index observations as a vector in inp$obsI and effort observations in inp$obsE.')
     }
     
-    # Check index observations
+    # CHECK INDEX OBSERVATIONS
+    # One stock, one index included as a vector
     inp$obsI <- make.list(inp$obsI)
-    inp$nindex <- length(inp$obsI)
-    if (inp$nindex > 0){
-        inp$nindexseq <- 1:inp$nindex
+    inp$nstocks <- length(inp$obsI)
+    # Stock as list, index as vector
+    for (i in 1:inp$nstocks){
+        inp$obsI[[i]] <- make.list(inp$obsI[[i]])
     }
-    # Time vector
-    inp <- make.time(inp, 'I')
-    inp$timeI <- make.list(inp$timeI)
-    # Standard deviation factor
+    # Stock as list, index as list
+    inp$nindex <- numeric(inp$nstocks)
+    # Time vector (create if doesn't exist)
+    if (!'timeI' %in% names(inp)){
+        inp$timeI <- vector('list', inp$nstocks)
+    } else {
+        inp$timeI <- make.list(inp$timeI)
+    }
+    # Standard deviation factor (create if doesn't exist)
     if (!'stdevfacI' %in% names(inp)){
-        inp$stdevfacI <- list()
-        for (i in inp$nindexseq){
-            inp$stdevfacI[[i]] <- rep(1, length(inp$obsI[[i]]))
+        inp$stdevfacI <- vector('list', inp$nstocks)
+    } else {
+        inp$stdevfacI <- make.list(inp$stdevfacI)
+    }
+    inp$nindexseq <- list()
+    inp$nobsI <- list()
+    for (si in 1:inp$nstocks){
+        inp$nindex[si] <- length(inp$obsI[[si]])
+        if (inp$nindex[si] > 0){
+            inp$nindexseq[[si]] <- 1:inp$nindex[si]
         }
-    }
-    inp$stdevfacI <- make.list(inp$stdevfacI)
-    if (inp$nindex != length(inp$timeI)){
-        stop('length(inp$timeI) is not equal to length(inp$obsI)!')
-    }
-    if (inp$nindex != length(inp$stdevfacI)){
-        stop('length(inp$stdevfacI) is not equal to length(inp$obsI)!')
-    }
-    for (i in inp$nindexseq){
-        base.checks(inp$obsI[[i]], inp$timeI[[i]], inp$stdevfacI[[i]], paste0('I', i))
-    }
-    inp <- remove.neg(inp, 'I')
-    inp$nobsI <- rep(0, inp$nindex) # Need to be after negative have been removed
-    for (i in inp$nindexseq){
-        inp$nobsI[i] <- length(inp$obsI[[i]])
-    }
-    inp$obsidI <- list()
-    for (i in inp$nindexseq){
-        if (i == 1){
-            inp$obsidI[[i]] <- (1:inp$nobsI[i]) + inp$nobsC
-        } else {
-            inp$obsidI[[i]] <- (1:inp$nobsI[i]) + tail(inp$obsidI[[i-1]], 1)
+        # Time vector
+        # Create if doesn't exist
+        if (is.null(inp$timeI[[si]])){
+            inp$timeI[[si]] <- list()
+            for (i in inp$nindexseq[[si]]){
+                inp$timeI[[si]][[i]] <- 1:length(inp$obsI[[si]][[i]])
+            }
+        } 
+        inp$timeI[[si]] <- make.list(inp$timeI[[si]])
+        # Standard deviation factor
+        # Create if doesn't exist
+        if (is.null(inp$stdevfacI[[si]])){
+            inp$stdevfacI[[si]] <- list()
+            for (i in inp$nindexseq[[si]]){
+                inp$stdevfacI[[si]][[i]] <- rep(1, length(inp$obsI[[si]][[i]]))
+            }
+        } 
+        inp$stdevfacI[[si]] <- make.list(inp$stdevfacI[[si]])
+        if (inp$nindex[si] != length(inp$timeI[[si]])){
+            stop('length(inp$timeI) is not equal to length(inp$obsI) for stock', si)
         }
+        if (inp$nindex[si] != length(inp$stdevfacI[[si]])){
+            stop('length(inp$stdevfacI) is not equal to length(inp$obsI) for stock', si)
+        }
+        for (i in inp$nindexseq[[si]]){
+            base.checks(inp$obsI[[si]][[i]], inp$timeI[[si]][[i]], inp$stdevfacI[[si]][[i]], paste0('I', i))
+        }
+        inp <- remove.neg2(inp, 'I', si)
+        inp$nobsI[[si]] <- rep(0, inp$nindex[si]) # Need to be after negative have been removed        
+        for (i in inp$nindexseq[[si]]){
+            inp$nobsI[[si]][i] <- length(inp$obsI[[si]][[i]])
+        }
+        # Observation index in the observation input vector containing all observations
+        # NOT DONE!
+        #inp$obsidI <- list()
+        #for (i in inp$nindexseq[[si]]){
+        #    if (i == 1){
+        #        inp$obsidI[[i]] <- (1:inp$nobsI[i]) + inp$nobsC
+        #    } else {
+        #        inp$obsidI[[i]] <- (1:inp$nobsI[i]) + tail(inp$obsidI[[i-1]], 1)
+        #    }
+        #}
+
     }
 
-    # Check effort observations
+    # CHECK EFFORT OBSERVATIONS
+    # One fleet included as a vector
+    inp$obsE <- make.list(inp$obsE)
+    inp$neffort <- length(inp$obsE)
     inp <- make.time(inp, 'E')
-    if (any(diff(inp$timeE) <= 0)){
-        stop('Effort times are not strictly increasing!')
+    inp$timeE <- make.list(inp$timeE)
+    if (inp$neffort > 0){
+        inp$neffortseq <- 1:inp$neffort
     }
     # Effort intervals (dte)
-    if (!"dte" %in% names(inp) & length(inp$obsE) > 0){
-        dte <- diff(inp$timeE)
-        if (length(dte) > 0){
-            inp$dte <- min(dte)
-        } else {
-            inp$dte <- 1
-            cat(paste('Effort interval (dte) not specified and length of effort time series shorter than 2. Assuming an interval of 1 year.\n'))
+    if (!"dte" %in% names(inp) & inp$neffort > 0){
+        inp$dte <- vector('list', inp$neffort)
+    }
+    if (!"stdevfacE" %in% names(inp) & inp$neffort > 0){
+        inp$stdevfacE <- vector('list', inp$neffort)
+    }
+    inp$nobsE <- numeric(inp$neffort)
+    for (i in inp$neffortseq){
+        if (any(diff(inp$timeE) <= 0)){
+            stop('Effort times for effort series', i, 'are not strictly increasing!')
         }
-    }
-    if (length(inp$dte) == 1){
-        inp$dte <- rep(inp$dte, length(inp$obsE))
-    }
-    if (!'stdevfacE' %in% names(inp)){
-        inp$stdevfacE <- rep(1, length(inp$obsE))
-    }
-    base.checks(inp$obsE, inp$timeE, inp$stdevfacE, 'E')
-    inp <- remove.neg(inp, 'E')
-    inp$nobsE <- length(inp$obsE)
-    if (inp$nobsE > 0){
-        inp$obsidE <- (1:inp$nobsE) + inp$nobsC + sum(inp$nobsI)
-    } else {
-        inp$obsidE <- numeric()
-    }
-    if (length(inp$dte) != inp$nobsE){
-        stop('Effort interval vector (inp$dte, ', length(inp$dte),
-             ') does not match effort observation vector (inp$obsE, ',
-             inp$nobsE, ') in length')
+        if (is.null(inp$dte[[i]])){
+            dte <- diff(inp$timeE[[i]])
+            if (length(dte) > 0){
+                inp$dte[[i]] <- min(dte)
+            } else {
+                inp$dte[[i]] <- 1
+                cat(paste('Effort interval (dte) not specified and length of effort time series', i, 'shorter than 2. Assuming an interval of 1 year.\n'))
+            }
+        }
+        if (length(inp$dte[[i]]) == 1){
+            inp$dte[[i]] <- rep(inp$dte[[i]], length(inp$obsE[[i]]))
+        }
+        if (is.null(inp$stdevfacE[[i]])){
+            inp$stdevfacE[[i]] <- rep(1, length(inp$obsE[[i]]))
+        }
+        base.checks(inp$obsE[[i]], inp$timeE[[i]], inp$stdevfacE[[i]], 'E')
+        inp <- remove.neg(inp, 'E')
+        inp$nobsE[i] <- length(inp$obsE[[i]])
+        if (length(inp$dte[[i]]) != inp$nobsE[i]){
+            stop('Effort interval vector (inp$dte, ', length(inp$dte),
+                 ') does not match effort observation vector (inp$obsE, ',
+                 inp$nobsE, ') in length for effort series ', i)
+        }
+        # obsidE NOT DONE
+        #if (inp$nobsE[i] > 0){
+        #    inp$obsidE <- (1:inp$nobsE) + inp$nobsC + sum(inp$nobsI)
+        #} else {
+        #    inp$obsidE <- numeric()
+        #}
     }
 
+    # BELOW NOT DONE
+    
     inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
     
     # -- MODEL OPTIONS --
