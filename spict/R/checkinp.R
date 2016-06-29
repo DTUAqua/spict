@@ -215,39 +215,6 @@ check.inp <- function(inp){
     }
 
     # -- DATA --
-    # CHECK CATCH OBSERVATIONS
-    if ('obsC' %in% names(inp)){
-        inp <- make.time(inp, 'C')
-        if (any(diff(inp$timeC)<=0)){
-            stop('Catch times are not strictly increasing!')
-        }
-        # Catch intervals (dtc)
-        if (!"dtc" %in% names(inp)){
-            dtc <- diff(inp$timeC)
-            if (length(dtc) > 0){
-                inp$dtc <- min(dtc)
-            } else {
-                inp$dtc <- 1
-                cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 2. Assuming an interval of 1 year.\n'))
-            }
-        }
-        if (length(inp$dtc) == 1){
-            inp$dtc <- rep(inp$dtc, length(inp$obsC))
-        }
-        if (!'stdevfacC' %in% names(inp)){
-            inp$stdevfacC <- rep(1, length(inp$obsC))
-        }
-        base.checks(inp$obsC, inp$timeC, inp$stdevfacC, 'C')
-        inp <- remove.neg(inp, 'C', extrakeys='dtc')
-        inp$nobsC <- length(inp$obsC)
-        inp$obsidC <- 1:inp$nobsC
-    } else {
-        stop('No catch observations included. Please include them as a vector in inp$obsC.')
-    }
-    if (length(inp$dtc) != inp$nobsC){
-        stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
-    }
-    
     if (!any(c('obsI', 'obsE') %in% names(inp))){
         stop('No effort or index observations. Please include index observations as a vector in inp$obsI and effort observations in inp$obsE.')
     }
@@ -323,27 +290,26 @@ check.inp <- function(inp){
         #        inp$obsidI[[i]] <- (1:inp$nobsI[i]) + tail(inp$obsidI[[i-1]], 1)
         #    }
         #}
-
     }
 
     # CHECK EFFORT OBSERVATIONS
     # One fleet included as a vector
     inp$obsE <- make.list(inp$obsE)
-    inp$neffort <- length(inp$obsE)
+    inp$nfleets <- length(inp$obsE)
     inp <- make.time(inp, 'E')
     inp$timeE <- make.list(inp$timeE)
-    if (inp$neffort > 0){
-        inp$neffortseq <- 1:inp$neffort
+    if (inp$nfleets > 0){
+        inp$nfleetsseq <- 1:inp$nfleets
     }
     # Effort intervals (dte)
-    if (!"dte" %in% names(inp) & inp$neffort > 0){
-        inp$dte <- vector('list', inp$neffort)
+    if (!"dte" %in% names(inp) & inp$nfleets > 0){
+        inp$dte <- vector('list', inp$nfleets)
     }
-    if (!"stdevfacE" %in% names(inp) & inp$neffort > 0){
-        inp$stdevfacE <- vector('list', inp$neffort)
+    if (!"stdevfacE" %in% names(inp) & inp$nfleets > 0){
+        inp$stdevfacE <- vector('list', inp$nfleets)
     }
-    inp$nobsE <- numeric(inp$neffort)
-    for (i in inp$neffortseq){
+    inp$nobsE <- numeric(inp$nfleets)
+    for (i in inp$nfleetsseq){
         if (any(diff(inp$timeE) <= 0)){
             stop('Effort times for effort series', i, 'are not strictly increasing!')
         }
@@ -363,7 +329,7 @@ check.inp <- function(inp){
             inp$stdevfacE[[i]] <- rep(1, length(inp$obsE[[i]]))
         }
         base.checks(inp$obsE[[i]], inp$timeE[[i]], inp$stdevfacE[[i]], 'E')
-        inp <- remove.neg(inp, 'E')
+        inp <- remove.neg(inp, 'E', extrakeys='dte')
         inp$nobsE[i] <- length(inp$obsE[[i]])
         if (length(inp$dte[[i]]) != inp$nobsE[i]){
             stop('Effort interval vector (inp$dte, ', length(inp$dte),
@@ -378,6 +344,86 @@ check.inp <- function(inp){
         #}
     }
 
+    # CHECK CATCH OBSERVATIONS
+    if (!'target' %in% names(inp)){
+        if (inp$nstocks * inp$nfleets > 1){ # Multiple fleets and/or stocks
+            stop('Data for running a multi-fleet/multi-stock model have been input without specifying inp$target. Cannot continue. See ?check.inp for help.')
+        }
+        inp$target <- matrix(1, 1, 1)
+    }
+    if (nrow(inp$target) != inp$nstocks){
+        stop('nrow(inp$target)', nrow(inp$target), '!= inp$nstocks', inp$nstocks,
+             'fix index input data or inp$target.')
+    }
+    if (ncol(inp$target) != inp$nfleets){
+        stop('nrow(inp$target)', nrow(inp$target), '!= inp$nfleets', inp$nfleets,
+             'fix effort input data or inp$target.')
+    }
+    if (any(is.na(match(as.numeric(inp$target), 0:1)))){ # Check whether only 0 and 1
+        stop('Values other than 0 and 1 specified in inp$target.')
+    }
+    if (all(inp$target == 0)){
+        stop('All values of inp$target are 0, there should be at least one 1.')
+    }
+    inp$nqf <- sum(inp$target)
+    # inp$target seems valid, continuing...
+    if (!'obsC' %in% names(inp)){
+        if (inp$nqf > 1){
+            str <- paste('A total of', inp$nqf, 'fleet stock interactions detected and therefore',
+                         inp$nqg, 'time series of catch data are required to continue.')
+        } else {
+            str <- ''
+        }
+        stop('No catch observations included. Please include them as inp$obsC.', str)
+    }
+    inp$obsC <- make.list(inp$obsC)
+    if (length(inp$obsC) != inp$nqf){
+        stop('Number of catch time series (', length(inp$obsC),
+             ') differs from the number of fleet stock interactions given in inp$target (', inp$nqf, ').')
+    }
+    inp <- make.time(inp, 'C')
+    inp$timeC <- make.list(inp$timeC)
+    # Catch intervals (dtc)
+    if (!"dtc" %in% names(inp)){
+        inp$dtc <- vector('list', inp$nqf)
+    }
+    if (!'stdevfacC' %in% names(inp)){
+        inp$stdevfacC <- vector('list', inp$nqf)
+    }
+    inp$nobsC <- numeric(inp$nqf)
+    for (i in 1:inp$nqf){
+        if (any(diff(inp$timeC[[i]]) <= 0)){
+            stop('Catch times in series ', i, ' are not strictly increasing!')
+        }
+        # Catch intervals (dtc)
+        if (is.null(inp$dtc[[i]])){
+            dtc <- diff(inp$timeC[[i]])
+            if (length(dtc) > 0){
+                inp$dtc[[i]] <- min(dtc)
+            } else {
+                inp$dtc[[i]] <- 1
+                cat(paste('Catch interval (dtc) not specified and length of catch time series', i, 'shorter than 2. Assuming an interval of 1 year.\n'))
+            }
+        }
+        if (length(inp$dtc[[i]]) == 1){
+            inp$dtc[[i]] <- rep(inp$dtc[[i]], length(inp$obsC[[i]]))
+        }
+        if (is.null(inp$stdevfacC[[i]])){
+            inp$stdevfacC[[i]] <- rep(1, length(inp$obsC[[i]]))
+        }
+        base.checks(inp$obsC[[i]], inp$timeC[[i]], inp$stdevfacC[[i]], 'C')
+        inp <- remove.neg(inp, 'C', extrakeys='dtc')
+        inp$nobsC[i] <- length(inp$obsC[[i]])
+        if (length(inp$dtc[[i]]) != inp$nobsC[i]){
+            stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length in series', i)
+        }
+        # NOT DONE
+        #inp$obsidC <- 1:inp$nobsC
+    }
+
+    # Observation IDs
+    
+    
     # BELOW NOT DONE
     
     inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
@@ -403,10 +449,10 @@ check.inp <- function(inp){
     if ("mapq" %in% names(inp)) inp$nq <- length(unique(inp$mapq))
     # Effort related
     if (!"efforttype" %in% names(inp)) inp$efforttype <- 1
-    if (!"mapsde" %in% names(inp)) inp$mapsde <- inp$neffortseq
+    if (!"mapsde" %in% names(inp)) inp$mapsde <- inp$neffortseq # may require change
     if ("mapsde" %in% names(inp)) inp$nsde <- length(unique(inp$mapsde))
     if (!"mapqf" %in% names(inp)) inp$mapqf <- inp$neffortseq
-    if ("mapqf" %in% names(inp)) inp$nqf <- length(unique(inp$mapqf))
+    if ("mapqf" %in% names(inp)) inp$nqf <- length(unique(inp$mapqf)) # may require change
     # Catch related
     if (!"catchunit" %in% names(inp)) inp$catchunit <- ''
     # Reporting
