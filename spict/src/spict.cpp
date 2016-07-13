@@ -743,10 +743,10 @@ Type objective_function<Type>::operator() ()
   --- ONE-STEP-AHEAD PREDICTIONS ---
   */
 
-  if(dbg>0){
-    std::cout << "--- DEBUG: ONE-STEP-AHEAD PREDICTIONS --- ans: " << ans << std::endl;
+  if(dbg > 0){
+    std::cout << "--- DEBUG: ONE-STEP-AHEAD CATCH PREDICTIONS --- ans: " << ans << std::endl;
     std::cout << "-- dtpredcnsteps: " << dtpredcnsteps << "  dtpredcinds.size(): " << dtpredcinds.size() <<std::endl;
-    std::cout << "-- dtpredensteps: " << dtpredensteps << "  dtpredeinds.size(): " << dtpredeinds.size() <<std::endl;
+    
   }
   // Catch prediction
   Type Cp = 0.0;
@@ -758,6 +758,11 @@ Type objective_function<Type>::operator() ()
     Cp += Cpredsub(ind);
   }
   Type logCp = log(Cp);
+
+  if(dbg > 0){
+    std::cout << "--- DEBUG: ONE-STEP-AHEAD EFFORT PREDICTIONS --- ans: " << ans << std::endl;
+    std::cout << "-- dtpredensteps: " << dtpredensteps << "  dtpredeinds.size(): " << dtpredeinds.size() <<std::endl;
+  }
 
   // Effort prediction
   Type Fp = 0.0;
@@ -771,8 +776,15 @@ Type objective_function<Type>::operator() ()
   Type logEp = log(Fp) - logqf;
   Type Ep = exp(logEp);
 
+  if(dbg > 0){
+    std::cout << "--- DEBUG: Biomass and F at the end of the prediction time interval --- ans: " << ans << std::endl;
+  }
+
   // Biomass and F at the end of the prediction time interval
   int pind = CppAD::Integer(dtprediind-1);
+  if(dbg > 0){
+    std::cout << "-- pind: " << pind << std::endl;
+  }
   Type Bp = B(pind); 
   Type logBp = log(Bp);
   Type logBpBmsy = logBp - logBmsyvec(pind);
@@ -785,12 +797,20 @@ Type objective_function<Type>::operator() ()
     logIp(i) = logq(i) + log(Bp);
   }
 
+  if(dbg > 0){
+    std::cout << "--- DEBUG: Biomass and fishing mortality at last time point --- ans: " << ans << std::endl;
+  }
+
   // Biomass and fishing mortality at last time point
   Type logBl = logB(indlastobs-1);
   Type logBlBmsy = logBl - logBmsyvec(indlastobs-1);
   Type logBlK = logBl - logK;
   Type logFl = logFs(indlastobs-1);
   Type logFlFmsy = logFl - logFmsyvec(indlastobs-1);
+
+  if(dbg > 0){
+    std::cout << "--- DEBUG: Calculate relative levels of biomass and fishing mortality --- ans: " << ans << std::endl;
+  }
 
   // Calculate relative levels of biomass and fishing mortality
   vector<Type> logBBmsy(ns);
@@ -804,6 +824,10 @@ Type objective_function<Type>::operator() ()
 
   // 
   Type logbkfrac = logB(0) - logK;
+
+  if(dbg > 0){
+    std::cout << "--- DEBUG: Calculations done, doing ADREPORTS --- ans: " << ans << std::endl;
+  }
 
   // ADREPORTS
   ADREPORT(Bmsy);  
