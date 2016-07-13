@@ -330,11 +330,34 @@ invlogp1 <- function(a) 1 + exp(a)
 #' @export
 guess.m <- function(inp, all.return=FALSE){
     y <- inp$obsC
-    if (length(inp$obsI)>0){
-        if (class(inp$obsI)=='list'){
+    if (length(inp$obsI) > 0){
+        if (class(inp$obsI) == 'list'){
             z <- inp$obsI[[1]]
         } else {
             z <- inp$obsI
+        }
+    } else {
+        z <- NULL
+    }
+    return(guess.m2(y, z, all.return=all.return))
+}
+
+
+#' @name guess.m2
+#' @title Use a simple linear regression to guess m (MSY).
+#' @details Equations 9.1.7 and 9.1.8 on page 284 of FAO's tropical assessment book are used to guess MSY.
+#' @param obsC Catch data.
+#' @param obsI Index data.
+#' @param all.return If true also return a guess on Emsy (effort at MSY) and components of the linear regression.
+#' @return The guess on MSY.
+#' @export
+guess.m2 <- function(obsC, obsI, all.return=FALSE){
+    y <- obsC
+    if (length(obsI) > 0){
+        if (class(obsI) == 'list'){
+            z <- obsI[[1]]
+        } else {
+            z <- obsI
         }
     } else {
         z <- NULL

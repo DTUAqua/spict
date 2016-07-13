@@ -371,6 +371,9 @@ check.inp <- function(inp){
     }
 
     # CHECK CATCH OBSERVATIONS
+    # Check target matrix
+    # One row for each stock, one column for each fleet,
+    # 0 means no stock-fleet interaction, integer > 0 indicates which catch series relate to that interaction
     if (!'target' %in% names(inp)){
         if (inp$nstocks * inp$nfleets > 1){ # Multiple fleets and/or stocks
             stop('Data for running a multi-fleet/multi-stock model have been input without specifying inp$target. Cannot continue. See ?check.inp for help.')
@@ -385,13 +388,17 @@ check.inp <- function(inp){
         stop('ncol(inp$target) (', ncol(inp$target), ') != inp$nfleets (', inp$nfleets,
              ') fix effort input data or inp$target.')
     }
-    if (any(is.na(match(as.numeric(inp$target), 0:1)))){ # Check whether only 0 and 1
-        stop('Values other than 0 and 1 specified in inp$target.')
+    # Check whether all required indices are present in target matrix
+    if (any(sort(inp$target[inp$target > 0]) != 1:length(inp$obsC))){
+        stop('Mismatch between indices specified in inp$target and the number of catch series provided in inp$obsC!')
     }
+    #if (any(is.na(match(as.numeric(inp$target), 0:1)))){ # Check whether only 0 and 1
+    #    stop('Values other than 0 and 1 specified in inp$target.')
+    #}
     if (all(inp$target == 0)){
-        stop('All values of inp$target are 0, there should be at least one 1.')
+        stop('All values of inp$target are 0, there should be at least one entry > 0.')
     }
-    inp$nqf <- sum(inp$target)
+    inp$nqf <- sum(inp$target > 0)
     if (inp$nqf > 0){
         inp$nqfseq <- 1:inp$nqf
     }
@@ -509,14 +516,32 @@ check.inp <- function(inp){
     if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
     if (!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
     # Index related
-    if (!"mapsdi" %in% names(inp)) inp$mapsdi <- inp$nindexseq
+    if (!"mapsdi" %in% names(inp)){
+        inp$mapsdi <- list()
+        sdiend <- 0
+        for (si in 1:inp$nstocks){
+            sdinext <- sdiend + inp$nindex[si]
+            inp$mapsdi[[si]] <- (sdiend+1) : (sdinext)
+            sdiend <- sdinext
+        }
+    }
+    # TODO: Perhaps create a check of mapsdi here
     if ("mapsdi" %in% names(inp)){
         inp$nsdi <- numeric(inp$nstocks)
         for (si in 1:inp$nstocks){
             inp$nsdi[si] <- length(unique(inp$mapsdi[[si]]))
         }
     }
-    if (!"mapq" %in% names(inp)) inp$mapq <- inp$nindexseq
+    if (!"mapq" %in% names(inp)){
+        inp$mapq <- list()
+        qend <- 0
+        for (si in 1:inp$nstocks){
+            qnext <- qend + inp$nindex[si]
+            inp$mapq[[si]] <- (qend+1) : (qnext)
+            qend <- qnext
+        }
+    }
+    # TODO: Perhaps create a check of mapq here
     if ("mapq" %in% names(inp)){
         inp$nq <- numeric(inp$nstocks)
         for (si in 1:inp$nstocks){
@@ -899,53 +924,81 @@ check.inp <- function(inp){
     inp$ii <- list()
     for (si in 1:inp$nstocks){
         inp$ii[[si]] <- list()
-        for (i in inp$nindexseq){
+        for (i in inp$nindexseq[[si]]){
             inp$ii[[si]][[i]] <- cut(inp$timeI[[si]][[i]], inp$time, right=FALSE, labels=FALSE)
         }
     }
 
-    # --- BELOW NOT DONE ---
-    
-    # Translate index observations from a list to a vector
-    inp$obsIin <- unlist(inp$obsI)
-    inp$stdevfacIin <- unlist(inp$stdevfacI)
-    if (is.null(inp$stdevfacIin)) inp$stdevfacIin <- numeric(0) # If zero index observations
-    inp$iiin <- unlist(inp$ii)
-    if (is.null(inp$iiin)) inp$iiin <- numeric(0)
-    inp$iqin <- rep(inp$mapq, times=inp$nobsI)
-    if (is.null(inp$iqin)) inp$iqin <- numeric(0)
-    inp$isdiin <- rep(inp$mapsdi, times=inp$nobsI)
-    if (is.null(inp$isdiin)) inp$isdiin <- numeric(0)
+    # Translate observations from a list to a vector
+    list2vec <- function(inlist){
+        vec <- unlist(inlist)
+        if (is.null(vec)){
+            vec <- numeric(0)
+        }
+        return(vec)
+    }
+    replist <- function(map, nobs){
+        out <- rep(map, times=nobs)
+        if (is.null(out)){
+            out <- numeric(0)
+        }
+        return(out)
+    }
+    inp$obsIin <- list2vec(inp$obsI)
+    inp$stdevfacIin <- list2vec(inp$stdevfacI)
+    inp$iiin <- list2vec(inp$ii)
+    inp$iqin <- numeric(0)
+    for (si in 1:inp$nstocks){
+        inp$iqin <- c(inp$iqin, replist(inp$mapq[[si]], inp$nobsI[[si]]))
+    }
+    inp$isdiin <- numeric(0)
+    for (si in 1:inp$nstocks){
+        inp$isdiin <- c(inp$isdiin, replist(inp$mapsdi[[si]], inp$nobsI[[si]]))
+    }
+
     # Add helper variable such that predicted catch can be calculated using small euler steps
     # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
-    inp$dtpredcinds <- which(inp$time >= inp$timepredc & inp$time < (inp$timepredc+inp$dtpredc))
+    # dtpredcinds is the indices of time of the catch prediction
+    inp$dtpredcinds <- which(inp$time >= inp$timepredc & inp$time < (inp$timepredc + inp$dtpredc))
     inp$dtpredcnsteps <- length(inp$dtpredcinds)
     inp$dtprediind <- cut(inp$timepredi, inp$time, right=FALSE, labels=FALSE)
-    inp$dtpredeinds <- which(inp$time >= inp$timeprede & inp$time < (inp$timeprede+inp$dtprede))
+    inp$dtpredeinds <- which(inp$time >= inp$timeprede & inp$time < (inp$timeprede + inp$dtprede))
     inp$dtpredensteps <- length(inp$dtpredeinds)
 
     # - Sort observations in time and store in one vector -
-    timeobsseen <- c(inp$timeC + inp$dtc - 1e-4, unlist(inp$timeI), unlist(inp$timeE) + unlist(inp$dte) - 1e-5) # Add dtc to timeC because the total catch is first "seen" at the end of the given catch interval (typically year or quarter), similarly for quarter. By arbitrary convention catches are assumed to be "seen" before effort although they should be observed at the same time.
+    timeobsseen <- c(unlist(inp$timeC) + unlist(inp$dtc) - 1e-4,
+                     unlist(inp$timeI),
+                     unlist(inp$timeE) + unlist(inp$dte) - 1e-5)
+    # Add dtc to timeC because the total catch is first "seen" at the end of the given catch interval (typically year or quarter), similarly for quarter. By arbitrary convention catches are assumed to be "seen" before effort although they should be observed at the same time.
     srt <- sort(timeobsseen, index=TRUE)
-    timeobs <- c(inp$timeC, unlist(inp$timeI), unlist(inp$timeE))
+    timeobs <- c(unlist(inp$timeC), unlist(inp$timeI), unlist(inp$timeE))
     timeobssrt <- timeobs[srt$ix]
-    obs <- log(c(inp$obsC, unlist(inp$obsI), unlist(inp$obsE)))
-    obsid <- c(inp$obsidC, unlist(inp$obsidI), unlist(inp$obsidE))
+    obs <- log(c(unlist(inp$obsC), unlist(inp$obsI), unlist(inp$obsE)))
+    obsid <- c(unlist(inp$obsidC), unlist(inp$obsidI), unlist(inp$obsidE))
+    # TODO: Could add a check here that obsid is equal to 1:length(obs)
     inp$obssrt <- obs[srt$ix]
     inp$timeobssrt <- timeobs[srt$ix]
     inp$obsidsrt <- obsid[srt$ix]
-    inp$isc <- match(1:inp$nobsC, srt$ix)
-    if (sum(inp$nobsI)>0){
-        inp$isi <- match((inp$nobsC+1):(inp$nobsC+sum(inp$nobsI)), srt$ix)
+    # Find indices of catch, index and effort in sorted observation vector 
+    #inp$isc <- match(1:inp$nobsC, srt$ix)
+    inp$isc <- match(unlist(inp$obsidC), srt$ix)
+    if (sum(unlist(inp$nobsI)) > 0){
+        #inp$isi <- match((inp$nobsC+1):(inp$nobsC+sum(inp$nobsI)), srt$ix)
+        inp$isi <- match(unlist(inp$obsidI), srt$ix)
     } else {
         inp$isi <- numeric(0)
     }
-    if (sum(inp$nobsE)>0){
-        inp$ise <- match((inp$nobsC+sum(inp$nobsI)+1):(inp$nobsC+sum(inp$nobsI)+sum(inp$nobsE)), srt$ix)
+    if (sum(inp$nobsE) > 0){
+        #inp$ise <- match((inp$nobsC+sum(inp$nobsI)+1):(inp$nobsC+sum(inp$nobsI)+sum(inp$nobsE)), srt$ix)
+        inp$ise <- match(unlist(inp$obsidE), srt$ix)
     } else {
         inp$ise <- numeric(0)
     }
-    if (sum(inp$nobsI) != length(inp$isi)){
+    if (sum(inp$nobsC) != length(inp$isc)){
+        warning('Mismatch between length(inp$isc) ', length(inp$isc),
+                ' and sum(inp$nobsC) ', sum(inp$nobsC), '.')
+    }
+    if (sum(unlist(inp$nobsI)) != length(inp$isi)){
         warning('Mismatch between length(inp$isi) ', length(inp$isi),
                 ' and sum(inp$nobsI) ', sum(inp$nobsI), '.')
     }
@@ -954,7 +1007,7 @@ check.inp <- function(inp){
                 ' and sum(inp$nobsE) ', sum(inp$nobsE), '.')
     }
     # Condition on the first year of data.
-    inp$osar.conditional <- which(inp$timeobssrt < (inp$time[1]+1))
+    inp$osar.conditional <- which(inp$timeobssrt < (inp$time[1] + 1))
     inp$osar.subset <- setdiff(1:length(inp$obssrt), inp$osar.conditional)
 
     # -- PRIORS --
@@ -980,7 +1033,8 @@ check.inp <- function(inp){
                 if (is.na(ib)){
                     ib <- 0
                     priorvec[3] <- 0
-                    warning('Year for prior on ', priorname, ' (', priorvec[3], ') did not match times where this RE is estimated. Not using this prior. To fix this use a year where an observation is available.')
+                    warning('Year for prior on ', priorname, ' (', priorvec[3],
+                            ') did not match times where this RE is estimated. Not using this prior. To fix this use a year where an observation is available.')
                 }
                 priorvec <- c(priorvec, ib) # Add index in time vec to which this year corresponds
             }
@@ -1026,16 +1080,22 @@ check.inp <- function(inp){
     lognsd <- wide
     logalphasd <- wide
     logbetasd <- wide
-    if (!'logn' %in% names(inp$priors)) inp$priors$logn <- c(logn, lognsd)
-    if (!'logalpha' %in% names(inp$priors)) inp$priors$logalpha <- c(logalpha, logalphasd) 
-    if (!'logbeta' %in% names(inp$priors)) inp$priors$logbeta <- c(logbeta, logbetasd)
+    if (!'logn' %in% names(inp$priors)){
+        inp$priors$logn <- c(logn, lognsd)
+    }
+    if (!'logalpha' %in% names(inp$priors)){
+        inp$priors$logalpha <- c(logalpha, logalphasd)
+    }
+    if (!'logbeta' %in% names(inp$priors)){
+        inp$priors$logbeta <- c(logbeta, logbetasd)
+    }
 
     # Remaining priors, set to something, but will not be used
     if ("priors" %in% names(inp)){
         # Remove wrong priors names
         nms <- names(inp$priors)
         inds <- which(is.na(match(nms, possiblepriors)))
-        if (length(inds)>0){
+        if (length(inds) > 0){
             warning('Wrong prior names specified: ', nms[inds])
             inp$priors[inds] <- NULL
         }
@@ -1058,81 +1118,101 @@ check.inp <- function(inp){
     for (i in 1:npriors){
         inp$priorsuseflags[i] <- inp$priors[[i]][3]
     }
-           
+    
     # -- MODEL PARAMETERS --
-    # logn
-    if (!"logn" %in% names(inp$ini)){
-        inp$ini$logn <- logn
-    } else {
-        if (inp$ini$logn==0){
-            stop('Initial value for logn == 0, that is not valid!')
+    check.ini <- function(inp, parnm, expectedlength){
+        lngt <- length(inp$ini[[parnm]])
+        if (lngt != expectedlength){
+            stop('Specified initial value for ', parnm, ' has length ', lngt, ' but ',
+                 expectedlength, ' is expected!')
         }
     }
+    rm.zeros <- function(vec){
+        return(vec[vec > 0])
+    }
+    # logn
+    if (!"logn" %in% names(inp$ini)){
+        inp$ini$logn <- rep(logn, inp$nstocks)
+    } else {
+        if (any(inp$ini$logn == 0)){
+            stop('Initial value(s) for logn == 0. That is not valid!')
+        }
+    }
+    check.ini(inp, 'logn', inp$nstocks)
     # Calculate gamma from n
     n <- exp(inp$ini$logn)
     inp$ini$gamma <- calc.gamma(n)
+    
+   
     # logK
-    if (!'logK' %in% names(inp$ini)) inp$ini$logK <- log(4*max(inp$obsC))
+    if (!'logK' %in% names(inp$ini)){
+        inp$ini$logK <- numeric(inp$nstocks)
+        for (si in 1:inp$nstocks){
+            inp$ini$logK[si] <- log(4 * max(unlist(inp$obsC[rm.zeros(inp$target[si, ])])))
+        }
+    }
+    check.ini(inp, 'logK', inp$nstocks)
     # logr
     if ('logr' %in% names(inp$ini) & 'logm' %in% names(inp$ini)){
         inp$ini$logr <- NULL # If both r and m are specified use m and discard r
     }
     if (!'logr' %in% names(inp$ini)){
         if (!'logm' %in% names(inp$ini)){
-            inp$ini$logm <- unname(log(guess.m(inp)))
+            inp$ini$logm <- numeric(inp$nstocks)
+            for (si in 1:inp$nstocks){
+                obsC <- unlist(inp$obsC[rm.zeros(inp$target[si, ])[1]])
+                obsI <- inp$obsI[[si]][[1]]
+                inp$ini$logm[si] <- unname(log(guess.m2(obsC, obsI)))
+            }
         }
-        r <- exp(inp$ini$logm)/exp(inp$ini$logK) * n^(n/(n-1))
+        r <- exp(inp$ini$logm) / exp(inp$ini$logK) * n^(n/(n-1))
         inp$ini$logr <- log(r)
-        #r <- inp$ini$gamma * exp(inp$ini$logm) / exp(inp$ini$logK) # n > 1 # rold
-        #if (n>1){
-        #    inp$ini$logr <- log(r)
-        #} else {
-        #    inp$ini$logr <- log(-r)
-        #}
     }
-    if ('logr' %in% names(inp$ini)){
-        nr <- length(inp$ini$logr)
-        if (!'ir' %in% names(inp) | nr == 1){
-            inp$ir <- rep(0, inp$ns)
-            for (i in 1:nr){
-                frac <- 1/nr
-                modtime <- inp$time %% 1
-                inds <- which(modtime>=((i-1)*frac) & modtime<(i*frac))
-                inp$ir[inds] <- i
-            }
-        } else {
-            if (length(unique(inp$ir)) != nr){
-                stop('Mismatch between specified inp$ir and inp$ini$logr!')
-            }
-            nir <- length(inp$ir)
-            if (nir != inp$ns){
-                if (nir == inp$nobsC){ # Assume that inp$ir fits with inp$timeC
-                    ir <- rep(0, inp$ns)
-                    for (i in 1:nir){
-                        inds <- which(inp$time >= inp$timeC[i] & inp$time < (inp$timeC[i]+inp$dtc[i]))
-                        ir[inds] <- inp$ir[i]
-                    }
-                    inds <- which(inp$time >= inp$timeC[nir])
-                    ir[inds] <- inp$ir[nir]
-                    inp$ir <- ir
-                } else {
-                    if (nir == inp$nobsI[[1]]){ # Assume that inp$ir fits with inp$timeI[[1]]
+    if (FALSE){ # THIS IS OBSOLETE AND WILL BE REPLACED AT SOME POINT
+        if ('logr' %in% names(inp$ini)){
+            nr <- length(inp$ini$logr)
+            if (!'ir' %in% names(inp) | nr == 1){
+                inp$ir <- rep(0, inp$ns)
+                for (i in 1:nr){
+                    frac <- 1/nr
+                    modtime <- inp$time %% 1
+                    inds <- which(modtime >= ((i-1)*frac) & modtime < (i*frac))
+                    inp$ir[inds] <- i
+                }
+            } else {
+                if (length(unique(inp$ir)) != nr){
+                    stop('Mismatch between specified inp$ir and inp$ini$logr!')
+                }
+                nir <- length(inp$ir)
+                if (nir != inp$ns){
+                    if (nir == inp$nobsC){ # Assume that inp$ir fits with inp$timeC
                         ir <- rep(0, inp$ns)
-                        for (i in 2:nir){
-                            inds <- which(inp$time >= inp$timeI[[1]][i-1] & inp$time < inp$timeI[[1]][i])
+                        for (i in 1:nir){
+                            inds <- which(inp$time >= inp$timeC[i] & inp$time < (inp$timeC[i]+inp$dtc[i]))
                             ir[inds] <- inp$ir[i]
                         }
-                        inds <- which(inp$time >= inp$timeI[[1]][nir])
+                        inds <- which(inp$time >= inp$timeC[nir])
                         ir[inds] <- inp$ir[nir]
                         inp$ir <- ir
                     } else {
-                        stop('inp$ir is misspecified, only advanced users should specify this manually!')
+                        if (nir == inp$nobsI[[1]]){ # Assume that inp$ir fits with inp$timeI[[1]]
+                            ir <- rep(0, inp$ns)
+                            for (i in 2:nir){
+                                inds <- which(inp$time >= inp$timeI[[1]][i-1] & inp$time < inp$timeI[[1]][i])
+                                ir[inds] <- inp$ir[i]
+                            }
+                            inds <- which(inp$time >= inp$timeI[[1]][nir])
+                            ir[inds] <- inp$ir[nir]
+                            inp$ir <- ir
+                        } else {
+                            stop('inp$ir is misspecified, only advanced users should specify this manually!')
+                        }
                     }
                 }
             }
         }
     }
-
+    
     check.mapped.ini <- function(inp, nam, nnam){
         if (nam %in% names(inp$ini)){
             if (length(inp$ini[[nam]]) != inp[[nnam]]){ # nq is given by mapq
@@ -1148,21 +1228,52 @@ check.inp <- function(inp){
         return(inp)
     }
 
-    if (length(inp$obsI)==0){
-        logmaxI <- 0
-    } else {
-        logmaxI <- log(max(inp$obsI[[1]]))
+    # logq
+    if (!'logq' %in% names(inp$ini)){
+        inp$ini$logq <- numeric(sum(inp$nindex))
+        for (si in 1:inp$nstocks){
+            for (i in inp$nindexseq[[si]]){
+                j <- inp$mapq[[si]][i]
+                logmaxI <- log(max(inp$obsI[[si]][[i]]))
+                inp$ini$logq[j] <- logmaxI - inp$ini$logK[si]
+            }
+        }
     }
-    #logmaxI <- ifelse(length(inp$obsI)==0, 0, log(max(inp$obsI[[1]])))
-    if (!'logq' %in% names(inp$ini)) inp$ini$logq <- logmaxI - inp$ini$logK
-    if (sum(inp$nobsI)>0) inp <- check.mapped.ini(inp, 'logq', 'nq')
-    if (inp$nobsE > 0){
-        logmaxE <- log(max(inp$obsE))
-    } else {
-        logmaxE <- 0        
+    if ('logq' %in% names(inp$ini)){
+        if (length(inp$ini$logq) != sum(inp$nindex)){
+            if (length(inp$ini$logq) == 1){
+                logq <- inp$ini$logq
+                for (si in 1:inp$nstocks){
+                    for (i in inp$nindexseq[[si]]){
+                        j <- inp$mapq[[si]][i]
+                        inp$ini$logq[j] <- logq
+                    }
+                }
+            } else {
+                stop('The length of logq in inp$ini (', length(inp$ini$logq),
+                     ') does not fit with the number of parameters to be estimated (',
+                     sum(inp$nindex), ').')
+            }
+        }
     }
-    #logmaxE <- ifelse(length(inp$obsE)==0, 0, log(max(inp$obsE[[1]])))
-    if (!'logqf' %in% names(inp$ini)) inp$ini$logqf <- inp$ini$logr - logmaxE
+
+    ind2sub <- function(M, ind){
+        return(c(row(M)[ind], col(M)[ind] ))
+    }
+
+    # --- BELOW NOT DONE ---
+    
+    # logqf
+    if (!'logqf' %in% names(inp$ini)){
+        inp$ini$logqf <- numeric(inp$nqf)
+        for (i in inp$nqfseq){
+            j <- which(inp$target == i)
+            rc <- ind2sub(inp$target, j) # Get row and column
+            logmaxE <- log(max(inp$obsE[[rc[2]]]))
+            inp$ini$logqf[i] <- inp$ini$logr[rc[1]] - logmaxE
+        }
+    }
+
     #if (sum(inp$nobsE)>0) inp <- check.mapped.ini(inp, 'logqf', 'nqf')
     if (!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
     if (!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(0.1)
@@ -1172,9 +1283,9 @@ check.inp <- function(inp){
     if (sum(inp$nobsI)>0) inp <- check.mapped.ini(inp, 'logsdi', 'nsdi')
     if (!'logsde' %in% names(inp$ini)) inp$ini$logsde <- log(0.2)
     #if (sum(inp$nobsE)>0) inp <- check.mapped.ini(inp, 'logsde', 'nsde')
-    if (!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- logalpha
-    if (sum(inp$nobsI)>0) inp <- check.mapped.ini(inp, 'logalpha', 'nsdi')
-    if (!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- logbeta
+    #if (!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- logalpha
+    #if (sum(inp$nobsI)>0) inp <- check.mapped.ini(inp, 'logalpha', 'nsdi')
+    #if (!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- logbeta
 
     if (!"logm" %in% names(inp$ini)){
         gamma <- inp$ini$gamma
