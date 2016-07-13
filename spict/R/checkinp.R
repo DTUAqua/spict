@@ -673,8 +673,16 @@ check.inp <- function(inp){
     }
     # ii is the indices of inp$time to which index observations correspond
     inp$ii <- list()
+    find.indices <- function(times, eulertimes){
+        return(apply(abs(outer(times, eulertimes, FUN='-')), 1, which.min))
+    }
     for (i in inp$nindexseq){
-        inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
+        # Find indices in inp$time to which observations correspond
+        # cut finds indices based on intervals in inp$time
+        #inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
+        # This approach uses the index of inp$time with the smallest temporal difference
+        # to the observations, this difference will typically be zero.
+        inp$ii[[i]] <- find.indices(inp$timeI[[i]], inp$time)
     }
     # Translate index observations from a list to a vector
     inp$obsIin <- unlist(inp$obsI)
@@ -690,7 +698,8 @@ check.inp <- function(inp){
     # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
     inp$dtpredcinds <- which(inp$time >= inp$timepredc & inp$time < (inp$timepredc+inp$dtpredc))
     inp$dtpredcnsteps <- length(inp$dtpredcinds)
-    inp$dtprediind <- cut(inp$timepredi, inp$time, right=FALSE, labels=FALSE)
+    #inp$dtprediind <- cut(inp$timepredi, inp$time, right=FALSE, labels=FALSE)
+    inp$dtprediind <- find.indices(inp$timepredi, inp$time)
     inp$dtpredeinds <- which(inp$time >= inp$timeprede & inp$time < (inp$timeprede+inp$dtprede))
     inp$dtpredensteps <- length(inp$dtpredeinds)
 
