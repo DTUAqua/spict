@@ -179,102 +179,136 @@ take.c <- function(catch, inpin, repin, maninds, dbg=0){
 #' @param rep Result list as output from manage().
 #' @param ypred Show results for ypred years into the future.
 #' @param include.EBinf Include EBinf/Bmsy in the output.
+#' @param include.unc Include uncertainty of management quantities.
 #' @param verbose Print more details on observed and predicted time intervals.
 #' @return Data frame containing management summary.
 #' @export
-mansummary <- function(rep, ypred=1, include.EBinf=FALSE, verbose=TRUE){
-    repman <- rep$man
-    # Calculate percent difference.
-    get.pdelta <- function(rep, repman, indstart, indnext, parname='logB'){
-        val <- get.par(parname, rep, exp=TRUE)[indstart, 2]
-        val1 <- get.par(parname, repman, exp=TRUE)[indnext, 2]
-        return(round((val1 - val)/val*100, 1))
-    }
-    indstart <- which(rep$inp$time == rep$inp$manstart) - 1
-    #indstart <- rep$inp$indpred[1]-1 # Current time (last time interval of last year)
-    #curtime <- rep$inp$time[indstart+1]
-    curtime <- rep$inp$manstart
-    indnext <- which(rep$inp$time == curtime+ypred) # Current time + ypred
-    if (length(indnext) == 1){
-        indnextC <- which((rep$inp$timeCpred+rep$inp$dtcp) == curtime+ypred)
-        nsc <- length(repman)
-        Cnextyear <- numeric(nsc)
-        Bnextyear <- numeric(nsc)
-        Fnextyear <- numeric(nsc)
-        perc.dB <- numeric(nsc)
-        perc.dF <- numeric(nsc)
-        EBinf <- numeric(nsc)
-        for (i in 1:nsc){
-            EBinf[i] <- get.EBinf(repman[[i]])
-            perc.dB[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logB')
-            perc.dF[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logF')
-            Cnextyear[i] <- round(get.par('logCpred', repman[[i]], exp=TRUE)[indnextC, 2], 1)
-            Bnextyear[i] <- get.par('logB', repman[[i]], exp=TRUE)[indnext, 2]
-            Fnextyear[i] <- get.par('logF', repman[[i]], exp=TRUE)[indnext, 2]
-        }
-        FBtime <- fd(curtime+ypred)
-        Ctime1 <- fd(rep$inp$timeCpred[indnextC])
-        Ctime2 <- fd(rep$inp$timeCpred[indnextC]+rep$inp$dtcp[indnextC])
-        Cn <- paste0('C')
-        Bn <- paste0('B')
-        Fn <- paste0('F')
-        if (!verbose){
-            Cn <- paste0('C', Ctime1)
-            Bn <- paste0('B', FBtime)
-            Fn <- paste0('F', FBtime)
-        }
-        BBn <- paste0('BqBmsy') # Should use / instead of q, but / is not accepted in varnames
-        FFn <- paste0('FqFmsy')
-        EBinfBn <- paste0('EBinfqBmsy')
-        df <- list()
-        df[[Cn]] <- Cnextyear
-        df[[Bn]] <- round(Bnextyear, 1)
-        df[[Fn]] <- round(Fnextyear, 3)
-        Bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
-        df[[BBn]] <- round(Bnextyear/Bmsy, 2)
-        Fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
-        df[[FFn]] <- round(Fnextyear/Fmsy, 2)
-        if (include.EBinf & rep$inp$nseasons==1){
-            df[[EBinfBn]] <- round(EBinf/Bmsy, 2)
-        }
-        df <- cbind(as.data.frame(df), perc.dB, perc.dF)
-        rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy',
-                '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')
-        rownames(df) <- rn
-        colnames(df)[4:6] <- sub('q', '/', colnames(df)[4:6]) # Replace q with /
-        #cat('Management summary\n')
-        timerangeI <- range(unlist(rep$inp$timeI))
-        timerangeC <- range(rep$inp$timeC)
-        lastcatchseen <- tail(rep$inp$timeC+rep$inp$dtc, 1)
-        # Start printing stuff
-        if (verbose){ # Time interval information
-            cat(paste0('Observed interval, index:  ',
-                       fd(timerangeI[1]),
-                       ' - ',
-                       fd(timerangeI[2]),
-                       '\n'))
-            cat(paste0('Observed interval, catch:  ',
-                       fd(timerangeC[1]),
-                       ' - ',
-                       fd(lastcatchseen),
-                       '\n\n'))
-            cat(paste0('Fishing mortality (F) prediction: ',
-                       FBtime, '\n'))
-            cat(paste0('Biomass (B) prediction:           ',
-                       FBtime, '\n'))
-            cat(paste0('Catch (C) prediction interval:    ',
-                       Ctime1,
-                       ' - ',
-                       Ctime2,
-                       '\n\n'))
-            if (rep$inp$catchunit != ''){
-                cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n\n'))
-            }
-            cat('Predictions\n')
-        }
-        print(df)
-        invisible(df)
+mansummary <- function(rep, ypred=1, include.EBinf=FALSE, include.unc=TRUE, verbose=TRUE){
+    if (!'man' %in% names(rep)){
+        stop('Management calculations not found, run manage() to include them.')
     } else {
-        cat('Warning: Could not show management results because ypred is larger than the calculated management time frame. Reduce ypred.\n')
+        repman <- rep$man
+        # Calculate percent difference.
+        get.pdelta <- function(rep, repman, indstart, indnext, parname='logB'){
+            val <- get.par(parname, rep, exp=TRUE)[indstart, 2]
+            val1 <- get.par(parname, repman, exp=TRUE)[indnext, 2]
+            return(round((val1 - val)/val*100, 1))
+        }
+        indstart <- which(rep$inp$time == rep$inp$manstart) - 1
+        #indstart <- rep$inp$indpred[1]-1 # Current time (last time interval of last year)
+        #curtime <- rep$inp$time[indstart+1]
+        curtime <- rep$inp$manstart
+        indnext <- which(rep$inp$time == curtime+ypred) # Current time + ypred
+        if (length(indnext) == 1){
+            Cn <- paste0('C')
+            Bn <- paste0('B')
+            Fn <- paste0('F')
+            get.cn <- function(nn){
+                nc <- nchar(nn)
+                tl <- 7 # Total length
+                # Add spaces
+                #pad <- ifelse(include.unc, paste0(rep(' ', max(0, tl-nc)), collapse=''), '')
+                pad <- ''
+                return(c(paste0(nn, '.lo'), paste0(pad, nn), paste0(nn, '.hi')))
+            }
+            BBn <- paste0('BqBmsy') # Should use / instead of q, but / is not accepted in varnames
+            FFn <- paste0('FqFmsy')
+            EBinfBn <- paste0('EBinfqBmsy')
+            indnextC <- which((rep$inp$timeCpred+rep$inp$dtcp) == curtime+ypred)
+            nsc <- length(repman)
+            Cnextyear <- matrix(0, nsc, 3)
+            colnames(Cnextyear) <- get.cn(Cn)
+            Bnextyear <- matrix(0, nsc, 3)
+            colnames(Bnextyear) <- get.cn(Bn)
+            Fnextyear <- matrix(0, nsc, 3)
+            colnames(Fnextyear) <- get.cn(Fn)
+            BBnextyear <- matrix(0, nsc, 3)
+            colnames(BBnextyear) <- get.cn(BBn)
+            FFnextyear <- matrix(0, nsc, 3)
+            colnames(FFnextyear) <- get.cn(FFn)
+            perc.dB <- numeric(nsc)
+            perc.dF <- numeric(nsc)
+            EBinf <- numeric(nsc)
+            for(i in 1:nsc){
+                EBinf[i] <- get.EBinf(repman[[i]])
+                perc.dB[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logB')
+                perc.dF[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logF')
+                Cnextyear[i, ] <- round(get.par('logCpred', repman[[i]], exp=TRUE)[indnextC, 1:3], 1)
+                Bnextyear[i, ] <- round(get.par('logB', repman[[i]], exp=TRUE)[indnext, 1:3], 1)
+                Fnextyear[i, ] <- round(get.par('logF', repman[[i]], exp=TRUE)[indnext, 1:3], 3)
+                BBnextyear[i, ] <- round(get.par('logBBmsy', repman[[i]], exp=TRUE)[indnext, 1:3], 3)
+                FFnextyear[i, ] <- round(get.par('logFFmsy', repman[[i]], exp=TRUE)[indnext, 1:3], 3)
+            }
+            FBtime <- fd(curtime+ypred)
+            Ctime1 <- fd(rep$inp$timeCpred[indnextC])
+            Ctime2 <- fd(rep$inp$timeCpred[indnextC]+rep$inp$dtcp[indnextC])
+            if (!verbose){
+                Cn <- paste0('C', Ctime1)
+                Bn <- paste0('B', FBtime)
+                Fn <- paste0('F', FBtime)
+            }
+            # Data frame with predictions
+            df <- cbind(Cnextyear[, 2], Bnextyear[, 2], Fnextyear[, 2], BBnextyear[, 2],
+                        FFnextyear[, 2], perc.dB, perc.dF)
+            colnames(df)[1:5] <- c(Cn, Bn, Fn, BBn, FFn)
+            qinds <- grep('q', colnames(df))
+            colnames(df)[qinds] <- sub('q', '/', colnames(df)[qinds]) # Replace q with /
+            # Data frame with uncertainties of absolute predictions
+            inds <- c(1, 3)
+            dfabs <- cbind(Cnextyear[, inds], Bnextyear[, inds], Fnextyear[, inds])
+            colnames(dfabs) <- c(colnames(Cnextyear)[inds], colnames(Bnextyear)[inds],
+                                 colnames(Fnextyear)[inds])
+            # Data frame with uncertainties of relateive predictions
+            dfrel <- cbind(BBnextyear[, inds], FFnextyear[, inds])
+            colnames(dfrel) <- c(colnames(BBnextyear)[inds], colnames(FFnextyear)[inds])
+            qinds <- grep('q', colnames(dfrel))
+            colnames(dfrel)[qinds] <- sub('q', '/', colnames(dfrel)[qinds]) # Replace q with /
+            # Set row names
+            rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy',
+                    '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')
+            rownames(df) <- rn
+            rownames(dfrel) <- rn
+            rownames(dfabs) <- rn
+            #cat('Management summary\n')
+            timerangeI <- range(unlist(rep$inp$timeI))
+            timerangeC <- range(rep$inp$timeC)
+            lastcatchseen <- tail(rep$inp$timeC+rep$inp$dtc, 1)
+            # Start printing stuff
+            if (verbose){ # Time interval information
+                cat(paste0('Observed interval, index:  ',
+                           fd(timerangeI[1]),
+                           ' - ',
+                           fd(timerangeI[2]),
+                           '\n'))
+                cat(paste0('Observed interval, catch:  ',
+                           fd(timerangeC[1]),
+                           ' - ',
+                           fd(lastcatchseen),
+                           '\n\n'))
+                cat(paste0('Fishing mortality (F) prediction: ',
+                           FBtime, '\n'))
+                cat(paste0('Biomass (B) prediction:           ',
+                           FBtime, '\n'))
+                cat(paste0('Catch (C) prediction interval:    ',
+                           Ctime1,
+                           ' - ',
+                           Ctime2,
+                           '\n\n'))
+                if (rep$inp$catchunit != ''){
+                    cat(paste('Catch/biomass unit:', rep$inp$catchunit, '\n\n'))
+                }
+                cat('Predictions\n')
+            }
+            print(df)
+            if (include.unc){
+                cat('\n95% CIs of absolute predictions\n')
+                print(dfabs)
+                cat('\n95% CIs of relative predictions\n')
+                print(dfrel)
+            }
+            invisible(df)
+        } else {
+            cat('Warning: Could not show management results because ypred is larger than the calculated management time frame. Reduce ypred.\n')
+        }
     }
 }
