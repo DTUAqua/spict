@@ -1168,7 +1168,7 @@ check.inp <- function(inp){
         r <- exp(inp$ini$logm) / exp(inp$ini$logK) * n^(n/(n-1))
         inp$ini$logr <- log(r)
     }
-    if (FALSE){ # THIS IS OBSOLETE AND WILL BE REPLACED AT SOME POINT
+    if (FALSE){ # THIS (using ir for time varying r) IS OBSOLETE AND WILL BE REPLACED AT SOME POINT
         if ('logr' %in% names(inp$ini)){
             nr <- length(inp$ini$logr)
             if (!'ir' %in% names(inp) | nr == 1){
@@ -1228,6 +1228,27 @@ check.inp <- function(inp){
         return(inp)
     }
 
+    check.mapped.ini.qsdi <- function(inp, nam, map){
+        if (nam %in% names(inp$ini)){
+            if (length(inp$ini[[nam]]) != sum(inp$nindex)){ # nq is given by mapq
+                if (length(inp$ini[[nam]]) == 1){
+                    val <- inp$ini[[nam]]
+                    for (si in 1:inp$nstocks){
+                        for (i in inp$nindexseq[[si]]){
+                            j <- map[[si]][i]
+                            inp$ini[[nam]][j] <- val
+                        }
+                    }
+                } else {
+                    stop('The length of ', nam, ' in inp$ini (', length(inp$ini[[nam]]),
+                         ') does not fit with the number of parameters to be estimated (',
+                         sum(inp$nindex), ').')
+                }
+            }
+        }
+        return(inp)
+    }
+
     # logq
     if (!'logq' %in% names(inp$ini)){
         inp$ini$logq <- numeric(sum(inp$nindex))
@@ -1239,49 +1260,76 @@ check.inp <- function(inp){
             }
         }
     }
-    if ('logq' %in% names(inp$ini)){
-        if (length(inp$ini$logq) != sum(inp$nindex)){
-            if (length(inp$ini$logq) == 1){
-                logq <- inp$ini$logq
-                for (si in 1:inp$nstocks){
-                    for (i in inp$nindexseq[[si]]){
-                        j <- inp$mapq[[si]][i]
-                        inp$ini$logq[j] <- logq
-                    }
-                }
-            } else {
-                stop('The length of logq in inp$ini (', length(inp$ini$logq),
-                     ') does not fit with the number of parameters to be estimated (',
-                     sum(inp$nindex), ').')
-            }
-        }
+    inp <- check.mapped.ini.qsdi(inp, 'logq', inp$mapq)
+    
+    #if ('logq' %in% names(inp$ini)){
+    #    if (length(inp$ini$logq) != sum(inp$nindex)){
+    #        if (length(inp$ini$logq) == 1){
+    #            logq <- inp$ini$logq
+    #            for (si in 1:inp$nstocks){
+    #                for (i in inp$nindexseq[[si]]){
+    #                    j <- inp$mapq[[si]][i]
+    #                    inp$ini$logq[j] <- logq
+    #                }
+    #            }
+    #        } else {
+    #            stop('The length of logq in inp$ini (', length(inp$ini$logq),
+    #                 ') does not fit with the number of parameters to be estimated (',
+    #                 sum(inp$nindex), ').')
+    #        }
+    #    }
+    #}
+    
+    # logsdi
+    if (!'logsdi' %in% names(inp$ini)){
+        inp$ini$logsdi <- log(0.2)
     }
+    inp <- check.mapped.ini.qsdi(inp, 'logsdi', inp$mapsdi)
 
+    # logsdb
+    if (!'logsdb' %in% names(inp$ini)){
+        inp$ini$logsdb <- log(0.2)
+    }
+    inp <- check.mapped.ini(inp, 'logsdb', 'nstocks')
+    # logqf
     ind2sub <- function(M, ind){
         return(c(row(M)[ind], col(M)[ind] ))
     }
-
-    # --- BELOW NOT DONE ---
-    
-    # logqf
     if (!'logqf' %in% names(inp$ini)){
         inp$ini$logqf <- numeric(inp$nqf)
         for (i in inp$nqfseq){
             j <- which(inp$target == i)
-            rc <- ind2sub(inp$target, j) # Get row and column
+            rc <- ind2sub(inp$target, j) # Get row (stock) and column (fleet)
             logmaxE <- log(max(inp$obsE[[rc[2]]]))
             inp$ini$logqf[i] <- inp$ini$logr[rc[1]] - logmaxE
         }
     }
-
-    #if (sum(inp$nobsE)>0) inp <- check.mapped.ini(inp, 'logqf', 'nqf')
-    if (!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
-    if (!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(0.1)
-    if (!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
-    if (!'logsdc' %in% names(inp$ini)) inp$ini$logsdc <- log(0.2)
-    if (!'logsdi' %in% names(inp$ini)) inp$ini$logsdi <- log(0.2)
-    if (sum(inp$nobsI)>0) inp <- check.mapped.ini(inp, 'logsdi', 'nsdi')
-    if (!'logsde' %in% names(inp$ini)) inp$ini$logsde <- log(0.2)
+    if (sum(inp$nobsE) > 0){
+        inp <- check.mapped.ini(inp, 'logqf', 'nqf')
+    }
+    # logsdf
+    if (!'logsdf' %in% names(inp$ini)){
+        inp$ini$logsdf <- log(0.2)
+    }
+    inp <- check.mapped.ini(inp, 'logsdf', 'nqf')
+    # logsdu
+    if (!'logsdu' %in% names(inp$ini)){
+        inp$ini$logsdu <- log(0.1)
+    }
+    inp <- check.mapped.ini(inp, 'logsdu', 'nqf')
+    # logsdc
+    if (!'logsdc' %in% names(inp$ini)){
+        inp$ini$logsdc <- log(0.2)
+    }
+    inp <- check.mapped.ini(inp, 'logsdc', 'nqf')
+    
+    # --- BELOW NOT DONE ---
+    # NOTE: sde and sdf may need rethinking depending on whether random effects will be E or F
+    if (!'logsde' %in% names(inp$ini)){
+        inp$ini$logsde <- log(0.2)
+    }
+    inp <- check.mapped.ini(inp, 'logsde', 'nfleets')
+    
     #if (sum(inp$nobsE)>0) inp <- check.mapped.ini(inp, 'logsde', 'nsde')
     #if (!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- logalpha
     #if (sum(inp$nobsI)>0) inp <- check.mapped.ini(inp, 'logalpha', 'nsdi')
