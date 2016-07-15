@@ -88,10 +88,12 @@ fit.spict <- function(inp, dbg=0){
     tic <- Sys.time()
     # Cycle through phases
     for (i in 1:inp$nphases){
-        if (inp$nphases > 1) cat(paste('Estimating - phase', i, '\n'))
+        if (inp$nphases > 1){
+            cat(paste('Estimating - phase', i, '\n'))
+        }
         # Create TMB object
         obj <- make.obj(datin, pl, inp, phase=i)
-        if (dbg<1){
+        if (dbg < 1){
             # Do estimation
             if (inp$optimiser == 'nlminb'){
                 opt <- try(nlminb(obj$par, obj$fn, obj$gr, control=inp$optimiser.control))
@@ -100,7 +102,8 @@ fit.spict <- function(inp, dbg=0){
                 }
             }
             if (inp$optimiser == 'optim'){
-                opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method='BFGS', control=inp$optimiser.control))
+                opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method='BFGS',
+                                 control=inp$optimiser.control))
                 if (class(opt) != 'try-error'){
                     opt$objective <- opt$value
                     pl <- obj$env$parList(opt$par)
@@ -108,7 +111,7 @@ fit.spict <- function(inp, dbg=0){
             }
         }
     }
-    if (dbg<1){
+    if (dbg < 1){
         optfailflag <- class(opt)=='try-error'
         sdfailflag <- FALSE
         if (optfailflag){ # Optimisation failed
@@ -218,20 +221,24 @@ make.datin <- function(inp, dbg=0){
                   dtpredensteps=inp$dtpredensteps,
                   indlastobs=inp$indlastobs,
                   obssrt=inp$obssrt,
-                  stdevfacc=inp$stdevfacC,
+                  stdevfacc=inp$stdevfacCin,
                   stdevfaci=inp$stdevfacIin,
-                  stdevface=inp$stdevfacE,
+                  stdevface=inp$stdevfacEin,
                   isc=inp$isc,
                   isi=inp$isi,
                   ise=inp$ise,
-                  nobsC=inp$nobsC,
-                  nobsI=sum(inp$nobsI),
-                  nobsE=inp$nobsE,
-                  ic=inp$ic,
-                  nc=inp$nc,
-                  ie=inp$ie,
-                  ne=inp$ne,
+                  nobsC=sum(inp$nobsC),
+                  nobsI=sum(unlist(inp$nobsI)),
+                  nobsE=sum(inp$nobsE),
+                  index2sdb=inp$index2sdb,
+                  index2sdi=inp$index2sdi,
+                  ic=inp$icin,
+                  nc=inp$ncin,
+                  ie=inp$iein,
+                  ifleet=inp$ifleetin,
+                  ne=inp$nein,
                   ii=inp$iiin,
+                  ib=inp$ibin,
                   iq=inp$iqin,
                   isdi=inp$isdiin,
                   ir=inp$ir,

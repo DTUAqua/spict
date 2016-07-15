@@ -507,11 +507,9 @@ check.inp <- function(inp){
         cur <- nextcur
     }
     
-    
-    
     #inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
     inp$nseries <- inp$nqf + sum(inp$nindex) + inp$nfleets
-    
+
     # -- MODEL OPTIONS --
     if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
     if (!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
@@ -532,6 +530,13 @@ check.inp <- function(inp){
             inp$nsdi[si] <- length(unique(inp$mapsdi[[si]]))
         }
     }
+    tmp <- list()
+    for (si in 1:inp$nstocks){
+        tmp[[si]] <- rep(si, inp$nindex[si])
+        #inp$index2sdb[inp$mapsdi[[si]]] <- si
+    }
+    inp$index2sdb <- unlist(tmp)
+    inp$index2sdi <- unlist(inp$mapsdi)
     if (!"mapq" %in% names(inp)){
         inp$mapq <- list()
         qend <- 0
@@ -893,6 +898,7 @@ check.inp <- function(inp){
     inp$nobsEp <- numeric(inp$nfleets)
     inp$dtep <- list()
     inp$ie <- list()
+    inp$ifleet <- list()
     for (i in inp$nfleetsseq){
         if (sum(inp$nobsE) > 0){
             inp$timeEpred[[i]] <- unique(c(inp$timeE[[i]],
@@ -904,6 +910,7 @@ check.inp <- function(inp){
         inp$nobsEp[i] <- length(inp$timeEpred[[i]])
         inp$dtep[[i]] <- c(inp$dte[[i]], rep(dtepred, inp$nobsEp[i]-inp$nobsE[i]))
         inp$ie[[i]] <- cut(inp$timeEpred[[i]], inp$time, right=FALSE, labels=FALSE)
+        inp$ifleet[[i]] <- rep(i, inp$nobsE[i])
     }
     # ne is number of states to integrate an effort observation over
     inp$ne <- list()
@@ -922,10 +929,13 @@ check.inp <- function(inp){
     
     # ii is the indices of inp$time to which index observations correspond
     inp$ii <- list()
+    inp$ib <- list()
     for (si in 1:inp$nstocks){
         inp$ii[[si]] <- list()
+        inp$ib[[si]] <- list()
         for (i in inp$nindexseq[[si]]){
             inp$ii[[si]][[i]] <- cut(inp$timeI[[si]][[i]], inp$time, right=FALSE, labels=FALSE)
+            inp$ib[[si]][[i]] <- rep(si, inp$nobsI[[si]][i])
         }
     }
 
@@ -944,9 +954,15 @@ check.inp <- function(inp){
         }
         return(out)
     }
+    # Catch related
+    inp$icin <- list2vec(inp$ic)
+    inp$ncin <- list2vec(inp$nc)
+    inp$stdevfacCin <- list2vec(inp$stdevfacC)
+    # Index related
     inp$obsIin <- list2vec(inp$obsI)
     inp$stdevfacIin <- list2vec(inp$stdevfacI)
     inp$iiin <- list2vec(inp$ii)
+    inp$ibin <- list2vec(inp$ib)
     inp$iqin <- numeric(0)
     for (si in 1:inp$nstocks){
         inp$iqin <- c(inp$iqin, replist(inp$mapq[[si]], inp$nobsI[[si]]))
@@ -955,7 +971,12 @@ check.inp <- function(inp){
     for (si in 1:inp$nstocks){
         inp$isdiin <- c(inp$isdiin, replist(inp$mapsdi[[si]], inp$nobsI[[si]]))
     }
-
+    # Effort related
+    inp$iein <- list2vec(inp$ie)
+    inp$nein <- list2vec(inp$ne)
+    inp$ifleetin <- list2vec(inp$ifleet)
+    inp$stdevfacEin <- list2vec(inp$stdevfacE)
+    
     # Add helper variable such that predicted catch can be calculated using small euler steps
     # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
     # dtpredcinds is the indices of time of the catch prediction
@@ -1165,9 +1186,16 @@ check.inp <- function(inp){
                 inp$ini$logm[si] <- unname(log(guess.m2(obsC, obsI)))
             }
         }
+        n <- exp(inp$ini$logn)
         r <- exp(inp$ini$logm) / exp(inp$ini$logK) * n^(n/(n-1))
         inp$ini$logr <- log(r)
     }
+    # logm
+    if (!"logm" %in% names(inp$ini)){
+        n <- exp(inp$ini$logn)
+        m <- exp(inp$ini$logr) * exp(inp$ini$logK) / (n^(n/(n-1)))
+    }
+
     if (FALSE){ # THIS (using ir for time varying r) IS OBSOLETE AND WILL BE REPLACED AT SOME POINT
         if ('logr' %in% names(inp$ini)){
             nr <- length(inp$ini$logr)
@@ -1284,7 +1312,9 @@ check.inp <- function(inp){
     if (!'logsdi' %in% names(inp$ini)){
         inp$ini$logsdi <- log(0.2)
     }
-    inp <- check.mapped.ini.qsdi(inp, 'logsdi', inp$mapsdi)
+    if (sum(unlist(inp$nobsI)) > 0){
+        inp <- check.mapped.ini.qsdi(inp, 'logsdi', inp$mapsdi)
+    }
 
     # logsdb
     if (!'logsdb' %in% names(inp$ini)){
@@ -1307,7 +1337,7 @@ check.inp <- function(inp){
     if (sum(inp$nobsE) > 0){
         inp <- check.mapped.ini(inp, 'logqf', 'nqf')
     }
-    # logsdf
+    # logsdf (process stdev)
     if (!'logsdf' %in% names(inp$ini)){
         inp$ini$logsdf <- log(0.2)
     }
@@ -1323,116 +1353,115 @@ check.inp <- function(inp){
     }
     inp <- check.mapped.ini(inp, 'logsdc', 'nqf')
     
-    # --- BELOW NOT DONE ---
     # NOTE: sde and sdf may need rethinking depending on whether random effects will be E or F
+    # RE: E will be RE but sdf will still be process noise and sde will be observation noise.
     if (!'logsde' %in% names(inp$ini)){
         inp$ini$logsde <- log(0.2)
     }
-    inp <- check.mapped.ini(inp, 'logsde', 'nfleets')
+    if (sum(inp$nobsE) > 0){
+        inp <- check.mapped.ini(inp, 'logsde', 'nfleets')
+    }
     
     #if (sum(inp$nobsE)>0) inp <- check.mapped.ini(inp, 'logsde', 'nsde')
     #if (!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- logalpha
     #if (sum(inp$nobsI)>0) inp <- check.mapped.ini(inp, 'logalpha', 'nsdi')
     #if (!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- logbeta
 
-    if (!"logm" %in% names(inp$ini)){
-        gamma <- inp$ini$gamma
-        r <- exp(inp$ini$logr)
-        K <- exp(inp$ini$logK)
-        n <- exp(inp$ini$logn)
-        m <- r * K / (n^(n/(n-1)))
-        #m <- r * K / gamma # n > 1 # rold
-        #if (n>1){
-        #    inp$ini$logm <- log(m)
-        #} else {
-        #    inp$ini$logm <- log(-m)
-        #}
-    }
     # Fill in unspecified (more rarely user defined) model parameter values
-    if (!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
+    if (!"loglambda" %in% names(inp$ini)){
+        inp$ini$loglambda <- rep(log(0.1), inp$nqf)
+    }
     if ("logphi" %in% names(inp$ini)){
         if (length(inp$ini$logphi)+1 != dim(inp$splinemat)[2]){
             cat('Mismatch between length of ini$logphi and number of columns of splinemat! removing prespecified ini$logphi and setting default.\n')
             inp$ini$logphi <- NULL
         }
     }
-    if (!"logphi" %in% names(inp$ini)) inp$ini$logphi <- rep(0, inp$nseasons-1)
-    if (!"logitpp" %in% names(inp$ini)) inp$ini$logitpp <- log(0.95/(1-0.95))
-    if (!"logp1robfac" %in% names(inp$ini)) inp$ini$logp1robfac <- log(15-1)
-    if (!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
-    if (!"logF" %in% names(inp$ini)){
-        inp$ini$logF <- rep(log(0.2) + inp$ini$logr[1], inp$ns)
-    } else {
-        if (length(inp$ini$logF) != inp$ns){
-            warning('Wrong length of inp$ini$logF: ', length(inp$ini$logF),
-                    ' Should be equal to inp$ns: ', inp$ns,
-                    ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
-            inp$ini$logF <- inp$ini$logF[1:inp$ns]
-        }
+    if (!"logphi" %in% names(inp$ini)){
+        inp$ini$logphi <- rep(0, inp$nseasons-1)
     }
-    if ("logu" %in% names(inp$ini)){
-        if (dim(inp$ini$logu)[1] != 2*length(inp$ini$logsdu) & dim(inp$ini$logu)[2] != inp$ns){
-            warning('Wrong dimension of inp$ini$logu: ', dim(inp$ini$logu)[1], 'x',
-                    dim(inp$ini$logu)[2], ' should be equal to 2*length(inp$ini$logsdu) x inp$ns: ',
-                    2*length(inp$ini$logsdu), 'x', inp$ns,', Filling with log(1).')
-            inp$ini$logu <- NULL
+    if (!"logitpp" %in% names(inp$ini)){
+        inp$ini$logitpp <- log(0.95/(1-0.95))
+    }
+    if (!"logp1robfac" %in% names(inp$ini)){
+        inp$ini$logp1robfac <- log(15-1)
+    }
+    if (!"logbkfrac" %in% names(inp$ini)){
+        inp$ini$logbkfrac <- log(0.8)
+    }
+    check.mat <- function(mat, dims, nam){
+        if (any(is.na(mat))){
+            stop('NAs in ', nam, ', cannot continue!')
         }
+        if (is.null(dim(mat))){
+            mat <- matrix(mat, 1, 1)
+        }
+        if (dim(mat)[1] != dims[1] | dim(mat)[2] != dims[2]){
+            warning('Wrong dimension of ', nam, ': ', dim(mat)[1], ' x ',
+                    dim(mat)[2], ' should be equal to ', dims[1], ' x ', dims[2],
+                    '. Redefining to correct size.')
+            mat <- matrix(mat[1, 1], dims[1], dims[2])
+        }
+        return(mat)
+    }
+    if (!"logF" %in% names(inp$ini)){
+        inp$ini$logF <- matrix(log(0.2) + inp$ini$logr[1], inp$nqf, inp$ns)
+    }
+    if ("logF" %in% names(inp$ini)){    
+        inp$ini$logF <- check.mat(inp$ini$logF, c(inp$nqf, inp$ns), 'inp$ini$logF')
     }
     if (!"logu" %in% names(inp$ini)){
-        inp$ini$logu <- matrix(log(1)+1e-3, 2*length(inp$ini$logsdu), inp$ns)
+        inp$ini$logu <- matrix(log(1) + 1e-3, 2*length(inp$ini$logsdu), inp$ns)
+    }
+    if ("logF" %in% names(inp$ini)){    
+        inp$ini$logu <- check.mat(inp$ini$logu, c(2*length(inp$ini$logsdu), inp$ns), 'inp$ini$logu')
     }
     if (!"logB" %in% names(inp$ini)){
-        inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
-    } else {
-        if (length(inp$ini$logB) != inp$ns){
-            warning('Wrong length of inp$ini$logB: ', length(inp$ini$logB),
-                    ' Should be equal to inp$ns: ', inp$ns,
-                    ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
-            inp$ini$logB <- inp$ini$logB[1:inp$ns]
-        }
+        inp$ini$logB <- matrix(inp$ini$logK + log(0.5), inp$nstocks, inp$ns)
     }
-
+    if ("logB" %in% names(inp$ini)){    
+        inp$ini$logB <- check.mat(inp$ini$logB, c(inp$nstocks, inp$ns), 'inp$ini$logB')
+    }
+    
     # Reorder parameter list
-    inp$parlist <- list(logm=inp$ini$logm,
-                        logK=inp$ini$logK,
-                        logq=inp$ini$logq,
-                        logqf=inp$ini$logqf,
-                        logn=inp$ini$logn,
-                        logsdb=inp$ini$logsdb,
-                        logsdu=inp$ini$logsdu,
-                        logsdf=inp$ini$logsdf,
-                        logsdi=inp$ini$logsdi,
-                        logsde=inp$ini$logsde,
-                        logsdc=inp$ini$logsdc,
-                        #logalpha=inp$ini$logalpha,
-                        #logbeta=inp$ini$logbeta,
-                        logphi=inp$ini$logphi,
-                        loglambda=inp$ini$loglambda,
-                        logitpp=inp$ini$logitpp,
-                        logp1robfac=inp$ini$logp1robfac,
-                        logF=inp$ini$logF,
-                        logu=inp$ini$logu,
-                        logB=inp$ini$logB)
+    inp$parlist <- list(logm = inp$ini$logm,
+                        logK = inp$ini$logK,
+                        logq = inp$ini$logq,
+                        logqf = inp$ini$logqf,
+                        logn = inp$ini$logn,
+                        logsdb = inp$ini$logsdb,
+                        logsdu = inp$ini$logsdu,
+                        logsdf = inp$ini$logsdf,
+                        logsdi = inp$ini$logsdi,
+                        logsde = inp$ini$logsde,
+                        logsdc = inp$ini$logsdc,
+                        logphi = inp$ini$logphi,
+                        loglambda = inp$ini$loglambda,
+                        logitpp = inp$ini$logitpp,
+                        logp1robfac = inp$ini$logp1robfac,
+                        logF = inp$ini$logF,
+                        logu = inp$ini$logu,
+                        logB = inp$ini$logB)
     
     # Determine fixed parameters
     forcefixpars <- c() # Parameters that are forced to be fixed.
-    if (inp$nseasons==1){
+    if (inp$nseasons == 1){
         forcefixpars <- c('logphi', 'logu', 'logsdu', 'loglambda', forcefixpars)
     } else {
-        if (inp$seasontype==1){ # Use spline
+        if (inp$seasontype == 1){ # Use spline
             forcefixpars <- c('logu', 'logsdu', 'loglambda', forcefixpars)
         }
-        if (inp$seasontype==2){ # Use coupled SDEs
+        if (inp$seasontype == 2){ # Use coupled SDEs
             forcefixpars <- c('logphi', forcefixpars)
         }
     }
-    if (inp$robflagc==0 & inp$robflagi==0 & inp$robflage==0){
+    if (inp$robflagc == 0 & inp$robflagi == 0 & inp$robflage == 0){
         forcefixpars <- c('logitpp', 'logp1robfac', forcefixpars)
     }
-    if (inp$nobsE == 0){
+    if (sum(inp$nobsE) == 0){
         forcefixpars <- c('logqf', 'logsde', forcefixpars)
     }
-    if (sum(inp$nobsI) == 0){
+    if (sum(unlist(inp$nobsI)) == 0){
         forcefixpars <- c('logq', 'logsdi', forcefixpars)
     }
     # Determine phases
@@ -1455,9 +1484,7 @@ check.inp <- function(inp){
         }
     }
     # Assign phase 1 to parameters without a phase
-    nms <- names(inp$parlist)
-    nnms <- length(nms)
-    for (nm in nms){
+    for (nm in names(inp$parlist)){
         if (!nm %in% names(inp$phases)){
             inp$phases[[nm]] <- 1
         }
@@ -1466,7 +1493,7 @@ check.inp <- function(inp){
     nphasepars <- length(inp$phases)
     phasevec <- unlist(inp$phases)
     phases <- unique(unname(phasevec))
-    phases <- phases[phases>0] # Don't include phase -1 (fixed value)
+    phases <- phases[phases > 0] # Don't include phase -1 (fixed value)
     nphases <- length(phases)
     inp$map <- list()
     for (j in 1:nphases){
