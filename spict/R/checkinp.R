@@ -402,7 +402,19 @@ check.inp <- function(inp){
     if (inp$nqf > 0){
         inp$nqfseq <- 1:inp$nqf
     }
-    # inp$target seems valid, continuing...
+    # inp$target seems valid
+    # Create target map
+    ind2sub <- function(M, ind){
+        return(c(row(M)[ind], col(M)[ind] ))
+    }
+    inp$targetmap <- matrix(0, inp$nqf, 2)
+    rownames(inp$targetmap) <- paste0('F', inp$nqfseq)
+    colnames(inp$targetmap) <- c('stock', 'fleet')
+    for (i in inp$nqfseq){
+        j <- which(inp$target == i)
+        inp$targetmap[i, ] <- ind2sub(inp$target, j) # Get row (stock) and column (fleet)
+    }
+    # Check observations
     if (!'obsC' %in% names(inp)){
         if (inp$nqf > 1){
             str <- paste('A total of', inp$nqf, 'fleet stock interactions detected and therefore',
@@ -511,7 +523,9 @@ check.inp <- function(inp){
     inp$nseries <- inp$nqf + sum(inp$nindex) + inp$nfleets
 
     # -- MODEL OPTIONS --
-    if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
+    if (!"RE" %in% names(inp)){
+        inp$RE <- c('logE', 'logu', 'logB')
+    }
     if (!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
     # Index related
     if (!"mapsdi" %in% names(inp)){
@@ -537,6 +551,7 @@ check.inp <- function(inp){
     }
     inp$index2sdb <- unlist(tmp)
     inp$index2sdi <- unlist(inp$mapsdi)
+    inp$index2q <- unlist(inp$mapq)
     if (!"mapq" %in% names(inp)){
         inp$mapq <- list()
         qend <- 0
@@ -630,7 +645,7 @@ check.inp <- function(inp){
         }
         inp$dteuler <- 1
         # Fix parameters that are not used
-        inp$phases$logF <- -1
+        inp$phases$logE <- -1
         inp$phases$logsdf <- -1
         #inp$phases$logbeta <- -1
         inp$phases$logsdc <- -1
@@ -877,8 +892,10 @@ check.inp <- function(inp){
     }
     # nc is number of states to integrate a catch observation over
     inp$nc <- list()
+    inp$iff <- list()
     for (i in inp$nqfseq){
         inp$nc[[i]] <- rep(0, inp$nobsCp[i])
+        inp$iff[[i]] <- rep(i, inp$nobsCp[i])
         for (j in 1:inp$nobsCp[i]){
             inp$nc[[i]][j] <- sum(inp$time >= inp$timeCpred[[i]][j]
                                   & inp$time < (inp$timeCpred[[i]][j] + inp$dtcp[[i]][j]))
@@ -957,7 +974,9 @@ check.inp <- function(inp){
     # Catch related
     inp$icin <- list2vec(inp$ic)
     inp$ncin <- list2vec(inp$nc)
+    inp$iffin <- list2vec(inp$iff)
     inp$stdevfacCin <- list2vec(inp$stdevfacC)
+    inp$isdcin <- rep(inp$nqfseq, inp$nobsC)
     # Index related
     inp$obsIin <- list2vec(inp$obsI)
     inp$stdevfacIin <- list2vec(inp$stdevfacI)
@@ -976,6 +995,7 @@ check.inp <- function(inp){
     inp$nein <- list2vec(inp$ne)
     inp$ifleetin <- list2vec(inp$ifleet)
     inp$stdevfacEin <- list2vec(inp$stdevfacE)
+    inp$isdein <- rep(inp$nfleetsseq, inp$nobsE)
     
     # Add helper variable such that predicted catch can be calculated using small euler steps
     # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
@@ -1322,14 +1342,12 @@ check.inp <- function(inp){
     }
     inp <- check.mapped.ini(inp, 'logsdb', 'nstocks')
     # logqf
-    ind2sub <- function(M, ind){
-        return(c(row(M)[ind], col(M)[ind] ))
-    }
     if (!'logqf' %in% names(inp$ini)){
         inp$ini$logqf <- numeric(inp$nqf)
         for (i in inp$nqfseq){
-            j <- which(inp$target == i)
-            rc <- ind2sub(inp$target, j) # Get row (stock) and column (fleet)
+            #j <- which(inp$target == i)
+            #rc <- ind2sub(inp$target, j) # Get row (stock) and column (fleet)
+            rc <- inp$targetmap[i, ]
             logmaxE <- log(max(inp$obsE[[rc[2]]]))
             inp$ini$logqf[i] <- inp$ini$logr[rc[1]] - logmaxE
         }
@@ -1404,11 +1422,11 @@ check.inp <- function(inp){
         }
         return(mat)
     }
-    if (!"logF" %in% names(inp$ini)){
-        inp$ini$logF <- matrix(log(0.2) + inp$ini$logr[1], inp$nqf, inp$ns)
+    if (!"logE" %in% names(inp$ini)){
+        inp$ini$logE <- matrix(log(0.2) + inp$ini$logr[1], inp$nfleets, inp$ns)
     }
-    if ("logF" %in% names(inp$ini)){    
-        inp$ini$logF <- check.mat(inp$ini$logF, c(inp$nqf, inp$ns), 'inp$ini$logF')
+    if ("logE" %in% names(inp$ini)){    
+        inp$ini$logE <- check.mat(inp$ini$logE, c(inp$nfleets, inp$ns), 'inp$ini$logE')
     }
     if (!"logu" %in% names(inp$ini)){
         inp$ini$logu <- matrix(log(1) + 1e-3, 2*length(inp$ini$logsdu), inp$ns)
@@ -1439,7 +1457,7 @@ check.inp <- function(inp){
                         loglambda = inp$ini$loglambda,
                         logitpp = inp$ini$logitpp,
                         logp1robfac = inp$ini$logp1robfac,
-                        logF = inp$ini$logF,
+                        logE = inp$ini$logE,
                         logu = inp$ini$logu,
                         logB = inp$ini$logB)
     
