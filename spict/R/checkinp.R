@@ -375,10 +375,15 @@ check.inp <- function(inp){
     # One row for each stock, one column for each fleet,
     # 0 means no stock-fleet interaction, integer > 0 indicates which catch series relate to that interaction
     if (!'target' %in% names(inp)){
-        if (inp$nstocks * inp$nfleets > 1){ # Multiple fleets and/or stocks
+        if ((inp$nstocks * inp$nfleets) > 1){ # Multiple fleets and/or stocks
             stop('Data for running a multi-fleet/multi-stock model have been input without specifying inp$target. Cannot continue. See ?check.inp for help.')
         }
         inp$target <- matrix(1, 1, 1)
+    }
+    if (class(inp$target) == 'numeric'){
+        if (length(inp$target) == 1){
+            inp$target <- matrix(inp$target, 1, 1)
+        }
     }
     if (nrow(inp$target) != inp$nstocks){
         stop('nrow(inp$target) (', nrow(inp$target), ') != inp$nstocks (', inp$nstocks,
@@ -387,10 +392,6 @@ check.inp <- function(inp){
     if (ncol(inp$target) != inp$nfleets){
         stop('ncol(inp$target) (', ncol(inp$target), ') != inp$nfleets (', inp$nfleets,
              ') fix effort input data or inp$target.')
-    }
-    # Check whether all required indices are present in target matrix
-    if (any(sort(inp$target[inp$target > 0]) != 1:length(inp$obsC))){
-        stop('Mismatch between indices specified in inp$target and the number of catch series provided in inp$obsC!')
     }
     #if (any(is.na(match(as.numeric(inp$target), 0:1)))){ # Check whether only 0 and 1
     #    stop('Values other than 0 and 1 specified in inp$target.')
@@ -418,7 +419,7 @@ check.inp <- function(inp){
     if (!'obsC' %in% names(inp)){
         if (inp$nqf > 1){
             str <- paste('A total of', inp$nqf, 'fleet stock interactions detected and therefore',
-                         inp$nqg, 'time series of catch data are required to continue.')
+                         inp$nqf, 'time series of catch data are required to continue.')
         } else {
             str <- ''
         }
@@ -440,6 +441,10 @@ check.inp <- function(inp){
     if (length(inp$timeC) != inp$nqf){
         stop('Lacking catch time vectors, got ', length(inp$timeC),
              ' but need ', inp$nqf, '.')
+    }
+    # Check whether all required indices are present in target matrix
+    if (any(sort(inp$target[inp$target > 0]) != 1:length(inp$obsC))){
+        stop('Mismatch between indices specified in inp$target and the number of catch series provided in inp$obsC!')
     }
     # Catch intervals (dtc)
     if (!"dtc" %in% names(inp)){
@@ -488,6 +493,19 @@ check.inp <- function(inp){
         }
     }
 
+    # Vector containing all observation times
+    timeobsall <- sort(c(unlist(inp$timeC), unlist(inp$timeC) + unlist(inp$dtc),
+                         unlist(inp$timeI),
+                         unlist(inp$timeE), unlist(inp$timeE) + unlist(inp$dte)))
+    dtimeobsall <- diff(timeobsall)
+    if (any(dtimeobsall > 50)){
+        stop('At least one gap over 50 years exists in data! cannot work with such data.')
+    }
+    if (any(dtimeobsall > 20)){
+        warning('At least one gap over 20 years exists in data!')
+    }
+
+    
     # Observation IDs
     # Observation index in the observation input vector containing all observations
     # Initialise
@@ -668,9 +686,6 @@ check.inp <- function(inp){
     }
 
     # - Prediction horizons -
-    timeobsall <- sort(c(unlist(inp$timeC), unlist(inp$timeC) + unlist(inp$dtc),
-                         unlist(inp$timeI),
-                         unlist(inp$timeE), unlist(inp$timeE) + unlist(inp$dte)))
     # Catch prediction time step (dtpredc)
     if (!"dtpredc" %in% names(inp)){
         if (length(unlist(inp$dtc)) > 0){

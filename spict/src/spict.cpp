@@ -85,11 +85,12 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(index2sdb);    // 
   DATA_VECTOR(index2sdi);    // 
   DATA_VECTOR(index2q);    // 
+  DATA_INTEGER(nfleets);       // 
   DATA_VECTOR(ic);             // Vector such that B(ic(i)) is the state at the start of obsC(i)
   DATA_VECTOR(nc);             // nc(i) gives the number of time intervals obsC(i) spans
   DATA_VECTOR(iff);            // 
   DATA_VECTOR(ie);             // Vector such that E(ie(i)) is the state at the start of obsE(i)
-  DATA_VECTOR(ifleet);         // 
+  DATA_VECTOR(ifleet);         // length nobsE
   DATA_VECTOR(ne);             // ne(i) gives the number of time intervals obsE(i) spans
   DATA_VECTOR(ii);             // A vector such that B(ii(i)) is the state corresponding to I(i)
   DATA_VECTOR(ib);             // 
@@ -97,7 +98,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(isdi);           // A vector such that isdi(i) is the index number corresponding to I_isdi(i)
   DATA_VECTOR(isdc);           // 
   DATA_VECTOR(isde);           // 
-  DATA_VECTOR(ir);             // A vector indicating when the different rs should be used
+  //DATA_VECTOR(ir);             // A vector indicating when the different rs should be used
   DATA_VECTOR(seasons);        // A vector of length ns indicating to which season a state belongs
   DATA_VECTOR(seasonindex);    // A vector of length ns giving the number stepped within the current year
   DATA_MATRIX(splinemat);      // Design matrix for the seasonal spline
@@ -174,6 +175,8 @@ Type objective_function<Type>::operator() ()
   int ind;
   int find;
   int sind;
+  int bind;
+  int iind;
   // Distribute sorted observations into logobsC and logobsI vectors
   //int nobsC = isc.size();
   vector<Type> logobsC(nobsC);
@@ -202,7 +205,8 @@ Type objective_function<Type>::operator() ()
   int ns = logE.cols(); // is this allowed?
   int nqf = logqf.size();
   int nindex = index2sdb.size();
-  int nfleets = ifleet.max(); // is this allowed?
+  //int nfleets = ifleet.max(); // is this allowed?
+  //int nfleets = max(targetmap.col(1)); // is this allowed?
 
   // Create fishing mortality, logF
   matrix<Type> logF(nqf, ns);
@@ -213,7 +217,11 @@ Type objective_function<Type>::operator() ()
       logF(k, i) = logqf(k) + logE(find, i);
     }
   }
-  F = exp(logF);
+  for (int k=0; k < nqf; k++){
+    for (int i=0; i < ns; i++){
+      F(k, i) = exp(logF(k, i));
+    }
+  }
 
   // Transform parameters
   vector<Type> logphipar(logphi.size()+1);
@@ -300,9 +308,9 @@ Type objective_function<Type>::operator() ()
   // alpha
   vector<Type> alpha(nindex);
   for (int i=0; i < nindex; i++){
-    indb = CppAD::Integer(index2sdb(i)-1);
-    indi = CppAD::Integer(index2sdi(i)-1);
-    alpha(i) = sdi(indi) / sdb(indb);
+    bind = CppAD::Integer(index2sdb(i)-1);
+    iind = CppAD::Integer(index2sdi(i)-1);
+    alpha(i) = sdi(iind) / sdb(bind);
   }
   //vector<Type> alpha = sdi/sdb;
   vector<Type> logalpha = log(alpha);
@@ -349,7 +357,12 @@ Type objective_function<Type>::operator() ()
 
   // Initialise vectors
   matrix<Type> P(nstocks, ns-1);
-  matrix<Type> B = exp(logB);
+  matrix<Type> B(nstocks, ns); // = exp(logB);
+  for (int si=0; si < nstocks; si++){
+    for (int i=0; i < ns; i++){
+      B(si, i) = exp(logB(si, i));
+    }
+  }
   vector<Type> mvec(ns);
   matrix<Type> logBmsyvec(nstocks, ns);
   matrix<Type> logFmsyvec(nstocks, ns);
@@ -524,7 +537,7 @@ Type objective_function<Type>::operator() ()
     }
     std::cout << "INPUT: omega: " << omega << std::endl;
 
-    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logE.rows(): " << logE.rows() << "  logE.cols(): " << logE.cols() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.rows(): " << B.rows() << "  B.cols(): " << B.cols() << "  P.cols(): " << P.cols() << "  P.rows(): " << P.rows() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  ir.size(): " << ir.size() << "  logFmsy.size(): " << logFmsy.size() << "  logFmsyvec.size(): " << logFmsyvec.size() << "  logBmsy.size(): " << logBmsy.size() << "  logBmsyvec.size(): " << logBmsyvec.size() << "  m.size(): " << m.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
+    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logE.rows(): " << logE.rows() << "  logE.cols(): " << logE.cols() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.rows(): " << B.rows() << "  B.cols(): " << B.cols() << "  P.cols(): " << P.cols() << "  P.rows(): " << P.rows() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logFmsy.size(): " << logFmsy.size() << "  logFmsyvec.size(): " << logFmsyvec.size() << "  logBmsy.size(): " << logBmsy.size() << "  logBmsyvec.size(): " << logBmsyvec.size() << "  m.size(): " << m.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
     std::cout << "Bmsys: " << Bmsys << std::endl;
     std::cout << "Fmsys: " << Fmsys << std::endl;
     std::cout << "MSYs: " << MSYs << std::endl;
@@ -533,6 +546,7 @@ Type objective_function<Type>::operator() ()
     std::cout << "MSYd: " << MSYd << std::endl;
   }
   // Calculate mvec if multiple rs are used (rarely the case).
+  /*
   for (int i=0; i < ns; i++){
     ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
     if (dbg>1){
@@ -542,6 +556,7 @@ Type objective_function<Type>::operator() ()
     //logFmsyvec(i) = logFmsy(ind);
     //logBmsyvec(i) = logBmsy(ind);
   }
+  */
 
   // PRIORS
   if (dbg > 0){
@@ -689,7 +704,7 @@ Type objective_function<Type>::operator() ()
   //vector<Type> logFs = logF
   //vector<Type> logES(ns);
   matrix<Type> logES(nfleets, ns); // Seasonal component of E
-  matrix<Type> logE(nfleets, ns); // Seasonal component of E
+  //matrix<Type> logE(nfleets, ns); // Seasonal component of E
   if (simple == 0){
     if (dbg > 0){
       std::cout << "--- DEBUG: F loop start --- ans: " << ans << std::endl;
@@ -702,7 +717,7 @@ Type objective_function<Type>::operator() ()
 	  Epredtmp = predictE1(logE(jj, i-1), dt(i), sdf2(jj));
 	}
 	if (efforttype == 2.0){
-	  Fpredtmp = predictE2(logE(jj, i-1), dt(i), sdf2(jj));
+	  Epredtmp = predictE2(logE(jj, i-1), dt(i), sdf2(jj));
 	}
 	Type logEpred = log( ffacvec(i) * Epredtmp + fconvec(i) );;
 	likval = dnorm(logE(jj, i), logEpred, sqrt(dt(i-1))*sdf(jj), 1);
@@ -802,7 +817,14 @@ Type objective_function<Type>::operator() ()
     }
   }
   // Sum diffusion and seasonal component
-  matrix<Type> E = exp(logES + logE);
+  matrix<Type> E(nfleets, ns);
+  for (int jj=0; jj < nfleets; jj++){
+    for (int i=0; i < ns; i++){
+      E(jj, i) = exp(logES(jj, i) + logE(jj, i));
+    }
+  }
+
+
   //matrix<Type> logFs = log(F);
 
   // Sum Fs interacting with stock si
@@ -901,8 +923,8 @@ Type objective_function<Type>::operator() ()
   }
 
   // CALCULATE PRODUCTION
-  matrix<Type> Cpredsubperstock(nstock, ns);
-  matrix<Type> stockF(nstocks, ns);
+  matrix<Type> Cpredsubperstock(nstocks, ns);
+  //matrix<Type> stockF(nstocks, ns);
   for (int i=0; i < (ns-1); i++){
     for (int si=0; si < nstocks; si++){
       Cpredsubperstock(si, i) = 0.0; // Initialise
@@ -935,7 +957,7 @@ Type objective_function<Type>::operator() ()
       inds = CppAD::Integer(isc(i)-1);
       indsdc = CppAD::Integer(isdc(i)-1);
       if (robflagc == 1.0){
-	likval = log(pp*dnorm(logCpred(i), logobsC(i), stdevfacc(i)*sdc, 0) + (1.0-pp)*dnorm(logCpred(i), logobsC(i), robfac*stdevfacc(i)*sdc(indsdc), 0));
+	likval = log(pp*dnorm(logCpred(i), logobsC(i), stdevfacc(i)*sdc(indsdc), 0) + (1.0-pp)*dnorm(logCpred(i), logobsC(i), robfac*stdevfacc(i)*sdc(indsdc), 0));
       } else {
 	likval = dnorm(logCpred(i), logobsC(i), stdevfacc(i)*sdc(indsdc), 1);
       }
@@ -959,7 +981,7 @@ Type objective_function<Type>::operator() ()
       //logEpred(i) = logFcumpred(i) - logqf; // E = 1/q * integral{F_t dt}
       logEpred(i) = logEcumpred(i); // E = 1/q * integral{F_t dt}
       if (robflage == 1.0){
-	likval = log(pp*dnorm(logEpred(i), logobsE(i), stdevface(i)*sde, 0) + (1.0-pp)*dnorm(logEpred(i), logobsE(i), robfac*stdevface(i)*sde(indsde), 0));
+	likval = log(pp*dnorm(logEpred(i), logobsE(i), stdevface(i)*sde(indsde), 0) + (1.0-pp)*dnorm(logEpred(i), logobsE(i), robfac*stdevface(i)*sde(indsde), 0));
       } else {
 	likval = dnorm(logEpred(i), logobsE(i), stdevface(i)*sde(indsde), 1);
       }
@@ -1014,7 +1036,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> Cp(nqf);
   for (int k=0; k < nqf; k++){
     for (int i=0; i < dtpredcnsteps; i++){
-      ind = CppAD::Integer(dtpredcinds(i)-1);
+      ind = CppAD::Integer(dtpredcinds(i) - 1);
       if (dbg > 1){
 	std::cout << "-- i: " << i << "-- k: " << k << " -  dtpredcinds(i)-1: " << ind << std::endl;
       }
@@ -1027,7 +1049,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> Ep(nfleets);
   for (int k=0; k < nfleets; k++){
     for (int i=0; i < dtpredensteps; i++){
-      ind = CppAD::Integer(dtpredeinds(i)-1);
+      ind = CppAD::Integer(dtpredeinds(i) - 1);
       if (dbg > 1){
 	std::cout << "-- i: " << i << " -  dtpredeinds(i)-1: " << ind << std::endl;
       }
@@ -1038,31 +1060,42 @@ Type objective_function<Type>::operator() ()
   // --- BELOW NOT DONE ---
 
   // Biomass and F at the end of the prediction time interval
-  int pind = CppAD::Integer(dtprediind-1);
+  int pind = CppAD::Integer(dtprediind - 1);
   //for (int si=0; si < nstocks; si++){
   vector<Type> Bp = B.col(pind); 
   vector<Type> logBp = log(Bp);
-  vector<Type> logBpBmsy = logBp - logBmsyvec.col(pind);
+  vector<Type> logBpBmsy(nstocks);
+  for (int si=0; si < nstocks; si++){ 
+    logBpBmsy(si) = logBp(si) - logBmsyvec(si, pind);
+  }
   vector<Type> logBpK = logBp - logK;
     //}
   //Type logFp = logFs(pind); 
   vector<Type> logFp = logF.col(pind); 
-  vector<Type> logFpFmsy = logFp - logFmsyvec.col(pind);
-
+  vector<Type> logFpFmsy(nqf);
+  for (int j=0; j < nqf; j++){
+    logFpFmsy(j) = logFp(j) - logFmsyvec(j, pind);
+  }
   vector<Type> logIp(nindex);
   for (int i=0; i < nindex; i++){
-    int sind = CppAD::Integer(index2sdb-1);
-    int qind = CppAD::Integer(index2q-1);
+    int sind = CppAD::Integer(index2sdb(i) - 1);
+    int qind = CppAD::Integer(index2q(i) - 1);
     logIp(i) = logq(qind) + log(Bp(sind));
   }
 
   // Biomass and fishing mortality at last time point
-  vector<Type> logBl = logB.col(indlastobs-1);
-  vector<Type> logBlBmsy = logBl - logBmsyvec.col(indlastobs-1);
+  vector<Type> logBl = logB.col(indlastobs - 1);
+  vector<Type> logBlBmsy(nstocks);
+  for (int si=0; si < nstocks; si++){ 
+    logBlBmsy(si) = logBl(si) - logBmsyvec(si, indlastobs-1);
+  }
   vector<Type> logBlK = logBl - logK;
   //Type logFl = logFs(indlastobs-1);
-  vector<Type> logFl = logF.col(indlastobs-1);
-  vector<Type> logFlFmsy = logFl - logFmsyvec.col(indlastobs-1);
+  vector<Type> logFl = logF.col(indlastobs - 1);
+  vector<Type> logFlFmsy(nqf);
+  for (int j=0; j < nqf; j++){
+    logFlFmsy(j) = logFl(j) - logFmsyvec(j, indlastobs-1);
+  }
 
   // Calculate relative levels of biomass and fishing mortality
   matrix<Type> logBBmsy(nstocks, ns);
@@ -1078,7 +1111,10 @@ Type objective_function<Type>::operator() ()
   //std::cout << "logFFmsy: " << logFFmsy << std::endl;
 
   // 
-  vector<Type> logbkfrac = logB.col(0) - logK;
+  vector<Type> logbkfrac(nstocks);
+  for (int si=0; si < nstocks; si++){ 
+    logbkfrac(si) = logB(si, 0) - logK(si);
+  }
 
   // ADREPORTS
   ADREPORT(Bmsy);  
