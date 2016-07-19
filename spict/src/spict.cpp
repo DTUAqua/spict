@@ -201,6 +201,7 @@ Type objective_function<Type>::operator() ()
   int nq = logq.size();
   int nsdu = logsdu.size();
   int nsdi = logsdi.size();
+  int nsde = logsde.size();
   int nobsCp = ic.size();
   int ns = logE.cols(); // is this allowed?
   int nqf = logqf.size();
@@ -302,6 +303,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> sdi2(nsdi);
   vector<Type> isdi2(nsdi);
   for (int i=0; i < nsdi; i++){
+    sdi(i) = exp(logsdi(i)); 
     sdi2(i) = sdi(i) * sdi(i);
     isdi2(i) = 1.0 / sdi2(i);
   }
@@ -315,10 +317,11 @@ Type objective_function<Type>::operator() ()
   //vector<Type> alpha = sdi/sdb;
   vector<Type> logalpha = log(alpha);
   // sde
-  vector<Type> sde(nfleets);
-  vector<Type> sde2(nfleets);
-  vector<Type> isde2(nfleets);
-  for (int i=0; i < nfleets; i++){
+  vector<Type> sde(nsde);
+  vector<Type> sde2(nsde);
+  vector<Type> isde2(nsde);
+  for (int i=0; i < nsde; i++){
+    sde(i) = exp(logsde(i)); 
     sde2(i) = sde(i) * sde(i);
     isde2(i) = 1.0 / sde2(i);
   }
@@ -327,6 +330,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> sdc2(nqf);
   vector<Type> isdc2(nqf);
   for (int i=0; i < nqf; i++){
+    sdc(i) = exp(logsdc(i)); 
     sdc2(i) = sdc(i) * sdc(i);
     isdc2(i) = 1.0 / sdc2(i);
   }
@@ -351,7 +355,7 @@ Type objective_function<Type>::operator() ()
   for (int i=0; i < nindex; i++){
     ans -= dnorm(logalpha(i), Type(0.0), Type(10.0), 1); 
   }
-  for (int i=0; i < nfleets; i++){
+  for (int i=0; i < nsde; i++){
     ans -= dnorm(logsde(i), Type(-0.9162907), Type(10.0), 1); // log(0.4) = -0.9162907
   }
 
@@ -592,7 +596,7 @@ Type objective_function<Type>::operator() ()
   }
   // Prior for sde2. 
   if (priorisde2gamma(2) == 1){
-    for (int i=0; i < nfleets; i++){
+    for (int i=0; i < nsde; i++){
       ans-= dgamma(1.0/sde2(i), priorisde2gamma(0), 1.0/priorisde2gamma(1), 1); 
     }
   }
@@ -648,7 +652,7 @@ Type objective_function<Type>::operator() ()
     }
   }
   if (priorsde(2) == 1){
-    for (int i=0; i < nqf; i++){ 
+    for (int i=0; i < nsde; i++){ 
       ans-= dnorm(logsde(i), priorsde(0), priorsde(1), 1); // Prior for logsde
     }
   }

@@ -231,6 +231,13 @@ check.inp <- function(inp){
     # One stock, one index included as a vector
     inp$obsI <- make.list(inp$obsI)
     inp$nstocks <- length(inp$obsI)
+    if (!'stocknames' %in% names(inp)){
+        inp$stocknames <- paste0('stock', 1:inp$nstocks)
+    }
+    if (length(inp$stocknames) != inp$nstocks){
+        stop('Wrong length of inp$stocknames. Got ', length(inp$stocknames),
+             ' but expected ', inp$nstocks)
+    }
     # Stock as list, index as vector
     inp$nindex <- numeric(inp$nstocks)
     inp$nindexseq <- list()
@@ -245,17 +252,18 @@ check.inp <- function(inp){
     # Time vector (create if doesn't exist)
     if (!'timeI' %in% names(inp)){
         inp$timeI <- vector('list', inp$nstocks)
-    } else {
+    }
+    if ('timeI' %in% names(inp)){
         inp$timeI <- make.list(inp$timeI)
         if (length(inp$timeI) != inp$nstocks){
             stop('Time vector specified for some index but not all. Needs specification for all or none (in which case assumptions about time are made).')
         }
         for (si in 1:inp$nstocks){
-            if (length(inp$timeI[[si]]) != inp$nindex[si]){
-                stop('Lacking time vectors for stock', si, 'got', length(inp$timeI[[si]]),
-                     'but need', inp$nindex[si])
-            }
             inp$timeI[[si]] <- make.list(inp$timeI[[si]])
+            #if (length(inp$timeI[[si]]) != inp$nindex[si]){
+            #    stop('Lacking time vectors for stock ', si, ' got ', length(inp$timeI[[si]]),
+            #         ' but need ', inp$nindex[si])
+            #}
         }
     }
     # Standard deviation factor (create if doesn't exist)
@@ -268,7 +276,7 @@ check.inp <- function(inp){
     for (si in 1:inp$nstocks){
         # Time vector
         # Create if doesn't exist
-        if (is.null(inp$timeI[[si]])){
+        if (is.null(inp$timeI[[si]]) | length(inp$timeI[[si]]) == 0){
             inp$timeI[[si]] <- list()
             for (i in inp$nindexseq[[si]]){
                 #inp$timeI[[si]][[i]] <- 1:length(inp$obsI[[si]][[i]])
@@ -286,10 +294,10 @@ check.inp <- function(inp){
         } 
         inp$stdevfacI[[si]] <- make.list(inp$stdevfacI[[si]])
         if (inp$nindex[si] != length(inp$timeI[[si]])){
-            stop('length(inp$timeI) is not equal to length(inp$obsI) for stock', si)
+            stop('length(inp$timeI) is not equal to length(inp$obsI) for stock ', si)
         }
         if (inp$nindex[si] != length(inp$stdevfacI[[si]])){
-            stop('length(inp$stdevfacI) is not equal to length(inp$obsI) for stock', si)
+            stop('length(inp$stdevfacI) is not equal to length(inp$obsI) for stock ', si)
         }
         for (i in inp$nindexseq[[si]]){
             base.checks(inp$obsI[[si]][[i]], inp$timeI[[si]][[i]],
@@ -300,45 +308,49 @@ check.inp <- function(inp){
         for (i in inp$nindexseq[[si]]){
             inp$nobsI[[si]][i] <- length(inp$obsI[[si]][[i]])
         }
+        if (length(inp$nobsI[[si]]) == 0){
+            inp$nobsI[[si]] <- 0
+        }
     }
 
     # CHECK EFFORT OBSERVATIONS
     # One fleet included as a vector
     inp$obsE <- make.list(inp$obsE)
-    inp$nfleets <- length(inp$obsE)
-    if (inp$nfleets > 0){
-        inp$nfleetsseq <- 1:inp$nfleets
+    # neffort is number of observed effort series
+    inp$neffort <- length(inp$obsE) 
+    if (inp$neffort > 0){
+        inp$neffortseq <- 1:inp$neffort
     }
     if (is.null(inp$timeE)){
         inp$timeE <- list()
-        for (i in inp$nfleetsseq){
+        for (i in inp$neffortseq){
             inp$timeE[[i]] <- make.time2(inp$obsE[[i]], nseasons=inp$nseasons)
         }
     }
     inp$timeE <- make.list(inp$timeE)
-    if (length(inp$timeE) != inp$nfleets){
+    if (length(inp$timeE) != inp$neffort){
         stop('Lacking effort time vectors, got ', length(inp$timeE),
-             ' but need ', inp$nfleets, '.')
+             ' but need ', inp$neffort, '.')
     }
     # Effort intervals (dte)
-    if (!"dte" %in% names(inp) & inp$nfleets > 0){
-        inp$dte <- vector('list', inp$nfleets)
+    if (!"dte" %in% names(inp) & inp$neffort > 0){
+        inp$dte <- vector('list', inp$neffort)
     } else {
-        if (length(inp$dte) != inp$nfleets){
+        if (length(inp$dte) != inp$neffort){
             stop('Lacking dte vectors, got ', length(inp$dte),
-                 ' but need ', inp$nfleets, '.')
+                 ' but need ', inp$neffort, '.')
         }
     }
-    if (!"stdevfacE" %in% names(inp) & inp$nfleets > 0){
-        inp$stdevfacE <- vector('list', inp$nfleets)
+    if (!"stdevfacE" %in% names(inp) & inp$neffort > 0){
+        inp$stdevfacE <- vector('list', inp$neffort)
     } else {
-        if (length(inp$stdevfacE) != inp$nfleets){
+        if (length(inp$stdevfacE) != inp$neffort){
             stop('Lacking stdevfacE vectors, got ', length(inp$stdevfacE),
-                 ' but need ', inp$nfleets, '.')
+                 ' but need ', inp$neffort, '.')
         }
     }
-    inp$nobsE <- numeric(inp$nfleets)
-    for (i in inp$nfleetsseq){
+    inp$nobsE <- numeric(inp$neffort)
+    for (i in inp$neffortseq){
         if (any(diff(inp$timeE[[i]]) <= 0)){
             stop('Effort times for effort series', i, 'are not strictly increasing!')
         }
@@ -361,7 +373,7 @@ check.inp <- function(inp){
         base.checks(inp$obsE[[i]], inp$timeE[[i]], inp$stdevfacE[[i]], 'E')
     }
     inp <- remove.neg(inp, 'E', extrakeys='dte')
-    for (i in inp$nfleetsseq){
+    for (i in inp$neffortseq){
         inp$nobsE[i] <- length(inp$obsE[[i]])
         if (length(inp$dte[[i]]) != inp$nobsE[i]){
             stop('Effort interval vector (inp$dte, ', length(inp$dte),
@@ -369,9 +381,20 @@ check.inp <- function(inp){
                  inp$nobsE, ') in length for effort series ', i)
         }
     }
+    if (length(inp$nobsE) == 0){
+        inp$nobsE <- 0
+    }
 
-    # CHECK CATCH OBSERVATIONS
-    # Check target matrix
+    # CHECK TARGET MATRIX
+    # nfleets is number of fleets fishing (some may be unobserved, i.e. no effort data)
+    inp$nfleets <- ncol(inp$target)
+    if (!'fleetnames' %in% names(inp)){
+        inp$fleetnames <- paste0('fleet', 1:inp$nfleets)
+    }
+    if (length(inp$fleetnames) != inp$nfleets){
+        stop('Wrong length of inp$fleetnames. Got ', length(inp$fleetnames),
+             ' but expected ', inp$nfleets)
+    }
     # One row for each stock, one column for each fleet,
     # 0 means no stock-fleet interaction, integer > 0 indicates which catch series relate to that interaction
     if (!'target' %in% names(inp)){
@@ -389,10 +412,10 @@ check.inp <- function(inp){
         stop('nrow(inp$target) (', nrow(inp$target), ') != inp$nstocks (', inp$nstocks,
              ') fix index input data or inp$target.')
     }
-    if (ncol(inp$target) != inp$nfleets){
-        stop('ncol(inp$target) (', ncol(inp$target), ') != inp$nfleets (', inp$nfleets,
-             ') fix effort input data or inp$target.')
-    }
+    #if (ncol(inp$target) != inp$nfleets){
+    #    stop('ncol(inp$target) (', ncol(inp$target), ') != inp$nfleets (', inp$nfleets,
+    #         ') fix effort input data or inp$target.')
+    #}
     #if (any(is.na(match(as.numeric(inp$target), 0:1)))){ # Check whether only 0 and 1
     #    stop('Values other than 0 and 1 specified in inp$target.')
     #}
@@ -415,7 +438,8 @@ check.inp <- function(inp){
         j <- which(inp$target == i)
         inp$targetmap[i, ] <- ind2sub(inp$target, j) # Get row (stock) and column (fleet)
     }
-    # Check observations
+
+    # CHECK CATCH OBSERVATIONS
     if (!'obsC' %in% names(inp)){
         if (inp$nqf > 1){
             str <- paste('A total of', inp$nqf, 'fleet stock interactions detected and therefore',
@@ -446,6 +470,8 @@ check.inp <- function(inp){
     if (any(sort(inp$target[inp$target > 0]) != 1:length(inp$obsC))){
         stop('Mismatch between indices specified in inp$target and the number of catch series provided in inp$obsC!')
     }
+    rownames(inp$target) <- inp$stocknames
+    colnames(inp$target) <- inp$fleetnames
     # Catch intervals (dtc)
     if (!"dtc" %in% names(inp)){
         inp$dtc <- vector('list', inp$nqf)
@@ -513,7 +539,7 @@ check.inp <- function(inp){
     for (si in 1:inp$nstocks){
         inp$obsidI[[si]] <- vector('list', inp$nindex[si])
     }
-    inp$obsidE <- vector('list', inp$nfleets)
+    inp$obsidE <- vector('list', inp$neffort)
     inp$obsidC <- vector('list', inp$nqf)
     cur <- 0
     # Catch obs ID
@@ -531,14 +557,14 @@ check.inp <- function(inp){
         }
     }
     # Effort obs ID
-    for (i in inp$nfleetsseq){
+    for (i in inp$neffortseq){
         nextcur <- cur + inp$nobsE[i]
         inp$obsidE[[i]] <- (cur+1):(nextcur)
         cur <- nextcur
     }
     
     #inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
-    inp$nseries <- inp$nqf + sum(inp$nindex) + inp$nfleets
+    inp$nseries <- inp$nqf + sum(inp$nindex) + inp$neffort
 
     # -- MODEL OPTIONS --
     if (!"RE" %in% names(inp)){
@@ -587,21 +613,45 @@ check.inp <- function(inp){
         }
     }
     # Effort related
-    if (!"efforttype" %in% names(inp)) inp$efforttype <- 1
-    if (!"mapsde" %in% names(inp)) inp$mapsde <- inp$nfleetsseq
-    if ("mapsde" %in% names(inp)) inp$nsde <- length(unique(inp$mapsde))
-    if (!"mapqf" %in% names(inp)) inp$mapqf <- inp$nfleetsseq
-    if ("mapqf" %in% names(inp)) inp$nqf <- length(unique(inp$mapqf))
+    if (!"efforttype" %in% names(inp)){
+        inp$efforttype <- 1
+    }
+    if (!"mapsde" %in% names(inp)){
+        inp$mapsde <- inp$neffortseq
+    }
+    if ("mapsde" %in% names(inp)){
+        inp$nsde <- length(unique(inp$mapsde))
+    }
+    if (!"mapqf" %in% names(inp)){
+        inp$mapqf <- inp$nqfseq
+    }
+    #if ("mapqf" %in% names(inp)) inp$nqf <- length(unique(inp$mapqf))
     # Catch related
-    if (!"catchunit" %in% names(inp)) inp$catchunit <- ''
-    if (!"mapsdf" %in% names(inp)) inp$mapsdf <- inp$nqfseq
-    if ("mapsdf" %in% names(inp)) inp$nsdf <- length(unique(inp$mapsdf))
+    if (!"catchunit" %in% names(inp)){
+        inp$catchunit <- ''
+    }
+    if (!"mapsdf" %in% names(inp)){
+        inp$mapsdf <- inp$nqfseq
+    }
+    if ("mapsdf" %in% names(inp)){
+        inp$nsdf <- length(unique(inp$mapsdf))
+    }
     # Reporting
-    if (!"reportall" %in% names(inp)) inp$reportall <- TRUE
-    if (!"do.sd.report" %in% names(inp)) inp$do.sd.report <- TRUE
-    if (!"bias.correct" %in% names(inp)) inp$bias.correct <- FALSE # This is time consuming
-    if (!"bias.correct.control" %in% names(inp)) inp$bias.correct.control <- list(sd=FALSE) # This is time consuming
-    if (!"getReportCovariance" %in% names(inp)) inp$getReportCovariance <- TRUE # Set to FALSE to save memory
+    if (!"reportall" %in% names(inp)){
+        inp$reportall <- TRUE
+    }
+    if (!"do.sd.report" %in% names(inp)){
+        inp$do.sd.report <- TRUE
+    }
+    if (!"bias.correct" %in% names(inp)){
+        inp$bias.correct <- FALSE # This is time consuming
+    }
+    if (!"bias.correct.control" %in% names(inp)){
+        inp$bias.correct.control <- list(sd=FALSE) # This is time consuming
+    }
+    if (!"getReportCovariance" %in% names(inp)){
+        inp$getReportCovariance <- TRUE # Set to FALSE to save memory
+    }
     # Simulation options
     #if (!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
     # When simulating using sim.comm.cpue == TRUE, the simulation calculates
@@ -927,11 +977,11 @@ check.inp <- function(inp){
         dtepred <- 1
     }
     inp$timeEpred <- list()
-    inp$nobsEp <- numeric(inp$nfleets)
+    inp$nobsEp <- numeric(inp$neffort)
     inp$dtep <- list()
     inp$ie <- list()
     inp$ifleet <- list()
-    for (i in inp$nfleetsseq){
+    for (i in inp$neffortseq){
         if (sum(inp$nobsE) > 0){
             inp$timeEpred[[i]] <- unique(c(inp$timeE[[i]],
                                            (seq(tail(inp$timeE[[i]], 1),
@@ -946,7 +996,7 @@ check.inp <- function(inp){
     }
     # ne is number of states to integrate an effort observation over
     inp$ne <- list()
-    for (i in inp$nfleetsseq){
+    for (i in inp$neffortseq){
         inp$ne[[i]] <- rep(0, inp$nobsEp[i])
         if (inp$nobsE[i] > 0){
             for (j in 1:inp$nobsEp[i]){
@@ -1010,7 +1060,7 @@ check.inp <- function(inp){
     inp$nein <- list2vec(inp$ne)
     inp$ifleetin <- list2vec(inp$ifleet)
     inp$stdevfacEin <- list2vec(inp$stdevfacE)
-    inp$isdein <- rep(inp$nfleetsseq, inp$nobsE)
+    inp$isdein <- replist(inp$neffortseq, inp$nobsE)
     
     # Add helper variable such that predicted catch can be calculated using small euler steps
     # Need to include timerange[2] and exclude timerange[2]+dtpred because the catch at t is acummulated over t to t+dtc.
@@ -1363,8 +1413,12 @@ check.inp <- function(inp){
             #j <- which(inp$target == i)
             #rc <- ind2sub(inp$target, j) # Get row (stock) and column (fleet)
             rc <- inp$targetmap[i, ]
-            logmaxE <- log(max(inp$obsE[[rc[2]]]))
-            inp$ini$logqf[i] <- inp$ini$logr[rc[1]] - logmaxE
+            if (rc[2] <= length(inp$obsE)){
+                logmaxE <- log(max(inp$obsE[[rc[2]]]))
+                inp$ini$logqf[i] <- inp$ini$logr[rc[1]] - logmaxE
+            } else {
+                inp$ini$logqf[i] <- 0
+            }
         }
     }
     if (sum(inp$nobsE) > 0){
@@ -1392,7 +1446,7 @@ check.inp <- function(inp){
         inp$ini$logsde <- log(0.2)
     }
     if (sum(inp$nobsE) > 0){
-        inp <- check.mapped.ini(inp, 'logsde', 'nfleets')
+        inp <- check.mapped.ini(inp, 'logsde', 'neffort')
     }
     
     #if (sum(inp$nobsE)>0) inp <- check.mapped.ini(inp, 'logsde', 'nsde')

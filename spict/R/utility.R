@@ -401,15 +401,16 @@ calc.EBinf <- function(K, n, Fl, Fmsy, sdb2){
 #' @title Calculate E(Binfinity) the fished equilibrium.
 #' @details If a seasonal pattern in F is imposed the annual average F is used for calculating the expectation.
 #' @param rep A result of fit.spict.
+#' @param stock Number of the stock to calculate EBinf for.
 #' @return E(Binf).
-get.EBinf <- function(rep){
-    K <- get.par('logK', rep, exp=TRUE)[2]
-    n <- get.par('logn', rep, exp=TRUE)[2]
-    sdb2 <- get.par('logsdb', rep, exp=TRUE)[2]^2
-    Fmsyall <- get.par('logFmsy', rep, exp=TRUE)
+get.EBinf <- function(rep, stock=1){
+    K <- get.par('logK', rep, exp=TRUE)[stock, 2]
+    n <- get.par('logn', rep, exp=TRUE)[stock, 2]
+    sdb2 <- get.par('logsdb', rep, exp=TRUE)[stock, 2]^2
+    Fmsyall <- get.par('logFmsy', rep, exp=TRUE)[stock, ]
     Fmsy <- tail(Fmsyall, 1)
     logFest <- get.par('logFs', rep)
-    if (min(rep$inp$dtc) < 1){
+    if (min(rep$inp$dtc[[stock]]) < 1){
         alf <- annual(rep$inp$time, logFest[, 2])
         fff <- exp(alf$annvec)
     } else {
@@ -418,6 +419,7 @@ get.EBinf <- function(rep){
     }
     Fl <- tail(unname(fff), 1)
     EBinf <- calc.EBinf(K, n, Fl, Fmsy[2], sdb2)
+    return(EBinf)
 }
 
 
