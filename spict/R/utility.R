@@ -214,8 +214,17 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
             cv <- sd/est
         }
         out <- cbind(ll, est, ul, sd, cv)
-        if (parname %in% c('logB', 'logF', 'logBBmsy', 'logFFmsy')){
-            rownames(out) <- rep$inp$time
+        if (parname %in% c('logB', 'logFstock', 'logBBmsy', 'logFstockFmsy')){
+            rownames(out) <- rep(rep$inp$time, each=rep$inp$nstocks)
+            out <- cbind(out, stock=rep$ind$idstock)
+        }
+        if (parname %in% c('logF', 'logFFmsy')){
+            rownames(out) <- rep(rep$inp$time, each=rep$inp$nqf)
+            out <- cbind(out, qf=rep$ind$idqf)
+        }
+        if (parname %in% c('logE')){
+            rownames(out) <- rep(rep$inp$time, each=rep$inp$nfleets)
+            out <- cbind(out, qf=rep$ind$idfleet)
         }
         return(out)
     }
@@ -228,15 +237,18 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
 #' @param msy Matrix containing reference point values as given by get.par().
 #' @return A list containing reference point estimates with upper and lower CI bounds.
 get.msyvec <- function(inp, msy){
-    vec <- rep(0, inp$ns)
-    ul <- rep(0, inp$ns)
-    ll <- rep(0, inp$ns)
-    nr <- length(inp$ini$logr)
-    for (i in 1:nr){
-        vec[inp$ir==i] <- msy[i, 2]
-        ul[inp$ir==i] <- msy[i, 3]
-        ll[inp$ir==i] <- msy[i, 1]
-    }
+    vec <- rep(msy[2], inp$ns)
+    ul <- rep(msy[3], inp$ns)
+    ll <- rep(msy[1], inp$ns)
+    #vec <- rep(0, inp$ns)
+    #ul <- rep(0, inp$ns)
+    #ll <- rep(0, inp$ns)
+    #nr <- length(inp$ini$logr)
+    #for (i in 1:nr){
+    #    vec[inp$ir==i] <- msy[i, 2]
+    #    ul[inp$ir==i] <- msy[i, 3]
+    #    ll[inp$ir==i] <- msy[i, 1]
+    #}
     return(list(msy=vec, ll=ll, ul=ul))
 }
 

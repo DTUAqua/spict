@@ -832,15 +832,16 @@ Type objective_function<Type>::operator() ()
   //matrix<Type> logFs = log(F);
 
   // Sum Fs interacting with stock si
-  matrix<Type> stockF(nstocks, ns);
-  for (int i=0; i < (ns-1); i++){
+  matrix<Type> Fstock(nstocks, ns);
+  for (int i=0; i < ns; i++){
     for (int si=0; si < nstocks; si++){
-      stockF(si, i) = 0.0; // Initialise
+      Fstock(si, i) = 0.0; // Initialise
     }
     for (int k=0; k < nqf; k++){
       sind = CppAD::Integer(targetmap(k, 0) - 1); // minus 1 because R starts at 1 and c++ at 0
-      find = CppAD::Integer(targetmap(k, 1) - 1); // minus 1 because R starts at 1 and c++ at 0
-      stockF(sind, i) += F(find, i);
+      //find = CppAD::Integer(targetmap(k, 1) - 1); // minus 1 because R starts at 1 and c++ at 0
+      //Fstock(sind, i) += F(find, i);
+      Fstock(sind, i) += F(k, i);
     }
   }
 
@@ -853,7 +854,7 @@ Type objective_function<Type>::operator() ()
     for (int i=0; i < (ns-1); i++){
       // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
       if (simple == 0){
-	logBpred(si, i+1) = predictlogB(B(si, i), stockF(si, i), gamma(si), m(si), K(si), dt(i), n(si), sdb2(si));
+	logBpred(si, i+1) = predictlogB(B(si, i), Fstock(si, i), gamma(si), m(si), K(si), dt(i), n(si), sdb2(si));
       } /* else {
 	Type Ftmp = 0.0;
 	// Use naive approach
@@ -928,7 +929,6 @@ Type objective_function<Type>::operator() ()
 
   // CALCULATE PRODUCTION
   matrix<Type> Cpredsubperstock(nstocks, ns);
-  //matrix<Type> stockF(nstocks, ns);
   for (int i=0; i < (ns-1); i++){
     for (int si=0; si < nstocks; si++){
       Cpredsubperstock(si, i) = 0.0; // Initialise
@@ -1036,9 +1036,22 @@ Type objective_function<Type>::operator() ()
     std::cout << "-- dtpredcnsteps: " << dtpredcnsteps << "  dtpredcinds.size(): " << dtpredcinds.size() <<std::endl;
     std::cout << "-- dtpredensteps: " << dtpredensteps << "  dtpredeinds.size(): " << dtpredeinds.size() <<std::endl;
   }
-  // Catch prediction
+  // Calculate logFstock
+  matrix<Type> logFstock(nstocks, ns);
+  for (int i=0; i < ns; i++){
+    for (int si=0; si < nstocks; si++){
+      logFstock(si, i) = log(Fstock(si, i));
+    }
+  }
+
+  // Catch predictions
   vector<Type> Cp(nqf);
+  vector<Type> Cstockp(nstocks);
+  for (int si=0; si < nstocks; si++){
+    Cstockp(si) = 0.0;
+  }
   for (int k=0; k < nqf; k++){
+    Cp(k) = 0.0;
     for (int i=0; i < dtpredcnsteps; i++){
       ind = CppAD::Integer(dtpredcinds(i) - 1);
       if (dbg > 1){
@@ -1046,8 +1059,11 @@ Type objective_function<Type>::operator() ()
       }
       Cp(k) += Cpredsub(k, ind);
     }
+    sind = CppAD::Integer(targetmap(k, 0) - 1);
+    Cstockp(sind) += Cp(k);
   }
   vector<Type> logCp = log(Cp);
+  vector<Type> logCstockp = log(Cstockp);
 
   // Effort prediction
   vector<Type> Ep(nfleets);
@@ -1061,24 +1077,24 @@ Type objective_function<Type>::operator() ()
     }
   }
   vector<Type> logEp = log(Ep);
-  // --- BELOW NOT DONE ---
 
   // Biomass and F at the end of the prediction time interval
   int pind = CppAD::Integer(dtprediind - 1);
-  //for (int si=0; si < nstocks; si++){
   vector<Type> Bp = B.col(pind); 
   vector<Type> logBp = log(Bp);
   vector<Type> logBpBmsy(nstocks);
+  vector<Type> logFstockp = logFstock.col(pind);
+  vector<Type> logFstockpFmsy(nstocks);
   for (int si=0; si < nstocks; si++){ 
     logBpBmsy(si) = logBp(si) - logBmsyvec(si, pind);
+    logFstockpFmsy(si) = logFstockp(si) - logFmsyvec(si, pind);
   }
   vector<Type> logBpK = logBp - logK;
-    //}
-  //Type logFp = logFs(pind); 
   vector<Type> logFp = logF.col(pind); 
   vector<Type> logFpFmsy(nqf);
-  for (int j=0; j < nqf; j++){
-    logFpFmsy(j) = logFp(j) - logFmsyvec(j, pind);
+  for (int k=0; k < nqf; k++){
+    sind = CppAD::Integer(targetmap(k, 0) - 1);
+    logFpFmsy(k) = logFp(k) - logFmsyvec(sind, pind);
   }
   vector<Type> logIp(nindex);
   for (int i=0; i < nindex; i++){
@@ -1088,33 +1104,42 @@ Type objective_function<Type>::operator() ()
   }
 
   // Biomass and fishing mortality at last time point
-  vector<Type> logBl = logB.col(indlastobs - 1);
+  int lind = indlastobs - 1;
+  vector<Type> logBl = logB.col(lind);
   vector<Type> logBlBmsy(nstocks);
+  vector<Type> logFstockl = logFstock.col(lind);
+  vector<Type> logFstocklFmsy(nstocks);
   for (int si=0; si < nstocks; si++){ 
-    logBlBmsy(si) = logBl(si) - logBmsyvec(si, indlastobs-1);
+    logBlBmsy(si) = logBl(si) - logBmsyvec(si, lind);
+    logFstocklFmsy(si) = logFstockl(si) - logFmsyvec(si, lind);
   }
   vector<Type> logBlK = logBl - logK;
-  //Type logFl = logFs(indlastobs-1);
-  vector<Type> logFl = logF.col(indlastobs - 1);
+  vector<Type> logFl = logF.col(lind);
   vector<Type> logFlFmsy(nqf);
-  for (int j=0; j < nqf; j++){
-    logFlFmsy(j) = logFl(j) - logFmsyvec(j, indlastobs-1);
+  for (int k=0; k < nqf; k++){
+    sind = CppAD::Integer(targetmap(k, 0) - 1);
+    logFlFmsy(k) = logFl(k) - logFmsyvec(sind, lind);
   }
 
-  // Calculate relative levels of biomass and fishing mortality
+  // Calculate relative levels of biomass and fishing mortality per stock
   matrix<Type> logBBmsy(nstocks, ns);
-  matrix<Type> logFFmsy(nstocks, ns);
+  matrix<Type> logFstockFmsy(nstocks, ns);
   for (int si=0; si < nstocks; si++){ 
     for (int i=0; i < ns; i++){ 
       logBBmsy(si, i) = logB(si, i) - logBmsyvec(si, i); 
-      //logFFmsy(i) = logFs(i) - logFmsyvec(i); 
-      logFFmsy(si, i) = logF(si, i) - logFmsyvec(si, i); 
+      logFstockFmsy(si, i) = logFstock(si, i) - logFmsyvec(si, i); 
+    }
+  }
+  // Calculate relative fishing mortality per fishery
+  matrix<Type> logFFmsy(nqf, ns);
+  for (int k=0; k < nqf; k++){ 
+    sind = CppAD::Integer(targetmap(k, 0) - 1); // minus 1 because R starts at 1 and c++ at 0
+    for (int i=0; i < ns; i++){ 
+      logFFmsy(k, i) = logF(k, i) - logFmsyvec(sind, i); 
     }
   }
 
-  //std::cout << "logFFmsy: " << logFFmsy << std::endl;
-
-  // 
+  // Calculate logbkfrac i.e. log[B(0)/K]
   vector<Type> logbkfrac(nstocks);
   for (int si=0; si < nstocks; si++){ 
     logbkfrac(si) = logB(si, 0) - logK(si);
@@ -1142,8 +1167,12 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logFmsys);
   ADREPORT(logFp);
   ADREPORT(logFpFmsy);
+  ADREPORT(logFstockp);
+  ADREPORT(logFstockpFmsy);
   ADREPORT(logFl);
   ADREPORT(logFlFmsy);
+  ADREPORT(logFstockl);
+  ADREPORT(logFstocklFmsy);
   ADREPORT(MSY);
   ADREPORT(MSYd);
   ADREPORT(MSYs);
@@ -1162,6 +1191,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(Cp);
   ADREPORT(logIp);
   ADREPORT(logCp);
+  ADREPORT(logCstockp);
   ADREPORT(logEp);
   // PARAMETERS
   ADREPORT(r);
@@ -1196,9 +1226,10 @@ Type objective_function<Type>::operator() ()
     // B
     ADREPORT(logBBmsy);
     // F
-    ADREPORT(logFFmsy); // Vector of size ns
-    //ADREPORT(logFs);    // Vector of size ns
-    ADREPORT(logF);    // Vector of size ns
+    ADREPORT(logF);
+    ADREPORT(logFstock);
+    ADREPORT(logFFmsy);
+    ADREPORT(logFstockFmsy);
     // C
     ADREPORT(logCpred);
     // I

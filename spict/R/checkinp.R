@@ -530,7 +530,6 @@ check.inp <- function(inp){
     if (any(dtimeobsall > 20)){
         warning('At least one gap over 20 years exists in data!')
     }
-
     
     # Observation IDs
     # Observation index in the observation input vector containing all observations
@@ -593,9 +592,6 @@ check.inp <- function(inp){
         tmp[[si]] <- rep(si, inp$nindex[si])
         #inp$index2sdb[inp$mapsdi[[si]]] <- si
     }
-    inp$index2sdb <- unlist(tmp)
-    inp$index2sdi <- unlist(inp$mapsdi)
-    inp$index2q <- unlist(inp$mapq)
     if (!"mapq" %in% names(inp)){
         inp$mapq <- list()
         qend <- 0
@@ -605,6 +601,9 @@ check.inp <- function(inp){
             qend <- qnext
         }
     }
+    inp$index2sdb <- unlist(tmp)
+    inp$index2sdi <- unlist(inp$mapsdi)
+    inp$index2q <- unlist(inp$mapq)
     # TODO: Perhaps create a check of mapq here
     if ("mapq" %in% names(inp)){
         inp$nq <- numeric(inp$nstocks)
@@ -864,7 +863,14 @@ check.inp <- function(inp){
     # Calculate time steps
     inp$dt <- c(diff(inp$time), inp$dteuler)
     inp$ns <- length(inp$time)
-
+    # Find indices of inp$time relevant to each stock
+    inp$indsstock <- list()
+    for (si in 1:inp$nstocks){
+        cinds <- which(inp$targetmap[, 1] == si)
+        mintime <- min(c(unlist(inp$timeI[[si]]), unlist(inp$timeC[cinds])))
+        inp$indsstock[[si]] <- which(inp$time >= mintime)
+    }
+    
     # -- DERIVED VARIABLES --
     inp$timerange <- range(timeobsall)
     inp$indlastobs <- cut(max(c(unlist(inp$timeC), unlist(inp$timeI), unlist(inp$timeE))),
@@ -945,13 +951,17 @@ check.inp <- function(inp){
     }
     inp$timeCpred <- list()
     inp$nobsCp <- numeric(inp$nqf)
+    inp$idCpred <- list()
     inp$dtcp <- list()
     inp$ic <- list()
+    idend <- 0
     for (i in inp$nqfseq){
         inp$timeCpred[[i]] <- unique(c(inp$timeC[[i]],
                                        (seq(tail(inp$timeC[[i]], 1),
                                             inp$timepredc, by=dtcpred))))
         inp$nobsCp[i] <- length(inp$timeCpred[[i]])
+        inp$idCpred[[i]] <- idend + (1:inp$nobsCp[i])
+        idend <- tail(inp$idCpred[[i]], 1)
         inp$dtcp[[i]] <- c(inp$dtc[[i]], rep(dtcpred, inp$nobsCp[i]-inp$nobsC[i]))
         inp$ic[[i]] <- cut(inp$timeCpred[[i]], inp$time, right=FALSE, labels=FALSE)
     }
@@ -1509,6 +1519,13 @@ check.inp <- function(inp){
     if ("logB" %in% names(inp$ini)){    
         inp$ini$logB <- check.mat(inp$ini$logB, c(inp$nstocks, inp$ns), 'inp$ini$logB')
     }
+    # ids to extract logB, logF etc
+    #inp$idstock <- unlist(lapply(1:inp$nstocks, function(x) rep(x, inp$ns)))
+    #inp$idfleet <- unlist(lapply(1:inp$nfleets, function(x) rep(x, inp$ns)))
+    #inp$idqf <- unlist(lapply(1:inp$nqf, function(x) rep(x, inp$ns)))
+    inp$idstock <- rep(1:inp$nstocks, inp$ns)
+    inp$idfleet <- rep(1:inp$nfleets, inp$ns)
+    inp$idqf <- rep(1:inp$nqf, inp$ns)
     
     # Reorder parameter list
     inp$parlist <- list(logm = inp$ini$logm,

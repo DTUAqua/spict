@@ -27,10 +27,16 @@
 #' summary(rep)
 #' @export
 summary.spictcls <- function(object, ...){
-    #object <- x
-    if(!exists('digits')) digits <- 7
-    numdigits <- digits # Present values with this number of digits after the dot.
     rep <- object
+    if(!exists('digits')){
+        digits <- 7
+    }
+    if(!exists('verbose')){
+        # if nstocks > 1 print less stuff per stock
+        verbose <- rep$inp$nstocks == 1
+    }
+    numdigits <- digits # Present values with this number of digits after the dot.
+
     cat(paste('Convergence: ', rep$opt$convergence, '  MSG: ', rep$opt$message, '\n', sep=''))
     if (rep$opt$convergence > 0){
         cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and cannot be trusted.\n')
@@ -147,31 +153,39 @@ summary.spictcls <- function(object, ...){
         cat('', paste(capture.output(resout),' \n'))
     }
     # -- Model parameters --
-    cat('\nModel parameter estimates w 95% CI \n')
+
     for (si in 1:rep$inp$nstocks){
+        cat('\n--', rep$inp$stocknames[si], '\n')
+        cat('\nModel parameter estimates w 95% CI \n')
         #resout <- sumspict.parest(rep, numdigits=numdigits)
         resout <- sumspict.stockpars(rep, stock=si, numdigits=numdigits)
         cat('', paste(capture.output(resout),' \n'), '\n')
-        if(rep$inp$do.sd.report & !'sderr' %in% names(rep)){
-            # Deterministic ref points
-            cat('Deterministic reference points (Drp)\n')
-            derout <- sumspict.drefpoints(rep, numdigits=numdigits)
-            cat('', paste(capture.output(derout),' \n'))
-            # Stochastic derived estimates
-            cat('Stochastic reference points (Srp)\n')
-            derout <- sumspict.srefpoints(rep, numdigits=numdigits)
-            cat('', paste(capture.output(derout),' \n'))
+        if (rep$inp$do.sd.report & !'sderr' %in% names(rep)){
+            if (verbose | rep$inp$msytype == 'd'){
+                # Deterministic ref points
+                cat('Deterministic reference points (Drp)\n')
+                derout <- sumspict.drefpoints(rep, stock=si, numdigits=numdigits)
+                cat('', paste(capture.output(derout),' \n'))
+            }
+            if (verbose | rep$inp$msytype == 's'){
+                # Stochastic derived estimates
+                cat('Stochastic reference points (Srp)\n')
+                derout <- sumspict.srefpoints(rep, stock=si, numdigits=numdigits)
+                cat('', paste(capture.output(derout),' \n'))
+            }
             # States
             cat(paste0('\nStates w 95% CI (inp$msytype: ', rep$inp$msytype, ')\n'))
-            stateout <- sumspict.states(rep, numdigits=numdigits)
+            stateout <- sumspict.states(rep, stock=si, numdigits=numdigits)
             cat('', paste(capture.output(stateout),' \n'))
             # Predictions
-            if(rep$inp$reportall){
-                cat(paste0('\nPredictions w 95% CI (inp$msytype: ', rep$inp$msytype, ')\n'))
-                predout <- sumspict.predictions(rep, numdigits=numdigits)
-                cat('', paste(capture.output(predout),' \n'))
-            } else {
-                cat(paste0('\nPredictions omitted because inp$reportall = FALSE\n'))
+            if (verbose){
+                if (rep$inp$reportall){
+                    cat(paste0('\nPredictions w 95% CI (inp$msytype: ', rep$inp$msytype, ')\n'))
+                    predout <- sumspict.predictions(rep, stock=si, numdigits=numdigits)
+                    cat('', paste(capture.output(predout),' \n'))
+                } else {
+                    cat(paste0('\nPredictions omitted because inp$reportall = FALSE\n'))
+                }
             }
         }
     }
@@ -181,13 +195,15 @@ summary.spictcls <- function(object, ...){
 #' @name get.order
 #' @title Get order of printed quantities.
 #' @return Vector containing indices of printed quantities.
-get.order <- function() return(c(2, 1, 3, 2))
+#get.order <- function() return(c(2, 1, 3, 2))
+get.order <- function() return(c(2, 1, 3))
 
 
 #' @name get.colnms
 #' @title Get column names for data.frames.
 #' @return Vector containing column names of data frames.
-get.colnms <- function() return(c('estimate', 'cilow', 'ciupp', 'log.est'))
+#get.colnms <- function() return(c('estimate', 'cilow', 'ciupp', 'log.est'))
+get.colnms <- function() return(c('estimate', 'cilow', 'ciupp'))
 
 
 #' @name transform
@@ -231,7 +247,7 @@ sumspict.stockpars <- function(rep, stock=1, numdigits=8){
     bionms <- c('logm', 'logK', 'logn', 'logr', 'logsdb')
     nbionms <- length(bionms)
     if(rep$inp$do.sd.report){
-        order <- get.order()[1:3]
+        order <- get.order()
         colnms <- get.colnms()
 
         # Biological parameters
@@ -394,28 +410,31 @@ sumspict.parest <- function(rep, numdigits=8){
 #' @name sumspict.drefpoints
 #' @title Deternistic reference points of a fit.spict() run.
 #' @param rep A result report as generated by running fit.spict.
+#' @param stock Number of the stock whose parameters to present.
 #' @param numdigits Present values with this number of digits after the dot.
 #' @return data.frame containing deterministic reference points.
 #' @export
-sumspict.drefpoints <- function(rep, numdigits=8){
+sumspict.drefpoints <- function(rep, stock=1, numdigits=8){
     order <- get.order()
     colnms <- get.colnms()
-    derout <- rbind(get.par(parname='logBmsyd', rep, exp=TRUE)[,order],
-                    get.par(parname='logFmsyd', rep, exp=TRUE)[,order],
-                    get.par(parname='logMSYd', rep, exp=TRUE)[,order])
-    derout[, 4] <- log(derout[, 4])
+    derout <- rbind(get.par(parname='logBmsyd', rep, exp=TRUE)[stock, order],
+                    get.par(parname='logFmsyd', rep, exp=TRUE)[stock, order],
+                    get.par(parname='logMSYd', rep, exp=TRUE)[stock, order])
+    #derout[, 4] <- log(derout[, 4])
     derout <- round(derout, numdigits)
     colnames(derout) <- colnms
-    nr <- length(rep$inp$ini$logr)
-    if(nr > 1){
-        rownames(derout) <- c(t(outer(c('Bmsyd', 'Fmsyd', 'MSYd'), 1:2, paste0)))
-    } else {
+    #nr <- length(rep$inp$ini$logr)
+    #if(nr > 1){
+    #    rownames(derout) <- c(t(outer(c('Bmsyd', 'Fmsyd', 'MSYd'), 1:2, paste0)))
+    #} else {
         rownames(derout) <- c('Bmsyd', 'Fmsyd', 'MSYd')
-    }
+    #}
     if('true' %in% names(rep$inp)){
         trueder <- c(rep$inp$true$Bmsyd, rep$inp$true$Fmsyd, rep$inp$true$MSYd)
         cider <- numeric(3)
-        for(i in 1:3) cider[i] <- as.numeric(trueder[i] > derout[i, 2] & trueder[i] < derout[i, 3])
+        for(i in 1:3){
+            cider[i] <- as.numeric(trueder[i] > derout[i, 2] & trueder[i] < derout[i, 3])
+        }
         derout <- cbind(derout[, 1], round(trueder,numdigits), derout[, 2:3], cider, derout[, 4])
         colnames(derout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
     }
@@ -426,36 +445,41 @@ sumspict.drefpoints <- function(rep, numdigits=8){
 #' @name sumspict.srefpoints
 #' @title Stochastic reference points of a fit.spict() run.
 #' @param rep A result report as generated by running fit.spict.
+#' @param stock Number of the stock whose parameters to present.
 #' @param numdigits Present values with this number of digits after the dot.
 #' @return data.frame containing stochastic reference points.
 #' @export
-sumspict.srefpoints <- function(rep, numdigits=8){
+sumspict.srefpoints <- function(rep, stock=1, numdigits=8){
     order <- get.order()
     colnms <- get.colnms()
-    derout <- rbind(get.par(parname='logBmsys', rep, exp=TRUE)[,order],
-                    get.par(parname='logFmsys', rep, exp=TRUE)[,order],
-                    get.par(parname='logMSYs', rep, exp=TRUE)[,order])
-    derout[, 4] <- log(derout[, 4])
+    derout <- rbind(get.par(parname='logBmsys', rep, exp=TRUE)[stock, order],
+                    get.par(parname='logFmsys', rep, exp=TRUE)[stock, order],
+                    get.par(parname='logMSYs', rep, exp=TRUE)[stock, order])
+    #derout[, 4] <- log(derout[, 4])
     derout <- round(derout, numdigits)
     colnames(derout) <- colnms
-    nr <- length(rep$inp$ini$logr)
-    if(nr > 1){
-        rownames(derout) <- c(t(outer(c('Bmsys', 'Fmsys', 'MSYs'), 1:2, paste0)))
-    } else {
+    #nr <- length(rep$inp$ini$logr)
+    #if(nr > 1){
+    #    rownames(derout) <- c(t(outer(c('Bmsys', 'Fmsys', 'MSYs'), 1:2, paste0)))
+    #} else {
         rownames(derout) <- c('Bmsys', 'Fmsys', 'MSYs')
-    }
+    #}
     if('true' %in% names(rep$inp)){
         trueder <- c(rep$inp$true$Bmsy, rep$inp$true$Fmsy, rep$inp$true$MSY)
         cider <- rep(0, 3)
-        for(i in 1:3) cider[i] <- as.numeric(trueder[i] > derout[i, 2] & trueder[i] < derout[i, 3])
+        for(i in 1:3){
+            cider[i] <- as.numeric(trueder[i] > derout[i, 2] & trueder[i] < derout[i, 3])
+        }
         derout <- cbind(derout[, 1], round(trueder,numdigits), derout[, 2:3], cider, derout[, 4])
         colnames(derout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
     }
-    Drp <- c(get.par(parname='logBmsyd', rep, exp=TRUE)[, 2],
-             get.par(parname='logFmsyd', rep, exp=TRUE)[, 2],
-             get.par(parname='logMSYd', rep, exp=TRUE)[, 2])
+    Drp <- c(get.par(parname='logBmsyd', rep, exp=TRUE)[stock, 2],
+             get.par(parname='logFmsyd', rep, exp=TRUE)[stock, 2],
+             get.par(parname='logMSYd', rep, exp=TRUE)[stock, 2])
     rel.diff.Drp <- (derout[, 1] - Drp)/derout[, 1]
-    if(length(rel.diff.Drp) == dim(derout)[1]) derout <- cbind(derout, rel.diff.Drp)
+    if(length(rel.diff.Drp) == dim(derout)[1]){
+        derout <- cbind(derout, rel.diff.Drp)
+    }
     return(derout)
 }
 
@@ -463,25 +487,28 @@ sumspict.srefpoints <- function(rep, numdigits=8){
 #' @name sumspict.states
 #' @title State estimates of a fit.spict() run.
 #' @param rep A result report as generated by running fit.spict.
+#' @param stock Number of the stock whose parameters to present.
 #' @param numdigits Present values with this number of digits after the dot.
 #' @return data.frame containing state estimates.
 #' @export
-sumspict.states <- function(rep, numdigits=8){
+sumspict.states <- function(rep, stock=1, numdigits=8){
     order <- get.order()
     colnms <- get.colnms()
     stateout <- rbind(
-        get.par(parname='logBl', rep, exp=TRUE)[order],
-        get.par(parname='logFl', rep, exp=TRUE)[order],
-        get.par(parname='logBlBmsy', rep, exp=TRUE)[order],
-        get.par(parname='logFlFmsy', rep, exp=TRUE)[order])
-    stateout[, 4] <- log(stateout[, 4])
+        get.par(parname='logBl', rep, exp=TRUE)[stock, order],
+        get.par(parname='logFl', rep, exp=TRUE)[stock, order],
+        get.par(parname='logBlBmsy', rep, exp=TRUE)[stock, order],
+        get.par(parname='logFlFmsy', rep, exp=TRUE)[stock, order])
+    #stateout[, 4] <- log(stateout[, 4])
     stateout <- round(stateout, numdigits)
     colnames(stateout) <- colnms
     indl <- rep$inp$indlastobs
     et <- fd(rep$inp$time[indl])
-    rownames(stateout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'), paste0('F_',et,'/Fmsy'))
+    rownames(stateout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'),
+                            paste0('F_',et,'/Fmsy'))
     if('true' %in% names(rep$inp)){
-        truest <- c(rep$inp$true$B[indl], rep$inp$true$F[indl], rep$inp$true$B[indl]/rep$inp$true$Bmsy,
+        truest <- c(rep$inp$true$B[indl], rep$inp$true$F[indl],
+                    rep$inp$true$B[indl]/rep$inp$true$Bmsy,
                     rep$inp$true$F[indl]/rep$inp$true$Fmsy)
         nst <- length(truest)
         cist <- numeric(nst)
@@ -499,30 +526,33 @@ sumspict.states <- function(rep, numdigits=8){
 #' @name sumspict.predictions
 #' @title Predictions of a fit.spict() run.
 #' @param rep A result report as generated by running fit.spict.
+#' @param stock Number of the stock whose parameters to present.
 #' @param numdigits Present values with this number of digits after the dot.
 #' @return data.frame containing predictions.
 #' @export
-sumspict.predictions <- function(rep, numdigits=8){
+sumspict.predictions <- function(rep, stock=1, numdigits=8){
     order <- get.order()
     colnms <- get.colnms()
     EBinf <- get.EBinf(rep)
     predout <- rbind(
-        get.par(parname='logBp', rep, exp=TRUE)[order],
-        get.par(parname='logFp', rep, exp=TRUE)[order],
-        get.par(parname='logBpBmsy', rep, exp=TRUE)[order],
-        get.par(parname='logFpFmsy', rep, exp=TRUE)[order],
-        tail(get.par(parname='logCpred', rep, exp=TRUE),1)[order],
-        c(EBinf, NA, NA, EBinf))
-    inds <- predout[, 4] <= 0
-    predout[inds, 4] <- NA
-    inds <- predout[, 4] > 0 & !is.na(predout[, 4])
-    predout[inds, 4] <- log(predout[inds, 4])
+        get.par(parname='logBp', rep, exp=TRUE)[stock, order],
+        get.par(parname='logFp', rep, exp=TRUE)[stock, order],
+        get.par(parname='logBpBmsy', rep, exp=TRUE)[stock, order],
+        get.par(parname='logFstockpFmsy', rep, exp=TRUE)[stock, order],
+        get.par(parname='logCstockp', rep, exp=TRUE)[stock, order],
+        #tail(get.par(parname='logCpred', rep, exp=TRUE), 1)[stock, order],
+        c(EBinf, NA, NA))
+    #inds <- predout[, 4] <= 0
+    #predout[inds, 4] <- NA
+    #inds <- predout[, 4] > 0 & !is.na(predout[, 4])
+    #predout[inds, 4] <- log(predout[inds, 4])
     predout <- round(predout, numdigits)
-    colnames(predout) <- c('prediction', colnms[2:4])
+    colnames(predout) <- c('prediction', colnms[2:3])
     indp <- rep$inp$dtprediind
     et <- fd(rep$inp$time[indp])
     rownames(predout) <- c(paste0('B_',et), paste0('F_',et), paste0('B_',et,'/Bmsy'),
-                           paste0('F_',et,'/Fmsy'), paste0('Catch_', fd(tail(rep$inp$timeCpred,1))), 'E(B_inf)')
+                           paste0('F_',et,'/Fmsy'),
+                           paste0('Catch_', fd(tail(rep$inp$timeCpred[[stock]], 1))), 'E(B_inf)')
     if(rep$inp$dtpredc == 0){
         predout <- predout[-dim(predout)[1], ]
     }
@@ -629,7 +659,7 @@ trans2real <- function(vals, nms, chgnms=TRUE){
     vals[loginds] <- exp(vals[loginds])
     vals[logitinds] <- invlogit(vals[logitinds])
     vals[logp1inds] <- invlogp1(vals[logp1inds])
-    if(chgnms){
+    if (chgnms){
         valnms <- names(vals)
         valnms[logitinds] <- gsub('logit', '', valnms[logitinds])
         valnms[logp1inds] <- gsub('logp1', '', valnms[logp1inds])
@@ -653,10 +683,10 @@ sumspict.priors <- function(rep, numdigits=8){
     means <- numeric(ninds)
     stds <- numeric(ninds)
     priornms <- nms
-    for(i in 1:ninds){
+    for (i in 1:ninds){
         means[i] <- rep$inp$priors[[i]][1]
         stds[i] <- rep$inp$priors[[i]][2]
-        if(nms[i] %in% c('logF', 'logB')){
+        if (nms[i] %in% c('logF', 'logB')){
             priornms[i] <- paste0(priornms[i], '_', rep$inp$priors[[i]][4])
         } else {
             priornms[i] <- paste0(priornms[i], '    ')
