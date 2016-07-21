@@ -185,16 +185,32 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                         }
                     }else {
                         if (parname == 'P'){
-                            B <- get.par('logB', rep, exp=TRUE)
-                            C <- get.par('logCpred', rep, exp=TRUE)
-                            ic <- rep$inp$ic
-                            nc <- rep$inp$nc
-                            B0 <- B[ic, 2]
-                            B1 <- B[ic+nc, 2]
-                            T0 <- rep$inp$time[ic]
-                            T1 <- rep$inp$time[ic+nc]
+                            Prep <- rep$report$P
+                            prod <- list()
+                            for (si in 1:rep$inp$nstocks){
+                                Psub <- Prep[si, ]
+                                finds <- which(rep$inp$targetmap[, 1] == si)
+                                # this should be the same for all fleets fishing on a stock
+                                fid <- finds[1]
+                                timeStock <- inp$timeCpred[[fid]]
+                                nt <- length(timeStock)
+                                prod[[si]] <- numeric(nt)
+                                for (i in 1:nt){
+                                    ic <- rep$inp$ic[[fid]][i]
+                                    nc <- rep$inp$nc[[fid]][i]
+                                    inds <- ic:(ic+nc-1)
+                                    prod[[si]][i] <- sum(Psub[inds])
+                                }
+                            }
+                            est <- unlist(prod)
+                            #ic <- rep$inp$ic
+                            #nc <- rep$inp$nc
+                            #B0 <- B[ic, 2]
+                            #B1 <- B[ic + nc, 2]
+                            #T0 <- rep$inp$time[ic]
+                            #T1 <- rep$inp$time[ic + nc]
                             # Get annual average
-                            est <- (B1 - B0 + C[, 2]) / (T1-T0)
+                            #est <- (B1 - B0 + C[, 2]) / (T1-T0)
                         }
                     }
                 } else {

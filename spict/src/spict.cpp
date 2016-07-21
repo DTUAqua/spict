@@ -361,7 +361,6 @@ Type objective_function<Type>::operator() ()
   }
 
   // Initialise vectors
-  matrix<Type> P(nstocks, ns-1);
   matrix<Type> B(nstocks, ns); // = exp(logB);
   for (int si=0; si < nstocks; si++){
     for (int i=0; i < ns; i++){
@@ -938,8 +937,9 @@ Type objective_function<Type>::operator() ()
       Cpredsubperstock(sind, i) += Cpredsub(k, i);
     }
   }
+  matrix<Type> P(nstocks, ns-1);
   for (int si=0; si < nstocks; si++){
-    for (int i=0; i<(ns-1); i++){
+    for (int i=0; i < (ns-1); i++){
       P(si, i) = B(si, i+1) - B(si, i) + Cpredsubperstock(si, i);
     }
   }
@@ -1247,6 +1247,7 @@ Type objective_function<Type>::operator() ()
   REPORT(Bmsy);
   REPORT(Fmsy);
   REPORT(stochmsy);
+  REPORT(P);
 
   return ans;
 }
