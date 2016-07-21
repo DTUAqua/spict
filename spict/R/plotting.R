@@ -355,7 +355,7 @@ plotspict.biomass <- function(rep, stock=1, logax=FALSE, main='Absolute biomass'
         Bestfull <- get.par('logB', rep, exp=TRUE)[inp$idstock == stock, ]
         BBfull <- get.par('logBBmsy', rep, exp=TRUE)[inp$idstock == stock, ]
         # Extract relevant part to be plotted
-        Bmsyvec <- Bmsyvecfull[inp$indsstock[[stock]]]
+        Bmsyvec <- as.data.frame(Bmsyvecfull)[inp$indsstock[[stock]], ]
         Best <- Bestfull[inp$indsstock[[stock]], ]
         BB <- BBfull[inp$indsstock[[stock]], ]
         time <- inp$time[inp$indsstock[[stock]]]
@@ -1342,93 +1342,109 @@ plotspict.catch <- function(rep, stock=1, main='Catch', ylim=NULL, qlegend=TRUE,
         MSY <- get.par('logMSY', rep, exp=TRUE)[stock, ]
         MSYvec <- get.msyvec(inp, MSY)
         finds <- which(inp$targetmap[, 1] == stock)
-        Cpredest <- get.par('logCpred', rep, exp=TRUE)[unlist(inp$idCpred[finds]), ]
-        Cpredest[Cpredest < 0] <- 0
-        rep$Cp[rep$Cp < 0] <- 0
+        #Cpredest <- get.par('logCpred', rep, exp=TRUE)[unlist(inp$idCpred[finds]), ]
+        Cpredestall <- get.par('logCpred', rep, exp=TRUE)
+        Cpredestall[Cpredestall < 0] <- 0
+        #rep$Cp[rep$Cp < 0] <- 0
         # - below not done
-        indest <- which(inp$timeCpred <= tail(inp$timeC,1))
-        indpred <- which(inp$timeCpred >= tail(inp$timeC,1))
-        dtc <- inp$dtcp
-        if (quarterly){
-            alo <- annual(inp$timeC, inp$obsC/inp$dtc)
-            timeo <- alo$anntime
-            obs <- alo$annvec
-            al1 <- annual(inp$timeCpred[indest], Cpredest[indest, 1]/dtc[indest])
-            al2 <- annual(inp$timeCpred[indest], Cpredest[indest, 2]/dtc[indest])
-            al3 <- annual(inp$timeCpred[indest], Cpredest[indest, 3]/dtc[indest])
-            inds <- which(!is.na(al2$annvec))
-            time <- al2$anntime[inds]
-            c <- al2$annvec[inds]
-            cl <- al1$annvec[inds]
-            cu <- al3$annvec[inds]
-            al1p <- annual(inp$timeCpred[indpred], Cpredest[indpred, 1]/dtc[indpred])
-            al2p <- annual(inp$timeCpred[indpred], Cpredest[indpred, 2]/dtc[indpred])
-            al3p <- annual(inp$timeCpred[indpred], Cpredest[indpred, 3]/dtc[indpred])
-            inds <- which(!is.na(al2p$annvec))
-            timep <- al2p$anntime[inds]
-            cp <- al2p$annvec[inds]
-            clp <- al1p$annvec[inds]
-            cup <- al3p$annvec[inds]
-            al1f <- annual(inp$timeCpred, Cpredest[, 1]/dtc)
-            al2f <- annual(inp$timeCpred, Cpredest[, 2]/dtc)
-            al3f <- annual(inp$timeCpred, Cpredest[, 3]/dtc)
-            inds <- which(!is.na(al2f$annvec))
-            timef <- al2f$anntime[inds]
-            clf <- al1f$annvec[inds]
-            cf <- al2f$annvec[inds]
-            cuf <- al3f$annvec[inds]
-            if (any(inp$dtc==1)){
-                inds <- which(inp$dtc==1)
-                timeo <- c(timeo, inp$timeC[inds])
-                obs <- c(obs, inp$obsC[inds])
-                timeunsort <- c(time, inp$timeCpred[inds])
-                timesort <- sort(timeunsort, index=TRUE)
-                time <- timesort$x
-                c <- c(c, Cpredest[inds, 2])[timesort$ix]
-                cl <- c(cl, Cpredest[inds, 1])[timesort$ix]
-                cu <- c(cu, Cpredest[inds, 3])[timesort$ix]
+        do.plot <- function(j){
+            Cpredest <- Cpredestall[inp$idCpred[[j]], ]
+            timeCpred <- inp$timeCpred[[j]]
+            timeC <- inp$timeC[[j]]
+            obsC <- inp$obsC[[j]]
+            dtc <- inp$dtcp[[j]]
+            indest <- which(timeCpred <= tail(timeC, 1))
+            indpred <- which(timeCpred >= tail(timeC, 1))
+            if (quarterly){ # DOESN'T WORK ANYMORE
+                alo <- annual(timeC, obsC/inp$dtc[[j]])
+                timeo <- alo$anntime
+                obs <- alo$annvec
+                al1 <- annual(timeCpred[indest], Cpredest[indest, 1]/dtc[indest])
+                al2 <- annual(timeCpred[indest], Cpredest[indest, 2]/dtc[indest])
+                al3 <- annual(timeCpred[indest], Cpredest[indest, 3]/dtc[indest])
+                inds <- which(!is.na(al2$annvec))
+                time <- al2$anntime[inds]
+                c <- al2$annvec[inds]
+                cl <- al1$annvec[inds]
+                cu <- al3$annvec[inds]
+                al1p <- annual(timeCpred[indpred], Cpredest[indpred, 1]/dtc[indpred])
+                al2p <- annual(timeCpred[indpred], Cpredest[indpred, 2]/dtc[indpred])
+                al3p <- annual(timeCpred[indpred], Cpredest[indpred, 3]/dtc[indpred])
+                inds <- which(!is.na(al2p$annvec))
+                timep <- al2p$anntime[inds]
+                cp <- al2p$annvec[inds]
+                clp <- al1p$annvec[inds]
+                cup <- al3p$annvec[inds]
+                al1f <- annual(timeCpred, Cpredest[, 1]/dtc)
+                al2f <- annual(timeCpred, Cpredest[, 2]/dtc)
+                al3f <- annual(timeCpred, Cpredest[, 3]/dtc)
+                inds <- which(!is.na(al2f$annvec))
+                timef <- al2f$anntime[inds]
+                clf <- al1f$annvec[inds]
+                cf <- al2f$annvec[inds]
+                cuf <- al3f$annvec[inds]
+                if (any(inp$dtc == 1)){
+                    inds <- which(inp$dtc[[j]] == 1)
+                    timeo <- c(timeo, timeC[inds])
+                    obs <- c(obs, obsC[inds])
+                    timeunsort <- c(time, timeCpred[inds])
+                    timesort <- sort(timeunsort, index=TRUE)
+                    time <- timesort$x
+                    c <- c(c, Cpredest[inds, 2])[timesort$ix]
+                    cl <- c(cl, Cpredest[inds, 1])[timesort$ix]
+                    cu <- c(cu, Cpredest[inds, 3])[timesort$ix]
+                }
+            } else {
+                timeo <- timeC
+                obs <- obsC / inp$dtc[[j]]
+                time <- timeCpred[indest]
+                c <- Cpredest[indest, 2] / dtc[indest]
+                cl <- Cpredest[indest, 1]
+                cu <- Cpredest[indest, 3]
+                timep <- timeCpred[indpred]
+                cp <- Cpredest[indpred, 2] / dtc[indpred]
+                clp <- Cpredest[indpred, 1]
+                cup <- Cpredest[indpred, 3]
+                timef <- timeCpred
+                clf <- Cpredest[, 1]
+                cf <- Cpredest[, 2] / dtc
+                cuf <- Cpredest[, 3]
             }
-        } else {
-            timeo <- inp$timeC
-            obs <- inp$obsC/inp$dtc
-            time <- inp$timeCpred[indest]
-            c <- Cpredest[indest, 2]/dtc[indest]
-            cl <- Cpredest[indest, 1]
-            cu <- Cpredest[indest, 3]
-            timep <- inp$timeCpred[indpred]
-            cp <- Cpredest[indpred, 2]/dtc[indpred]
-            clp <- Cpredest[indpred, 1]
-            cup <- Cpredest[indpred, 3]
-            timef <- inp$timeCpred
-            clf <- Cpredest[, 1]
-            cf <- Cpredest[, 2]/dtc
-            cuf <- Cpredest[, 3]
+            lines(time, cl, col=lcol, lwd=1.5, lty=2)
+            lines(time, cu, col=lcol, lwd=1.5, lty=2)
+            plot.col(timeo, obs/Cscal, cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
+            lines(time, c, col=lcol, lwd=1.5)
+            if (inp$dtpredc > 0){
+                lines(timep, cp, col=lcol, lty=3)
+                lines(timep, clp, col=lcol, lwd=1, lty=2)
+                lines(timep, cup, col=lcol, lwd=1, lty=2)
+            }
         }
-        fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
+        clfall <- unname(Cpredestall[unlist(inp$idCpred[finds]), 1])
+        cfall <- unname(Cpredestall[unlist(inp$idCpred[finds]), 2])
+        cufall <- unname(Cpredestall[unlist(inp$idCpred[finds]), 3])
+        fininds <- which(apply(cbind(clfall, cufall), 1, function(x) all(is.finite(x))))
         if (!ylimflag){
             if (length(ylim) != 2){
-                ylim <- range(c(cl, cu, 0.9*MSY[1], 1.07*MSY[3]), na.rm=TRUE)/Cscal
+                ylim <- range(c(clfall[fininds], cufall[fininds],
+                                0.9*MSY[1], 1.07*MSY[3]), na.rm=TRUE)/Cscal
                 if (inp$dtpredc > 0){
-                    ylim <- range(ylim, clf[fininds], cuf[fininds])
+                    ylim <- range(ylim, clfall[fininds], cufall[fininds])
                 }
             }
-            ylim[2] <- min(c(ylim[2], 3*max(cf[fininds]))) # Limit upper limit
+            ylim[2] <- min(c(ylim[2], 3*max(cfall[fininds]))) # Limit upper limit
         }
-        #if (main==-1) main <- 'Catch'
         if (ylabflag){
             ylab <- 'Catch'
             ylab <- add.catchunit(ylab, inp$catchunit)
         }
-        plot(time, c, typ='n', main=main, xlab=xlab, ylab=ylab,
-             xlim=range(c(inp$time, tail(inp$time,1))), ylim=ylim)
+        plot(1, 1, typ='n', main=main, xlab=xlab, ylab=ylab,
+             xlim=range(inp$time), ylim=ylim)
         polygon(c(inp$time, rev(inp$time)), c(MSYvec$ll,rev(MSYvec$ul)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
-        lines(time, cl, col=lcol, lwd=1.5, lty=2)
-        lines(time, cu, col=lcol, lwd=1.5, lty=2)
-        abline(v=tail(inp$timeC,1), col='gray')
-        plot.col(timeo, obs/Cscal, cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
+        abline(v=tail(unlist(inp$timeC[finds]), 1), col='gray')
         # Highlight influential index observations
-        if ('infl' %in% names(rep) & min(inp$dtc) == 1){
+        if ('infl' %in% names(rep) & min(inp$dtc[[1]]) == 1){
             infl <- rep$infl$infl[1:inp$nobsC, ]
             cols <- apply(!is.na(infl), 1, sum)
             ncols <- length(unique(cols))
@@ -1439,13 +1455,10 @@ plotspict.catch <- function(rep, stock=1, main='Catch', ylim=NULL, qlegend=TRUE,
             abline(h=inp$true$MSY, col=true.col(), lty=1)
             abline(h=inp$true$MSY, col='black', lty=3)
         }
-        lines(inp$time, MSYvec$msy)
-        lines(time, c, col=lcol, lwd=1.5)
-        if (inp$dtpredc > 0){
-            lines(timep, cp, col=lcol, lty=3)
-            lines(timep, clp, col=lcol, lwd=1, lty=2)
-            lines(timep, cup, col=lcol, lwd=1, lty=2)
+        for (j in finds){
+            do.plot(j)
         }
+        lines(inp$time, MSYvec$msy)
         if (rep$opt$convergence != 0){
             warning.stamp()
         }

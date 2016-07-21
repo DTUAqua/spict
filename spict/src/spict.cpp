@@ -88,6 +88,7 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(nfleets);       // 
   DATA_VECTOR(ic);             // Vector such that B(ic(i)) is the state at the start of obsC(i)
   DATA_VECTOR(nc);             // nc(i) gives the number of time intervals obsC(i) spans
+  DATA_VECTOR(icpred);         // 
   DATA_VECTOR(iff);            // 
   DATA_VECTOR(ie);             // Vector such that E(ie(i)) is the state at the start of obsE(i)
   DATA_VECTOR(ifleet);         // length nobsE
@@ -731,7 +732,6 @@ Type objective_function<Type>::operator() ()
 	  std::cout << "-- i: " << i << "- jj: " << jj << " -   logE(jj, i-1): " << logE(jj, i-1) << "  logE(jj, i): " << logE(jj, i) << "  ffacvec(i): " << ffacvec(i) << "  fconvec(i): " << fconvec(i) << "  sdf(jj): " << sdf(jj) << "  efforttype: " << efforttype << "  likval: " << likval << "  ans:" << ans << std::endl;
 	}
       }
-
       // Seasonal component
       if (dbg > 0){ 
 	std::cout << "-- seasontype: " << seasontype << std::endl; 
@@ -952,6 +952,7 @@ Type objective_function<Type>::operator() ()
 
   // CATCHES
   int indsdc;
+  int indscpred;
   if (simple == 0){
     if (dbg > 0){
       std::cout << "--- DEBUG: Cpred loop start --- ans: " << ans << std::endl;
@@ -960,19 +961,19 @@ Type objective_function<Type>::operator() ()
     for (int i=0; i < nobsC; i++){
       inds = CppAD::Integer(isc(i)-1);
       indsdc = CppAD::Integer(isdc(i)-1);
+      indscpred = CppAD::Integer(icpred(i)-1);
       if (robflagc == 1.0){
-	likval = log(pp*dnorm(logCpred(i), logobsC(i), stdevfacc(i)*sdc(indsdc), 0) + (1.0-pp)*dnorm(logCpred(i), logobsC(i), robfac*stdevfacc(i)*sdc(indsdc), 0));
+	likval = log(pp*dnorm(logCpred(indscpred), logobsC(i), stdevfacc(i)*sdc(indsdc), 0) + (1.0-pp)*dnorm(logCpred(indscpred), logobsC(i), robfac*stdevfacc(i)*sdc(indsdc), 0));
       } else {
-	likval = dnorm(logCpred(i), logobsC(i), stdevfacc(i)*sdc(indsdc), 1);
+	likval = dnorm(logCpred(indscpred), logobsC(i), stdevfacc(i)*sdc(indsdc), 1);
       }
       ans-= keep(inds) * likval;
       // DEBUGGING
       if (dbg > 1){
-	std::cout << "-- i: " << i << " -   logobsC(i): " << logobsC(i) << " -   stdevfacc(i): " << stdevfacc(i) << "  sdc(indsdc): " << sdc(indsdc) << "  likval: " << likval << "  ans:" << ans << std::endl;
+	std::cout << "-- i: " << i << "- indscpred: " << indscpred << " -   logobsC(i): " << logobsC(i) << " -   stdevfacc(i): " << stdevfacc(i) << "  sdc(indsdc): " << sdc(indsdc) << "  likval: " << likval << "  ans:" << ans << std::endl;
       }
     }
   }
-
 
   // EFFORT
   int indsde;

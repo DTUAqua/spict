@@ -236,6 +236,7 @@ make.datin <- function(inp, dbg=0){
                   nfleets=inp$nfleets,
                   ic=inp$icin,
                   nc=inp$ncin,
+                  icpred=inp$icpredin,
                   iff=inp$iffin,
                   ie=inp$iein,
                   ifleet=inp$ifleetin,

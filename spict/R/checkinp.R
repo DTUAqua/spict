@@ -385,75 +385,14 @@ check.inp <- function(inp){
         inp$nobsE <- 0
     }
 
-    # CHECK TARGET MATRIX
-    # nfleets is number of fleets fishing (some may be unobserved, i.e. no effort data)
-    inp$nfleets <- ncol(inp$target)
-    if (!'fleetnames' %in% names(inp)){
-        inp$fleetnames <- paste0('fleet', 1:inp$nfleets)
-    }
-    if (length(inp$fleetnames) != inp$nfleets){
-        stop('Wrong length of inp$fleetnames. Got ', length(inp$fleetnames),
-             ' but expected ', inp$nfleets)
-    }
-    # One row for each stock, one column for each fleet,
-    # 0 means no stock-fleet interaction, integer > 0 indicates which catch series relate to that interaction
-    if (!'target' %in% names(inp)){
-        if ((inp$nstocks * inp$nfleets) > 1){ # Multiple fleets and/or stocks
-            stop('Data for running a multi-fleet/multi-stock model have been input without specifying inp$target. Cannot continue. See ?check.inp for help.')
-        }
-        inp$target <- matrix(1, 1, 1)
-    }
-    if (class(inp$target) == 'numeric'){
-        if (length(inp$target) == 1){
-            inp$target <- matrix(inp$target, 1, 1)
-        }
-    }
-    if (nrow(inp$target) != inp$nstocks){
-        stop('nrow(inp$target) (', nrow(inp$target), ') != inp$nstocks (', inp$nstocks,
-             ') fix index input data or inp$target.')
-    }
-    #if (ncol(inp$target) != inp$nfleets){
-    #    stop('ncol(inp$target) (', ncol(inp$target), ') != inp$nfleets (', inp$nfleets,
-    #         ') fix effort input data or inp$target.')
-    #}
-    #if (any(is.na(match(as.numeric(inp$target), 0:1)))){ # Check whether only 0 and 1
-    #    stop('Values other than 0 and 1 specified in inp$target.')
-    #}
-    if (all(inp$target == 0)){
-        stop('All values of inp$target are 0, there should be at least one entry > 0.')
-    }
-    inp$nqf <- sum(inp$target > 0)
-    if (inp$nqf > 0){
-        inp$nqfseq <- 1:inp$nqf
-    }
-    # inp$target seems valid
-    # Create target map
-    ind2sub <- function(M, ind){
-        return(c(row(M)[ind], col(M)[ind] ))
-    }
-    inp$targetmap <- matrix(0, inp$nqf, 2)
-    rownames(inp$targetmap) <- paste0('F', inp$nqfseq)
-    colnames(inp$targetmap) <- c('stock', 'fleet')
-    for (i in inp$nqfseq){
-        j <- which(inp$target == i)
-        inp$targetmap[i, ] <- ind2sub(inp$target, j) # Get row (stock) and column (fleet)
-    }
-
     # CHECK CATCH OBSERVATIONS
     if (!'obsC' %in% names(inp)){
-        if (inp$nqf > 1){
-            str <- paste('A total of', inp$nqf, 'fleet stock interactions detected and therefore',
-                         inp$nqf, 'time series of catch data are required to continue.')
-        } else {
-            str <- ''
-        }
-        stop('No catch observations included. Please include them as inp$obsC.', str)
+        stop('No catch observations included. Please include them as inp$obsC.')
     }
     inp$obsC <- make.list(inp$obsC)
-    if (length(inp$obsC) != inp$nqf){
-        stop('Number of catch time series (', length(inp$obsC),
-             ') differs from the number of fleet stock interactions given in inp$target (',
-             inp$nqf, ').')
+    inp$nqf <- length(inp$obsC)
+    if (inp$nqf > 0){
+        inp$nqfseq <- 1:inp$nqf
     }
     if (is.null(inp$timeC)){
         inp$timeC <- list()
@@ -466,12 +405,6 @@ check.inp <- function(inp){
         stop('Lacking catch time vectors, got ', length(inp$timeC),
              ' but need ', inp$nqf, '.')
     }
-    # Check whether all required indices are present in target matrix
-    if (any(sort(inp$target[inp$target > 0]) != 1:length(inp$obsC))){
-        stop('Mismatch between indices specified in inp$target and the number of catch series provided in inp$obsC!')
-    }
-    rownames(inp$target) <- inp$stocknames
-    colnames(inp$target) <- inp$fleetnames
     # Catch intervals (dtc)
     if (!"dtc" %in% names(inp)){
         inp$dtc <- vector('list', inp$nqf)
@@ -519,6 +452,75 @@ check.inp <- function(inp){
         }
     }
 
+    # CHECK TARGET MATRIX
+    # One row for each stock, one column for each fleet,
+    # 0 means no stock-fleet interaction, integer > 0 indicates which catch series relate to that interaction
+    if (!'target' %in% names(inp)){
+        if ((inp$nstocks * inp$nqf) > 1){ # Multiple stocks and/or fleets
+            stop('Data for running a multi-fleet/multi-stock model have been input without specifying inp$target. Cannot continue. See ?check.inp for help.')
+        }
+        inp$target <- matrix(1, 1, 1)
+    }
+    if (class(inp$target) == 'numeric'){
+        if (length(inp$target) == 1){
+            inp$target <- matrix(inp$target, 1, 1)
+        }
+    }
+    if (nrow(inp$target) != inp$nstocks){
+        stop('nrow(inp$target) (', nrow(inp$target), ') != inp$nstocks (', inp$nstocks,
+             ') fix index input data or inp$target.')
+    }
+    #if (ncol(inp$target) != inp$nfleets){
+    #    stop('ncol(inp$target) (', ncol(inp$target), ') != inp$nfleets (', inp$nfleets,
+    #         ') fix effort input data or inp$target.')
+    #}
+    #if (any(is.na(match(as.numeric(inp$target), 0:1)))){ # Check whether only 0 and 1
+    #    stop('Values other than 0 and 1 specified in inp$target.')
+    #}
+    if (all(inp$target == 0)){
+        stop('All values of inp$target are 0, there should be at least one entry > 0.')
+    }
+    # nfleets is number of fleets fishing (some may be unobserved, i.e. no effort data)
+    inp$nfleets <- ncol(inp$target)
+    if (!'fleetnames' %in% names(inp)){
+        inp$fleetnames <- paste0('fleet', 1:inp$nfleets)
+    }
+    if (length(inp$fleetnames) != inp$nfleets){
+        stop('Wrong length of inp$fleetnames. Got ', length(inp$fleetnames),
+             ' but expected ', inp$nfleets)
+    }
+    #inp$nqf <- sum(inp$target > 0)
+    #if (inp$nqf > 0){
+    #    inp$nqfseq <- 1:inp$nqf
+    #}
+    # inp$target seems valid
+    # Create target map
+    ind2sub <- function(M, ind){
+        return(c(row(M)[ind], col(M)[ind] ))
+    }
+    inp$targetmap <- matrix(0, inp$nqf, 2)
+    rownames(inp$targetmap) <- paste0('F', inp$nqfseq)
+    colnames(inp$targetmap) <- c('stock', 'fleet')
+    nztarget <- as.numeric(inp$target[inp$target != 0])
+    for (i in nztarget){
+        j <- which(inp$target == i)
+        inp$targetmap[i, ] <- ind2sub(inp$target, j) # Get row (stock) and column (fleet)
+    }
+    if (nrow(inp$targetmap) != inp$nqf){
+        stop('Number of catch time series (', inp$nqf,
+             ') differs from the number of fleet stock interactions given in inp$target (',
+             nrow(inp$targetmap), ').')
+    }
+    
+    # Check whether all required indices are present in target matrix
+    if (any(sort(inp$target[inp$target > 0]) != 1:length(inp$obsC))){
+        stop('Mismatch between indices specified in inp$target and the number of catch series provided in inp$obsC!')
+    }
+    rownames(inp$target) <- inp$stocknames
+    colnames(inp$target) <- inp$fleetnames
+
+
+    
     # Vector containing all observation times
     timeobsall <- sort(c(unlist(inp$timeC), unlist(inp$timeC) + unlist(inp$dtc),
                          unlist(inp$timeI),
@@ -920,9 +922,9 @@ check.inp <- function(inp){
         }
     }
     if ("nseasons" %in% names(inp)){
-       if (!inp$nseasons %in% c(1, 2, 4)){
-           stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
-       }
+        if (!inp$nseasons %in% c(1, 2, 4)){
+            stop('inp$nseasons (=', inp$nseasons, ') must be either 1, 2 or 4.')
+        }
     }
     if (inp$nseasons == 1) inp$seasontype <- 0 # seasontype = 0 means seasons are disabled.
     # Calculate seasonal spline
@@ -944,25 +946,37 @@ check.inp <- function(inp){
         inp$seasons[inds] <- i
     }
     # ic is the indices of inp$time to which catch observations correspond
-    if (length(unlist(inp$dtc)) > 0){
-        dtcpred <- min(unlist(inp$dtc))
-    } else {
-        dtcpred <- 1
-    }
     inp$timeCpred <- list()
     inp$nobsCp <- numeric(inp$nqf)
-    inp$idCpred <- list()
+    inp$idCpred <- list() # To which fishery does a catch prediction belong
     inp$dtcp <- list()
     inp$ic <- list()
+    inp$icpred <- list() # Indices of timeCpred corresponding to observations
     idend <- 0
     for (i in inp$nqfseq){
-        inp$timeCpred[[i]] <- unique(c(inp$timeC[[i]],
-                                       (seq(tail(inp$timeC[[i]], 1),
-                                            inp$timepredc, by=dtcpred))))
+        if (length(inp$dtc[[i]]) > 0){
+            dtcpred <- min(inp$dtc[[i]])
+        } else {
+            dtcpred <- 1
+        }
+        # Find fisheries related to the stock of the current fishery (i)
+        finds <- which(inp$targetmap[, 1] == inp$targetmap[i, 1])
+        # Predict catches for each fishery over the span of all fisheries related to a stock
+        timeCstock <- unlist(inp$timeC[finds])
+        timeC <- inp$timeC[[i]]
+        inp$timeCpred[[i]] <- unique(c(timeCstock,
+                                       seq(tail(timeCstock, 1), inp$timepredc, by=dtcpred)))
         inp$nobsCp[i] <- length(inp$timeCpred[[i]])
+        inp$dtcp[[i]] <- numeric(inp$nobsCp[i])
+        indsthis <- match(timeC, timeCstock) # This fishery
+        indsother <- setdiff(1:inp$nobsCp[i], indsthis) # Other fisheries on this stock
+        inp$dtcp[[i]][indsthis] <- inp$dtc[[i]]
+        inp$dtcp[[i]][indsother] <- dtcpred
+        #inp$dtcp[[i]] <- c(inp$dtc[[i]], rep(dtcpred, inp$nobsCp[i]-inp$nobsC[i]))
+        #inp$dtcp[[i]] <- dtcpred
         inp$idCpred[[i]] <- idend + (1:inp$nobsCp[i])
+        inp$icpred[[i]] <- inp$idCpred[[i]][indsthis]
         idend <- tail(inp$idCpred[[i]], 1)
-        inp$dtcp[[i]] <- c(inp$dtc[[i]], rep(dtcpred, inp$nobsCp[i]-inp$nobsC[i]))
         inp$ic[[i]] <- cut(inp$timeCpred[[i]], inp$time, right=FALSE, labels=FALSE)
     }
     # nc is number of states to integrate a catch observation over
@@ -1049,6 +1063,7 @@ check.inp <- function(inp){
     # Catch related
     inp$icin <- list2vec(inp$ic)
     inp$ncin <- list2vec(inp$nc)
+    inp$icpredin <- list2vec(inp$icpred)
     inp$iffin <- list2vec(inp$iff)
     inp$stdevfacCin <- list2vec(inp$stdevfacC)
     inp$isdcin <- rep(inp$nqfseq, inp$nobsC)
