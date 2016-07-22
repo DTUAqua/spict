@@ -188,7 +188,17 @@ season.cols <- function(modin){
 #' @name true.col
 #' @title Load color of true values from simulation.
 #' @return Color vector
-true.col <- function() rgb(1, 165/255, 0, alpha=0.7) # 'orange'
+true.col <- function(){
+    return(rgb(1, 165/255, 0, alpha=0.7)) # 'orange'
+}
+
+
+#' @name c.cols
+#' @title Load color of catch series.
+#' @return Color vector
+c.cols <- function(){
+    return(c('red', 3, 'gold', 'cyan', 'pink'))
+}
 
 
 #' @name plot.col
@@ -930,11 +940,12 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
         }
         polygon(c(inp$time, rev(inp$time)), c(Fmsyvec$ll, rev(Fmsyvec$ul)), col=cicol, border=cicol)
         if (nfinds > 1){
+            lcol <- rep(c.cols(), nfinds)
             # Plot partial F
             for (j in 1:nfinds){
                 Fpart <- Fest[inp$idqf == finds[j], ]
                 relinds <- inp$indsstock[[stock]]
-                lines(inp$time[relinds], Fpart[relinds, 2], col=j+1, lwd=1.5)
+                lines(inp$time[relinds], Fpart[relinds, 2], col=lcol[j], lwd=1.5)
             }
         }
         cicol2 <- rgb(0, 0, 1, 0.1)
@@ -1312,6 +1323,8 @@ plotspict.fb <- function(rep, stock=1, logax=FALSE, plot.legend=TRUE, ext=TRUE, 
 }
 
 
+
+
 #' @name plotspict.catch
 #' @title Plot observed catch and predictions.
 #' @details Plots observed catch and predictions using the current F and Fmsy. The plot also contains the equilibrium catch if the current F is maintained.
@@ -1330,7 +1343,7 @@ plotspict.fb <- function(rep, stock=1, logax=FALSE, plot.legend=TRUE, ext=TRUE, 
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.catch(rep)
 #' @export
-plotspict.catch <- function(rep, stock=1, main='Catch', ylim=NULL, qlegend=TRUE, lcol='blue',
+plotspict.catch <- function(rep, stock=1, main='Catch', ylim=NULL, qlegend=TRUE, lcol=c.cols(),
                             xlab='Time', ylab=NULL, stamp=get.version()){
     if (!'sderr' %in% names(rep)){
         ylabflag <- is.null(ylab) # If null then not manually specified
@@ -1342,6 +1355,14 @@ plotspict.catch <- function(rep, stock=1, main='Catch', ylim=NULL, qlegend=TRUE,
         MSY <- get.par('logMSY', rep, exp=TRUE)[stock, ]
         MSYvec <- get.msyvec(inp, MSY)
         finds <- which(inp$targetmap[, 1] == stock)
+        nfinds <- length(finds)
+        # Line colors
+        if (nfinds == 1 & all(lcol == c.cols())){
+            lcol <- 'blue'
+        }
+        if (length(lcol) != nfinds){
+            lcol <- rep(lcol, nfinds)
+        }
         #Cpredest <- get.par('logCpred', rep, exp=TRUE)[unlist(inp$idCpred[finds]), ]
         Cpredestall <- get.par('logCpred', rep, exp=TRUE)
         Cpredestall[Cpredestall < 0] <- 0
@@ -1410,14 +1431,14 @@ plotspict.catch <- function(rep, stock=1, main='Catch', ylim=NULL, qlegend=TRUE,
                 cf <- Cpredest[, 2] / dtc
                 cuf <- Cpredest[, 3]
             }
-            lines(time, cl, col=lcol, lwd=1.5, lty=2)
-            lines(time, cu, col=lcol, lwd=1.5, lty=2)
+            lines(time, cl, col=lcol[j], lwd=1.5, lty=2)
+            lines(time, cu, col=lcol[j], lwd=1.5, lty=2)
             plot.col(timeo, obs/Cscal, cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
-            lines(time, c, col=lcol, lwd=1.5)
+            lines(time, c, col=lcol[j], lwd=1.5)
             if (inp$dtpredc > 0){
-                lines(timep, cp, col=lcol, lty=3)
-                lines(timep, clp, col=lcol, lwd=1, lty=2)
-                lines(timep, cup, col=lcol, lwd=1, lty=2)
+                lines(timep, cp, col=lcol[j], lty=3)
+                lines(timep, clp, col=lcol[j], lwd=1, lty=2)
+                lines(timep, cup, col=lcol[j], lwd=1, lty=2)
             }
         }
         clfall <- unname(Cpredestall[unlist(inp$idCpred[finds]), 1])
@@ -1486,9 +1507,13 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
                                  stamp=get.version()){
     if (!'sderr' %in% names(rep)){
         inp <- rep$inp
+        finds <- which(inp$targetmap[, 1] == stock)
+        fid <- finds[1]
+        ic <- inp$ic[[fid]]
         Kest <- get.par('logK', rep, exp=TRUE)[stock, ]
         mest <- get.par('logm', rep, exp=TRUE)[stock, ]
-        nr <- dim(mest)[1]
+        #nr <- dim(mest)[1]
+        nr <- 1
         gamma <- get.par('gamma', rep)[stock, ]
         n <- get.par('logn', rep, exp=TRUE)[stock, ]
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)[stock, ]
@@ -1499,7 +1524,8 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
         pfun <- function(gamma, m, K, n, B) gamma*m/K*B*(1 - (B/K)^(n-1))
         Pst <- list()
         for (i in 1:nr){
-            Pst[[i]] <- pfun(gamma[2], mest[i,2], Kest[2], n[2], Bplot)
+            #Pst[[i]] <- pfun(gamma[2], mest[i, 2], Kest[2], n[2], Bplot)
+            Pst[[i]] <- pfun(gamma[2], mest[2], Kest[2], n[2], Bplot)
         }
         ylim <- c(0, max(unlist(Pst)/Bmsy[2], na.rm=TRUE))
         if (inp$reportall){
@@ -1507,9 +1533,10 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
             Pest <- get.par('P', rep)
             Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
             for (i in 1:nr){
-                Pst[[i]] <- pfun(gamma[2], mest[i,2], Kest[2], n[2], Bplot)
+                #Pst[[i]] <- pfun(gamma[2], mest[i, 2], Kest[2], n[2], Bplot)
+                Pst[[i]] <- pfun(gamma[2], mest[i], Kest[2], n[2], Bplot)
             }
-            Bvec <- Best[inp$ic[1:dim(Pest)[1]], 2]
+            Bvec <- Best[ic[1:dim(Pest)[1]], 2]
             xlim <- range(Bvec/Kest[2], 0, 1)
             ylim <- c(min(0, Pest[,2]/Bmsy[2]), max(Pest[,2]/Bmsy[2], unlist(Pst)/Bmsy[2], na.rm=TRUE))
         } else {
@@ -1532,9 +1559,9 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
             lines(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, lwd=1.5)
             points(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, pch=20, cex=0.7)
             par(xpd=TRUE)
-            if (length(inp$ic) < n.plotyears){
+            if (length(ic) < n.plotyears){
                 inds <- c(1, length(Bvec), seq(1, length(Bvec), by=2))
-                labs <- round(inp$time[inp$ic], 2)
+                labs <- round(inp$time[ic], 2)
                 text(Bvec[inds]/Kest[2], Pest[inds, 2]/Bmsy[2], labels=labs[inds],
                      cex=0.75, pos=4, offset=0.25)
             }

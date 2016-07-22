@@ -541,7 +541,7 @@ Type objective_function<Type>::operator() ()
     }
     std::cout << "INPUT: omega: " << omega << std::endl;
 
-    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logE.rows(): " << logE.rows() << "  logE.cols(): " << logE.cols() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.rows(): " << B.rows() << "  B.cols(): " << B.cols() << "  P.cols(): " << P.cols() << "  P.rows(): " << P.rows() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logFmsy.size(): " << logFmsy.size() << "  logFmsyvec.size(): " << logFmsyvec.size() << "  logBmsy.size(): " << logBmsy.size() << "  logBmsyvec.size(): " << logBmsyvec.size() << "  m.size(): " << m.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
+    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logE.rows(): " << logE.rows() << "  logE.cols(): " << logE.cols() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.rows(): " << B.rows() << "  B.cols(): " << B.cols() <<  "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logFmsy.size(): " << logFmsy.size() << "  logFmsyvec.size(): " << logFmsyvec.size() << "  logBmsy.size(): " << logBmsy.size() << "  logBmsyvec.size(): " << logBmsyvec.size() << "  m.size(): " << m.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
     std::cout << "Bmsys: " << Bmsys << std::endl;
     std::cout << "Fmsys: " << Fmsys << std::endl;
     std::cout << "MSYs: " << MSYs << std::endl;
@@ -943,7 +943,6 @@ Type objective_function<Type>::operator() ()
       P(si, i) = B(si, i+1) - B(si, i) + Cpredsubperstock(si, i);
     }
   }
-
 
   /*
     --- OBSERVATION EQUATIONS ---
