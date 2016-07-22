@@ -124,7 +124,9 @@ test.spict <- function(dataset='albacore'){
 #' @title Calculate gamma from n
 #' @param n Exponent of the Pella-Tomlinson surplus production equation.
 #' @export
-calc.gamma <- function(n) n^(n/(n-1)) / (n-1)
+calc.gamma <- function(n){
+    return(n^(n/(n-1)) / (n-1))
+}
 
 
 #' @name get.par
@@ -235,8 +237,8 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
             out <- cbind(out, stock=rep$ind$idstock)
         }
         if (parname %in% c('logF', 'logFFmsy')){
-            rownames(out) <- rep(rep$inp$time, each=rep$inp$nqf)
-            out <- cbind(out, qf=rep$ind$idqf)
+            rownames(out) <- rep(rep$inp$time, each=rep$inp$nfisheries)
+            out <- cbind(out, qf=rep$ind$idfishery)
         }
         if (parname %in% c('logE')){
             rownames(out) <- rep(rep$inp$time, each=rep$inp$nfleets)

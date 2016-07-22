@@ -110,7 +110,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(ffacvec);        // Management factor each year multiply the predicted F with ffac
   DATA_VECTOR(fconvec);        // Management factor each year add this constant to the predicted F
   DATA_VECTOR(indpred);        // A vector indicating when the management factor should be applied
-  DATA_MATRIX(targetmap);      // Matrix where nrows = nqf, first column is stock index, second column is fleet index
+  DATA_MATRIX(targetmap);      // Matrix where nrows = nfisheries, first column is stock index, second column is fleet index
   DATA_SCALAR(robflagc);       // If 1 use robust observation error for catches
   DATA_SCALAR(robflagi);       // If 1 use robust observation error for index
   DATA_SCALAR(robflage);       // If 1 use robust observation error for effort
@@ -155,11 +155,11 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logqf);     // Catchability for effort, length nqf
   PARAMETER_VECTOR(logn);      // Pella-Tomlinson exponent, length nstocks
   PARAMETER_VECTOR(logsdb);    // Stdev in B process, length nstocks
-  PARAMETER_VECTOR(logsdu);    // Stdev in seasonal component of F process, length nqf
-  PARAMETER_VECTOR(logsdf);    // Stdev in diffusion component of F process, length nqf
+  PARAMETER_VECTOR(logsdu);    // Stdev in seasonal component of F process, length nfisheries
+  PARAMETER_VECTOR(logsdf);    // Stdev in diffusion component of F process, length nfisheries
   PARAMETER_VECTOR(logsdi);    // Stdev of index obs noise, length sum(nindex)
   PARAMETER_VECTOR(logsde);    // Stdev of effort obs noise, length nqf
-  PARAMETER_VECTOR(logsdc);    // Stdev of catch obs noise, length nqf
+  PARAMETER_VECTOR(logsdc);    // Stdev of catch obs noise, length nfisheries
   PARAMETER_VECTOR(logphi);    // Season levels of F when using spline based seasons
   PARAMETER_VECTOR(loglambda); // Damping variable when using seasonal SDEs
   PARAMETER(logitpp);          // Proportion of narrow distribution when using robust obs err.
@@ -170,11 +170,12 @@ Type objective_function<Type>::operator() ()
 
   //std::cout << "expmosc: " << expmosc(lambda, omega, 0.1) << std::endl;
    if (dbg > 0){
-     std::cout << "==== DATA read, now calculating derived quantities ====" << std::endl;
+     std::cout << "==== DATA read, now distributing data ====" << std::endl;
    }
 
   int ind;
   int find;
+  int qfind;
   int sind;
   int bind;
   int iind;
@@ -204,25 +205,48 @@ Type objective_function<Type>::operator() ()
   int nsdi = logsdi.size();
   int nsde = logsde.size();
   int nobsCp = ic.size();
-  int ns = logE.cols(); // is this allowed?
+  int ns = logE.cols();
+  int nfisheries = logsdf.size();
   int nqf = logqf.size();
   int nindex = index2sdb.size();
   //int nfleets = ifleet.max(); // is this allowed?
   //int nfleets = max(targetmap.col(1)); // is this allowed?
 
+  if (dbg > 0){
+    std::cout << "==== DATA distributed, now calculating fishing mortality ====" << std::endl;
+    std::cout << "==== nfisheries: " << nfisheries << std::endl;
+    std::cout << "==== targetmap: " << targetmap << std::endl;
+  }
+
   // Create fishing mortality, logF
-  matrix<Type> logF(nqf, ns);
-  matrix<Type> F(nqf, ns);
-  for (int k=0; k < nqf; k++){
+  matrix<Type> logF(nfisheries, ns);
+  matrix<Type> F(nfisheries, ns);
+  for (int k=0; k < nfisheries; k++){
     find = CppAD::Integer(targetmap(k, 1) - 1); // minus 1 because R starts at 1 and c++ at 0
-    for (int i=0; i < ns; i++){
-      logF(k, i) = logqf(k) + logE(find, i);
+    qfind = CppAD::Integer(targetmap(k, 2) - 1); // minus 1 because R starts at 1 and c++ at 0
+    if (dbg > 0){
+      std::cout << "==== k: " << k << " - qfind: " << qfind << " ====" << std::endl;
+    }
+    if (qfind < 0){ // Unobserved fishery, no qf
+      for (int i=0; i < ns; i++){
+	logF(k, i) = logE(find, i);
+      }
+    } else { // Observed fishery
+      for (int i=0; i < ns; i++){
+	logF(k, i) = logqf(qfind) + logE(find, i);
+      }
     }
   }
-  for (int k=0; k < nqf; k++){
+  if (dbg > 0){
+    std::cout << "==== log Fishing mortality calculated ====" << std::endl;
+  }
+  for (int k=0; k < nfisheries; k++){
     for (int i=0; i < ns; i++){
       F(k, i) = exp(logF(k, i));
     }
+  }
+  if (dbg > 0){
+    std::cout << "==== Fishing mortality calculated, now transforming parameters ====" << std::endl;
   }
 
   // Transform parameters
@@ -257,10 +281,10 @@ Type objective_function<Type>::operator() ()
   for (int i=0; i < nq; i++){ 
     logq2(i) = log(100) + logq(i); 
   }
-  vector<Type> qf(nqf);
-  for (int i=0; i < nqf; i++){ 
-    qf(i) = exp(logqf(i)); 
-  }
+  //vector<Type> qf(nqf);
+  //for (int i=0; i < nqf; i++){ 
+  //  qf(i) = exp(logqf(i)); 
+  //}
   //Type qf = exp(logqf);
   vector<Type> n(nstocks);
   for (int i=0; i < nstocks; i++){ 
@@ -272,22 +296,22 @@ Type objective_function<Type>::operator() ()
     gamma(i) = pow(n(i), n(i)/(n(i)-1.0)) / (n(i)-1.0);
   }
   //Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
-  vector<Type> lambda(nqf);
-  for (int i=0; i < nqf; i++){ 
+  vector<Type> lambda(nfisheries);
+  for (int i=0; i < nfisheries; i++){ 
     lambda(i) = exp(loglambda(i)); 
   }
   //Type lambda = exp(loglambda);
-  vector<Type> sdf(nqf);
-  vector<Type> sdf2(nqf);
-  vector<Type> isdf2(nqf);
-  for (int i=0; i < nqf; i++){ 
+  vector<Type> sdf(nfisheries);
+  vector<Type> sdf2(nfisheries);
+  vector<Type> isdf2(nfisheries);
+  for (int i=0; i < nfisheries; i++){ 
     sdf(i) = exp(logsdf(i)); 
     sdf2(i) = sdf(i) * sdf(i);
     isdf2(i) = 1.0 / sdf2(i);
   }
   // sdu
-  vector<Type> sdu(nqf);
-  for (int i=0; i < nqf; i++){ 
+  vector<Type> sdu(nfisheries);
+  for (int i=0; i < nfisheries; i++){ 
     sdu(i) = exp(logsdu(i)); 
   }
   // sdb
@@ -327,20 +351,24 @@ Type objective_function<Type>::operator() ()
     isde2(i) = 1.0 / sde2(i);
   }
   // sdc
-  vector<Type> sdc(nqf);
-  vector<Type> sdc2(nqf);
-  vector<Type> isdc2(nqf);
-  for (int i=0; i < nqf; i++){
+  vector<Type> sdc(nfisheries);
+  vector<Type> sdc2(nfisheries);
+  vector<Type> isdc2(nfisheries);
+  for (int i=0; i < nfisheries; i++){
     sdc(i) = exp(logsdc(i)); 
     sdc2(i) = sdc(i) * sdc(i);
     isdc2(i) = 1.0 / sdc2(i);
   }
   // beta
-  vector<Type> beta(nqf);
-  for (int i=0; i < nqf; i++){
+  vector<Type> beta(nfisheries);
+  for (int i=0; i < nfisheries; i++){
     beta(i) = sdc(i) / sdf(i);
   }
   vector<Type> logbeta = log(beta);
+  if (dbg > 0){
+    std::cout << "==== Done transforming parameters ====" << std::endl;
+  }
+
 
   // Put wide smooth distributions on difficult parameters to stabilise optimisation.
   // Note that this contributes to the objective function, which therefore cannot be 
@@ -349,7 +377,7 @@ Type objective_function<Type>::operator() ()
     ans -= dnorm(logB(i, 0) - logK(i), Type(-0.2234), Type(10.0), 1);
     ans -= dnorm(logn(i), Type(0.6931472), Type(10.0), 1); // log(2) = 0.6931472
   }
-  for (int i=0; i < nqf; i++){
+  for (int i=0; i < nfisheries; i++){
     ans -= dnorm(logF(i, 0), Type(-0.2234), Type(10.0), 1);
     ans -= dnorm(logbeta(i), Type(0.0), Type(10.0), 1);
   }
@@ -358,6 +386,9 @@ Type objective_function<Type>::operator() ()
   }
   for (int i=0; i < nsde; i++){
     ans -= dnorm(logsde(i), Type(-0.9162907), Type(10.0), 1); // log(0.4) = -0.9162907
+  }
+  if (dbg > 0){
+    std::cout << "==== Done putting stabilising priors ====" << std::endl;
   }
 
   // Initialise vectors
@@ -480,6 +511,9 @@ Type objective_function<Type>::operator() ()
       }
     }
   }
+  if (dbg > 0){
+    std::cout << "==== Done calculating reference points ====" << std::endl;
+  }
 
   // These quantities are calculated to enable comparison with the Polacheck et al (1993) parameter estimates
   /*
@@ -535,7 +569,7 @@ Type objective_function<Type>::operator() ()
     for (int i=0; i < nq; i++){ 
       std::cout << "INPUT: logq(i): " << logq(i) << " -- i: " << i << std::endl; 
     }
-    for (int i=0; i < nqf; i++){ 
+    for (int i=0; i < nfisheries; i++){ 
       std::cout << "INPUT: logsdf(i): " << logsdf(i) << " -- i: " << i << std::endl;
       std::cout << "INPUT: lambda(i): " << lambda(i) << std::endl;
     }
@@ -584,7 +618,7 @@ Type objective_function<Type>::operator() ()
   }
   // Prior for sdf2. 
   if (priorisdf2gamma(2) == 1){
-    for (int i=0; i < nqf; i++){
+    for (int i=0; i < nfisheries; i++){
       ans-= dgamma(1.0/sdf2(i), priorisdf2gamma(0), 1.0/priorisdf2gamma(1), 1); 
     }
   }
@@ -642,7 +676,7 @@ Type objective_function<Type>::operator() ()
     }
   }
   if (priorsdf(2) == 1){
-    for (int i=0; i < nqf; i++){
+    for (int i=0; i < nfisheries; i++){
       ans-= dnorm(logsdf(i), priorsdf(0), priorsdf(1), 1); // Prior for logsdf
     }
   }
@@ -657,7 +691,7 @@ Type objective_function<Type>::operator() ()
     }
   }
   if (priorsdc(2) == 1){
-    for (int i=0; i < nqf; i++){ 
+    for (int i=0; i < nfisheries; i++){ 
       ans-= dnorm(logsdc(i), priorsdc(0), priorsdc(1), 1); // Prior for logsdc
     }
   }
@@ -667,7 +701,7 @@ Type objective_function<Type>::operator() ()
     }
   }
   if (priorbeta(2) == 1){
-    for (int i=0; i < nqf; i++){ 
+    for (int i=0; i < nfisheries; i++){ 
       ans-= dnorm(logbeta(i), priorbeta(0), priorbeta(1), 1); // Prior for logbeta
     }
   }
@@ -675,7 +709,7 @@ Type objective_function<Type>::operator() ()
     ind = CppAD::Integer(priorB(4)-1);
     ans-= dnorm(logB(0, ind), priorB(0), priorB(1), 1); // Prior for logB
   }
-  if (priorF(2) == 1 & nqf == 1){
+  if (priorF(2) == 1 & nfisheries == 1){
     ind = CppAD::Integer(priorF(4)-1);
     ans-= dnorm(logF(0, ind), priorF(0), priorF(1), 1); // Prior for logF
   }
@@ -683,7 +717,7 @@ Type objective_function<Type>::operator() ()
     ind = CppAD::Integer(priorBBmsy(4)-1);
     ans-= dnorm(logB(0, ind) - logBmsyvec(ind), priorBBmsy(0), priorBBmsy(1), 1); // Prior for logBBmsy
   }
-  if (priorFFmsy(2) == 1 & nqf == 1){
+  if (priorFFmsy(2) == 1 & nfisheries == 1){
     ind = CppAD::Integer(priorFFmsy(4)-1);
     ans-= dnorm(logF(0, ind) - logFmsyvec(ind), priorFFmsy(0), priorFFmsy(1), 1); // Prior for logFFmsy
   }
@@ -836,7 +870,7 @@ Type objective_function<Type>::operator() ()
     for (int si=0; si < nstocks; si++){
       Fstock(si, i) = 0.0; // Initialise
     }
-    for (int k=0; k < nqf; k++){
+    for (int k=0; k < nfisheries; k++){
       sind = CppAD::Integer(targetmap(k, 0) - 1); // minus 1 because R starts at 1 and c++ at 0
       //find = CppAD::Integer(targetmap(k, 1) - 1); // minus 1 because R starts at 1 and c++ at 0
       //Fstock(sind, i) += F(find, i);
@@ -879,26 +913,28 @@ Type objective_function<Type>::operator() ()
   // EFFORT PREDICTIONS
   vector<Type> Ecumpred(nobsE);
   vector<Type> logEcumpred(nobsE);
+  int fleetind;
   if (simple == 0){
     for (int i=0; i < nobsE; i++){
+      fleetind = CppAD::Integer(ifleet(i) - 1);
       Ecumpred(i) = 0.0;
       // Sum effort contributions from each sub interval
       for (int j=0; j < ne(i); j++){
-	ind = CppAD::Integer(ie(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0
-	Ecumpred(i) += E(ind) * dt(ind);
+	ind = CppAD::Integer(ie(i) - 1) + j; // minus 1 because R starts at 1 and c++ at 0
+	Ecumpred(i) += E(fleetind, ind) * dt(ind);
       }
       logEcumpred(i) = log(Ecumpred(i));
       // DEBUGGING
-      if (dbg>1){
+      if (dbg > 1){
 	std::cout << "-- i: " << i << " -  ind: " << ind << "  logEcumpred(i): " << logEcumpred(i) << std::endl;
       }
     }
   }
 
   // CATCH PREDICTIONS
-  matrix<Type> Cpredsub(nqf, ns);
+  matrix<Type> Cpredsub(nfisheries, ns);
   if (simple == 0){
-    for (int k=0; k < nqf; k++){ 
+    for (int k=0; k < nfisheries; k++){ 
       sind = CppAD::Integer(targetmap(k, 0) - 1); // minus 1 because R starts at 1 and c++ at 0
       find = CppAD::Integer(targetmap(k, 1) - 1); // minus 1 because R starts at 1 and c++ at 0
       for (int i=0; i < (ns-1); i++){ // ns-1 because dt is 1 shorter than state vec
@@ -932,7 +968,7 @@ Type objective_function<Type>::operator() ()
     for (int si=0; si < nstocks; si++){
       Cpredsubperstock(si, i) = 0.0; // Initialise
     }
-    for (int k=0; k < nqf; k++){
+    for (int k=0; k < nfisheries; k++){
       sind = CppAD::Integer(targetmap(k, 0) - 1); // minus 1 because R starts at 1 and c++ at 0
       Cpredsubperstock(sind, i) += Cpredsub(k, i);
     }
@@ -1045,12 +1081,12 @@ Type objective_function<Type>::operator() ()
   }
 
   // Catch predictions
-  vector<Type> Cp(nqf);
+  vector<Type> Cp(nfisheries);
   vector<Type> Cstockp(nstocks);
   for (int si=0; si < nstocks; si++){
     Cstockp(si) = 0.0;
   }
-  for (int k=0; k < nqf; k++){
+  for (int k=0; k < nfisheries; k++){
     Cp(k) = 0.0;
     for (int i=0; i < dtpredcnsteps; i++){
       ind = CppAD::Integer(dtpredcinds(i) - 1);
@@ -1091,8 +1127,8 @@ Type objective_function<Type>::operator() ()
   }
   vector<Type> logBpK = logBp - logK;
   vector<Type> logFp = logF.col(pind); 
-  vector<Type> logFpFmsy(nqf);
-  for (int k=0; k < nqf; k++){
+  vector<Type> logFpFmsy(nfisheries);
+  for (int k=0; k < nfisheries; k++){
     sind = CppAD::Integer(targetmap(k, 0) - 1);
     logFpFmsy(k) = logFp(k) - logFmsyvec(sind, pind);
   }
@@ -1115,8 +1151,8 @@ Type objective_function<Type>::operator() ()
   }
   vector<Type> logBlK = logBl - logK;
   vector<Type> logFl = logF.col(lind);
-  vector<Type> logFlFmsy(nqf);
-  for (int k=0; k < nqf; k++){
+  vector<Type> logFlFmsy(nfisheries);
+  for (int k=0; k < nfisheries; k++){
     sind = CppAD::Integer(targetmap(k, 0) - 1);
     logFlFmsy(k) = logFl(k) - logFmsyvec(sind, lind);
   }
@@ -1131,8 +1167,8 @@ Type objective_function<Type>::operator() ()
     }
   }
   // Calculate relative fishing mortality per fishery
-  matrix<Type> logFFmsy(nqf, ns);
-  for (int k=0; k < nqf; k++){ 
+  matrix<Type> logFFmsy(nfisheries, ns);
+  for (int k=0; k < nfisheries; k++){ 
     sind = CppAD::Integer(targetmap(k, 0) - 1); // minus 1 because R starts at 1 and c++ at 0
     for (int i=0; i < ns; i++){ 
       logFFmsy(k, i) = logF(k, i) - logFmsyvec(sind, i); 

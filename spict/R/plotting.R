@@ -15,6 +15,18 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#' @name get.mfrow
+#' @title Get mfrow from the number of plots to be plotted
+#' @param n Number of plots to be plotted.
+#' @return Nothing
+#' @export
+get.mfrow <- function(n){
+    ncol <- floor(sqrt(n))
+    nrow <- ceiling(n/ncol)
+    return(c(nrow, ncol))
+}
+
+
 #' @name txt.stamp
 #' @title Add spict version to plot
 #' @param string Character string to stamp.
@@ -197,7 +209,7 @@ true.col <- function(){
 #' @title Load color of catch series.
 #' @return Color vector
 c.cols <- function(){
-    return(c('red', 3, 'gold', 'cyan', 'pink'))
+    return(c('forestgreen', 'cadetblue3', 'gold', 'darkmagenta', 'pink', 'red'))
 }
 
 
@@ -845,19 +857,19 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
         ylabflag <- is.null(ylab) # If null then not manually specified
         omar <- par()$mar
         mar <- c(5.1, 4.3, 4.1, 4.1)
-        if (dev.cur()==1){ # If plot is not open
+        if (dev.cur() == 1){ # If plot is not open
             opar <- par(mar=mar)
             on.exit(par(opar))
         }
-        if (dev.cur()==2){ # If plot is open, check if it is a 1x1 plot
+        if (dev.cur() == 2){ # If plot is open, check if it is a 1x1 plot
             if (all(par()$mfrow == c(1, 1))){
                 opar <- par(mar=mar)
                 on.exit(par(opar))
             }
         }
-        quarterly <- min(inp$dtc[[1]]) < 1
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
+        quarterly <- min(inp$dtc[[1]]) < 1
         finds <- which(inp$targetmap[, 1] == stock)
         nfinds <- length(finds)
         cicol <- 'lightgray'
@@ -877,16 +889,16 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
             al1 <- annual(inp$time, logFest[, 1])
             al2 <- annual(inp$time, logFest[, 2])
             al3 <- annual(inp$time, logFest[, 3])
-            inds <- which(!is.na(al1$annvec) & al2$anntime <= tail(inp$time[indest],1))
+            inds <- which(!is.na(al1$annvec) & al2$anntime <= tail(inp$time[indest], 1))
             cl <- exp(al1$annvec[inds])
             cu <- exp(al3$annvec[inds])
-            inds <- which(!is.na(al2$annvec) & al2$anntime <= tail(inp$time[indest],1))
+            inds <- which(!is.na(al2$annvec) & al2$anntime <= tail(inp$time[indest], 1))
             time <- al1$anntime[inds]
             F <- exp(al2$annvec[inds])
-            inds <- which(!is.na(al1$annvec) & al2$anntime >= tail(inp$time[indest],1))
+            inds <- which(!is.na(al1$annvec) & al2$anntime >= tail(inp$time[indest], 1))
             clp <- exp(al1$annvec[inds])
             cup <- exp(al3$annvec[inds])
-            inds <- which(!is.na(al2$annvec) & al2$anntime >= tail(inp$time[indest],1))
+            inds <- which(!is.na(al2$annvec) & al2$anntime >= tail(inp$time[indest], 1))
             timep <- al1$anntime[inds]
             Fp <- exp(al2$annvec[inds])
             al1f <- annual(inp$time, logFF[, 1])
@@ -943,7 +955,7 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
             lcol <- rep(c.cols(), nfinds)
             # Plot partial F
             for (j in 1:nfinds){
-                Fpart <- Fest[inp$idqf == finds[j], ]
+                Fpart <- Fest[inp$idfishery == finds[j], ]
                 relinds <- inp$indsstock[[stock]]
                 lines(inp$time[relinds], Fpart[relinds, 2], col=lcol[j], lwd=1.5)
             }
@@ -958,8 +970,10 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
         if (plot.obs){
-            #plot.col(inp$timeE, inp$obsE/inp$dte*qf[2], cex=0.7, do.line=FALSE,
-            #         add=TRUE, add.legend=qlegend)
+            for (j in inp$neffortseq){
+                plot.col(inp$timeE[[j]], inp$obsE[[j]]/inp$dte[[j]]*qf[j, 2], cex=0.7, do.line=FALSE,
+                         add=TRUE, add.legend=qlegend, pch=inp$effortobs2fleet[j])
+            }
         }
         if ('true' %in% names(inp)){
             lines(inp$true$time, inp$true$Fs, col=true.col()) # Plot true
@@ -1433,7 +1447,7 @@ plotspict.catch <- function(rep, stock=1, main='Catch', ylim=NULL, qlegend=TRUE,
             }
             lines(time, cl, col=lcol[j], lwd=1.5, lty=2)
             lines(time, cu, col=lcol[j], lwd=1.5, lty=2)
-            plot.col(timeo, obs/Cscal, cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
+            plot.col(timeo, obs/Cscal, cex=0.7, pch=j, do.line=FALSE, add=TRUE, add.legend=qlegend)
             lines(time, c, col=lcol[j], lwd=1.5)
             if (inp$dtpredc > 0){
                 lines(timep, cp, col=lcol[j], lty=3)
@@ -1521,7 +1535,9 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
         nBplot <- 200
         Bplot <- seq(0.5*1e-8, Kest[2], length=nBplot)
         # Calculate production curve (Pst)
-        pfun <- function(gamma, m, K, n, B) gamma*m/K*B*(1 - (B/K)^(n-1))
+        pfun <- function(gamma, m, K, n, B){
+            gamma*m/K*B*(1 - (B/K)^(n-1))
+        }
         Pst <- list()
         for (i in 1:nr){
             #Pst[[i]] <- pfun(gamma[2], mest[i, 2], Kest[2], n[2], Bplot)
@@ -1534,7 +1550,7 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
             Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
             for (i in 1:nr){
                 #Pst[[i]] <- pfun(gamma[2], mest[i, 2], Kest[2], n[2], Bplot)
-                Pst[[i]] <- pfun(gamma[2], mest[i], Kest[2], n[2], Bplot)
+                Pst[[i]] <- pfun(gamma[2], mest[2], Kest[2], n[2], Bplot)
             }
             Bvec <- Best[ic[1:dim(Pest)[1]], 2]
             xlim <- range(Bvec/Kest[2], 0, 1)
@@ -2311,10 +2327,11 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
     inp <- check.inp(inpin)
     #nseries <- inp$nindex + 1 + as.numeric(inp$nobsE > 0)
     nseries <- inp$nseries
-    if (nseries %in% 1:2) mfrow <- c(2, 1)
-    if (nseries %in% 3:4) mfrow <- c(2, 2)
-    if (nseries %in% 5:6) mfrow <- c(2, 3)
-    if (nseries %in% 7:9) mfrow <- c(3, 3)
+    mfrow <- get.mfrow(nseries)
+    #if (nseries %in% 1:2) mfrow <- c(2, 1)
+    #if (nseries %in% 3:4) mfrow <- c(2, 2)
+    #if (nseries %in% 5:6) mfrow <- c(2, 3)
+    #if (nseries %in% 7:9) mfrow <- c(3, 3)
     if (dev.cur() == 1){
         opar <- par(mfrow=mfrow)
         on.exit(par(opar))
@@ -2324,47 +2341,66 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
             on.exit(par(opar))
         }
     }
-    xlim <- range(inp$timeC, unlist(inp$timeI), inp$timeE)
+    xlim <- range(unlist(inp$timeC), unlist(inp$timeI), unlist(inp$timeE))
     # Plot catch
-    main <- paste0('Nobs C: ', inp$nobsC)
-    ylab <- 'Catch'
-    ylab <- add.catchunit(ylab, inp$catchunit)
-    plot(inp$timeC, inp$obsC, typ='l', ylab=ylab, xlab='Time', main=main, xlim=xlim)
-    grid()
-    plot.col(inp$timeC, inp$obsC, do.line=FALSE, cex=0.6, add=TRUE, add.legend=qlegend)
-    if (!is.null(MSY)){
-        abline(h=MSY, lty=2)
+    if (inp$nfisheries == 1){
+        lcol <- 'black'
+    } else {
+        lcol <- c.cols()
     }
-    box(lwd=1.5)
-    # Plot index
-    if (inp$nindex > 0){
-        i <- 1
-        main <- paste0('Nobs I: ', inp$nobsI[i])
-        plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i), xlab='Time',
-             main=main, xlim=xlim)
+    for (k in inp$nfisheriesseq){
+        main <- paste0('Nobs C', k, ': ', inp$nobsC[k])
+        ylab <- paste0('Catch ', k)
+        ylab <- add.catchunit(ylab, inp$catchunit)
+        plot(inp$timeC[[k]], inp$obsC[[k]], typ='l', ylab=ylab, xlab='Time', main=main, xlim=xlim, col=lcol[k])
         grid()
-        plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE,
-                 add.legend=FALSE)
-        if (inp$nindex>1 & is.null(one.index)){
-            for (i in 2:inp$nindex){
-                main <- paste0('Nobs I: ', inp$nobsI[i])
-                plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i),
-                     xlab='Time', main=main, xlim=xlim)
-                grid()
-                plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6,
-                         add=TRUE, add.legend=FALSE)
-            }
+        plot.col(inp$timeC[[k]], inp$obsC[[k]], do.line=FALSE, cex=0.6, add=TRUE, add.legend=qlegend)
+        if (!is.null(MSY)){
+            abline(h=MSY, lty=2)
         }
         box(lwd=1.5)
     }
+    # Plot index
+    for (si in 1:inp$nstocks){
+        if (inp$nindex[si] > 0){
+            i <- 1
+            main <- paste0('Nobs S', si, 'I', i, ': ', inp$nobsI[[si]][i])
+            plot(inp$timeI[[si]][[i]], inp$obsI[[si]][[i]], typ='l',
+                 ylab=paste0('S', si, ', Index ', i), xlab='Time',
+                 main=main, xlim=xlim)
+            grid()
+            plot.col(inp$timeI[[si]][[i]], inp$obsI[[si]][[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE,
+                     add.legend=FALSE)
+            if (inp$nindex[si] > 1 & is.null(one.index)){
+                for (i in 2:inp$nindex[si]){
+                    main <- paste0('Nobs S', si, 'I', i, ': ', inp$nobsI[[si]][i])
+                    plot(inp$timeI[[si]][[i]], inp$obsI[[si]][[i]], typ='l',
+                         ylab=paste0('S', si, ', Index ', i), xlab='Time',
+                         main=main, xlim=xlim)
+                    grid()
+                    plot.col(inp$timeI[[si]][[i]], inp$obsI[[si]][[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE,
+                             add.legend=FALSE)
+                    #main <- paste0('Nobs I: ', inp$nobsI[i])
+                    #plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i),
+                    #     xlab='Time', main=main, xlim=xlim)
+                    #grid()
+                    #plot.col(inp$timeI[[i]], inp$obsI[[i]], pch=i, do.line=FALSE, cex=0.6,
+                    #         add=TRUE, add.legend=FALSE)
+                }
+            }
+            box(lwd=1.5)
+        }
+    }
     # Plot effort
-    if (inp$nobsE){
-        main <- paste0('Nobs E: ', inp$nobsE)
-        ylab <- 'Effort'
-        plot(inp$timeE, inp$obsE, typ='l', ylab=ylab, xlab='Time', main=main, xlim=xlim)
-        grid()
-        plot.col(inp$timeE, inp$obsE, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
-        box(lwd=1.5)
+    for (j in inp$neffortseq){
+        if (inp$nobsE[j] > 0){
+            main <- paste0('Nobs E', j, ': ', inp$nobsE[j])
+            ylab <- 'Effort'
+            plot(inp$timeE[[j]], inp$obsE[[j]], typ='l', ylab=ylab, xlab='Time', main=main, xlim=xlim)
+            grid()
+            plot.col(inp$timeE[[j]], inp$obsE[[j]], do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
+            box(lwd=1.5)
+        }
     }
     txt.stamp(stamp)
 }

@@ -4,10 +4,12 @@
 \alias{get.EBinf}
 \title{Calculate E(Binfinity) the fished equilibrium.}
 \usage{
-get.EBinf(rep)
+get.EBinf(rep, stock = 1)
 }
 \arguments{
 \item{rep}{A result of fit.spict.}
+
+\item{stock}{Number of the stock to calculate EBinf for.}
 }
 \value{
 E(Binf).

@@ -57,49 +57,37 @@ summary.spictcls <- function(object, ...){
     cat(paste0('Euler time step (years):  1/', round(1/rep$inp$dteuler, 2),
                ' or ', round(rep$inp$dteuler, 5), '\n'))
     cat(paste0('No stocks: ', rep$inp$nstocks, ', No fleets: ', rep$inp$nfleets,
-               ', No interactions: ', rep$inp$nqf, '\n'))
+               ', No fisheries: ', rep$inp$nfisheries, '\n'))
     # Number of observations
-    if (rep$inp$nstocks == 1){
-        str <- paste0('Nobs C: ', rep$inp$nobsC)
-        if (rep$inp$nindex > 0){
-            str <- paste0(str, paste0(paste0(',  Nobs I', 1:rep$inp$nindex),
-                                      ': ', rep$inp$nobsI[[1]], collapse=''))
+    # Catch observations
+    str <- 'Catch:'
+    for (j in rep$inp$nfisheriesseq){
+        if (j > 1){
+            str <- paste0(str, ',')
         }
-        if (rep$inp$nobsE > 0){
-            str <- paste0(str, paste0(',  Nobs E: ', rep$inp$nobsE))
-        }
-    } 
-    if (rep$inp$nstocks > 1){
-        # Catch observations
-        str <- 'Catch:'
-        for (j in rep$inp$nqfseq){
-            if (j > 1){
+        si <- rep$inp$targetmap[j, 1]
+        k <- rep$inp$targetmap[j, 2]
+        str <- paste0(str, paste0('  S', si, 'F', k, ': ', rep$inp$nobsC[j]))
+    }
+    # Index observations
+    if (any(unlist(rep$inp$nobsI) > 0)){
+        str <- paste0(str, '\nIndex:')
+        for (si in 1:inp$nstocks){
+            if (si > 1){
                 str <- paste0(str, ',')
             }
-            si <- rep$inp$targetmap[j, 1]
-            k <- rep$inp$targetmap[j, 2]
-            str <- paste0(str, paste0('  S', si, 'F', k, ': ', rep$inp$nobsC[j]))
+            str <- paste0(str, paste0(paste0('  S', si, 'I', 1:rep$inp$nindex[si]),
+                                      ': ', rep$inp$nobsI[[si]], collapse=''))
         }
-        # Index observations
-        if (any(unlist(rep$inp$nobsI) > 0)){
-            str <- paste0(str, '\nIndex:')
-            for (si in 1:inp$nstocks){
-                if (si > 1){
-                    str <- paste0(str, ',')
-                }
-                str <- paste0(str, paste0(paste0('  S', si, 'I', 1:rep$inp$nindex[si]),
-                                          ': ', rep$inp$nobsI[[si]], collapse=''))
+    }
+    # Effort observations
+    if (any(rep$inp$nobsE > 0)){
+        str <- paste0(str, '\nEffort:   ')
+        for (k in rep$inp$neffortseq){
+            if (k > 1){
+                str <- paste0(str, ',    ')
             }
-        }
-        # Effort observations
-        if (any(rep$inp$nobsE > 0)){
-            str <- paste0(str, '\nEffort:')
-            for (k in rep$inp$neffortseq){
-                if (k > 1){
-                    str <- paste0(str, ',')
-                }
-                str <- paste0(str, paste0('  F', k, ': ', rep$inp$nobsE[k]))
-            }
+            str <- paste0(str, paste0('F', rep$inp$effortobs2fleet[k], ': ', rep$inp$nobsE[k]))
         }
     }
     cat(paste0('Number of observations\n', str, '\n'))
@@ -122,10 +110,12 @@ summary.spictcls <- function(object, ...){
         usepriors <- gsub('gamma', '', usepriors) # Strip gamma-text away
         npriors <- length(usepriors)
         repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
-        if(any(repriors %in% usepriors)){
+        if (any(repriors %in% usepriors)){
             inds <- match(repriors, usepriors)
             inds <- inds[!is.na(inds)]
-            for(i in 1:length(inds)) usepriors[inds[i]] <- paste0(usepriors[inds[i]], fd(rep$inp$priors[[inds[i]]][4]))
+            for (i in 1:length(inds)){
+                usepriors[inds[i]] <- paste0(usepriors[inds[i]], fd(rep$inp$priors[[inds[i]]][4]))
+            }
         }
         str <- character(npriors)
         cat(paste('\nPriors\n'))
@@ -153,19 +143,31 @@ summary.spictcls <- function(object, ...){
         cat('', paste(capture.output(resout),' \n'))
     }
     # -- Model parameters --
-
     for (si in 1:rep$inp$nstocks){
         cat('\n--', rep$inp$stocknames[si], '\n')
-        cat('\nModel parameter estimates w 95% CI \n')
-        #resout <- sumspict.parest(rep, numdigits=numdigits)
-        resout <- sumspict.stockpars(rep, stock=si, numdigits=numdigits)
-        cat('', paste(capture.output(resout),' \n'), '\n')
         if (rep$inp$do.sd.report & !'sderr' %in% names(rep)){
+            cat('\nStock related parameter estimates w 95% CI \n')
+            ress <- sumspict.stockpars(rep, stock=si, numdigits=numdigits)
+            cat('', paste(capture.output(ress),' \n'))
+            cat('\nFisheries related parameter estimates w 95% CI \n')
+            #resf <- sumspict.fisheriespars(rep, stock=si, numdigits=numdigits)
+            fnms <- c('logsdf', 'logsdc', 'logbeta')
+            finds <- rep$inp$stock2f[[si]]
+            resf <- sumspict.pars(rep, parnms=fnms, finds=finds, stock=si, numdigits=numdigits)
+            cat('', paste(capture.output(resf),' \n'))
+            if (rep$inp$neffort > 0){
+                cat('\nFleet related parameter estimates w 95% CI \n')
+                #resf <- sumspict.fisheriespars(rep, stock=si, numdigits=numdigits)
+                flnms <- c('logqf', 'logsde')
+                flinds <- rep$inp$stock2qf[[si]]
+                resfl <- sumspict.pars(rep, parnms=flnms, finds=flinds, stock=si, numdigits=numdigits)
+                cat('', paste(capture.output(resfl),' \n'))
+            }
             if (verbose | rep$inp$msytype == 'd'){
                 # Deterministic ref points
-                cat('Deterministic reference points (Drp)\n')
+                cat('\nDeterministic reference points (Drp)\n')
                 derout <- sumspict.drefpoints(rep, stock=si, numdigits=numdigits)
-                cat('', paste(capture.output(derout),' \n'))
+                cat('', paste(capture.output(derout),' \n'), '\n')
             }
             if (verbose | rep$inp$msytype == 's'){
                 # Stochastic derived estimates
@@ -236,6 +238,7 @@ transform <- function(est){
     return(est)
 }
 
+
 #' @name sumspict.stockpars
 #' @title Parameter estimates of a stock in a fit.spict() run.
 #' @param rep A result report as generated by running fit.spict.
@@ -246,10 +249,9 @@ transform <- function(est){
 sumspict.stockpars <- function(rep, stock=1, numdigits=8){
     bionms <- c('logm', 'logK', 'logn', 'logr', 'logsdb')
     nbionms <- length(bionms)
-    if(rep$inp$do.sd.report){
+    if (rep$inp$do.sd.report){
         order <- get.order()
         colnms <- get.colnms()
-
         # Biological parameters
         est <- get.par(bionms[1], rep)[stock, order]
         for (i in 2:nbionms){
@@ -261,13 +263,43 @@ sumspict.stockpars <- function(rep, stock=1, numdigits=8){
                                 logsdi=get.par('logsdi', rep)[rep$inp$mapsdi[[stock]], order],
                                 logalpha=get.par('logalpha', rep)[rep$inp$mapsdi[[stock]], order]))
         resout <- transform(est)
-    } else {
-        if('opt' %in% names(rep)){
-            resout <- data.frame(estimate=rep$opt$par)
+    }# else {
+     #   if('opt' %in% names(rep)){
+     #       resout <- data.frame(estimate=rep$opt$par)
+     #   }
+    #}
+    return(resout)
+}
+
+
+#' @name sumspict.pars
+#' @title Parameter estimates of a stock in a fit.spict() run.
+#' @param rep A result report as generated by running fit.spict.
+#' @param parnms Parameter names.
+#' @param finds Indices relevant to the current fleet or fishery.
+#' @param stock Number of the stock whose parameters to present.
+#' @param numdigits Present values with this number of digits after the dot.
+#' @return data.frame containing parameter estimates.
+#' @export
+sumspict.pars <- function(rep, parnms, finds, stock=1, numdigits=8){
+    #parnms <- c('logsdf', 'logsdc', 'logbeta')
+    nparnms <- length(parnms)
+    #finds <- inp$stock2f[[stock]]
+    if (rep$inp$do.sd.report){
+        order <- get.order()
+        colnms <- get.colnms()
+        est <- get.par(parnms[1], rep)[finds, order]
+        pnms <- rep(parnms[1], length(finds))
+        for (i in 2:nparnms){
+            est <- rbind(est, get.par(parnms[i], rep)[finds, order])
+            pnms <- c(pnms, rep(parnms[i], length(finds)))
         }
+        rownames(est) <- pnms
+        resout <- transform(est)
     }
     return(resout)
 }
+
 
 #' @name sumspict.parest
 #' @title Parameter estimates of a fit.spict() run.
@@ -596,7 +628,7 @@ sumspict.fixedpars <- function(rep, numdigits=8){
         nms <- nms[-match(c('logsdi', 'logq'), nms)]
     }
     # Were effort observations used? 
-    if (rep$inp$nobsE == 0){
+    if (sum(rep$inp$nobsE) == 0){
         nms <- nms[-match(c('logsde', 'logqf'), nms)]
     }
     # Are robust options used? if not remove
