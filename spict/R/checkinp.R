@@ -34,7 +34,7 @@
 #'  \item{"inp$timeI"}{ List containing vectors of index times. Default: even time steps starting at 1.}
 #'  \item{"inp$timeE"}{ Vector of effort times. Default: even time steps starting at 1.}
 #'  \item{"inp$dtc"}{ Time interval for catches, e.g. for annual catches inp$dtc=1, for quarterly catches inp$dtc=0.25. Can be given as a scalar, which is then used for all catch observations. Can also be given as a vector specifying the catch interval of each catch observation. Default: min(diff(inp$timeC)). }
-#'  \item{"inp$dte"}{ Time interval for effort observations. For annual effort inp$dte=1, for quarterly effort inp$dte=0.25. Default: min(diff(inp$timeE)). }
+#'  \item{"inp$dtef"}{ Time interval for effort observations. For annual effort inp$dtef=1, for quarterly effort inp$dtef=0.25. Default: min(diff(inp$timeE)). }
 #'  \item{"inp$nseasons"}{ Number of within-year seasons in data. If inp$nseasons > 1 then a seasonal pattern is used in F. Valid values of inp$nseasons are 1, 2 or 4. Default: number of unique within-year time points present in data.}
 #' }
 #' 
@@ -350,12 +350,12 @@ check.inp <- function(inp){
         stop('Lacking effort time vectors, got ', length(inp$timeE),
              ' but need ', inp$neffort, '.')
     }
-    # Effort intervals (dte)
-    if (!"dte" %in% names(inp) & inp$neffort > 0){
-        inp$dte <- vector('list', inp$neffort)
+    # Effort intervals (dtef)
+    if (!"dtef" %in% names(inp) & inp$neffort > 0){
+        inp$dtef <- vector('list', inp$neffort)
     } else {
-        if (length(inp$dte) != inp$neffort){
-            stop('Lacking dte vectors, got ', length(inp$dte),
+        if (length(inp$dtef) != inp$neffort){
+            stop('Lacking dtef vectors, got ', length(inp$dtef),
                  ' but need ', inp$neffort, '.')
         }
     }
@@ -372,33 +372,33 @@ check.inp <- function(inp){
         if (any(diff(inp$timeE[[i]]) <= 0)){
             stop('Effort times for effort series', i, 'are not strictly increasing!')
         }
-        if (is.null(inp$dte[[i]])){
+        if (is.null(inp$dtef[[i]])){
             if (!is.null(inp$timeE[[i]])){
-                dte <- diff(inp$timeE[[i]])
-                if (length(dte) > 0){
-                    inp$dte[[i]] <- min(dte)
+                dtef <- diff(inp$timeE[[i]])
+                if (length(dtef) > 0){
+                    inp$dtef[[i]] <- min(dtef)
                 } else {
-                    inp$dte[[i]] <- 1
+                    inp$dtef[[i]] <- 1
                     if (length(inp$obsE[[i]]) != 0){
-                        cat(paste('Effort interval (dte) not specified and length of effort time series',
+                        cat(paste('Effort interval (dtef) not specified and length of effort time series',
                                   i, 'shorter than 2. Assuming an interval of 1 year.\n'))
                     }
                 }
             }
         }
-        if (length(inp$dte[[i]]) == 1){
-            inp$dte[[i]] <- rep(inp$dte[[i]], length(inp$obsE[[i]]))
+        if (length(inp$dtef[[i]]) == 1){
+            inp$dtef[[i]] <- rep(inp$dtef[[i]], length(inp$obsE[[i]]))
         }
         if (is.null(inp$stdevfacE[[i]])){
             inp$stdevfacE[[i]] <- rep(1, length(inp$obsE[[i]]))
         }
         base.checks(inp$obsE[[i]], inp$timeE[[i]], inp$stdevfacE[[i]], 'E')
     }
-    inp <- remove.neg(inp, 'E', extrakeys='dte')
+    inp <- remove.neg(inp, 'E', extrakeys='dtef')
     for (i in inp$neffortseq){
         inp$nobsE[i] <- length(inp$obsE[[i]])
-        if (length(inp$dte[[i]]) != inp$nobsE[i]){
-            stop('Effort interval vector (inp$dte, ', length(inp$dte),
+        if (length(inp$dtef[[i]]) != inp$nobsE[i]){
+            stop('Effort interval vector (inp$dtef, ', length(inp$dtef),
                  ') does not match effort observation vector (inp$obsE, ',
                  inp$nobsE, ') in length for effort series ', i)
         }
@@ -563,7 +563,7 @@ check.inp <- function(inp){
     # Vector containing all observation times
     timeobsall <- sort(c(unlist(inp$timeC), unlist(inp$timeC) + unlist(inp$dtc),
                          unlist(inp$timeI),
-                         unlist(inp$timeE), unlist(inp$timeE) + unlist(inp$dte)))
+                         unlist(inp$timeE), unlist(inp$timeE) + unlist(inp$dtef)))
     dtimeobsall <- diff(timeobsall)
     if (any(dtimeobsall > 50)){
         stop('At least one gap over 50 years exists in data! cannot work with such data.')
@@ -813,8 +813,8 @@ check.inp <- function(inp){
     # Effort prediction time step (dtprede)
     if (!"dtprede" %in% names(inp)){
         if (sum(inp$nobsE) > 0){
-            if (length(unlist(inp$dte)) > 0){
-                inp$dtprede <- max(unlist(inp$dte))
+            if (length(unlist(inp$dtef)) > 0){
+                inp$dtprede <- max(unlist(inp$dtef))
             } else {
                 inp$dtprede <- 1
                 cat('Assuming a 1 year prediction interval for effort.\n')
@@ -1039,26 +1039,26 @@ check.inp <- function(inp){
     }
 
     # ie is the indices of inp$time to which effort observations correspond
-    if (length(unlist(inp$dte)) > 0){
-        dtepred <- min(unlist(inp$dte))
+    if (length(unlist(inp$dtef)) > 0){
+        dtefpred <- min(unlist(inp$dtef))
     } else {
-        dtepred <- 1
+        dtefpred <- 1
     }
     inp$timeEpred <- list()
     inp$nobsEp <- numeric(inp$neffort)
-    inp$dtep <- list()
+    inp$dtefp <- list()
     inp$ie <- list()
     inp$ifleet <- list()
     for (i in inp$neffortseq){
         if (inp$nobsE[i] > 0){
             inp$timeEpred[[i]] <- unique(c(inp$timeE[[i]],
                                            (seq(tail(inp$timeE[[i]], 1),
-                                                inp$timeprede, by=dtepred))))
+                                                inp$timeprede, by=dtefpred))))
         } else {
             inp$timeEpred[[i]] <- numeric(0)
         }
         inp$nobsEp[i] <- length(inp$timeEpred[[i]])
-        inp$dtep[[i]] <- c(inp$dte[[i]], rep(dtepred, inp$nobsEp[i]-inp$nobsE[i]))
+        inp$dtefp[[i]] <- c(inp$dtef[[i]], rep(dtefpred, inp$nobsEp[i]-inp$nobsE[i]))
         inp$ie[[i]] <- cut(inp$timeEpred[[i]], inp$time, right=FALSE, labels=FALSE)
         inp$ifleet[[i]] <- rep(inp$effortobs2fleet[i], inp$nobsE[i])
     }
@@ -1069,7 +1069,7 @@ check.inp <- function(inp){
         if (inp$nobsE[i] > 0){
             for (j in 1:inp$nobsEp[i]){
                 inp$ne[[i]][j] <- sum(inp$time >= inp$timeEpred[[i]][j]
-                                 & inp$time < (inp$timeEpred[[i]][j] + inp$dtep[[i]][j]))
+                                 & inp$time < (inp$timeEpred[[i]][j] + inp$dtefp[[i]][j]))
             }
         }
         if (any(inp$ne[[i]] == 0)){
@@ -1143,7 +1143,7 @@ check.inp <- function(inp){
     # - Sort observations in time and store in one vector -
     timeobsseen <- c(unlist(inp$timeC) + unlist(inp$dtc) - 1e-4,
                      unlist(inp$timeI),
-                     unlist(inp$timeE) + unlist(inp$dte) - 1e-5)
+                     unlist(inp$timeE) + unlist(inp$dtef) - 1e-5)
     # Add dtc to timeC because the total catch is first "seen" at the end of the given catch interval (typically year or quarter), similarly for quarter. By arbitrary convention catches are assumed to be "seen" before effort although they should be observed at the same time.
     srt <- sort(timeobsseen, index=TRUE)
     timeobs <- c(unlist(inp$timeC), unlist(inp$timeI), unlist(inp$timeE))

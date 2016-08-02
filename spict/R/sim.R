@@ -261,7 +261,7 @@ sim.spict <- function(input, nobs=100){
     if ('logE0' %in% names(inp$ini)){
         E0 <- exp(inp$ini$logE0)
     } else {
-        E0 <- 1
+        E0 <- 0.2
     }
     if (length(E0) < inp$nfleets){
         E0 <- rep(E0, inp$nfleets)
@@ -305,10 +305,10 @@ sim.spict <- function(input, nobs=100){
         # - Effort -
         logEbase <- matrix(0, inp$nfleets, nt)
         season <- matrix(0, inp$nfleets, nt)
-        e.f <- matrix(0, inp$nfleets, nt)
+        e.f <- matrix(0, inp$nfleets, nt-1)
         logEbase[, 1] <- log(E0)
         for (jj in 1:inp$nfleets){
-            e.f[jj, -1] <- rnorm(nt-1, 0, sdf[jj]*sqrt(dt))
+            e.f[jj, ] <- rnorm(nt-1, 0, sdf[jj]*sqrt(dt))
             for (t in 2:nt){
                 logEbase[jj, t] <- predict.loge(logEbase[jj, t-1], dt, sdf[jj],
                                                 inp$efforttype) + e.f[jj, t-1]
@@ -349,11 +349,11 @@ sim.spict <- function(input, nobs=100){
         }
         # - Biomass -
         B <- matrix(0, inp$nstocks, nt)
-        e.b <- matrix(0, inp$nstocks, nt)
+        e.b <- matrix(0, inp$nstocks, nt-1)
         #B <- numeric(nt)
         B[, 1] <- B0
         for (si in 1:inp$nstocks){
-            e.b[si, -1] <- exp(rnorm(nt-1, 0, sdb[si]*sqrt(dt)))
+            e.b[si, ] <- exp(rnorm(nt-1, 0, sdb[si]*sqrt(dt)))
             finds <- zero.omit(inp$target[si, ])
             Fstock <- apply(F[finds, ], 2, sum)
             for (t in 2:nt){
@@ -362,7 +362,7 @@ sim.spict <- function(input, nobs=100){
             }
         }
         flag <- any(B <= 0) # Negative biomass not allowed
-        recount <- recount+1
+        recount <- recount + 1
         if (recount > 10){
             stop('Having problems simulating data where B > 0, check parameter values!')
         }
@@ -417,10 +417,10 @@ sim.spict <- function(input, nobs=100){
     # - Effort observations -
     #Esub <- F / qf * dt
     Esub <- E * dt
+    Etrue <- list()
+    obsE <- list()
+    e.e <- list()
     if (inp$neffort > 0){
-        Etrue <- list()
-        obsE <- list()
-        e.e <- list()
         for (i in inp$neffortseq){
             # To which fleet does the observed effort belong?
             flind <- inp$targetmap[which(inp$targetmap[, 3] == i), 2]
@@ -550,6 +550,7 @@ sim.spict <- function(input, nobs=100){
     sim$lamperti <- inp$lamperti
     sim$phases <- inp$phases
     sim$priors <- inp$priors
+    sim$target <- inp$target
     sim$outliers <- inp$outliers
     sim$recount <- recount
     sim$nseasons <- inp$nseasons
@@ -572,7 +573,7 @@ sim.spict <- function(input, nobs=100){
     sim$true$E <- E
     sim$true$I <- Itrue
     sim$true$B <- B
-    sim$true$F <- exp(logFbase)
+    sim$true$F <- F
     sim$true$Fs <- F
     sim$true$gamma <- gamma
     sim$true$seasontype <- inp$seasontype
