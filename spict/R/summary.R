@@ -144,7 +144,7 @@ summary.spictcls <- function(object, ...){
     }
     # -- Model parameters --
     for (si in 1:rep$inp$nstocks){
-        cat('\n--', rep$inp$stocknames[si], '\n')
+        cat('\n---', rep$inp$stocknames[si], '\n')
         if (rep$inp$do.sd.report & !'sderr' %in% names(rep)){
             cat('\nStock related parameter estimates w 95% CI \n')
             ress <- sumspict.stockpars(rep, stock=si, numdigits=numdigits)
@@ -748,15 +748,15 @@ sumspict.diagnostics <- function(rep, numdigits=8){
         }
     }
     # Continue with LB removed
-    nms <- names(diagn)
+    #nms <- names(diagn)
     tests <- unique(substr(nms, 1, 3))
     ntests <- length(tests)
-    testnames <- sub('C.p', '', nms[1:ntests])
+    testnames <- sub('C1.p', '', nms[1:ntests]) # Assumes C1 exists
     seriesnames <- sub('.p', '', sub(testnames[1], '', grep(testnames[1], nms, value=TRUE)))
     diagnmat <- matrix(round(unlist(diagn), numdigits), rep$inp$nseries, ntests, byrow=TRUE)
     colnames(diagnmat) <- testnames
     rownames(diagnmat) <- seriesnames
-    # Stars
+    # Add stars
     stars <- array('-', dim=dim(diagnmat))
     colnames(stars) <- testnames
     stars[diagnmat < 0.1] <- '.'

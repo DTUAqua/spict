@@ -633,64 +633,96 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
             text(time, dum, labels='NA', cex=0.8, col=col)
         }
         # Catches
-        pval <- round(as.list(rep$diagn)$biasC.p, 4)
-        colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
-        fun(rep$osar$timeC, rep$osar$logCpres, add.legend=qlegend, ylab='Catch OSA residuals',
-            main=paste0('Bias p-val: ', pval), col.main=colmain, xlim=range(rep$inp$timeC),
-            add.vline.at=rep$osar$timeC[1])
-        abline(h=0, lty=3)
-        # Effort
-        if (inp$nobsE > 0){
-            pval <- round(as.list(rep$diagn)$biasE.p, 4)
+        nmsC <- grep('biasC', names(rep$diagn), value=TRUE)
+        add.legend <- qlegend
+        for (i in inp$nfisheriesseq){
+            #pval <- round(as.list(rep$diagn)$biasC.p, 4)
+            pval <- round(rep$diagn[[nmsC[i]]], 4)
             colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
-            fun(rep$osar$timeE, rep$osar$logEpres, add.legend=qlegend, ylab='Effort OSA residuals',
-                main=paste0('Bias p-val: ', pval), col.main=colmain, xlim=range(rep$inp$timeE),
-                add.vline.at=rep$osar$timeE[1])
+            fun(rep$osar$timeC[[i]], rep$osar$logCpres[[i]], add.legend=add.legend,
+                ylab='Catch OSA residuals',
+                main=paste0('Bias p-val: ', pval), col.main=colmain, xlim=range(rep$inp$timeC[[i]]),
+                add.vline.at=rep$osar$timeC[[i]][1])
             abline(h=0, lty=3)
+            add.legend <- FALSE # Should only add one legend
+        }
+        # Effort
+        nmsE <- grep('biasE', names(rep$diagn), value=TRUE)
+        for (i in inp$neffortseq){
+            if (inp$nobsE[i] > 0){
+                #pval <- round(as.list(rep$diagn)$biasE.p, 4)
+                pval <- round(rep$diagn[[nmsE[i]]], 4)
+                colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
+                fun(rep$osar$timeE[[i]], rep$osar$logEpres[[i]], add.legend=qlegend,
+                    ylab='Effort OSA residuals',
+                    main=paste0('Bias p-val: ', pval), col.main=colmain,
+                    xlim=range(rep$inp$timeE[[i]]),
+                    add.vline.at=rep$osar$timeE[[i]][1])
+                abline(h=0, lty=3)
+            }
         }
         # Indices
-        if (inp$nindex > 0){
-            pval <- round(as.list(rep$diagn)$biasI1.p, 4)
-            colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
-            if (collapse.I){
-                ylim <- range(unlist(rep$osar$logIpres), na.rm=TRUE)
-                xlim <- range(unlist(rep$osar$timeI))
-            } else {
-                ylim <- range(rep$osar$logIpres[[1]], na.rm=TRUE)
-                #xlim <- range(rep$osar$timeI[[1]])
-                xlim <- range(rep$inp$timeI[[1]]) # Use observed time range
-            }
-            ylab <- ifelse(collapse.I, 'Index OSA residuals', 'Index 1 OSA residuals')
-            main <- paste0(ifelse(collapse.I, 'Index 1 ', ''), 'Bias p-val: ', pval)
-            fun(rep$osar$timeI[[1]], rep$osar$logIpres[[1]], ylab=ylab,
-                col=1, xlim=xlim, ylim=ylim, main=main, col.main=colmain,
-                add.vline.at=rep$osar$timeI[[1]][1])
-            abline(h=0, lty=3)
-            if (rep$inp$nindex > 1){
-                for (i in 2:rep$inp$nindex){
-                    ylim <- range(rep$osar$logIpres[[i]], na.rm=TRUE)
-                    #xlim <- range(unlist(rep$osar$timeI[[i]]))
-                    xlim <- range(unlist(rep$inp$timeI[[i]])) # Use observed time range
-                    if (!collapse.I){
-                        pval <- round(as.list(rep$diagn)[[paste0('biasI', i, '.p')]], 4)
-                        #pval <- round(rep$osar$logIpbias[[i]]$p.value, 4)
-                        colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
-                        #main <- paste0('I', i, ' bias p-val: ', pval)
-                        main <- paste0('Bias p-val: ', pval)
-                        add.vline.at <- rep$osar$timeI[[i]][1]
-                    } else {
-                        main <- ''
+        #nmsI <- grep('bias..I', names(rep$diagn), value=TRUE)
+        for (si in 1:inp$nstocks){
+            for (i in inp$nindexseq[[si]]){
+                if (inp$nindex[si] > 0){
+                    nm <- paste0('biasS', si, 'I', i, '.p')
+                    pval <- round(rep$diagn[[nm]], 4)
+                    colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
+                    main <- paste0(ifelse(collapse.I, 'Index 1 ', ''), 'Bias p-val: ', pval)
+                    ylab <- ifelse(collapse.I, 'Index OSA residuals', 'Index 1 OSA residuals')
+                    addflag <- FALSE
+                    if (collapse.I){
+                        ylim <- range(unlist(rep$osar$logIpres), na.rm=TRUE)
+                        xlim <- range(unlist(rep$osar$timeI))
                         add.vline.at <- NULL
+                        if (si > 1 | i > 1){ # If not first plot
+                            main <- ''
+                            ylab <- ''
+                            addflag <- TRUE
+                        }
+                    } else {
+                        ylim <- range(rep$osar$logIpres[[si]][[i]], na.rm=TRUE)
+                        #xlim <- range(rep$osar$timeI[[1]])
+                        xlim <- range(rep$inp$timeI[[si]][[i]]) # Use observed time range
+                        add.vline.at <- rep$osar$timeI[[si]][[i]][1]
                     }
-                    fun(rep$osar$timeI[[i]], rep$osar$logIpres[[i]], add=collapse.I,
-                        ylab=paste('Index', i, 'OSA residuals'), col=1, pch=i, xlim=xlim,
-                        ylim=ylim, main=main, col.main=colmain, add.vline.at=add.vline.at)
+                    fun(rep$osar$timeI[[si]][[i]], rep$osar$logIpres[[si]][[i]],
+                        add=addflag, ylab=ylab,
+                        col=1, xlim=xlim, ylim=ylim, main=main, col.main=colmain,
+                        add.vline.at=add.vline.at)
                     if (!collapse.I){
                         abline(h=0, lty=3)
                     }
                 }
             }
         }
+                    
+            #if (rep$inp$nindex > 1){
+            #    for (i in 2:rep$inp$nindex){
+            #        ylim <- range(rep$osar$logIpres[[i]], na.rm=TRUE)
+            #        #xlim <- range(unlist(rep$osar$timeI[[i]]))
+            #        xlim <- range(unlist(rep$inp$timeI[[i]])) # Use observed time range
+            #        if (!collapse.I){
+            #            pval <- round(as.list(rep$diagn)[[paste0('biasI', i, '.p')]], 4)
+            #            #pval <- round(rep$osar$logIpbias[[i]]$p.value, 4)
+            #            colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
+            #            #main <- paste0('I', i, ' bias p-val: ', pval)
+            #            main <- paste0('Bias p-val: ', pval)
+            #            add.vline.at <- rep$osar$timeI[[i]][1]
+            #        } else {
+            #            main <- ''
+            #            add.vline.at <- NULL
+            #        }
+            #        fun(rep$osar$timeI[[i]], rep$osar$logIpres[[i]], add=collapse.I,
+            #            ylab=paste('Index', i, 'OSA residuals'), col=1, pch=i, xlim=xlim,
+            #            ylim=ylim, main=main, col.main=colmain, add.vline.at=add.vline.at)
+            #        if (!collapse.I){
+            #            abline(h=0, lty=3)
+            #        }
+            #    }
+            #}
+        #}
     } else {
         stop('Could not find "osar" key in rep list! did you run calc.osa.resid?')
     }
@@ -714,27 +746,28 @@ plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
 #' @export
 plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, mfcol=FALSE,
                                  stamp=get.version()){
-    repflag <- FALSE
+    #repflag <- FALSE
     mar <- c(4.7, 4.1, 2.5, 2)
     #op <- par()
-    if ('obsC' %in% names(rep)){ # rep is an input list
-        inp <- check.inp(rep)
-        if (inp$nindex==1) mfrow <- c(2, 1)
-        if (inp$nindex==2) mfrow <- c(3, 1)
-        if (inp$nindex==3) mfrow <- c(2, 2)
-        if (inp$nindex %in% 4:5) mfrow <- c(3, 2)
-        if (inp$nindex > 5) mfrow <- c(4, 4)
-    }
-    if ('inp' %in% names(rep)){ # rep is a results list
-        repflag <- TRUE
+    #if ('obsC' %in% names(rep)){ # rep is an input list
+    #    inp <- check.inp(rep)
+    #    if (inp$nindex==1) mfrow <- c(2, 1)
+    #    if (inp$nindex==2) mfrow <- c(3, 1)
+    #    if (inp$nindex==3) mfrow <- c(2, 2)
+    #    if (inp$nindex %in% 4:5) mfrow <- c(3, 2)
+    #    if (inp$nindex > 5) mfrow <- c(4, 4)
+    #}
+    #if ('inp' %in% names(rep)){ # rep is a results list
+    #    repflag <- TRUE
         inp <- rep$inp
-        if (inp$nindex %in% 1:2) mfrow <- c(2, 2)
-        if (inp$nindex %in% 3:4) mfrow <- c(3, 2)
-        if (inp$nindex %in% 5:7) mfrow <- c(3, 3)
-    }
+    #    if (inp$nindex %in% 1:2) mfrow <- c(2, 2)
+    #    if (inp$nindex %in% 3:4) mfrow <- c(3, 2)
+    #    if (inp$nindex %in% 5:7) mfrow <- c(3, 3)
+    #}
     # Determine number of plots
     if ('osar' %in% names(rep)){
-        mfrow <- c(3 + as.numeric(plot.data), inp$nindex + 1 + as.numeric(rep$inp$nobsE > 0))
+        #mfrow <- c(3 + as.numeric(plot.data), sum(inp$nindex) + 1 + as.numeric(rep$inp$nobsE > 0))
+        mfrow <- c(3 + as.numeric(plot.data), inp$nseries)
     } else {
         #cat('No OSAR found in input, run calc.osa.resid to get all diagnostics.\n')
     }
@@ -747,17 +780,30 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
     
     # Plot data
     if (plot.data){
-        plot.col(inp$timeC, log(inp$obsC), ylab='log catch data', main='Catch', xlab='Time',
-                 add.vline.at=rep$osar$timeC[1])
-        if (inp$nobsE > 0){
-            plot.col(inp$timeE, log(inp$obsE), ylab='log effort data', main='Effort',
-                     xlab='Time', add.vline.at=rep$osar$timeE[1])
+        tm <- inp$targetmap
+        # Catch
+        for (i in inp$nfisheriesseq){
+            plot.col(inp$timeC[[i]], log(inp$obsC[[i]]), ylab='log catch data',
+                     main=paste0('Catch ', i, ', S', tm[i, 1], 'Fl', tm[i, 2]),
+                     xlab='Time', add.vline.at=rep$osar$timeC[[i]][1])
         }
-        if (inp$nindex > 0){
-            for (i in 1:inp$nindex){
-                plot.col(inp$timeI[[i]], log(inp$obsI[[i]]), ylab=paste('log index',i,'data'),
-                         main=paste('Index', i), pch=i, xlab='Time',
-                         add.vline.at=rep$osar$timeI[[i]][1])
+        # Effort
+        for (i in inp$neffortseq){
+            #if (inp$nobsE[i] > 0){
+                plot.col(inp$timeE[[i]], log(inp$obsE[[i]]), ylab='log effort data',
+                         main=paste0('Effort ', i),
+                         xlab='Time', add.vline.at=rep$osar$timeE[[i]][1])
+            #}
+        }
+        # Index
+        for (si in 1:inp$nstocks){
+            if (inp$nindex[si] > 0){
+                for (i in inp$nindexseq[[si]]){
+                    plot.col(inp$timeI[[si]][[i]], log(inp$obsI[[si]][[i]]),
+                             ylab=paste('log index', i, 'data'),
+                             main=paste0('Index ', i, ', S', si), pch=i, xlab='Time',
+                             add.vline.at=rep$osar$timeI[[si]][[i]][1])
+                }
             }
         }
     }
@@ -785,43 +831,69 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
     if ('osar' %in% names(rep)){
         plotspict.osar(rep, collapse.I=FALSE, qlegend=qlegend)
         # Catch ACF
-        pvalacfC <- round(as.list(rep$diagn)$LBoxC.p, 4)
-        resC <- rep$osar$logCpres[!is.na(rep$osar$logCpres)]        
-        osar.acf.plot(resC, lag.max, pvalacfC, ylab='Catch ACF')
+        resC <- list()
+        for (i in inp$nfisheriesseq){
+            nm <- paste0('LBoxC', i, '.p')
+            #pvalacfC <- round(as.list(rep$diagn)$LBoxC.p, 4)
+            pvalacfC <- round(rep$diagn[[nm]], 4)
+            resC[[i]] <- na.omit(rep$osar$logCpres[[i]]) #[!is.na(rep$osar$logCpres)]        
+            osar.acf.plot(resC[[i]], lag.max, pvalacfC, ylab='Catch ACF')
+        }
         # Effort ACF
-        if (inp$nobsE > 0){
-            pvalacfE <- round(as.list(rep$diagn)$LBoxE.p, 4)
-            resE <- rep$osar$logEpres[!is.na(rep$osar$logEpres)]
-            osar.acf.plot(resE, lag.max, pvalacfE, ylab='Effort ACF')
+        resE <- list()
+        for (i in inp$neffortseq){
+            if (inp$nobsE[i] > 0){
+                nm <- paste0('LBoxE', i, '.p')
+                pvalacfE <- round(rep$diagn[[nm]], 4)
+                resE[[i]] <- na.omit(rep$osar$logEpres[[i]]) #[!is.na(rep$osar$logEpres)]
+                osar.acf.plot(resE[[i]], lag.max, pvalacfE, ylab='Effort ACF')
+            }
         }
         # Index ACF
-        if (inp$nindex > 0){
-            inds <- grep('LBoxI', names(rep$diagn))
-            nms <- names(rep$diagn)[inds]
-            nos <- as.numeric(unlist(regmatches(nms, gregexpr('[0-9]+', nms))))
-            resI <- list()
-            for (i in 1:inp$nindex){
-                pvalacfI <- round(as.list(rep$diagn)[[nms[i]]], 4)
-                resI[[i]] <- rep$osar$logIpres[[i]][!is.na(rep$osar$logIpres[[i]])]
-                osar.acf.plot(resI[[nos[i]]], lag.max, pvalacfI, ylab=paste0('Index ', i, ' ACF'))
+        resI <- list()
+        for (si in 1:inp$nstocks){
+            if (inp$nindex[si] > 0){
+                for (i in inp$nindexseq[[si]]){
+                    #inds <- grep('LBoxI', names(rep$diagn))
+                    #nms <- names(rep$diagn)[inds]
+                    #nos <- as.numeric(unlist(regmatches(nms, gregexpr('[0-9]+', nms))))
+                    nm <- paste0('LBoxS', si, 'I', i, '.p')
+                    resI[[si]] <- list()
+                    for (i in inp$nindexseq[si]){
+                        pvalacfI <- round(rep$diagn[[nm]], 4)
+                        resI[[si]][[i]] <- na.omit(rep$osar$logIpres[[si]][[i]]) 
+                        osar.acf.plot(resI[[si]][[i]], lag.max, pvalacfI,
+                                      ylab=paste0('Index ', i, ' ACF'))
+                    }
+                }
             }
         }
         # Catch QQ
-        pvalC <- round(as.list(rep$diagn)$shapiroC.p, 4)
-        osar.qq.plot(resC, pvalC)
+        for (i in inp$nfisheriesseq){
+            nm <- paste0('shapiroC', i, '.p')
+            pvalC <- round(rep$diagn[[nm]], 4)
+            osar.qq.plot(resC[[i]], pvalC)
+        }
         # Effort QQ
-        if (inp$nobsE > 0){
-            pvalE <- round(as.list(rep$diagn)$shapiroE.p, 4)
-            osar.qq.plot(resE, pvalE)
+        for (i in inp$neffortseq){
+            if (inp$nobsE[i] > 0){
+                nm <- paste0('shapiroE', i, '.p')                
+                pvalE <- round(rep$diagn[[nm]], 4)
+                osar.qq.plot(resE[[i]], pvalE)
+            }
         }
         # Index QQ
-        if (inp$nindex > 0){
-            inds <- grep('shapiroI', names(rep$diagn))
-            nms <- names(rep$diagn)[inds]
-            nos <- as.numeric(unlist(regmatches(nms, gregexpr('[0-9]+', nms))))
-            for (i in 1:inp$nindex){
-                pvalI <- round(as.list(rep$diagn)[[nms[i]]], 4)
-                osar.qq.plot(resI[[nos[i]]], pvalI)
+        for (si in 1:inp$nstocks){
+            if (inp$nindex[si] > 0){
+                for (i in inp$nindexseq[[si]]){
+                    nm <- paste0('shapiroS', si, 'I', i, '.p')
+                    #nms <- names(rep$diagn)[inds]
+                    #nos <- as.numeric(unlist(regmatches(nms, gregexpr('[0-9]+', nms))))
+                    for (i in inp$nindexseq[si]){
+                        pvalI <- round(rep$diagn[[nm]], 4)
+                        osar.qq.plot(resI[[si]][[i]], pvalI)
+                    }
+                }
             }
         }
     }

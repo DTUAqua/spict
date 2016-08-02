@@ -57,6 +57,24 @@ predict.logf <- function(logF0, dt, sdf, efforttype){
 }
 
 
+#' @name predict.loge
+#' @title Helper function for sim.spict().
+#' @param logE0 Effort
+#' @param dt Time step.
+#' @param sdf Standard deviation of E process.
+#' @param efforttype If 1 use diffusion on logE, if 2 use diffusion of E with state dependent noise (this induces the drift term -0.5*sdf^2 in log domain)
+#' @return Predicted F at the end of dt.
+predict.loge <- function(logE0, dt, sdf, efforttype){
+    if (efforttype == 1){
+        return(logE0)
+    }
+    # This is the Lamperti transformed F process with state dependent noise.
+    if (efforttype == 2){
+        return(logE0 - 0.5*sdf^2*dt)
+    }
+}
+
+
 #' @name sim.spict
 #' @title Simulate data from Pella-Tomlinson model
 #' @details Simulates data using either manually specified parameters values or parameters estimated by fit.spict().
@@ -144,7 +162,7 @@ sim.spict <- function(input, nobs=100){
                 use.index.flag <<- FALSE
                 inp$nobsI <- nobs
             } else {
-                if (class(inp$obsI)!='list'){
+                if (class(inp$obsI) != 'list'){
                     tmp <- inp$obsI
                     inp$obsI <- list()
                     inp$obsI[[1]] <- tmp
@@ -159,7 +177,7 @@ sim.spict <- function(input, nobs=100){
                 inp$timeI[[i]] <- 1:inp$nobsI[i]
             }
         } else {
-            if (class(inp$timeI)!='list'){
+            if (class(inp$timeI) != 'list'){
                 tmp <- inp$timeI
                 inp$timeI <- list()
                 inp$timeI[[1]] <- tmp
@@ -176,6 +194,9 @@ sim.spict <- function(input, nobs=100){
             }
         }
         return(inp)
+    }
+    zero.omit <- function(inobj){
+        return(inobj[inobj != 0])
     }
     if ('par.fixed' %in% names(input)){
         #cat('Detected input as a SPiCT result, proceeding...\n')
@@ -232,14 +253,24 @@ sim.spict <- function(input, nobs=100){
     dt <- inp$dteuler
     nt <- length(time)
     if ('logbkfrac' %in% names(inp$ini)){
-        B0 <- exp(inp$ini$logbkfrac)*exp(pl$logK)
+        B0 <- exp(inp$ini$logbkfrac) * exp(pl$logK)
     } else {
-        B0 <- 0.5*exp(pl$logK)
+        B0 <- 0.5 * exp(pl$logK)
     }
+    # Initial effort
+    if ('logE0' %in% names(inp$ini)){
+        E0 <- exp(inp$ini$logE0)
+    } else {
+        E0 <- 1
+    }
+    if (length(E0) < inp$nfleets){
+        E0 <- rep(E0, inp$nfleets)
+    }
+    # Initial F (not used?)
     if ('logF0' %in% names(inp$ini)){
         F0 <- exp(inp$ini$logF0)
     } else {
-        F0 <- 0.2*exp(inp$ini$logr)
+        F0 <- 0.2 * exp(inp$ini$logr)
     }
     m <- exp(pl$logm)
     n <- exp(pl$logn)
@@ -264,53 +295,71 @@ sim.spict <- function(input, nobs=100){
     # C[t] is the catch removed during the interval starting at time t. 
     # obsC[j] is the catch removed over the interval starting at time j, this will typically be the accumulated catch over the year.
 
-    if (inp$seasontype==1){ # Use spline to generate season
+    if (inp$seasontype == 1){ # Use spline to generate season
         seasonspline <- get.spline(pl$logphi, order=inp$splineorder, dtfine=dt)
         nseasonspline <- length(seasonspline)
     }
     flag <- TRUE
     recount <- 0
     while(flag){
-        # - Fishing mortality -
-        logFbase <- numeric(nt)
-        logFbase[1] <- log(F0)
-        e.f <- rnorm(nt-1, 0, sdf*sqrt(dt))
-        for (t in 2:nt){
-            logFbase[t] <- predict.logf(logFbase[t-1], dt, sdf, inp$efforttype) + e.f[t-1]
-        }
-        #ef <- arima.sim(inp$armalistF, nt-1) * sdf*sqrt(dt) # Used to simulate other than white noise in F
-        #logFbase <- c(log(F0), log(F0) + cumsum(ef)) # Fishing mortality
-        # Impose seasons
-        season <- numeric(length(logFbase))
-        if (inp$seasontype == 1){ # Spline-based seasonality
-            season <- seasonspline[inp$seasonindex+1]
-        }
-        if (inp$seasontype == 2){ # This one should not be used yet!
-            # These expressions are based on analytical results
-            # Derivations etc. can be found in Uffe's SDE notes on p. 132
-            expmosc <- function(lambda, omega, t){
-                exp(-lambda*t) * matrix(c(cos(omega*t), -sin(omega*t), sin(omega*t),
-                                          cos(omega*t)), 2, 2, byrow=TRUE)
+        # - Effort -
+        logEbase <- matrix(0, inp$nfleets, nt)
+        season <- matrix(0, inp$nfleets, nt)
+        e.f <- matrix(0, inp$nfleets, nt)
+        logEbase[, 1] <- log(E0)
+        for (jj in 1:inp$nfleets){
+            e.f[jj, -1] <- rnorm(nt-1, 0, sdf[jj]*sqrt(dt))
+            for (t in 2:nt){
+                logEbase[jj, t] <- predict.loge(logEbase[jj, t-1], dt, sdf[jj],
+                                                inp$efforttype) + e.f[jj, t-1]
             }
-            nu <- length(sdu)
-            for (j in 1:nu){
-                u <- matrix(0, 2, inp$ns)
-                sduana <- sqrt(sdu[j]^2/(2*lambda) * (1-exp(-2*lambda*dt)))
-                u[, 1] <- c(0.1, 0) # Set an initial state different from zero to get some action!
-                omegain <- omega*j
-                for (i in 2:inp$ns){
-                    u[, i] <- rnorm(2, expmosc(lambda, omegain, dt) %*% u[, i-1], sduana)
+            # Impose seasons
+            if (inp$seasontype == 1){ # Spline-based seasonality
+                season[jj, ] <- seasonspline[inp$seasonindex + 1]
+            }
+            if (inp$seasontype == 2){ # This one should not be used yet!
+                # These expressions are based on analytical results
+                # Derivations etc. can be found in Uffe's SDE notes on p. 132
+                expmosc <- function(lambda, omega, t){
+                    exp(-lambda*t) * matrix(c(cos(omega*t), -sin(omega*t), sin(omega*t),
+                                              cos(omega*t)), 2, 2, byrow=TRUE)
                 }
-                season <- season + u[1, ]
+                nu <- length(sdu)
+                for (j in 1:nu){
+                    u <- matrix(0, 2, inp$ns)
+                    sduana <- sqrt(sdu[j]^2/(2*lambda) * (1-exp(-2*lambda*dt)))
+                    u[, 1] <- c(0.1, 0) # Set an ini state different from zero to get some action!
+                    omegain <- omega*j
+                    for (i in 2:inp$ns){
+                        u[, i] <- rnorm(2, expmosc(lambda, omegain, dt) %*% u[, i-1], sduana)
+                    }
+                    season[jj, ] <- season[jj, ] + u[1, ]
+                }
             }
         }
-        F <- exp(logFbase + season)
+        E <- exp(logEbase + season)
+        # - Fishing mortality -
+        F <- matrix(0, inp$nfisheries, nt)
+        for (k in inp$nfisheriesseq){
+            qfind <- inp$targetmap[k, 3]
+            flind <- inp$targetmap[k, 2]
+            # If qf is not set use qf = 1
+            thisqf <- ifelse(qfind > 0, qf[qfind], 1)
+            F[k, ] <- thisqf * E[flind, ]
+        }
         # - Biomass -
-        B <- numeric(nt)
-        B[1] <- B0
-        e.b <- exp(rnorm(nt-1, 0, sdb*sqrt(dt)))
-        for (t in 2:nt){
-            B[t] <- predict.b(B[t-1], F[t-1], gamma, m[inp$ir[t]], K, n, dt, sdb, inp$btype) * e.b[t-1]
+        B <- matrix(0, inp$nstocks, nt)
+        e.b <- matrix(0, inp$nstocks, nt)
+        #B <- numeric(nt)
+        B[, 1] <- B0
+        for (si in 1:inp$nstocks){
+            e.b[si, -1] <- exp(rnorm(nt-1, 0, sdb[si]*sqrt(dt)))
+            finds <- zero.omit(inp$target[si, ])
+            Fstock <- apply(F[finds, ], 2, sum)
+            for (t in 2:nt){
+                B[si, t] <- predict.b(B[si, t-1], Fstock[t-1], gamma[si], m[si], K[si], n[si],
+                                      dt, sdb[si], inp$btype) * e.b[si, t-1]
+            }
         }
         flag <- any(B <= 0) # Negative biomass not allowed
         recount <- recount+1
@@ -322,51 +371,79 @@ sim.spict <- function(input, nobs=100){
         warning('Some simulated biomass values are larger than 1e15.')
     }
     # - Catch -
-    Csub <- rep(0,nt)
-    for (t in 1:nt){
-        Csub[t] <- F[t] * B[t] * dt
+    Csub <- matrix(0, inp$nfisheries, nt)
+    for (k in inp$nfisheriesseq){
+        bind <- inp$targetmap[k, 1]
+        for (t in 1:nt){
+            Csub[k, t] <- F[k, t] * B[bind, t] * dt
+        }
     }
     # - Production -
-    Psub <- rep(0,nt)
-    for (t in 2:nt){
-        Psub[t-1] <- B[t] - B[t-1] + Csub[t-1]
+    Psub <- matrix(0, inp$nstocks, nt)
+    for (si in 1:inp$nstocks){
+        finds <- zero.omit(inp$target[si, ])
+        Csubstock <- apply(Csub[finds, ], 2, sum)
+        for (t in 2:nt){
+            Psub[t-1] <- B[si, t] - B[si, t-1] + Csubstock[t-1]
+        }
     }
     # - Catch observations -
-    C <- rep(0, inp$nobsC)
-    obsC <- rep(0, inp$nobsC)
-    e.c <- exp(rnorm(inp$nobsC, 0, sdc))
-    if (inp$nobsC > 0){
-        for (i in 1:inp$nobsC){
-            inds <- inp$ic[i]:(inp$ic[i] + inp$nc[i]-1)
-            C[i] <- sum(Csub[inds])
-            obsC[i] <- C[i] * e.c[i]
+    C <- list()
+    obsC <- list()
+    e.c <- list()
+    for (k in inp$nfisheriesseq){
+        C[[k]] <- rep(0, inp$nobsC[k])
+        obsC[[k]] <- rep(0, inp$nobsC[k])
+        e.c[[k]] <- exp(rnorm(inp$nobsC[k], 0, sdc[k]))
+        if (inp$nobsC[k] > 0){
+            for (i in 1:inp$nobsC[k]){
+                inds <- inp$ic[[k]][i]:(inp$ic[[k]][i] + inp$nc[[k]][i]-1)
+                C[[k]][i] <- sum(Csub[k, inds])
+                obsC[[k]][i] <- C[[k]][i] * e.c[[k]][i]
+            }
         }
-        if ('outliers' %in% names(inp)){
-            if ('noutC' %in% names(inp$outliers)){
-                fac <- invlogp1(inp$ini$logp1robfac)
-                inp$outliers$orgobsC <- obsC
-                inp$outliers$indsoutC <- sample(1:inp$nobsC, inp$outliers$noutC)
-                obsC[inp$outliers$indsoutC] <- exp(log(obsC[inp$outliers$indsoutC]) + rnorm(inp$outliers$noutC, 0, fac*sdc))
+    }
+    if ('outliers' %in% names(inp)){ # This probably doesn't work (02.08.2016)
+        if ('noutC' %in% names(inp$outliers)){
+            fac <- invlogp1(inp$ini$logp1robfac)
+            inp$outliers$orgobsC <- obsC
+            inp$outliers$indsoutC <- list()
+            for (k in inp$nfisheriesseq){
+                inp$outliers$indsoutC[[k]] <- sample(1:inp$nobsC[k], inp$outliers$noutC)
+                obsC[[k]][inp$outliers$indsoutC[[k]]] <- exp(log(obsC[[k]][inp$outliers$indsoutC[[k]]]) + rnorm(inp$outliers$noutC, 0, fac*sdc[k]))
             }
         }
     }
     # - Effort observations -
-    Esub <- F / qf * dt
-    E <- numeric(inp$nobsE)
-    obsE <- numeric(inp$nobsE)
-    e.e <- exp(rnorm(inp$nobsE, 0, sde))
-    if (inp$nobsE > 0){
-        for (i in 1:inp$nobsE){
-            inds <- inp$ie[i]:(inp$ie[i] + inp$ne[i]-1)
-            E[i] <- sum(Esub[inds])
-            obsE[i] <- E[i] * e.e[i]
+    #Esub <- F / qf * dt
+    Esub <- E * dt
+    if (inp$neffort > 0){
+        Etrue <- list()
+        obsE <- list()
+        e.e <- list()
+        for (i in inp$neffortseq){
+            # To which fleet does the observed effort belong?
+            flind <- inp$targetmap[which(inp$targetmap[, 3] == i), 2]
+            Etrue[[i]] <- numeric(inp$nobsE[i])
+            obsE[[i]] <- numeric(inp$nobsE[i])
+            e.e[[i]] <- exp(rnorm(inp$nobsE[i], 0, sde[i]))
+            if (inp$nobsE[i] > 0){
+                for (j in 1:inp$nobsE[i]){
+                    inds <- inp$ie[[i]][j]:(inp$ie[[i]][j] + inp$ne[[i]][j]-1)
+                    Etrue[j] <- sum(Esub[flind, inds])
+                    obsE[j] <- Etrue[j] * e.e[[i]][j]
+                }
+            }
         }
         if ('outliers' %in% names(inp)){
             if ('noutE' %in% names(inp$outliers)){
                 fac <- invlogp1(inp$ini$logp1robfae)
                 inp$outliers$orgobsE <- obsE
-                inp$outliers$indsoutE <- sample(1:inp$nobsE, inp$outliers$noutE)
-                obsE[inp$outliers$indsoutE] <- exp(log(obsE[inp$outliers$indsoutE]) + rnorm(inp$outliers$noutE, 0, fac*sde))
+                inp$outliers$indsoutE <- list()
+                for (i in inp$neffortseq){
+                    inp$outliers$indsoutE[[i]] <- sample(1:inp$nobsE[i], inp$outliers$noutE)
+                    obsE[[i]][inp$outliers$indsoutE[[i]]] <- exp(log(obsE[[i]][inp$outliers$indsoutE[[i]]]) + rnorm(inp$outliers$noutE, 0, fac*sde[i]))
+                }
             }
         }
     }
@@ -376,33 +453,44 @@ sim.spict <- function(input, nobs=100){
     logItrue <- list()
     Itrue <- list()
     e.i <- list()
-    for (I in 1:inp$nindex){
-        obsI[[I]] <- rep(0, inp$nobsI[I])
-        errI[[I]] <- rep(0, inp$nobsI[I])
-        logItrue[[I]] <- numeric(inp$nobsI[I])
-        e.i[[I]] <- exp(rnorm(inp$nobsI[I], 0, sdi))
-        if (inp$nobsI[[I]] > 0){
-            for (i in 1:inp$nobsI[I]){
-                errI[[I]][i] <- rnorm(1, 0, sdi)
-                logItrue[[I]][i] <- log(q[I]) + log(B[inp$ii[[I]][i]])
-                obsI[[I]][i] <- exp(logItrue[[I]][i]) * e.i[[I]][i]
+    for (si in 1:inp$nstocks){
+        obsI[[si]] <- list()
+        errI[[si]] <- list()
+        logItrue[[si]] <- list()
+        Itrue[[si]] <- list()
+        e.i[[si]] <- list()
+        if (inp$nindex[si] > 0){
+            for (I in inp$nindexseq[[si]]){
+                obsI[[si]][[I]] <- rep(0, inp$nobsI[[si]][I])
+                errI[[si]][[I]] <- rep(0, inp$nobsI[[si]][I])
+                logItrue[[si]][[I]] <- numeric(inp$nobsI[[si]][I])
+                sdiind <- inp$mapsdi[[si]][I]
+                qind <- inp$mapq[[si]][I]
+                e.i[[si]][[I]] <- exp(rnorm(inp$nobsI[[si]][I], 0, sdi[sdiind]))
+                if (inp$nobsI[[si]][I] > 0){
+                    for (i in 1:inp$nobsI[[si]][I]){
+                        errI[[si]][[I]][i] <- rnorm(1, 0, sdi[sdiind])
+                        logItrue[[si]][[I]][i] <- log(q[qind]) + log(B[inp$ii[[si]][[I]][i]])
+                        obsI[[si]][[I]][i] <- exp(logItrue[[si]][[I]][i]) * e.i[[si]][[I]][i]
+                    }
+                    Itrue[[si]][[I]] <- exp(logItrue[[si]][[I]])
+                }
             }
-            Itrue[[I]] <- exp(logItrue[[I]])
         }
-    }
-    if ('outliers' %in% names(inp)){
-        if ('noutI' %in% names(inp$outliers)){
-            if (length(inp$outliers$noutI)==1){
-                inp$outliers$noutI <- rep(inp$outliers$noutI, inp$nindex)
-            }
-            fac <- invlogp1(inp$ini$logp1robfac)
-            inp$outliers$orgobsI <- obsI
-            inp$outliers$indsoutI <- list()
-            if (inp$nobsI[[I]] > 0){
-                for (i in 1:inp$nindex){
-                    inp$outliers$indsoutI[[i]] <- sample(1:inp$nobsI[i], inp$outliers$noutI[i])
-                    obsI[[i]][inp$outliers$indsoutI[[i]]] <- exp(log(obsI[[i]][inp$outliers$indsoutI[[i]]]) +
-                                                                 rnorm(inp$outliers$noutI[i], 0, fac*sdi))
+        if ('outliers' %in% names(inp)){ # This is not done! (02.08.2016)
+            if ('noutI' %in% names(inp$outliers)){
+                if (length(inp$outliers$noutI) == 1){
+                    inp$outliers$noutI <- rep(inp$outliers$noutI, inp$nindex)
+                }
+                fac <- invlogp1(inp$ini$logp1robfac)
+                inp$outliers$orgobsI <- obsI
+                inp$outliers$indsoutI <- list()
+                if (inp$nobsI[[I]] > 0){
+                    for (i in 1:inp$nindex){
+                        inp$outliers$indsoutI[[i]] <- sample(1:inp$nobsI[i], inp$outliers$noutI[i])
+                        obsI[[i]][inp$outliers$indsoutI[[i]]] <- exp(log(obsI[[i]][inp$outliers$indsoutI[[i]]]) +
+                                                                     rnorm(inp$outliers$noutI[i], 0, fac*sdi))
+                    }
                 }
             }
         }
@@ -411,8 +499,6 @@ sim.spict <- function(input, nobs=100){
     sim <- list()
     sim$obsC <- obsC
     sim$timeC <- inp$timeC
-    #sim$obsI <- obsI
-    #sim$timeI <- inp$timeI
     if (use.index.flag){
         sim$obsI <- obsI
         sim$timeI <- inp$timeI
@@ -427,15 +513,31 @@ sim.spict <- function(input, nobs=100){
         sim$otherobs$obsE <- obsE
         sim$otherobs$timeE <- inp$timeE
     }
-    if (inp$nobsC == inp$nobsE){
-        if (inp$sim.comm.cpue){
-            sim$obsI <- obsC / obsE
-            sim$timeI <- inp$timeI
-        } else {
-            sim$otherobs$obsIcommcpue <- obsC / obsE
-            sim$otherobs$timeIcommcpue <- inp$timeC
+    # Commercial CPUE observations
+    if (inp$sim.comm.cpue){
+        sim$obsI <- list()
+        sim$timeI <- list()
+    } else {
+        sim$otherobs$obsIcommcpue <- list()
+        sim$otherobs$timeIcommcpue <- list()
+    }
+    for (k in inp$nfisheriesseq){
+        flind <- inp$targetmap[k, 3]
+        if (flind > 0){
+            if (inp$nobsC[k] == inp$nobsE[flind]){
+                obsItmp <- obsC[[k]] / obsE[[flind]]
+                timeItmp <- inp$timeC[[k]]
+                if (inp$sim.comm.cpue){
+                    sim$obsI[[k]] <- obsItmp
+                    sim$timeI[[k]] <- timeItmp
+                } else {
+                    sim$otherobs$obsIcommcpue[[k]] <- obsItmp
+                    sim$otherobs$timeIcommcpue[[k]] <- timeItmp
+                }
+            }
         }
     }
+    # Parameters
     sim$ini <- plin
     for (nm in inp$RE){
         sim$ini[[nm]] <- NULL
@@ -456,7 +558,12 @@ sim.spict <- function(input, nobs=100){
     sim$meyermillar <- inp$meyermillar
     sim$aspic <- inp$aspic
     sim$true <- pl
-    sim$true$logalpha <- sim$true$logsdi - sim$true$logsdb
+    sim$true$logalpha <- numeric(sum(inp$nindex))
+    for (i in 1:sum(inp$nindex)){
+        bind <- inp$index2sdb
+        iind <- inp$index2sdi
+        sim$true$logalpha[i] <- sim$true$logsdi[iind] - sim$true$logsdb[bind]
+    }
     sim$true$logbeta <- sim$true$logsdc - sim$true$logsdf
     sim$true$dteuler <- inp$dteuler
     sim$true$splineorder <- inp$splineorder
@@ -476,16 +583,16 @@ sim.spict <- function(input, nobs=100){
     sim$true$e.f <- e.f
     
     sign <- 1
-    R <- (n-1)/n * gamma * mean(m[inp$ir]) / K
+    R <- (n-1)/n * gamma * m / K
     p <- n-1
     sim$true$R <- R
-    sim$true$logrold <- log(abs(gamma * mean(m[inp$ir]) / K))
-    sim$true$logr <- log(mean(m[inp$ir]) / K * n^(n/(n-1.0)))
+    sim$true$logrold <- log(abs(gamma * m / K))
+    sim$true$logr <- log(m / K * n^(n/(n-1.0)))
     sim$true$logrc <- log(2 * R)
     # Deterministic reference points
     sim$true$Bmsyd <- K/(n^(1/(n-1)))
-    sim$true$MSYd <- mean(m[inp$ir])
-    sim$true$Fmsyd <- sim$true$MSYd/sim$true$Bmsyd
+    sim$true$MSYd <- m
+    sim$true$Fmsyd <- sim$true$MSYd / sim$true$Bmsyd
     # Stochastic reference points from Bordet & Rivest (2014)
     sim$true$Bmsys <- K/(p+1)^(1/p) * (1- (1+R*(p-1)/2)/(R*(2-R)^2)*sdb^2)
     sim$true$Fmsys <- R - p*(1-R)*sdb^2/((2-R)^2)
@@ -500,8 +607,8 @@ sim.spict <- function(input, nobs=100){
         sim$true$MSY <- sim$true$MSYd
     }
     # Calculate relative B and F
-    sim$true$BBmsy <- B/sim$true$Bmsy
-    sim$true$FFmsy <- F/sim$true$Fmsy
+    sim$true$BBmsy <- B / sim$true$Bmsy
+    sim$true$FFmsy <- F / sim$true$Fmsy
     # include the log of some quantities
     lognames <- c('B', 'F', 'Bmsy', 'Fmsy', 'MSY', 'FFmsy', 'BBmsy')
     for (pn in lognames){

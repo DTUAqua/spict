@@ -1579,7 +1579,7 @@ check.inp <- function(inp){
     #inp$idfleet <- unlist(lapply(1:inp$nfleets, function(x) rep(x, inp$ns)))
     #inp$idqf <- unlist(lapply(1:inp$nqf, function(x) rep(x, inp$ns)))
     inp$idstock <- rep(1:inp$nstocks, inp$ns)
-    inp$idfleet <- rep(inp$nfleetsseq, inp$ns)
+    inp$idfleet <- rep(1:inp$nfleets, inp$ns)
     inp$idfishery <- rep(inp$nfisheriesseq, inp$ns)
     
     # Reorder parameter list

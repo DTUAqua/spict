@@ -58,69 +58,89 @@ calc.osa.resid <- function(rep){
         if (class(osar) != 'try-error'){
             osar <- cbind(id=inp$obsidsrt[inp$osar.subset], osar)
             rep$diagn <- list()
+            
             # Store catch residuals
-            inds <- match(inp$obsidC, osar$id)
-            inds <- inds[!is.na(inds)]
-            rep$osarC <- osar[inds, ]
-            inds2 <- match(osar$id, inp$obsidC)
-            inds2 <- inds2[!is.na(inds2)]
-            timeC <- inp$timeC[inds2]
-            # Catch residual analysis
-            logCpres <- rep$osarC$residual
-            diagnCp <- res.diagn(logCpres, 'C', name='catch')
-            for (nm in names(diagnCp)){
-                rep$diagn[[nm]] <- diagnCp[[nm]]
+            timeC <- list()
+            logCpres <- list()
+            rep$osarC <- list()
+            if (inp$nfisheries > 0){
+                for (i in inp$nfisheriesseq){
+                    inds <- na.omit(match(inp$obsidC[[i]], osar$id))
+                    #inds <- inds[!is.na(inds)]
+                    rep$osarC[[i]] <- osar[inds, ]
+                    inds2 <- na.omit(match(osar$id, inp$obsidC[[i]]))
+                    #inds2 <- inds2[!is.na(inds2)]
+                    timeC[[i]] <- inp$timeC[[i]][inds2]
+                    # Catch residual analysis
+                    logCpres[[i]] <- rep$osarC[[i]]$residual
+                    diagnCp <- res.diagn(logCpres[[i]], paste0('C', i)) #, name='catch')
+                    for (nm in names(diagnCp)){
+                        rep$diagn[[nm]] <- diagnCp[[nm]]
+                    }
+                }
             }
-
+            
             # Store effortresiduals
-            timeE <- numeric()
-            logEpres <- numeric()
-            if (rep$inp$nobsE > 0){
-                inds <- match(inp$obsidE, osar$id)
-                inds <- inds[!is.na(inds)]
-                rep$osarE <- osar[inds, ]
-                inds2 <- match(osar$id, inp$obsidE)
-                inds2 <- inds2[!is.na(inds2)]
-                timeE <- inp$timeE[inds2]
-                # Effort residual analysis
-                logEpres <- rep$osarE$residual
-                diagnEp <- res.diagn(logEpres, 'E', name='effort')
-                for (nm in names(diagnEp)){
-                    rep$diagn[[nm]] <- diagnEp[[nm]]
+            timeE <- list()
+            logEpres <- list()
+            rep$osarE <- list()
+            if (inp$neffort > 0){
+                for (i in inp$neffortseq){
+                    if (inp$nobsE[i] > 0){
+                        inds <- na.omit(match(inp$obsidE[[i]], osar$id))
+                        #inds <- inds[!is.na(inds)]
+                        rep$osarE[[i]] <- osar[inds, ]
+                        inds2 <- na.omit(match(osar$id, inp$obsidE))
+                        #inds2 <- inds2[!is.na(inds2)]
+                        timeE[[i]] <- inp$timeE[inds2]
+                        # Effort residual analysis
+                        logEpres[[i]] <- rep$osarE$residual
+                        diagnEp <- res.diagn(logEpres[[i]], paste0('E', i)) #, name='effort')
+                        for (nm in names(diagnEp)){
+                            rep$diagn[[nm]] <- diagnEp[[nm]]
+                        }
+                    }
                 }
             }
             
             # Store index residuals
             timeI <- list()
             logIpres <- list()
-            if (inp$nindex > 0){
-                rep$osarI <- list()
-                for (i in 1:rep$inp$nindex){
-                    inds <- match(inp$obsidI[[i]], osar$id)
-                    inds <- inds[!is.na(inds)]
-                    rep$osarI[[i]] <- osar[inds,]
-                    inds2 <- match(osar$id, inp$obsidI[[i]])
-                    inds2 <- inds2[!is.na(inds2)]
-                    timeI[[i]] <- inp$timeI[[i]][inds2]
-                }
-                npar <- length(rep$opt$par)
-                if (!'diagn' %in% names(rep)) rep$diagn <- list()
-                # Index residual analysis
-                diagnIp <- list()
-                for (i in 1:inp$nindex){
-                    logIpres[[i]] <- rep$osarI[[i]]$residual
-                    diagnIpi <- res.diagn(logIpres[[i]], paste0('I', i), name=paste0('index', i))
-                    for (nm in names(diagnIpi)){
-                        rep$diagn[[nm]] <- diagnIpi[[nm]]
+            rep$osarI <- list()
+            for (si in 1:inp$nstocks){
+                timeI[[si]] <- list()
+                logIpres[[si]] <- list()
+                rep$osarI[[si]] <- list()
+                if (inp$nindex[si] > 0){
+                    for (i in inp$nindexseq[[si]]){
+                        inds <- na.omit(match(inp$obsidI[[si]][[i]], osar$id))
+                        #inds <- inds[!is.na(inds)]
+                        rep$osarI[[si]][[i]] <- osar[inds, ]
+                        inds2 <- na.omit(match(osar$id, inp$obsidI[[si]][[i]]))
+                        #inds2 <- inds2[!is.na(inds2)]
+                        timeI[[si]][[i]] <- inp$timeI[[si]][[i]][inds2]
+                    }
+                    #npar <- length(rep$opt$par)
+                    if (!'diagn' %in% names(rep)){
+                        rep$diagn <- list()
+                    }
+                    # Index residual analysis
+                    #diagnIp <- list()
+                    for (i in inp$nindexseq[[si]]){
+                        logIpres[[si]][[i]] <- rep$osarI[[si]][[i]]$residual
+                        diagnIpi <- res.diagn(logIpres[[si]][[i]], paste0('S', si, 'I', i))
+                                              #name=paste0('index', i))
+                        for (nm in names(diagnIpi)){
+                            rep$diagn[[nm]] <- diagnIpi[[nm]]
+                        }
                     }
                 }
             }
-            rep$osar <- list(timeC=timeC,
-                             logCpres=logCpres,
-                             timeI=timeI,
-                             logIpres=logIpres,
-                             timeE=timeE,
-                             logEpres=logEpres)
+
+            rep$osarraw <- osar
+            rep$osar <- list(timeC=timeC, logCpres=logCpres,
+                             timeI=timeI, logIpres=logIpres,
+                             timeE=timeE, logEpres=logEpres)
         } else {
             stop('Could not calculate OSA residuals.\n')
         }
@@ -138,7 +158,7 @@ calc.osa.resid <- function(rep){
 #' @param name Identifier that will be used in warning messages.
 #' @return List containing residual statistics in 'diagn', shapiro output in 'shapiro', and bias output in 'bias'.
 #' @export
-res.diagn <- function(resid, id, name=''){
+res.diagn <- function(resid, id, name=id){
     nna <- sum(is.na(resid))
     if (nna > 0){
         warning(nna, ' NAs found in ', name, ' residuals')
