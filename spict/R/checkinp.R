@@ -1006,6 +1006,7 @@ check.inp <- function(inp){
         # Find fisheries related to the stock of the current fishery (i)
         ffinds <- which(inp$targetmap[, 1] == inp$targetmap[i, 1])
         # Predict catches for each fishery over the span of all fisheries related to a stock
+        # to be able to plot predicted catch even when data are missing
         timeCstock <- unlist(inp$timeC[ffinds])
         timeC <- inp$timeC[[i]]
         inp$timeCpred[[i]] <- unique(c(timeCstock,

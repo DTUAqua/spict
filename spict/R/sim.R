@@ -278,6 +278,12 @@ sim.spict <- function(input, nobs=100){
     K <- exp(pl$logK)
     q <- exp(pl$logq)
     qf <- exp(pl$logqf)
+    if (length(qf) == 0){
+        qf <- rep(1, inp$nfisheries)
+    }
+    if (length(qf) != inp$nfisheries){
+        qf <- rep(qf[1], inp$nfisheries)
+    }
     logphi <- pl$logphi
     sdb <- exp(pl$logsdb)
     sdu <- exp(pl$logsdu)
@@ -341,11 +347,12 @@ sim.spict <- function(input, nobs=100){
         # - Fishing mortality -
         F <- matrix(0, inp$nfisheries, nt)
         for (k in inp$nfisheriesseq){
-            qfind <- inp$targetmap[k, 3]
+            #qfind <- inp$targetmap[k, 3]
             flind <- inp$targetmap[k, 2]
             # If qf is not set use qf = 1
-            thisqf <- ifelse(qfind > 0, qf[qfind], 1)
-            F[k, ] <- thisqf * E[flind, ]
+            #thisqf <- ifelse(qfind > 0, qf[qfind], 1)
+            #F[k, ] <- thisqf * E[flind, ]
+            F[k, ] <- qf[k] * E[flind, ]
         }
         # - Biomass -
         B <- matrix(0, inp$nstocks, nt)
@@ -397,8 +404,12 @@ sim.spict <- function(input, nobs=100){
         obsC[[k]] <- rep(0, inp$nobsC[k])
         e.c[[k]] <- exp(rnorm(inp$nobsC[k], 0, sdc[k]))
         if (inp$nobsC[k] > 0){
+            # Find the indices of timeCpred that was observed
+            obsinds <- match(inp$timeC[[k]], inp$timeCpred[[k]])
+            ic <- inp$ic[[k]][obsinds]
+            nc <- inp$nc[[k]][obsinds]
             for (i in 1:inp$nobsC[k]){
-                inds <- inp$ic[[k]][i]:(inp$ic[[k]][i] + inp$nc[[k]][i]-1)
+                inds <- ic[i]:(ic[i] + nc[i]-1)
                 C[[k]][i] <- sum(Csub[k, inds])
                 obsC[[k]][i] <- C[[k]][i] * e.c[[k]][i]
             }
@@ -552,6 +563,8 @@ sim.spict <- function(input, nobs=100){
     sim$phases <- inp$phases
     sim$priors <- inp$priors
     sim$target <- inp$target
+    sim$stocknames <- inp$stocknames
+    sim$fleetnames <- inp$fleetnames
     sim$outliers <- inp$outliers
     sim$recount <- recount
     sim$nseasons <- inp$nseasons

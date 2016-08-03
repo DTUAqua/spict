@@ -189,13 +189,16 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                         if (parname == 'P'){
                             Prep <- rep$report$P
                             prod <- list()
+                            timeprod <- list()
+                            stockprod <- list()
                             for (si in 1:rep$inp$nstocks){
                                 Psub <- Prep[si, ]
                                 finds <- which(rep$inp$targetmap[, 1] == si)
                                 # this should be the same for all fleets fishing on a stock
                                 fid <- finds[1]
-                                timeStock <- rep$inp$timeCpred[[fid]]
-                                nt <- length(timeStock)
+                                timeprod[[si]] <- rep$inp$timeCpred[[fid]]
+                                nt <- length(timeprod[[si]])
+                                stockprod[[si]] <- rep(si, nt)
                                 prod[[si]] <- numeric(nt)
                                 for (i in 1:nt){
                                     ic <- rep$inp$ic[[fid]][i]
@@ -205,6 +208,8 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                                 }
                             }
                             est <- unlist(prod)
+                            timeprod <- unlist(timeprod)
+                            stockprod <- unlist(stockprod)
                             #ic <- rep$inp$ic
                             #nc <- rep$inp$nc
                             #B0 <- B[ic, 2]
@@ -220,7 +225,7 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                 }
             }
         }
-        if (exp==TRUE){
+        if (exp == TRUE){
             # This is the CV of a log-normally distributed random variable
             # see https://en.wikipedia.org/wiki/Log-normal_distribution
             cv <- sqrt(exp(sd^2) - 1)
@@ -243,6 +248,10 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
         if (parname %in% c('logE')){
             rownames(out) <- rep(rep$inp$time, each=rep$inp$nfleets)
             out <- cbind(out, qf=rep$ind$idfleet)
+        }
+        if (parname == 'P'){
+            out <- cbind(out, stock=stockprod)
+            rownames(out) <- timeprod
         }
         return(out)
     }

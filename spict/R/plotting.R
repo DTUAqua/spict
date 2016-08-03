@@ -96,6 +96,16 @@ add.catchunit <- function(lab, cu){
 }
 
 
+#' @name add.name
+#' @title Add name to plot
+#' @param name Name to be added
+#' @return Label with added catch unit
+add.name <- function(name){
+    text(par()$usr[2], par()$usr[4], name, xpd=TRUE, adj=c(1, -0.3),
+         col='darkgray', font=3, cex=0.8)
+}
+
+
 #' @name arrow.line
 #' @title Draw a line with arrow heads.
 #' @details Add to an existing plot a continuous line with arrow heads showing the direction between each data point
@@ -224,10 +234,11 @@ c.cols <- function(){
 #' @param do.line If TRUE draw a line between points.
 #' @param add.legend If TRUE add legend containing information on quarters.
 #' @param add.vline.at If not NULL will draw a vertical line at the given time point.
+#' @param name If not NULL stock name is added to plot
 #' @param ... Additional plotting arguments.
 #' @return Nothing.
 plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TRUE,
-                     add.legend=FALSE, add.vline.at=NULL, ...){
+                     add.legend=FALSE, add.vline.at=NULL, name=NULL, ...){
     if (is.null(obsx)){
         x <- time
     } else {
@@ -265,6 +276,9 @@ plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TR
     }
     if (add.legend){
         add.col.legend()
+    }
+    if (!is.null(name)){
+        add.name(name)
     }
     if (!add){
         box(lwd=1.5)
@@ -455,9 +469,9 @@ plotspict.biomass <- function(rep, stock=1, logax=FALSE, main='Absolute biomass'
             }
         }
         if ('true' %in% names(inp)){
-            lines(inp$true$time, inp$true$B/scal, col=true.col()) # Plot true
-            abline(h=inp$true$Bmsy, col=true.col(), lty=1)
-            abline(h=inp$true$Bmsy, col='black', lty=3)
+            lines(inp$true$time, inp$true$B[stock, ]/scal, col=true.col()) # Plot true
+            abline(h=inp$true$Bmsy[stock], col=true.col(), lty=1)
+            abline(h=inp$true$Bmsy[stock], col='black', lty=3)
         }
         lines(inp$time[indest], Bestfull[indest, 2]/scal, col='blue', lwd=1.5)
         lines(inp$time[indpred], Bestfull[indpred, 2]/scal, col='blue', lty=3)
@@ -579,7 +593,8 @@ plotspict.bbmsy <- function(rep, stock=1, logax=FALSE, main='Relative biomass', 
                 }
             }
             if ('true' %in% names(inp)){
-                lines(inp$true$time, inp$true$B/inp$true$Bmsy, col=true.col()) # Plot true
+                lines(inp$true$time, inp$true$B[stock, ]/ inp$true$Bmsy[stock],
+                      col=true.col()) # Plot true
             }
             lines(inp$time[indest], BBfull[indest, 2], col='blue', lwd=1.5)
             lines(inp$time[indpred], BBfull[indpred, 2], col='blue', lty=3)
@@ -1050,12 +1065,12 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
         if ('true' %in% names(inp)){
             if (nfinds > 1){
                 truecols <- rep(c.cols(), nfinds)
-                matplot(inp$true$time, t(inp$true$F), add=TRUE, col=truecols,
+                matplot(inp$true$time, t(inp$true$F[finds, ]), add=TRUE, col=truecols,
                     lty=2, typ='l', lwd=1.5)
             }
             lines(inp$true$time, inp$true$Fstock[stock, ], col=true.col()) # Plot true
-            abline(h=inp$true$Fmsy, col=true.col(), lty=1)
-            abline(h=inp$true$Fmsy, col='black', lty=3)
+            abline(h=inp$true$Fmsy[stock], col=true.col(), lty=1)
+            abline(h=inp$true$Fmsy[stock], col='black', lty=3)
         }
         maincol <- 'blue'
         if (!flag){
@@ -1627,12 +1642,16 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
         if (inp$reportall){
             Best <- get.par('logB', rep, exp=TRUE)[inp$idstock == stock, ]
             Pest <- get.par('P', rep)
+            pinds <- which(Pest[, colnames(Pest) == 'stock'] == stock)
+            Pest <- Pest[pinds, ]
+            binds <- match(as.numeric(names(pinds)), inp$time)
             Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
             for (i in 1:nr){
                 #Pst[[i]] <- pfun(gamma[2], mest[i, 2], Kest[2], n[2], Bplot)
                 Pst[[i]] <- pfun(gamma[2], mest[2], Kest[2], n[2], Bplot)
             }
-            Bvec <- Best[ic[1:dim(Pest)[1]], 2]
+            #Bvec <- Best[ic[1:dim(Pest)[1]], 2]
+            Bvec <- Best[binds, 2]
             xlim <- range(Bvec/Kest[2], 0, 1)
             ylim <- c(min(0, Pest[,2]/Bmsy[2]), max(Pest[,2]/Bmsy[2], unlist(Pst)/Bmsy[2], na.rm=TRUE))
         } else {
@@ -1916,6 +1935,9 @@ plot.spictcls <- function(x, ...){
     if (!exists('stamp')){
         stamp <- get.version()
     }
+    if (!exists('stock')){
+        stock <- 1
+    }
     if ('par.fixed' %in% names(rep) & rep$inp$do.sd.report){
         inp <- rep$inp
         if (inp$reportall){
@@ -1926,17 +1948,17 @@ plot.spictcls <- function(x, ...){
                 opar <- par(mfrow=c(3, 3), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
             }
             # Biomass
-            plotspict.biomass(rep, logax=logax, stamp='')
+            plotspict.biomass(rep, stock=stock, logax=logax, stamp='')
             # F
-            plotspict.f(rep, logax=logax, qlegend=FALSE, stamp='')
+            plotspict.f(rep, stock=stock, logax=logax, qlegend=FALSE, stamp='')
             # Catch
-            plotspict.catch(rep, qlegend=FALSE, stamp='')
+            plotspict.catch(rep, stock=stock, qlegend=FALSE, stamp='')
             # B/Bmsy
-            plotspict.bbmsy(rep, logax=logax, qlegend=FALSE, stamp='')
+            plotspict.bbmsy(rep, stock=stock, logax=logax, qlegend=FALSE, stamp='')
             # F/Fmsy
-            plotspict.ffmsy(rep, logax=logax, qlegend=FALSE, stamp='')
+            plotspict.ffmsy(rep, stock=stock, logax=logax, qlegend=FALSE, stamp='')
             # F versus B
-            plotspict.fb(rep, logax=logax, plot.legend=TRUE, stamp='')
+            plotspict.fb(rep, stock=stock, logax=logax, plot.legend=TRUE, stamp='')
         } else {
             cat('inp$reportall = FALSE so not much to plot.\n')
             if ('osar' %in% names(rep)){
@@ -1947,14 +1969,15 @@ plot.spictcls <- function(x, ...){
             on.exit(opar)
         }
         # Production curve
-        plotspict.production(rep, stamp='')
+        plotspict.production(rep, stock=stock, stamp='')
         # Seasonal F
         if (inp$nseasons > 1 & inp$seasontype==1){
             plotspict.season(rep, stamp='')
         }
         # Time constant
         if (inp$nseasons == 1){
-            plotspict.tc(rep, stamp='')
+            # Commented as of 03.08.2016
+            #plotspict.tc(rep, stamp='')
         }
         # Priors
         if ('priors' %in% names(rep$inp)){
@@ -2309,11 +2332,12 @@ plotspict.ci <- function(inp, stamp=get.version()){
 #' @name plotspict.priors
 #' @title Plot priors and posterior distribution.
 #' @param rep A result from fit.spict.
+#' @param stock Number of the stock to be plotted.
 #' @param do.plot Integer defining maximum number of priors to plot.
 #' @param stamp Stamp plot with this character string.
 #' @return Nothing
 #' @export
-plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
+plotspict.priors <- function(rep, stock=1, do.plot=4, stamp=get.version()){
     inp <- rep$inp
     npriors <- length(inp$priors)
     useflags <- numeric(npriors)
@@ -2321,14 +2345,16 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
         useflag <- inp$priors[[i]][3]
         nm <- names(inp$priors)[i]
         phase <- 1
-        if (nm %in% names(inp$phases)) phase <- inp$phases[[nm]]
+        if (nm %in% names(inp$phases)){
+            phase <- inp$phases[[nm]]
+        }
         if (phase > 0){ # Avoid plotting priors of parameters that are fixed
             useflags[i] <- inp$priors[[i]][3]
         } else {
             useflags[i] <- 0
         }
     }
-    inds <- which(useflags==1)
+    inds <- which(useflags == 1)
     ninds <- length(inds)
     ninds <- min(ninds, do.plot)
     nused <- sum(useflags)
@@ -2342,7 +2368,6 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
                     gpnm <- paste0('log', substr(nm, 2, 4))
                     par <- get.par(gpnm, rep, exp=FALSE)
                 }
-                
             }
             nmpl <- sub('log', '', nm)
             par <- get.par(nm, rep, exp=FALSE)
@@ -2354,9 +2379,14 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
                     nmpl <- add.catchunit(nmpl, inp$catchunit)
                 }
             }
-            for (rr in 1:nrow(par)){
+            if (do.plot == 1){
+                nr <- 1
+            } else {
+                nr <- nrow(par)
+            }
+            for (rr in 1:nr){
                 nmpl <- sub('log', '', nm)
-                if (nrow(par) > 1){
+                if (nr > 1){
                     nmpl <- paste0(nmpl, rr)
                 }
                 mu <- ifelse(is.na(par[rr, 4]), priorvec[1], par[rr, 2])
@@ -2407,6 +2437,9 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
     inp <- check.inp(inpin)
     #nseries <- inp$nindex + 1 + as.numeric(inp$nobsE > 0)
     nseries <- inp$nseries
+    if ('true' %in% names(inp)){
+        nseries <- nseries + inp$nstocks + inp$nfisheries
+    }
     mfrow <- get.mfrow(nseries)
     #if (nseries %in% 1:2) mfrow <- c(2, 1)
     #if (nseries %in% 3:4) mfrow <- c(2, 2)
@@ -2421,7 +2454,26 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
             on.exit(par(opar))
         }
     }
+    # Same xlim for all plots
     xlim <- range(unlist(inp$timeC), unlist(inp$timeI), unlist(inp$timeE))
+    # Plot simulated biomass and fishing mortality
+    if ('true' %in% names(inp)){
+        for (si in 1:inp$nstocks){
+            ylab <- add.catchunit(expression(B[t]), inp$catchunit)
+            plot(inp$time, inp$true$B[si, ], typ='l', xlim=xlim, xlab='Time', ylab=ylab,
+                 lwd=1.5, col=true.col(), main='True biomass')
+            add.name(inp$stocknames[si])
+            box(lwd=1.5)
+        }
+        for (k in inp$nfisheriesseq){
+            plot(inp$time, inp$true$F[k, ], typ='l', col=c.cols()[k], xlim=xlim, xlab='Time',
+                 ylab=expression(F[t]), lwd=1.5, main='True F')
+            name <- paste(inp$stocknames[inp$targetmap[k, 1]], 'by',
+                      inp$fleetnames[inp$targetmap[k, 2]])
+            add.name(name)
+            box(lwd=1.5)
+        }
+    }
     # Plot catch
     if (inp$nfisheries == 1){
         lcol <- 'black'
@@ -2432,9 +2484,13 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
         main <- paste0('Nobs C', k, ': ', inp$nobsC[k])
         ylab <- paste0('Catch ', k)
         ylab <- add.catchunit(ylab, inp$catchunit)
-        plot(inp$timeC[[k]], inp$obsC[[k]], typ='l', ylab=ylab, xlab='Time', main=main, xlim=xlim, col=lcol[k])
+        plot(inp$timeC[[k]], inp$obsC[[k]], typ='l', ylab=ylab, xlab='Time',
+             main=main, xlim=xlim, col=lcol[k])
         grid()
-        plot.col(inp$timeC[[k]], inp$obsC[[k]], do.line=FALSE, cex=0.6, add=TRUE, add.legend=qlegend)
+        name <- paste(inp$stocknames[inp$targetmap[k, 1]], 'by',
+                      inp$fleetnames[inp$targetmap[k, 2]])
+        plot.col(inp$timeC[[k]], inp$obsC[[k]], do.line=FALSE, cex=0.6,
+                 add=TRUE, add.legend=qlegend, name=name)
         if (!is.null(MSY)){
             abline(h=MSY, lty=2)
         }
@@ -2449,8 +2505,8 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
                  ylab=paste0('S', si, ', Index ', i), xlab='Time',
                  main=main, xlim=xlim)
             grid()
-            plot.col(inp$timeI[[si]][[i]], inp$obsI[[si]][[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE,
-                     add.legend=FALSE)
+            plot.col(inp$timeI[[si]][[i]], inp$obsI[[si]][[i]], pch=i, do.line=FALSE,
+                     cex=0.6, add=TRUE, add.legend=FALSE, name=inp$stocknames[si])
             if (inp$nindex[si] > 1 & is.null(one.index)){
                 for (i in 2:inp$nindex[si]){
                     main <- paste0('Nobs S', si, 'I', i, ': ', inp$nobsI[[si]][i])
@@ -2458,8 +2514,8 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
                          ylab=paste0('S', si, ', Index ', i), xlab='Time',
                          main=main, xlim=xlim)
                     grid()
-                    plot.col(inp$timeI[[si]][[i]], inp$obsI[[si]][[i]], pch=i, do.line=FALSE, cex=0.6, add=TRUE,
-                             add.legend=FALSE)
+                    plot.col(inp$timeI[[si]][[i]], inp$obsI[[si]][[i]], pch=i, do.line=FALSE,
+                             cex=0.6, add=TRUE, add.legend=FALSE, name=inp$stocknames[si])
                     #main <- paste0('Nobs I: ', inp$nobsI[i])
                     #plot(inp$timeI[[i]], inp$obsI[[i]], typ='l', ylab=paste('Index', i),
                     #     xlab='Time', main=main, xlim=xlim)
@@ -2476,9 +2532,11 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
         if (inp$nobsE[j] > 0){
             main <- paste0('Nobs E', j, ': ', inp$nobsE[j])
             ylab <- 'Effort'
-            plot(inp$timeE[[j]], inp$obsE[[j]], typ='l', ylab=ylab, xlab='Time', main=main, xlim=xlim)
+            plot(inp$timeE[[j]], inp$obsE[[j]], typ='l', ylab=ylab, xlab='Time',
+                 main=main, xlim=xlim)
             grid()
-            plot.col(inp$timeE[[j]], inp$obsE[[j]], do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
+            plot.col(inp$timeE[[j]], inp$obsE[[j]], do.line=FALSE, cex=0.6, add=TRUE,
+                     add.legend=FALSE, name=inp$fleetnames[j])
             box(lwd=1.5)
         }
     }
