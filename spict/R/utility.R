@@ -194,7 +194,7 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                                 finds <- which(rep$inp$targetmap[, 1] == si)
                                 # this should be the same for all fleets fishing on a stock
                                 fid <- finds[1]
-                                timeStock <- inp$timeCpred[[fid]]
+                                timeStock <- rep$inp$timeCpred[[fid]]
                                 nt <- length(timeStock)
                                 prod[[si]] <- numeric(nt)
                                 for (i in 1:nt){

@@ -1048,7 +1048,12 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
             }
         }
         if ('true' %in% names(inp)){
-            lines(inp$true$time, inp$true$Fs, col=true.col()) # Plot true
+            if (nfinds > 1){
+                truecols <- rep(c.cols(), nfinds)
+                matplot(inp$true$time, t(inp$true$F), add=TRUE, col=truecols,
+                    lty=2, typ='l', lwd=1.5)
+            }
+            lines(inp$true$time, inp$true$Fstock[stock, ], col=true.col()) # Plot true
             abline(h=inp$true$Fmsy, col=true.col(), lty=1)
             abline(h=inp$true$Fmsy, col='black', lty=3)
         }
@@ -1182,13 +1187,16 @@ plotspict.ffmsy <- function(rep, stock=1, logax=FALSE, main='Relative fishing mo
             #         add=TRUE, add.legend=qlegend)
         }
         if ('true' %in% names(inp)){
-            lines(inp$true$time, inp$true$Fs/inp$true$Fmsy, col=true.col()) # Plot true
+            lines(inp$true$time, inp$true$Fstock[stock, ]/inp$true$Fmsy[stock],
+                  col=true.col()) # Plot true
         }
         maincol <- 'blue'
         lines(time, F, col=maincol, lwd=1.5)
         lines(timep, Fp, col=maincol, lty=3)
-        if (!flag) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
-        if (!flag) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
+        if (!flag){
+            lines(timef, clf, col=rgb(0, 0, 1, 0.2))
+            lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
+        }
         abline(h=lineat, col='black')
         if (rep$opt$convergence != 0){
             warning.stamp()
@@ -1359,7 +1367,7 @@ plotspict.fb <- function(rep, stock=1, logax=FALSE, plot.legend=TRUE, ext=TRUE, 
         cicol2use <- rgb(cicol2rgb[1], cicol2rgb[2], cicol2rgb[3], 0.7)
         polygon(exp(cl[,1])/bscal, exp(cl[,2])/fscal, col=cicoluse, border=cicol2use)
         if ('true' %in% names(inp)){
-            points(inp$true$Bmsy/bscal, inp$true$Fmsy/fscal, pch=25, bg=true.col())
+            points(inp$true$Bmsy[stock]/bscal, inp$true$Fmsy[stock]/fscal, pch=25, bg=true.col())
         }
         maincol <- rgb(0,0,1,0.8)
         if (quarterly){
@@ -1608,7 +1616,7 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
         Bplot <- seq(0.5*1e-8, Kest[2], length=nBplot)
         # Calculate production curve (Pst)
         pfun <- function(gamma, m, K, n, B){
-            gamma*m/K*B*(1 - (B/K)^(n-1))
+            gamma * m/K * B * (1 - (B/K)^(n-1))
         }
         Pst <- list()
         for (i in 1:nr){

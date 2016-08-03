@@ -349,15 +349,16 @@ sim.spict <- function(input, nobs=100){
         }
         # - Biomass -
         B <- matrix(0, inp$nstocks, nt)
+        Fstock <- matrix(0, inp$nstocks, nt)
         e.b <- matrix(0, inp$nstocks, nt-1)
         #B <- numeric(nt)
         B[, 1] <- B0
         for (si in 1:inp$nstocks){
             e.b[si, ] <- exp(rnorm(nt-1, 0, sdb[si]*sqrt(dt)))
             finds <- zero.omit(inp$target[si, ])
-            Fstock <- apply(F[finds, ], 2, sum)
+            Fstock[si, ] <- apply(F[finds, ], 2, sum)
             for (t in 2:nt){
-                B[si, t] <- predict.b(B[si, t-1], Fstock[t-1], gamma[si], m[si], K[si], n[si],
+                B[si, t] <- predict.b(B[si, t-1], Fstock[si, t-1], gamma[si], m[si], K[si], n[si],
                                       dt, sdb[si], inp$btype) * e.b[si, t-1]
             }
         }
@@ -575,6 +576,7 @@ sim.spict <- function(input, nobs=100){
     sim$true$B <- B
     sim$true$F <- F
     sim$true$Fs <- F
+    sim$true$Fstock <- Fstock
     sim$true$gamma <- gamma
     sim$true$seasontype <- inp$seasontype
     sim$true$e.c <- e.c
