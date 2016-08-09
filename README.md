@@ -13,7 +13,7 @@ An R-package for fittng surplus production models in continuous-time to fisherie
 
 ## Help files
 
-There is currently no manual or vignette for the package. A reasonable documentation is included in the package as help texts associated with each function (some may not be fully up-to-date). These can be accessed in the usual R manner by writing e.g. ?check.inp. A pdf compiling help texts for all function can be downloaded [`here`](http://mwpedersen.dk/spicthelp.pdf). As a new user a good start is to read ?check.inp and ?fit.spict.
+There is currently no manual or vignette for the package. A reasonable documentation is included in the package as help texts associated with each function (some may not be fully up-to-date). These can be accessed in the usual R manner by writing e.g. ```?check.inp```. A pdf compiling help texts for all functions can be downloaded [`here`](http://mwpedersen.dk/spicthelp.pdf). As a new user a good start is to read ```?check.inp``` and ```?fit.spict```.
 
 ## Package requirements
 
