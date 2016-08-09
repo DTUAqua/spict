@@ -19,8 +19,11 @@ Suggests:
     parallel,
     mgcv,
     rjags,
-    coda
-LazyData: true\n',
+    coda,
+    knitr,
+    rmarkdown
+LazyData: true
+VignetteBuilder: knitr\n',
     file=fn)
 
 # Add Git hub stuff
