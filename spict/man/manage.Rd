@@ -33,5 +33,6 @@ Scenarios that are currently implemented include:
 data(pol)
 rep <- fit.spict(pol$albacore)
 repman <- manage(rep)
+mansummary(repman) # To print projections
 }
 
