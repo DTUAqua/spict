@@ -5,7 +5,8 @@
 \title{Plot model points colored depending on the quarter to which they belong.}
 \usage{
 \method{plot}{col}(time, obs, obsx = NULL, pch = 1, add = FALSE,
-  typ = "p", do.line = TRUE, add.legend = FALSE, ...)
+  typ = "p", do.line = TRUE, add.legend = FALSE, add.vline.at = NULL,
+  ...)
 }
 \arguments{
 \item{time}{Time vector.}
@@ -23,6 +24,8 @@
 \item{do.line}{If TRUE draw a line between points.}
 
 \item{add.legend}{If TRUE add legend containing information on quarters.}
+
+\item{add.vline.at}{If not NULL will draw a vertical line at the given time point.}
 
 \item{...}{Additional plotting arguments.}
 }

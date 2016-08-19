@@ -37,6 +37,7 @@
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' repman <- manage(rep)
+#' mansummary(repman) # To print projections
 manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
     if (scenarios == 'all'){
         scenarios <- 1:6
@@ -110,6 +111,7 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
 #' @param corF Make correction to F process such that the drift (-0.5*sdf^2*dt) is cancelled and F remains constant in projection mode
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
 #' @return List containing results of management calculations.
+#' @export
 prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
     inpt <- check.inp(inpin)
     plt <- repin$obj$env$parList(repin$opt$par)
@@ -147,6 +149,7 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
 #' @param maninds Indices of time vector for which to apply management.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
 #' @return List containing results of management calculations.
+#' @export
 take.c <- function(catch, inpin, repin, maninds, dbg=0){
     inpc <- check.inp(inpin)
     inpt <- inpin
