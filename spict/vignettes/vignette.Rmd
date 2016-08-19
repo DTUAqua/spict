@@ -1,23 +1,62 @@
 ---
-title: "Vignette Title"
-author: "Vignette Author"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Vignette Title}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+title: "SPiCT"
+author: "Martin W. Pedersen"
+date: '`16-08-2016`'
+output: pdf_document
+vignette: |
+  %\VignetteIndexEntry{SPiCT} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
 ---
 
-Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
 
-- Never uses retina figures
-- Has a smaller default figure size
-- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+This vignette explains basic and more advanced functions of the `spict` package. When loading the package you are notified which version of the package you have installed:
 
-## Vignette Info
+```{r}
+library(spict)
+```
+The printed version follows the format ver@SHA, where ver is the manually defined version number and SHA refers to a unique commit on [github](http://github.com/mawp/spict). The content of this vignette pertains to the version printed above. 
 
-Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
+## A simple example
+
+The package contains the catch and index data analysed in Polacheck et al. (1993). This data can be loaded and plotted by typing
+
+```{r}
+data(pol) 
+```
+
+Data on three stocks are contained in this dataset. Here focus will be on the South Atlantic albacore data. This dataset contains the following
+
+```{r}
+pol$albacore
+```
+
+Note that data are structure in a list containing the entries `obsC` (catch observations), `timeC` (time of catch observations), `obsI` (index observations), and `timeI` (time of index observations). If times are not specified it is assumed that the first observation is observed at time 1 and then sequentially onward with a time step of one year. It is therefore recommended to always specify observation times.
+
+The data can be plotted using the command
+
+```{r, fig.width=5, fig.height=5.5, out.width='0.5\\textwidth', fig.align='center', fig.show='hold'}
+plotspict.data(pol$albacore, qlegend = TRUE)
+```
+
+Note that the number of catch and index observations are given in the respective plot headers. Furthermore, note colour legend in the top-right corner (shown because of the argument `qlegend = TRUE`), which explains at what time of the year an observation was observed based on the colour of the individual points. For illustrative purposes let's try shifting the data a bit
+
+```{r, fig.width=5, fig.height=5.5, out.width='0.5\\textwidth', fig.align='center', fig.show='hold', fig.cap="Blah"}
+inp <- pol$albacore
+inp$timeC <- inp$timeC + 0.3
+inp$timeI <- inp$timeI + 0.8
+plotspict.data(inp, qlegend = TRUE)
+```
+
+Now the colours show that catches are observed in the spring and index in the autumn.
+
+Let's try to fit the model to the data
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+system.time(rep <- fit.spict(pol$albacore))
+```
+The call to `fit.spict` is wrapped in the `system.time` command to check the time spent on the calculations. This is obviously not required, but done here to show that fitting the model only takes a few seconds. The result of the model fit is stored in `rep`, which can either be plotted using `plot` or summarised using `summary`.
 
 ## Styles
 
