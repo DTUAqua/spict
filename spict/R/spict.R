@@ -100,7 +100,11 @@ fit.spict <- function(inp, dbg=0){
                 }
             }
             if (inp$optimiser == 'optim'){
-                opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method='BFGS', control=inp$optimiser.control))
+                if (inp$optim.method == 'SANN'){
+                    obj$gr <- NULL # SANN doesn't use gradient
+                }
+                opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method=inp$optim.method,
+                                 control=inp$optimiser.control))
                 if (class(opt) != 'try-error'){
                     opt$objective <- opt$value
                     pl <- obj$env$parList(opt$par)

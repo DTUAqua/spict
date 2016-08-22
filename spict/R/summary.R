@@ -515,6 +515,7 @@ sumspict.fixedpars <- function(rep, numdigits=8){
 #' @param nms Names of transformed parameters (including log etc.)
 #' @param chgnms Remove transformation indication from the parameter names (e.g. remove log from logK).
 #' @return Parameter values in the natural domain.
+#' @export
 trans2real <- function(vals, nms, chgnms=TRUE){
     loginds <- grep('log', nms)
     logp1inds <- grep('logp1',nms)

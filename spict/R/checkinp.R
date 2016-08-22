@@ -351,6 +351,7 @@ check.inp <- function(inp){
     # Optimiser options
     if (!"optimiser" %in% names(inp)) inp$optimiser <- 'nlminb'
     if (!"optimiser.control" %in% names(inp)) inp$optimiser.control <- list()
+    if (!"optim.method" %in% names(inp)) inp$optim.method <- 'BFGS'
     # OSAR options
     if (!"osar.method" %in% names(inp)) inp$osar.method <- 'none'
     if (!"osar.trace" %in% names(inp))  inp$osar.trace <- FALSE
@@ -843,7 +844,7 @@ check.inp <- function(inp){
     if (!"logn" %in% names(inp$ini)){
         inp$ini$logn <- logn
     } else {
-        if (inp$ini$logn==0){
+        if (inp$ini$logn == 0){
             stop('Initial value for logn == 0, that is not valid!')
         }
     }
@@ -1024,8 +1025,6 @@ check.inp <- function(inp){
                         logsdi=inp$ini$logsdi,
                         logsde=inp$ini$logsde,
                         logsdc=inp$ini$logsdc,
-                        #logalpha=inp$ini$logalpha,
-                        #logbeta=inp$ini$logbeta,
                         logphi=inp$ini$logphi,
                         loglambda=inp$ini$loglambda,
                         logitpp=inp$ini$logitpp,
@@ -1106,6 +1105,26 @@ check.inp <- function(inp){
     inpphases <- unlist(inp$phases)
     inpphases <- inpphases[inpphases > 0] # Don't include phase -1 (fixed value)
     inp$nphases <- length(unique(inpphases))
+
+    # SET DEFAULT PARAMETER RANGES USED IN ROBUSTNESS CHECK
+    if (!"minfac" %in% names(inp)){
+        inp$minfac <- 0.1
+    }
+    if (!"maxfac" %in% names(inp)){
+        inp$maxfac <- 1 / inp$minfac
+    }
+    logfacs <- log(c(inp$minfac, inp$maxfac))
+    defaultranges <- c('logn', 'logK', 'logm', 'logq', 'logqf',
+                       'logsdb', 'logsdf', 'logsdi', 'logsdc', 'logsde')
+    inp$ranges <- list()
+    # Set default ranges (that aren't set)
+    for (nm in defaultranges){
+        if (!nm %in% names(inp$ranges)){
+            inp$ranges[[nm]] <- inp$ini[[nm]] + logfacs
+        }
+    }
+    
+    # Set class
     if (!is.null(inp)){
         class(inp) <- "spictcls"
     }
