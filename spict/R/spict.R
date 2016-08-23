@@ -101,14 +101,24 @@ fit.spict <- function(inp, dbg=0){
             }
             if (inp$optimiser == 'optim'){
                 if (inp$optim.method == 'SANN'){
+                    tmpgr <- obj$gr
                     obj$gr <- NULL # SANN doesn't use gradient
                 }
                 opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method=inp$optim.method,
                                  control=inp$optimiser.control))
+                if (inp$optim.method == 'SANN' & class(opt) != 'try-error'){
+                    obj$gr <- tmpgr # Restore gradient function
+                    cat('SANN optimisation done, switching to BFGS to refine...\n')
+                    opt <- try(optim(par=obj$par, fn=obj$fn, gr=obj$gr, method='BFGS',
+                                 control=inp$optimiser.control))
+                    #obj$fn(opt$par)
+                    #obj$gr(opt$par)
+                }
                 if (class(opt) != 'try-error'){
                     opt$objective <- opt$value
                     pl <- obj$env$parList(opt$par)
                 }
+
             }
         }
     }

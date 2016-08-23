@@ -34,6 +34,8 @@ summary.spictcls <- function(object, ...){
     cat(paste('Convergence: ', rep$opt$convergence, '  MSG: ', rep$opt$message, '\n', sep=''))
     if (rep$opt$convergence > 0){
         cat('WARNING: Model did not obtain proper convergence! Estimates and uncertainties are most likely invalid and cannot be trusted.\n')
+    }
+    if (rep$opt$convergence > 0 | rep$inp$optim.method == 'SANN'){
         grad <- rep$obj$gr()
         names(grad) <- names(rep$par.fixed)
         cat('Gradient at current parameter vector\n')

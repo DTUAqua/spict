@@ -36,7 +36,9 @@ check.ini <- function(input, ntrials=10, verbose=TRUE){
     if (!exists('rep')){
         rep <- fit.spict(inp)
     }
-
+    calc.dist <- function(vec1, vec2){
+        return(sqrt(sum((as.numeric(vec1) - as.numeric(vec2))^2)))
+    }
     # Start sensitivity check by drawing random initial parameters
     if ('par.fixed' %in% names(rep)){
         nms <- names(inp$ranges)
@@ -47,6 +49,9 @@ check.ini <- function(input, ntrials=10, verbose=TRUE){
         inimat <- matrix(nrow=ntrials, ncol=length(nms))
         colnames(inimat) <- nms
         perchange <- inimat
+        rownames(perchange) <- paste('Trial', 1:ntrials)
+        resdist <- numeric(ntrials)
+        inidist <- numeric(ntrials)
         if(verbose){
             cat('Checking sensitivity of fit to initial parameter values...\n')
         }
@@ -68,10 +73,12 @@ check.ini <- function(input, ntrials=10, verbose=TRUE){
                 perchange[i, j] <- randval - inp$ini[[nm]]
                 j <- j + 1
             }
+            inidist[i] <- calc.dist(inimat[i, ], inibasevec)
             repsens <- try(fit.spict(inpsens))
             if (class(repsens) != 'try-error' & 'opt' %in% names(repsens)){
                 if (repsens$opt$convergence == 0){
                     resmat[i, ] <- trans2real(repsens$opt$par, names(repsens$opt$par))
+                    resdist[i] <- calc.dist(resmat[i, ], resbasevec)
                     if(verbose){
                         cat(' model fitted!\n')
                     }
@@ -86,7 +93,14 @@ check.ini <- function(input, ntrials=10, verbose=TRUE){
                 }
             }
         }
-        return(list(inibasevec=inibasevec, perchange=perchange, inimat=inimat,
-                    resbasevec=resbasevec, resmat=resmat))
+        resmat <- cbind(resdist, resmat)
+        resmat <- rbind(c(0, resbasevec), resmat)
+        rownames(resmat) <- c('Basevec', paste('Trial', 1:ntrials))
+        colnames(resmat)[1] <- 'Distance'
+        inimat <- cbind(inidist, inimat)
+        inimat <- rbind(c(0, inibasevec), inimat)
+        rownames(inimat) <- c('Basevec', paste('Trial', 1:ntrials))
+        colnames(inimat)[1] <- 'Distance'
+        return(list(perchange=perchange, inimat=inimat, resmat=resmat))
     }
 }
