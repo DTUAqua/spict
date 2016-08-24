@@ -29,16 +29,16 @@ Type predictlogB(const Type &B0, const Type &F, const Type &gamma, const Type &m
 
 /* Predict F1 */
 template<class Type>
-Type predictF1(const Type &logF0, const Type &dt, const Type &sdf2, const Type &beta, const Type &logeta)
+Type predictF1(const Type &logF0, const Type &dt, const Type &sdf2, const Type &delta, const Type &logeta)
 {
-  return exp(logF0 + beta*(logeta - logF0)*dt);
+  return exp(logF0 + delta*(logeta - logF0)*dt);
 }
 
 /* Predict F2 */
 template<class Type>
-Type predictF2(const Type &logF0, const Type &dt, const Type &sdf2, const Type &beta, const Type &logeta)
+Type predictF2(const Type &logF0, const Type &dt, const Type &sdf2, const Type &delta, const Type &logeta)
 {
-  return exp(logF0 - 0.5*sdf2*dt + beta*(logeta - logF0)*dt);
+  return exp(logF0 - 0.5*sdf2*dt + delta*(logeta - logF0)*dt);
 }
 
 /* Predict catch */
@@ -152,7 +152,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logsdc);           // sdc = beta*sdf
   PARAMETER_VECTOR(logphi);    // Season levels of F.
   PARAMETER(loglambda);        // Damping variable when using seasonal SDEs
-  PARAMETER(logbeta);          // Strength of mean reversion in OU F process (beta = 0 mean RW)
+  PARAMETER(logdelta);          // Strength of mean reversion in OU F process (delta = 0 mean RW)
   PARAMETER(logeta);           // Mean of OU F process
   PARAMETER(logitpp);          // Proportion of narrow distribution when using robust obs err.
   PARAMETER(logp1robfac);      // Coefficient to the standard deviation of robust observation error distribution
@@ -218,7 +218,7 @@ Type objective_function<Type>::operator() ()
   Type n = exp(logn);
   Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
   Type lambda = exp(loglambda);
-  Type beta = exp(logbeta);
+  Type delta = exp(logdelta);
   vector<Type> sdf(nsdf);
   vector<Type> sdf2(nsdf);
   vector<Type> isdf2(nsdf);
@@ -532,10 +532,10 @@ Type objective_function<Type>::operator() ()
       Type Fpredtmp;
       iisdf = CppAD::Integer(isdf(i)) - 1;
       if (efforttype == 1.0){
-	Fpredtmp = predictF1(logF(i-1), dt(i), sdf2(iisdf), beta, logeta);
+	Fpredtmp = predictF1(logF(i-1), dt(i), sdf2(iisdf), delta, logeta);
       }
       if (efforttype == 2.0){
-	Fpredtmp = predictF2(logF(i-1), dt(i), sdf2(iisdf), beta, logeta);
+	Fpredtmp = predictF2(logF(i-1), dt(i), sdf2(iisdf), delta, logeta);
       }
       Type logFpred = log( ffacvec(i) * Fpredtmp + fconvec(i) );;
       likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf(iisdf), 1);

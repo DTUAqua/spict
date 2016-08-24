@@ -330,6 +330,7 @@ check.inp <- function(inp){
     if ("mapq" %in% names(inp)) inp$nq <- length(unique(inp$mapq))
     # Effort related
     if (!"efforttype" %in% names(inp)) inp$efforttype <- 1
+    if (!"effortmodel" %in% names(inp)) inp$effortmodel <- 'RW'
     if (!"mapsde" %in% names(inp)) inp$mapsde <- inp$neffortseq
     if ("mapsde" %in% names(inp)) inp$nsde <- length(unique(inp$mapsde))
     if (!"mapqf" %in% names(inp)) inp$mapqf <- inp$neffortseq
@@ -982,8 +983,8 @@ check.inp <- function(inp){
     }
     # Fill in unspecified (more rarely user defined) model parameter values
     if (!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
-    if (!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1e-3)
-    if (!"logeta" %in% names(inp$ini)) inp$ini$logeta <- log(0.2)
+    if (!"logdelta" %in% names(inp$ini)) inp$ini$logdelta <- log(1e-3) # Strength of mean reversion of OU for F
+    if (!"logeta" %in% names(inp$ini)) inp$ini$logeta <- log(0.2) # Mean of OU for F
     if ("logphi" %in% names(inp$ini)){
         if (length(inp$ini$logphi)+1 != dim(inp$splinemat)[2]){
             cat('Mismatch between length of ini$logphi and number of columns of splinemat! removing prespecified ini$logphi and setting default.\n')
@@ -1040,7 +1041,7 @@ check.inp <- function(inp){
                         logsdc=inp$ini$logsdc,
                         logphi=inp$ini$logphi,
                         loglambda=inp$ini$loglambda,
-                        logbeta=inp$ini$logbeta,
+                        logdelta=inp$ini$logdelta,
                         logeta=inp$ini$logeta,
                         logitpp=inp$ini$logitpp,
                         logp1robfac=inp$ini$logp1robfac,
@@ -1068,6 +1069,9 @@ check.inp <- function(inp){
     }
     if (sum(inp$nobsI) == 0){
         forcefixpars <- c('logq', 'logsdi', forcefixpars)
+    }
+    if (inp$effortmodel == 'RW'){
+        forcefixpars <- c('logdelta', 'logeta', forcefixpars)
     }
     # Determine phases
     if (!"phases" %in% names(inp)){
