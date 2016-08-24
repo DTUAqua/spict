@@ -944,7 +944,18 @@ check.inp <- function(inp){
     #logmaxE <- ifelse(length(inp$obsE)==0, 0, log(max(inp$obsE[[1]])))
     if (!'logqf' %in% names(inp$ini)) inp$ini$logqf <- inp$ini$logr - logmaxE
     #if (sum(inp$nobsE)>0) inp <- check.mapped.ini(inp, 'logqf', 'nqf')
-    if (!'logsdf' %in% names(inp$ini)) inp$ini$logsdf <- log(0.2)
+    inp$isdf <- rep(1, inp$ns)
+    if (!is.null(inp$sdfsplityear)){
+        inds <- which(inp$time >= inp$sdfsplityear)
+        inp$isdf[inds] <- 2
+        inp$nsdf <- length(unique(inp$isdf))
+    } else {
+        inp$nsdf <- 1
+    }
+    
+    if (!'logsdf' %in% names(inp$ini)){
+        inp$ini$logsdf <- log(rep(0.2, inp$nsdf))
+    }
     if (!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(0.1)
     if (!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
     if (!'logsdc' %in% names(inp$ini)) inp$ini$logsdc <- log(0.2)

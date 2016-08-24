@@ -249,6 +249,7 @@ make.datin <- function(inp, dbg=0){
                   iq=inp$iqin,
                   isdi=inp$isdiin,
                   ir=inp$ir,
+                  isdf=inp$isdf,
                   seasons=inp$seasons,
                   seasonindex=inp$seasonindex,
                   splinemat=inp$splinemat,

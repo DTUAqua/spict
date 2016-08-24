@@ -90,6 +90,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(iq);             // A vector such that iq(i) is the index number corresponding to I_iq(i)
   DATA_VECTOR(isdi);           // A vector such that isdi(i) is the index number corresponding to I_isdi(i)
   DATA_VECTOR(ir);             // A vector indicating when the different rs should be used
+  DATA_VECTOR(isdf);           // 
   DATA_VECTOR(seasons);        // A vector of length ns indicating to which season a state belongs
   DATA_VECTOR(seasonindex);    // A vector of length ns giving the number stepped within the current year
   DATA_MATRIX(splinemat);      // Design matrix for the seasonal spline
@@ -145,7 +146,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logn);             // Pella-Tomlinson exponent
   PARAMETER(logsdb);           // Standard deviation in B process
   PARAMETER_VECTOR(logsdu);    // Standard deviation in seasonal component of F process
-  PARAMETER(logsdf);           // Standard deviation in diffusion component of F process
+  PARAMETER_VECTOR(logsdf);    // Standard deviation in diffusion component of F process
   PARAMETER_VECTOR(logsdi);    // sdi = alpha*sdb
   PARAMETER(logsde);           // sdc = beta*sdf
   PARAMETER(logsdc);           // sdc = beta*sdf
@@ -186,6 +187,7 @@ Type objective_function<Type>::operator() ()
   // Length of vectors
   int nm = logm.size();
   int nq = logq.size();
+  int nsdf = logsdf.size();
   int nsdu = logsdu.size();
   int nsdi = logsdi.size();
   int nobsCp = ic.size();
@@ -214,9 +216,15 @@ Type objective_function<Type>::operator() ()
   Type n = exp(logn);
   Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
   Type lambda = exp(loglambda);
-  Type sdf = exp(logsdf);
-  Type sdf2 = sdf*sdf;
-  Type isdf2 = 1.0/sdf2;
+  vector<Type> sdf(nsdf);
+  vector<Type> sdf2(nsdf);
+  vector<Type> isdf2(nsdf);
+  for(int i=0; i<nsdf; i++){
+    sdf(i) = exp(logsdf(i));
+    sdf2(i) = sdf(i)*sdf(i);
+    isdf2(i) = 1.0/sdf2(i);
+
+  }
   vector<Type> sdu = exp(logsdu);
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
@@ -236,7 +244,7 @@ Type objective_function<Type>::operator() ()
   Type sdc = exp(logsdc);
   Type sdc2 = sdc*sdc;
   Type isdc2 = 1.0/sdc2;
-  Type beta = sdc/sdf;
+  Type beta = sdc/sdf(0);
   Type logbeta = log(beta);
 
   // Put wide smooth distributions on difficult parameters to stabilise optimisation.
@@ -402,13 +410,14 @@ Type objective_function<Type>::operator() ()
     std::cout << "INPUT: logsdb: " << logsdb << std::endl;
     std::cout << "INPUT: lambda: " << lambda << std::endl;
     std::cout << "INPUT: omega: " << omega << std::endl;
-    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  ir.size(): " << ir.size() << "  logFmsy.size(): " << logFmsy.size() << "  logFmsyvec.size(): " << logFmsyvec.size() << "  logBmsy.size(): " << logBmsy.size() << "  logBmsyvec.size(): " << logBmsyvec.size() << "  m.size(): " << m.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
+    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logF.size(): " << logF.size() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.size(): " << B.size() << "  P.size(): " << P.size() << "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  ir.size(): " << ir.size() << "  logsdf.size(): " << logsdf.size() << "  logFmsy.size(): " << logFmsy.size() << "  logFmsyvec.size(): " << logFmsyvec.size() << "  logBmsy.size(): " << logBmsy.size() << "  logBmsyvec.size(): " << logBmsyvec.size() << "  m.size(): " << m.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
     std::cout << "Bmsys: " << Bmsys << std::endl;
     std::cout << "Fmsys: " << Fmsys << std::endl;
     std::cout << "MSYs: " << MSYs << std::endl;
     std::cout << "Bmsyd: " << Bmsyd << std::endl;
     std::cout << "Fmsyd: " << Fmsyd << std::endl;
     std::cout << "MSYd: " << MSYd << std::endl;
+    std::cout << "isdf: " << isdf << std::endl;
   }
   // Calculate mvec if multiple rs are used (rarely the case).
   for(int i=0; i<ns; i++){
@@ -439,7 +448,9 @@ Type objective_function<Type>::operator() ()
     ans-= dgamma(1.0/sdb2, priorisdb2gamma(0), 1.0/priorisdb2gamma(1), 1); 
   }
   if(priorisdf2gamma(2) == 1){
-    ans-= dgamma(1.0/sdf2, priorisdf2gamma(0), 1.0/priorisdf2gamma(1), 1); 
+    for(int i=0; i<nsdf; i++){
+      ans-= dgamma(1.0/sdf2(i), priorisdf2gamma(0), 1.0/priorisdf2gamma(1), 1); 
+    }
   }
   if(priorisdi2gamma(2) == 1){
     for(int i=0; i<nsdi; i++){
@@ -462,7 +473,11 @@ Type objective_function<Type>::operator() ()
   if(priorqf(2) == 1) ans-= dnorm(logqf, priorqf(0), priorqf(1), 1); // Prior for logqf
   if(priorbkfrac(2) == 1) ans-= dnorm(logB(0) - logK, priorbkfrac(0), priorbkfrac(1), 1); // Prior for logbkfrac
   if(priorsdb(2) == 1) ans-= dnorm(logsdb, priorsdb(0), priorsdb(1), 1); // Prior for logsdb
-  if(priorsdf(2) == 1) ans-= dnorm(logsdf, priorsdf(0), priorsdf(1), 1); // Prior for logsdf
+  if(priorsdf(2) == 1){
+    for(int i=0; i<nsdf; i++){
+      ans-= dnorm(logsdf(i), priorsdf(0), priorsdf(1), 1); // Prior for logsdf
+    }
+  }
   if(priorsdi(2) == 1) for(int i=0; i<nsdi; i++){ ans-= dnorm(logsdi(i), priorsdi(0), priorsdi(1), 1); } // Prior for logsdi
   if(priorsde(2) == 1) ans-= dnorm(logsde, priorsde(0), priorsde(1), 1); // Prior for logsde
   if(priorsdc(2) == 1) ans-= dnorm(logsdc, priorsdc(0), priorsdc(1), 1); // Prior for logsdc
@@ -509,20 +524,22 @@ Type objective_function<Type>::operator() ()
       std::cout << "--- DEBUG: F loop start --- ans: " << ans << std::endl;
     }
     // Diffusion component of F
+    int iisdf;
     for(int i=1; i<ns; i++){
       Type Fpredtmp;
+      iisdf = CppAD::Integer(isdf(i)) - 1;
       if (efforttype == 1.0){
-	Fpredtmp = predictF1(logF(i-1), dt(i), sdf2);
+	Fpredtmp = predictF1(logF(i-1), dt(i), sdf2(iisdf));
       }
       if (efforttype == 2.0){
-	Fpredtmp = predictF2(logF(i-1), dt(i), sdf2);
+	Fpredtmp = predictF2(logF(i-1), dt(i), sdf2(iisdf));
       }
       Type logFpred = log( ffacvec(i) * Fpredtmp + fconvec(i) );;
-      likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf, 1);
+      likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf(iisdf), 1);
       ans-=likval;
       // DEBUGGING
       if(dbg>1){
-	std::cout << "-- i: " << i << " -   logF(i-1): " << logF(i-1) << "  logF(i): " << logF(i) << "  ffacvec(i): " << ffacvec(i) << "  fconvec(i): " << fconvec(i) << "  sdf: " << sdf << "  efforttype: " << efforttype << "  likval: " << likval << "  ans:" << ans << std::endl;
+	std::cout << "-- i: " << i << " -   logF(i-1): " << logF(i-1) << "  logF(i): " << logF(i) << "  ffacvec(i): " << ffacvec(i) << "  fconvec(i): " << fconvec(i) << "  iisdf: " << iisdf << "  sdf: " << sdf(iisdf) << "  efforttype: " << efforttype << "  likval: " << likval << "  ans:" << ans << std::endl;
       }
     }
 
