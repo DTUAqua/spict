@@ -982,6 +982,8 @@ check.inp <- function(inp){
     }
     # Fill in unspecified (more rarely user defined) model parameter values
     if (!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
+    if (!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1e-3)
+    if (!"logeta" %in% names(inp$ini)) inp$ini$logeta <- log(0.2)
     if ("logphi" %in% names(inp$ini)){
         if (length(inp$ini$logphi)+1 != dim(inp$splinemat)[2]){
             cat('Mismatch between length of ini$logphi and number of columns of splinemat! removing prespecified ini$logphi and setting default.\n')
@@ -1038,6 +1040,8 @@ check.inp <- function(inp){
                         logsdc=inp$ini$logsdc,
                         logphi=inp$ini$logphi,
                         loglambda=inp$ini$loglambda,
+                        logbeta=inp$ini$logbeta,
+                        logeta=inp$ini$logeta,
                         logitpp=inp$ini$logitpp,
                         logp1robfac=inp$ini$logp1robfac,
                         logF=inp$ini$logF,
