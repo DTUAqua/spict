@@ -331,24 +331,20 @@ invlogp1 <- function(a) 1 + exp(a)
 #' @return The guess on MSY.
 #' @export
 guess.m <- function(inp, all.return=FALSE){
-    y <- inp$obsC
-    if (length(inp$obsI)>0){
-        if (class(inp$obsI)=='list'){
-            z <- inp$obsI[[1]]
-        } else {
-            z <- inp$obsI
-        }
-    } else {
-        z <- NULL
-    }
+    meancatch <- mean(unlist(inp$obsC))
+    out <- get.catchindexoverlap(inp)
+    ty <- out$ty
+    y <- out$y
+    tz <- out$tz
+    z <- out$z
     if (length(y) == length(z)){
         x <- y/z
         mod0 <- lm(z ~ x)
         a <- mod0$coefficients[1]
         b <- mod0$coefficients[2]
         MSY <- -0.25*a^2/b # p. 284 in FAO's book on tropical stock assessment
-        if (MSY <= 0){
-            MSY <- mean(y) # Mean catch
+        if (MSY <= 0 | summary(mod0)$r.squared < 0.3){
+            MSY <- meancatch
         }
         if (all.return){
             Emsy <- -0.5*a/b # p. 284 in FAO's book on tropical stock assessment
@@ -357,10 +353,40 @@ guess.m <- function(inp, all.return=FALSE){
             return(MSY)
         }
     } else {
-        return(mean(y))
+        return(meancatch)
     }
 }
 
+
+#' @name get.catchindexoverlap
+#' @title Find observations of catch and index that overlap
+#' @param inp An input list containing data.
+#' @return List containing overlapping catch (y) and index (z) observations and their time vectors.
+#' @export
+get.catchindexoverlap <- function(inp){
+    y <- inp$obsC
+    ty <- inp$timeC
+    if (length(inp$obsI)>0 & inp$nseasons == 1){
+        # Get index observations
+        if (class(inp$obsI)=='list'){
+            z <- inp$obsI[[1]]
+            tz <- inp$timeI[[1]]
+        } else {
+            z <- inp$obsI
+            tz <- inp$timeI
+        }
+        # Find overlap between catch and index observations
+        zinds <- na.omit(match(round(ty), round(tz)))
+        z <- z[zinds]
+        tz <- tz[zinds]
+        yinds <- na.omit(match(round(tz), round(ty)))
+        y <- y[yinds]
+        ty <- ty[yinds]
+        return(list(ty=ty, y=y, tz=tz, z=z))
+    } else {
+        return(NULL)
+    }
+}
 
 #' @name calc.EBinf
 #' @title Calculate E(Binfinity), i.e. the fished equilibrium.

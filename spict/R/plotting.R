@@ -546,10 +546,10 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
             if (rep$opt$convergence != 0){
                 warning.stamp()
             }
-            box(lwd=1.5)
         } else {
             plot(1, typ='n', xlab='', ylab='', xaxt='n', yaxt='n', main=paste('Bmsy=NA!', main))
         }
+        box(lwd=1.5)
         txt.stamp(stamp)
     }
 }
@@ -809,7 +809,11 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
     if (!'sderr' %in% names(rep)){
         ylabflag <- is.null(ylab) # If null then not manually specified
         omar <- par()$mar
-        mar <- c(5.1, 4.3, 4.1, 4.1)
+        if (rel.axes){
+            mar <- c(5.1, 4.3, 4.1, 4.1)
+        } else {
+            mar <- omar
+        }
         if (dev.cur()==1){ # If plot is not open
             opar <- par(mar=mar)
             on.exit(par(opar))
@@ -918,7 +922,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         }
         polygon(c(inp$time, rev(inp$time)), c(Fmsyvec$ll, rev(Fmsyvec$ul)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
-        if (!flag & !'yearsepgrowth' %in% names(inp) & rel.ci){
+        if (!relflag & !'yearsepgrowth' %in% names(inp) & rel.ci){
             polygon(c(timef[relfininds], rev(timef[relfininds])),
                     c(clf[relfininds], rev(cuf[relfininds])), col=cicol2, border=cicol2)
         }
@@ -942,8 +946,8 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         if (!absflag) lines(timep, clp, col=maincol, lty=2)
         lines(timep, Fp, col=maincol, lty=3)
         if (!absflag) lines(timep, cup, col=maincol, lty=2)
-        if (!relflag & !'yearsepgrowth' %in% names(inp)) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
-        if (!relflag & !'yearsepgrowth' %in% names(inp)) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
+        if (!relflag & !'yearsepgrowth' %in% names(inp) & rel.ci) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
+        if (!relflag & !'yearsepgrowth' %in% names(inp) & rel.ci) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         lines(inp$time, Fmsyvec$msy, col='black')
         box(lwd=1.5)
         if (rep$opt$convergence != 0){
@@ -2052,9 +2056,13 @@ plotspict.ci <- function(inp, stamp=get.version()){
         inp$obsE <- NULL
         inp$timeE <- NULL
         c <- guess.m(inp, all.return=TRUE)
-        time <- inp$timeC
-        y <- inp$obsC
-        z <- inp$obsI[[1]]
+        out <- get.catchindexoverlap(inp)
+        time <- out$ty
+        y <- out$y
+        z <- out$z
+        #time <- inp$timeC
+        #y <- inp$obsC
+        #z <- inp$obsI[[1]]
         mfrow <- c(3, 2)
         if (class(c) == 'list'){ # A regression line could be fitted
             MSY <- c$MSY
@@ -2090,7 +2098,7 @@ plotspict.ci <- function(inp, stamp=get.version()){
         plotspict.data(inp, MSY=MSY, one.index=1, stamp='')
         # Plot seasonal patterns
         if (inp$nseasons > 1){
-            plot.seasondiff(inp$timeC, y, ylab='diff log catch')
+            plot.seasondiff(inp$timeC, inp$obsC, ylab='diff log catch')
             for (i in 1:inp$nindex){
                 plot.seasondiff(inp$timeI[[i]], inp$obsI[[i]], ylab='diff log index 1')
             }
@@ -2226,7 +2234,7 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
 #' @param stamp Stamp plot with this character string.
 #' @return Nothing
 #' @export
-plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp=get.version()){
+plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=TRUE, stamp=get.version()){
     inp <- check.inp(inpin)
     #nseries <- inp$nindex + 1 + as.numeric(inp$nobsE > 0)
     nseries <- inp$nseries

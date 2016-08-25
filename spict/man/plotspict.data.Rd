@@ -4,7 +4,7 @@
 \alias{plotspict.data}
 \title{Plot input data}
 \usage{
-plotspict.data(inpin, MSY = NULL, one.index = NULL, qlegend = FALSE,
+plotspict.data(inpin, MSY = NULL, one.index = NULL, qlegend = TRUE,
   stamp = get.version())
 }
 \arguments{
