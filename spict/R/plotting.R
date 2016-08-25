@@ -830,6 +830,10 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         logFF <- get.par('logFFmsy', rep)
         Fmsy <- get.par('logFmsy', rep, exp=TRUE)
         Fmsyd <- get.par('logFmsyd', rep, exp=TRUE)
+        if (any(is.na(Fmsy))){
+            Fmsy <- Fmsyd
+        }
+        fmsyinds <- which(Fmsy[1:3] < 50) # only use these inds to calculate ylim
         Fmsyvec <- get.msyvec(inp, Fmsy)
         if (min(inp$dtc) < 1){
             # Annual    
@@ -871,18 +875,30 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             Ff <- Fest[, 2] #*Fmsy[2]
             cuf <- FF[, 3]*Fmsy[2]
         }
-        flag <- length(cu)==0 | all(!is.finite(cu))
         ylimflag <- length(ylim)!=2 # If FALSE ylim is manually specified
-        if (flag){
+        # Check whether nan values are present in CI limits
+        absflag <- length(cu)==0 | all(!is.finite(cu))
+        if (absflag){ # if problems with NaN in absolute
             fininds <- which(is.finite(Ff))
             if (ylimflag){
-                ylim <- range(c(Ff, Fmsy[1:3], tail(Fest[, 2],1)), na.rm=TRUE)
+                ylim <- range(c(Ff, Fmsy[fmsyinds], tail(Fest[, 2],1)), na.rm=TRUE)
             }
-        } else {
-            fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
+        } else { # No problems
+            fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))))
             if (ylimflag){
-                ylim <- range(c(cl[fininds], cu[fininds], clf[fininds], cuf[fininds],
-                                tail(Fest[, 2],1)), na.rm=TRUE)
+                ylim <- range(c(cl[fininds], cu[fininds], tail(Fest[, 2],1)), na.rm=TRUE)
+            }
+        }
+        relflag <- length(cuf)==0 | all(!is.finite(cuf))
+        if (relflag){ # Problems
+            relfininds <- which(is.finite(cuf))
+            if (ylimflag){
+                ylim <- range(ylim, Ff, Fmsy[fmsyinds], tail(Fest[, 2],1), na.rm=TRUE)
+            }
+        } else { # No problems
+            relfininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
+            if (ylimflag){
+                ylim <- range(c(ylim, clf[relfininds], cuf[relfininds], na.rm=TRUE))
             }
         }
         if (ylimflag){
@@ -892,17 +908,19 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         if (ylabflag){
             ylab <- expression(F[t])
         }
-        plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=ylab, xlab=xlab,
+        plot(1, 1, typ='n', main=main, ylim=ylim, col='blue', ylab=ylab, xlab=xlab,
              xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)))
+        #plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=ylab, xlab=xlab,
+        #     xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)))
         if (rel.axes){
             axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
             mtext(expression(F[t]/F[MSY]), side=4, las=0, line=2.2, cex=par('cex'))
         }
-        polygon(c(inp$time, rev(inp$time)), c(Fmsyvec$ll,rev(Fmsyvec$ul)), col=cicol, border=cicol)
+        polygon(c(inp$time, rev(inp$time)), c(Fmsyvec$ll, rev(Fmsyvec$ul)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
         if (!flag & !'yearsepgrowth' %in% names(inp) & rel.ci){
-            polygon(c(timef[fininds], rev(timef[fininds])),
-                    c(clf[fininds], rev(cuf[fininds])), col=cicol2, border=cicol2)
+            polygon(c(timef[relfininds], rev(timef[relfininds])),
+                    c(clf[relfininds], rev(cuf[relfininds])), col=cicol2, border=cicol2)
         }
         if (min(inp$dtc) < 1){ # Plot estimated sub annual F 
             lines(inp$time, Fest[, 2], col=rgb(0, 0, 1, 0.4))
@@ -918,14 +936,14 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             abline(h=inp$true$Fmsy, col='black', lty=3)
         }
         maincol <- 'blue'
-        if (!flag) lines(time, cl, col=maincol, lwd=1.5, lty=2)
+        if (!absflag) lines(time, cl, col=maincol, lwd=1.5, lty=2)
         lines(time, F, col=maincol, lwd=1.5)
-        if (!flag) lines(time, cu, col=maincol, lwd=1.5, lty=2)
-        if (!flag) lines(timep, clp, col=maincol, lty=2)
+        if (!absflag) lines(time, cu, col=maincol, lwd=1.5, lty=2)
+        if (!absflag) lines(timep, clp, col=maincol, lty=2)
         lines(timep, Fp, col=maincol, lty=3)
-        if (!flag) lines(timep, cup, col=maincol, lty=2)
-        if (!flag & !'yearsepgrowth' %in% names(inp)) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
-        if (!flag & !'yearsepgrowth' %in% names(inp)) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
+        if (!absflag) lines(timep, cup, col=maincol, lty=2)
+        if (!relflag & !'yearsepgrowth' %in% names(inp)) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
+        if (!relflag & !'yearsepgrowth' %in% names(inp)) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         lines(inp$time, Fmsyvec$msy, col='black')
         box(lwd=1.5)
         if (rep$opt$convergence != 0){
