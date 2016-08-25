@@ -2,13 +2,16 @@
 title: "SPiCT"
 author: "Martin W. Pedersen"
 date: '`16-08-2016`'
-output: pdf_document
+output: 
+  pdf_document: 
+    number_sections: yes
+    toc: yes
 vignette: |
   %\VignetteIndexEntry{SPiCT} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, echo = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = 'center')
 ```
 
 This vignette explains basic and more advanced functions of the `spict` package. When loading the package you are notified which version of the package you have installed:
@@ -18,7 +21,7 @@ library(spict)
 ```
 The printed version follows the format ver@SHA, where ver is the manually defined version number and SHA refers to a unique commit on [github](http://github.com/mawp/spict). The content of this vignette pertains to the version printed above. 
 
-## A simple example
+# Loading built-in example data 
 
 The package contains the catch and index data analysed in Polacheck et al. (1993). This data can be loaded and plotted by typing
 
@@ -34,54 +37,106 @@ pol$albacore
 
 Note that data are structure in a list containing the entries `obsC` (catch observations), `timeC` (time of catch observations), `obsI` (index observations), and `timeI` (time of index observations). If times are not specified it is assumed that the first observation is observed at time 1 and then sequentially onward with a time step of one year. It is therefore recommended to always specify observation times.
 
+# Plotting data
+
 The data can be plotted using the command
 
-```{r, fig.width=5, fig.height=5.5, out.width='0.5\\textwidth', fig.align='center', fig.show='hold'}
-plotspict.data(pol$albacore, qlegend = TRUE)
+```{r, fig.width=5, fig.height=5.5, out.width='0.5\\textwidth', fig.show='hold'}
+plotspict.data(pol$albacore)
 ```
 
-Note that the number of catch and index observations are given in the respective plot headers. Furthermore, note colour legend in the top-right corner (shown because of the argument `qlegend = TRUE`), which explains at what time of the year an observation was observed based on the colour of the individual points. For illustrative purposes let's try shifting the data a bit
+Note that the number of catch and index observations are given in the respective plot headers. Furthermore, note colour legend in the top-right corner, which explains at what time of the year an observation was observed based on the colour of the individual points. For illustrative purposes let's try shifting the data a bit
 
-```{r, fig.width=5, fig.height=5.5, out.width='0.5\\textwidth', fig.align='center', fig.show='hold', fig.cap="Blah"}
-inp <- pol$albacore
-inp$timeC <- inp$timeC + 0.3
-inp$timeI <- inp$timeI + 0.8
-plotspict.data(inp, qlegend = TRUE)
+```{r, fig.width=5, fig.height=5.5, out.width='0.5\\textwidth', fig.show='hold'}
+inpshift <- pol$albacore
+inpshift$timeC <- inpshift$timeC + 0.3
+inpshift$timeI <- inpshift$timeI + 0.8
+plotspict.data(inpshift)
 ```
 
 Now the colours show that catches are observed in the spring and index in the autumn.
 
+# Advanced data plotting
+
+There is also a more advanced function for plotting data, which at the same time does some basic model fitting (linear regression) and shows the results
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+plotspict.ci(pol$albacore)
+```
+
+The two top plots come from `plotspict.data`, with the dashed horizontal line representing a guess of MSY. This guess comes from a linear regression between the index and the catch divided by the index (middle row, left). This regression is expected to have a negative slope. A similar plot can be made showing catch versus catch/index (middle row, right) to approximatively find the optimal effort (or effort proxy). The proportional increase in the index as a function of catch (bottom row, right) should show primarily positive increases in index at low catches and vice versa. Positive increases in index at large catches could indicate model violations. In the current plot these are not seen.
+
+# Fitting the model
+
 Let's try to fit the model to the data
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
-system.time(rep <- fit.spict(pol$albacore))
-```
-The call to `fit.spict` is wrapped in the `system.time` command to check the time spent on the calculations. This is obviously not required, but done here to show that fitting the model only takes a few seconds. The result of the model fit is stored in `rep`, which can either be plotted using `plot` or summarised using `summary`.
-
-## Styles
-
-The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
-
-    output: 
-      rmarkdown::html_vignette:
-        css: mystyles.css
-
-## Figures
-
-The figure sizes have been customised so that you can easily put two images side-by-side. 
-
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
+inp <- pol$albacore
+inp$timepredc <- 1993 # Prediction horizon for catches
+system.time(rep <- fit.spict(inp))
 ```
 
-You can enable figure captions by `fig_caption: yes` in YAML:
+The call to `fit.spict` is wrapped in the `system.time` command to check the time spent on the calculations. This is obviously not required, but done here to show that fitting the model only takes a few seconds. The result of the model fit is stored in `rep`, which can either be plotted using `plot` or summarised using `summary`. 
 
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
+# Interpreting the plot of results
 
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
+Let's look at the plot
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+plot(rep)
+```
+
+Some general comments can be made regarding the style and colours of these plots:
+
+- Estimates (biomass, fishing mortality, catch, production) are shown using blue lines.
+- 95% CIs of absolute quantities are shown using dashed blue lines.
+- 95% CIs of relative biomass and fishing mortality are shown using shaded blue regions.
+- Estimates of reference points ($B_{MSY}$, $F_{MSY}$, $MSY$) are shown using black lines.
+- 95% CIs of reference points are shown using grey shaded regions.
+- The end of the data range is shown using a vertical grey line.
+- Predictions beyond the data range are shown using dotted blue lines.
+- Data are shown using points coloured by season. Different index series use different point characters (not shown here).
+
+The individual plots can be plotted separately. Let's look at them one at a time. The top left is the plot of absolute biomass
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+plotspict.biomass(rep)
+```
+
+Note that this plot has a y-axis on the right side related to the relative biomass ($B_t/B_{MSY}$). The shaded 95% CI region relates to this axis, while the dashed blue lines relate to the left y-axis indicating absolute levels. The dashed lines and the shaded region are shown on the same plot to make it easier to assess whether the relative or absolute levels are most accurately estimated. Here, the absolute are more accurate than the relative. Later, we will see examples of the opposite. The horizontal black line is the estimate of $B_{MSY}$ with 95% CI shown as a grey region.
+
+The plot of the relative biomass is produced using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+plotspict.bbmsy(rep)
+```
+
+This plot contains much of the same information as given by `plotspict.biomass`, but without the information about absolute biomass and without the 95% CI around the $B_{MSY}$ reference point.
+
+The plots of fishing mortality follow the same principles
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=3, fig.height=3.3, fig.show='hold'}
+plotspict.f(rep, main='', qlegend=FALSE, rel.axes=FALSE, rel.ci=FALSE)
+plotspict.ffmsy(rep, main='', qlegend=FALSE)
+```
+
+The estimate of $F_{MSY}$ is shown with a horizontal black line with 95% CI shown as a grey region (left plot). The 95% CI of $F_{MSY}$ is very wide in this case. As shown here it is quite straightforward to remove the information about relative levels from the plot of absolute fishing mortality. Furthermore, the argument `main=''` removes the heading and `qlegend=FALSE` removes the colour legend for data points.
+
+The plot of the catch is produced using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+plotspict.catch(rep)
+```
+
+This plot shows estimated catches (blue line) versus observed catches (points) with the estimate of $MSY$ plotted as a horizontal black line with its 95% CI given by the grey region.
+
+# Setting initial parameter values
+
+## Checking robustness to initial parameter values
+
+# Priors
+
+# Estimation phases
 
 ## More Examples
 
