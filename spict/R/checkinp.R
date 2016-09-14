@@ -109,6 +109,12 @@
 #' @export
 check.inp <- function(inp){
 
+    set.default <- function(inpin, key, val){
+        if (!key %in% names(inpin)){
+            inpin[[key]] <- val
+        }
+        return(inpin)
+    }
     check.ini <- function(parname, inp, min=NULL, max=NULL){
         if (!parname %in% names(inp$ini)){
             stop('Please specify an initial value for ', parname, '!')
@@ -613,7 +619,7 @@ check.inp <- function(inp){
 
     # -- MODEL OPTIONS --
     if (!"RE" %in% names(inp)){
-        inp$RE <- c('logE', 'logu', 'logB')
+        inp$RE <- c('logE', 'logu', 'logB', 'logmre')
     }
     if (!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
     # Index related
@@ -720,6 +726,8 @@ check.inp <- function(inp){
     inp$robflagi <- as.numeric(inp$robflagi)
     if (!"robflage" %in% names(inp)) inp$robflage <- 0
     inp$robflage <- as.numeric(inp$robflage)
+    # Time-varying growth option
+    inp <- set.default(inp, 'timevaryinggrowth', inp$nqf > 0){
     # ASPIC options 
     if (!"aspic" %in% names(inp)) inp$aspic <- list()
     if (!"mode" %in% names(inp$aspic)) inp$aspic$mode <- 'FIT'
@@ -1595,13 +1603,15 @@ check.inp <- function(inp){
                         logsdi = inp$ini$logsdi,
                         logsde = inp$ini$logsde,
                         logsdc = inp$ini$logsdc,
+                        logsdm = inp$ini$logsdm,
                         logphi = inp$ini$logphi,
                         loglambda = inp$ini$loglambda,
                         logitpp = inp$ini$logitpp,
                         logp1robfac = inp$ini$logp1robfac,
                         logE = inp$ini$logE,
                         logu = inp$ini$logu,
-                        logB = inp$ini$logB)
+                        logB = inp$ini$logB,
+                        logmre = inp$ini$logmre)
     
     # Determine fixed parameters
     forcefixpars <- c() # Parameters that are forced to be fixed.

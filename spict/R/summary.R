@@ -72,7 +72,7 @@ summary.spictcls <- function(object, ...){
     # Index observations
     if (any(unlist(rep$inp$nobsI) > 0)){
         str <- paste0(str, '\nIndex:')
-        for (si in 1:inp$nstocks){
+        for (si in 1:rep$inp$nstocks){
             if (si > 1){
                 str <- paste0(str, ',')
             }

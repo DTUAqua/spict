@@ -160,13 +160,16 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logsdi);    // Stdev of index obs noise, length sum(nindex)
   PARAMETER_VECTOR(logsde);    // Stdev of effort obs noise, length nqf
   PARAMETER_VECTOR(logsdc);    // Stdev of catch obs noise, length nfisheries
+  PARAMETER_VECTOR(logsdm);    // Stdev of MSY (when growth is time-varying)
   PARAMETER_VECTOR(logphi);    // Season levels of F when using spline based seasons
   PARAMETER_VECTOR(loglambda); // Damping variable when using seasonal SDEs
   PARAMETER(logitpp);          // Proportion of narrow distribution when using robust obs err.
   PARAMETER(logp1robfac);      // Coefficient to the standard deviation of robust observation error distribution
+  // Random effects
   PARAMETER_MATRIX(logE);      // Diffusion component of F in log
   PARAMETER_MATRIX(logu);      // Seasonal component of F in log
   PARAMETER_MATRIX(logB);      // Biomass in log
+  PARAMETER_MATRIX(logmre);    // MSY random effect (used to model time-varying growth)
 
   //std::cout << "expmosc: " << expmosc(lambda, omega, 0.1) << std::endl;
    if (dbg > 0){
@@ -264,12 +267,12 @@ Type objective_function<Type>::operator() ()
   Type pp = 1.0 / (1.0 + exp(-logitpp));
   Type robfac = 1.0 + exp(logp1robfac);
   vector<Type> m(nstocks); 
-  for (int i=0; i < nstocks; i++){ 
-    m(i) = exp(logm(i)); 
+  for (int si=0; si < nstocks; si++){ 
+    m(si) = exp(logm(si)); 
   }
   vector<Type> K(nstocks); 
-  for (int i=0; i < nstocks; i++){ 
-    K(i) = exp(logK(i)); 
+  for (int si=0; si < nstocks; si++){ 
+    K(si) = exp(logK(si)); 
   }
   //Type K = exp(logK);
   vector<Type> q(nq);
@@ -287,13 +290,13 @@ Type objective_function<Type>::operator() ()
   //}
   //Type qf = exp(logqf);
   vector<Type> n(nstocks);
-  for (int i=0; i < nstocks; i++){ 
-    n(i) = exp(logn(i)); 
+  for (int si=0; si < nstocks; si++){ 
+    n(si) = exp(logn(si)); 
   }
   //Type n = exp(logn);
   vector<Type> gamma(nstocks);
-  for (int i=0; i < nstocks; i++){ 
-    gamma(i) = pow(n(i), n(i)/(n(i)-1.0)) / (n(i)-1.0);
+  for (int si=0; si < nstocks; si++){ 
+    gamma(si) = pow(n(si), n(si)/(n(si)-1.0)) / (n(si)-1.0);
   }
   //Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
   vector<Type> lambda(nfisheries);
@@ -318,10 +321,19 @@ Type objective_function<Type>::operator() ()
   vector<Type> sdb(nstocks);
   vector<Type> sdb2(nstocks);
   vector<Type> isdb2(nstocks);
-  for (int i=0; i < nstocks; i++){ 
-    sdb(i) = exp(logsdb(i)); 
-    sdb2(i) = sdb(i) * sdb(i);
-    isdb2(i) = 1.0 / sdb2(i);
+  for (int si=0; si < nstocks; si++){ 
+    sdb(si) = exp(logsdb(si)); 
+    sdb2(si) = sdb(si) * sdb(si);
+    isdb2(si) = 1.0 / sdb2(si);
+  }
+  // sdm
+  vector<Type> sdm(nstocks);
+  vector<Type> sdm2(nstocks);
+  vector<Type> isdm2(nstocks);
+  for (int si=0; si < nstocks; si++){ 
+    sdm(si) = exp(logsdm(si)); 
+    sdm2(si) = sdm(si) * sdm(si);
+    isdm2(si) = 1.0 / sdm2(si);
   }
   // sdi
   vector<Type> sdi(nsdi);
@@ -861,9 +873,6 @@ Type objective_function<Type>::operator() ()
     }
   }
 
-
-  //matrix<Type> logFs = log(F);
-
   // Sum Fs interacting with stock si
   matrix<Type> Fstock(nstocks, ns);
   for (int i=0; i < ns; i++){
@@ -878,6 +887,21 @@ Type objective_function<Type>::operator() ()
     }
   }
 
+  // GROWTH RATE (modelled as time-varying m)
+  if (dbg > 0){
+    std::cout << "--- DEBUG: logmre loop start --- ans: " << ans << std::endl;
+  }
+  for (int si=0; si < nstocks; si++){
+    for (int i=1; i < ns; i++){
+      likval = dnorm(logmre(si, i), logmre(si, i-1), sqrt(dt(i-1))*sdm(si), 1);
+      ans -= likval;
+      // DEBUGGING
+      if (dbg > 1){
+	std::cout << "-- i: " << i << "- si: " << si << " -   logmre(si, i-1): " << logmre(si, i-1) << "  logE(si, i): " << logE(si, i) << "  sdm(si): " << sdm(si) << "  likval: " << likval << "  ans:" << ans << std::endl;
+      }
+    }
+  }
+
   // BIOMASS PREDICTIONS
   if (dbg > 0){
     std::cout << "--- DEBUG: B loop start --- ans: " << ans << std::endl;
@@ -885,9 +909,11 @@ Type objective_function<Type>::operator() ()
   matrix<Type> logBpred(nstocks, ns);
   for (int si=0; si < nstocks; si++){
     for (int i=0; i < (ns-1); i++){
+      Type mres = m(si) * exp(logmre(si, i));
       // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
       if (simple == 0){
-	logBpred(si, i+1) = predictlogB(B(si, i), Fstock(si, i), gamma(si), m(si), K(si), dt(i), n(si), sdb2(si));
+	//logBpred(si, i+1) = predictlogB(B(si, i), Fstock(si, i), gamma(si), m(si), K(si), dt(i), n(si), sdb2(si));
+	logBpred(si, i+1) = predictlogB(B(si, i), Fstock(si, i), gamma(si), mres, K(si), dt(i), n(si), sdb2(si));
       } /* else {
 	Type Ftmp = 0.0;
 	// Use naive approach
