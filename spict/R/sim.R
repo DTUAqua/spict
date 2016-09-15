@@ -75,6 +75,17 @@ predict.loge <- function(logE0, dt, sdf, efforttype){
 }
 
 
+#' @name predict.logmre
+#' @title Helper function for sim.spict().
+#' @param logmre0 Initial value
+#' @param dt Time step.
+#' @param sdm Standard deviation of mre process.
+#' @return Predicted mre at the end of dt.
+predict.logmre <- function(logmre0, dt, sdm){
+    return(logmre0)
+}
+
+
 #' @name sim.spict
 #' @title Simulate data from Pella-Tomlinson model
 #' @details Simulates data using either manually specified parameters values or parameters estimated by fit.spict().
@@ -264,7 +275,7 @@ sim.spict <- function(input, nobs=100){
         E0 <- 0.2
     }
     if (length(E0) < inp$nfleets){
-        E0 <- rep(E0, inp$nfleets)
+        E0 <- rep(E0[1], inp$nfleets)
     }
     # Initial F (not used?)
     if ('logF0' %in% names(inp$ini)){
@@ -273,6 +284,7 @@ sim.spict <- function(input, nobs=100){
         F0 <- 0.2 * exp(inp$ini$logr)
     }
     m <- exp(pl$logm)
+    mre <- exp(pl$logmre)
     n <- exp(pl$logn)
     gamma <- calc.gamma(n)
     K <- exp(pl$logK)
@@ -291,6 +303,7 @@ sim.spict <- function(input, nobs=100){
     sdi <- exp(pl$logsdi)
     sdc <- exp(pl$logsdc)
     sde <- exp(pl$logsde)
+    sdm <- exp(pl$logsdm)
     lambda <- exp(pl$loglambda)
     omega <- inp$omega
     
@@ -354,6 +367,20 @@ sim.spict <- function(input, nobs=100){
             #F[k, ] <- thisqf * E[flind, ]
             F[k, ] <- qf[k] * E[flind, ]
         }
+        # - Growth (time-varying via RW) -
+        # Always run this even when timevaryinggrowth == FALSE to obtain same random numbers
+        e.m <- matrix(0, inp$nstocks, nt-1)
+        logmre <- matrix(0, inp$nstocks, nt)
+        for (si in 1:inp$nstocks){
+            logmre[si, 1] <- log(mre[si, 1])
+            e.m[si, ] <- rnorm(nt-1, 0, sdm[si]*sqrt(dt))
+            for (t in 2:nt){
+                logmre[si, t] <- predict.logmre(logmre[si, t-1], dt, sdm[si]) + e.m[si, t-1]
+            }
+        }
+        if (inp$timevaryinggrowth){
+            mre <- exp(logmre) # To be used in mres below
+        }
         # - Biomass -
         B <- matrix(0, inp$nstocks, nt)
         Fstock <- matrix(0, inp$nstocks, nt)
@@ -363,9 +390,10 @@ sim.spict <- function(input, nobs=100){
         for (si in 1:inp$nstocks){
             e.b[si, ] <- exp(rnorm(nt-1, 0, sdb[si]*sqrt(dt)))
             finds <- zero.omit(inp$target[si, ])
-            Fstock[si, ] <- apply(F[finds, ], 2, sum)
+            Fstock[si, ] <- apply(F[finds, , drop=FALSE], 2, sum)
             for (t in 2:nt){
-                B[si, t] <- predict.b(B[si, t-1], Fstock[si, t-1], gamma[si], m[si], K[si], n[si],
+                mres <- m[si] * mre[si, t-1]
+                B[si, t] <- predict.b(B[si, t-1], Fstock[si, t-1], gamma[si], mres, K[si], n[si],
                                       dt, sdb[si], inp$btype) * e.b[si, t-1]
             }
         }
@@ -390,7 +418,7 @@ sim.spict <- function(input, nobs=100){
     Psub <- matrix(0, inp$nstocks, nt)
     for (si in 1:inp$nstocks){
         finds <- zero.omit(inp$target[si, ])
-        Csubstock <- apply(Csub[finds, ], 2, sum)
+        Csubstock <- apply(Csub[finds, , drop=FALSE], 2, sum)
         for (t in 2:nt){
             Psub[t-1] <- B[si, t] - B[si, t-1] + Csubstock[t-1]
         }
@@ -442,8 +470,8 @@ sim.spict <- function(input, nobs=100){
             if (inp$nobsE[i] > 0){
                 for (j in 1:inp$nobsE[i]){
                     inds <- inp$ie[[i]][j]:(inp$ie[[i]][j] + inp$ne[[i]][j]-1)
-                    Etrue[j] <- sum(Esub[flind, inds])
-                    obsE[j] <- Etrue[j] * e.e[[i]][j]
+                    Etrue[[i]][j] <- sum(Esub[flind, inds])
+                    obsE[[i]][j] <- Etrue[[i]][j] * e.e[[i]][j]
                 }
             }
         }
@@ -554,24 +582,17 @@ sim.spict <- function(input, nobs=100){
     for (nm in inp$RE){
         sim$ini[[nm]] <- NULL
     }
-    sim$do.sd.report <- inp$do.sd.report
-    sim$reportall <- inp$reportall
-    sim$dteuler <- inp$dteuler
-    sim$splineorder <- inp$splineorder
-    sim$euler <- inp$euler
-    sim$lamperti <- inp$lamperti
-    sim$phases <- inp$phases
-    sim$priors <- inp$priors
-    sim$target <- inp$target
-    sim$stocknames <- inp$stocknames
-    sim$fleetnames <- inp$fleetnames
-    sim$outliers <- inp$outliers
+    # Copy these
+    tocopy <- c('do.sd.report', 'reportall', 'dteuler', 'splineorder', 'euler',
+                'lamperti', 'phases', 'priors', 'target', 'stocknames', 'fleetnames',
+                'outliers', 'nseasons', 'seasontype', 'sim.comm.cpue', 'meyermillar',
+                'aspic', 'timevaryinggrowth')
+    for (nm in tocopy){
+        sim[[nm]] <- inp[[nm]]
+    }
+
     sim$recount <- recount
-    sim$nseasons <- inp$nseasons
-    sim$seasontype <- inp$seasontype
-    sim$sim.comm.cpue <- inp$sim.comm.cpue
-    sim$meyermillar <- inp$meyermillar
-    sim$aspic <- inp$aspic
+    # True
     sim$true <- pl
     sim$true$logalpha <- numeric(sum(inp$nindex))
     for (i in 1:sum(inp$nindex)){
@@ -590,6 +611,7 @@ sim.spict <- function(input, nobs=100){
     sim$true$F <- F
     sim$true$Fs <- F
     sim$true$Fstock <- Fstock
+    sim$true$mre <- mre
     sim$true$gamma <- gamma
     sim$true$seasontype <- inp$seasontype
     sim$true$e.c <- e.c
@@ -597,6 +619,7 @@ sim.spict <- function(input, nobs=100){
     sim$true$e.i <- e.i
     sim$true$e.b <- e.b
     sim$true$e.f <- e.f
+    sim$true$e.m <- e.m
     
     sign <- 1
     R <- (n-1)/n * gamma * m / K

@@ -727,7 +727,7 @@ check.inp <- function(inp){
     if (!"robflage" %in% names(inp)) inp$robflage <- 0
     inp$robflage <- as.numeric(inp$robflage)
     # Time-varying growth option
-    inp <- set.default(inp, 'timevaryinggrowth', inp$nqf > 0){
+    inp <- set.default(inp, 'timevaryinggrowth', inp$nqf > 0)
     # ASPIC options 
     if (!"aspic" %in% names(inp)) inp$aspic <- list()
     if (!"mode" %in% names(inp$aspic)) inp$aspic$mode <- 'FIT'
@@ -1326,7 +1326,6 @@ check.inp <- function(inp){
     # Calculate gamma from n
     n <- exp(inp$ini$logn)
     inp$ini$gamma <- calc.gamma(n)
-    
    
     # logK
     if (!'logK' %in% names(inp$ini)){
@@ -1357,51 +1356,11 @@ check.inp <- function(inp){
     if (!"logm" %in% names(inp$ini)){
         n <- exp(inp$ini$logn)
         m <- exp(inp$ini$logr) * exp(inp$ini$logK) / (n^(n/(n-1)))
+        inp$ini$logm <- log(m)
     }
-
-    if (FALSE){ # THIS (using ir for time varying r) IS OBSOLETE AND WILL BE REPLACED AT SOME POINT
-        if ('logr' %in% names(inp$ini)){
-            nr <- length(inp$ini$logr)
-            if (!'ir' %in% names(inp) | nr == 1){
-                inp$ir <- rep(0, inp$ns)
-                for (i in 1:nr){
-                    frac <- 1/nr
-                    modtime <- inp$time %% 1
-                    inds <- which(modtime >= ((i-1)*frac) & modtime < (i*frac))
-                    inp$ir[inds] <- i
-                }
-            } else {
-                if (length(unique(inp$ir)) != nr){
-                    stop('Mismatch between specified inp$ir and inp$ini$logr!')
-                }
-                nir <- length(inp$ir)
-                if (nir != inp$ns){
-                    if (nir == inp$nobsC){ # Assume that inp$ir fits with inp$timeC
-                        ir <- rep(0, inp$ns)
-                        for (i in 1:nir){
-                            inds <- which(inp$time >= inp$timeC[i] & inp$time < (inp$timeC[i]+inp$dtc[i]))
-                            ir[inds] <- inp$ir[i]
-                        }
-                        inds <- which(inp$time >= inp$timeC[nir])
-                        ir[inds] <- inp$ir[nir]
-                        inp$ir <- ir
-                    } else {
-                        if (nir == inp$nobsI[[1]]){ # Assume that inp$ir fits with inp$timeI[[1]]
-                            ir <- rep(0, inp$ns)
-                            for (i in 2:nir){
-                                inds <- which(inp$time >= inp$timeI[[1]][i-1] & inp$time < inp$timeI[[1]][i])
-                                ir[inds] <- inp$ir[i]
-                            }
-                            inds <- which(inp$time >= inp$timeI[[1]][nir])
-                            ir[inds] <- inp$ir[nir]
-                            inp$ir <- ir
-                        } else {
-                            stop('inp$ir is misspecified, only advanced users should specify this manually!')
-                        }
-                    }
-                }
-            }
-        }
+    logm <- inp$ini$logm # Store this to be able to set logmre later
+    if (inp$timevaryinggrowth){
+        inp$ini$logm <- log(1)
     }
     
     check.mapped.ini <- function(inp, nam, nnam){
@@ -1484,6 +1443,9 @@ check.inp <- function(inp){
         inp$ini$logsdb <- log(0.2)
     }
     inp <- check.mapped.ini(inp, 'logsdb', 'nstocks')
+    # logsdm
+    inp$ini <- set.default(inp$ini, 'logsdm', log(0.2))
+    inp <- check.mapped.ini(inp, 'logsdm', 'nstocks')
     # logqf
     if (!'logqf' %in% names(inp$ini)){
         inp$ini$logqf <- numeric(inp$nqf)
@@ -1583,6 +1545,17 @@ check.inp <- function(inp){
     if ("logB" %in% names(inp$ini)){    
         inp$ini$logB <- check.mat(inp$ini$logB, c(inp$nstocks, inp$ns), 'inp$ini$logB')
     }
+    if (!"logmre" %in% names(inp$ini)){
+        if (inp$timevaryinggrowth){
+            inp$ini$logmre <- matrix(logm, inp$nstocks, inp$ns)
+        } else {
+            inp$ini$logmre <- matrix(log(1), inp$nstocks, inp$ns)
+        }
+    }
+    if ("logmre" %in% names(inp$ini)){    
+        inp$ini$logmre <- check.mat(inp$ini$logmre, c(inp$nstocks, inp$ns), 'inp$ini$logmre')
+    }
+    
     # ids to extract logB, logF etc
     #inp$idstock <- unlist(lapply(1:inp$nstocks, function(x) rep(x, inp$ns)))
     #inp$idfleet <- unlist(lapply(1:inp$nfleets, function(x) rep(x, inp$ns)))
@@ -1633,6 +1606,11 @@ check.inp <- function(inp){
     }
     if (sum(unlist(inp$nobsI)) == 0){
         forcefixpars <- c('logq', 'logsdi', forcefixpars)
+    }
+    if (inp$timevaryinggrowth){
+        forcefixpars <- c('logm', forcefixpars)
+    } else {
+        forcefixpars <- c('logmre', 'logsdm', forcefixpars)
     }
     # Determine phases
     if (!"phases" %in% names(inp)){

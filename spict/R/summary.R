@@ -254,7 +254,9 @@ sumspict.stockpars <- function(rep, stock=1, numdigits=8){
         order <- get.order()
         colnms <- get.colnms()
         # Biological parameters
-        bionms <- c('logm', 'logK', 'logn', 'logr', 'logsdb')
+        bionmsbase <- c('logm', 'logK', 'logn', 'logsdb', 'logsdm')
+        indsuse <- na.omit(match(names(rep$par.fixed), bionmsbase))
+        bionms <- c(bionmsbase[indsuse], 'logr')
         nbionms <- length(bionms)
         est <- get.par(bionms[1], rep)[stock, order]
         for (i in 2:nbionms){
@@ -523,6 +525,12 @@ sumspict.fixedpars <- function(rep, numdigits=8){
     # Are seasonal SDE used? if not remove
     if(rep$inp$seasontype != 2){
         nms <- nms[-match(c('logsdu', 'loglambda'), nms)]
+    }
+    # Is growth time varying
+    if(rep$inp$timevaryinggrowth){
+        nms <- nms[-match('logsdm', nms)]
+    } else {
+        nms <- nms[-match('logm', nms)]
     }
     nnms <- length(nms)
     if(nnms > 0){

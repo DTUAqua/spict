@@ -1058,8 +1058,8 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
         abline(v=inp$time[inp$indlastobs], col='gray')
         if (plot.obs){
             for (j in inp$neffortseq){
-                plot.col(inp$timeE[[j]], inp$obsE[[j]]/inp$dte[[j]]*qf[j, 2], cex=0.7, do.line=FALSE,
-                         add=TRUE, add.legend=qlegend, pch=inp$effortobs2fleet[j])
+                plot.col(inp$timeE[[j]], inp$obsE[[j]]/inp$dtef[[j]]*qf[j, 2], cex=0.7,
+                         do.line=FALSE, add=TRUE, add.legend=qlegend, pch=inp$effortobs2fleet[j])
             }
         }
         if ('true' %in% names(inp)){
@@ -2439,6 +2439,9 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
     nseries <- inp$nseries
     if ('true' %in% names(inp)){
         nseries <- nseries + inp$nstocks + inp$nfisheries
+        if (inp$timevaryinggrowth){
+            nseries <- nseries + 1
+        }
     }
     mfrow <- get.mfrow(nseries)
     #if (nseries %in% 1:2) mfrow <- c(2, 1)
@@ -2464,6 +2467,12 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
                  lwd=1.5, col=true.col(), main='True biomass')
             add.name(inp$stocknames[si])
             box(lwd=1.5)
+            if (inp$timevaryinggrowth){
+                plot(inp$time, inp$true$mre[si, ], typ='l', xlim=xlim, xlab='Time', ylab='m',
+                     lwd=1.5, col=true.col(), main='True MSY')
+                add.name(inp$stocknames[si])
+                box(lwd=1.5)
+            }
         }
         for (k in inp$nfisheriesseq){
             plot(inp$time, inp$true$F[k, ], typ='l', col=c.cols()[k], xlim=xlim, xlab='Time',
