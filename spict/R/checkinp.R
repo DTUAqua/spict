@@ -353,6 +353,7 @@ check.inp <- function(inp){
     if (!"optimiser" %in% names(inp)) inp$optimiser <- 'nlminb'
     if (!"optimiser.control" %in% names(inp)) inp$optimiser.control <- list()
     if (!"optim.method" %in% names(inp)) inp$optim.method <- 'BFGS'
+    if (!"stabilise" %in% names(inp)) inp$stabilise <- 1 # If 1 wide uninformative priors are imposed on some parameters to stabilise optimisation (this happens inside the cpp file)
     # OSAR options
     if (!"osar.method" %in% names(inp)) inp$osar.method <- 'none'
     if (!"osar.trace" %in% names(inp))  inp$osar.trace <- FALSE

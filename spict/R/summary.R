@@ -477,6 +477,10 @@ sumspict.fixedpars <- function(rep, numdigits=8){
     if(rep$inp$seasontype != 2){
         nms <- nms[-match(c('logsdu', 'loglambda'), nms)]
     }
+    # Is RW effort model used?
+    if (rep$inp$effortmodel == 'RW'){
+        nms <- nms[-match(c('logeta', 'logdelta'), nms)]
+    }
     nnms <- length(nms)
     if(nnms > 0){
         vals <- numeric(0)

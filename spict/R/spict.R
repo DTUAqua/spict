@@ -264,6 +264,7 @@ make.datin <- function(inp, dbg=0){
                   robflagi=inp$robflagi,
                   robflage=inp$robflage,
                   stochmsy=ifelse(inp$msytype=='s', 1, 0),
+                  stabilise=inp$stabilise,
                   priorn=inp$priors$logn,
                   priorr=inp$priors$logr,
                   priorK=inp$priors$logK,

@@ -105,6 +105,7 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(robflagi);       // If 1 use robust observation error for index
   DATA_SCALAR(robflage);       // If 1 use robust observation error for effort
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
+  DATA_INTEGER(stabilise);     // If 1 stabilise optimisation using uninformative priors
   //DATA_SCALAR(effortflag);     // If effortflag == 1 use effort data, else use index data
 
   // Priors
@@ -249,17 +250,6 @@ Type objective_function<Type>::operator() ()
   Type isdc2 = 1.0/sdc2;
   Type beta = sdc/sdf(0);
   Type logbeta = log(beta);
-
-  // Put wide smooth distributions on difficult parameters to stabilise optimisation.
-  // Note that this contributes to the objective function, which therefore cannot be 
-  // regarded as a likelihood to be compared with likelihoods from other models.
-  ans -= dnorm(logB(0) - logK, Type(-0.2234), Type(10.0), 1);
-  //ans -= dnorm(logB(0), Type(10.0), Type(10.0), 1);
-  ans -= dnorm(logF(0), Type(-0.2234), Type(10.0), 1);
-  ans -= dnorm(logn, Type(0.6931472), Type(10.0), 1); // log(2) = 0.6931472
-  ans -= dnorm(logbeta, Type(0.0), Type(10.0), 1);
-  for(int i=0; i<nsdi; i++){ ans -= dnorm(logalpha(i), Type(0.0), Type(10.0), 1); }
-  ans -= dnorm(logsde, Type(-0.9162907), Type(10.0), 1); // log(0.4) = -0.9162907
 
   // Initialise vectors
   vector<Type> P(ns-1);
@@ -431,6 +421,34 @@ Type objective_function<Type>::operator() ()
     mvec(i) = m(ind);
     //logFmsyvec(i) = logFmsy(ind);
     //logBmsyvec(i) = logBmsy(ind);
+  }
+
+  // Put wide smooth distributions on difficult parameters to stabilise optimisation.
+  // Note that this contributes to the objective function, which therefore cannot be 
+  // regarded as a likelihood to be compared with likelihoods from other models.
+  // Only apply these if there is no "manual" prior on the parameter and if stabilise == 1
+  if (stabilise == 1){
+    if (priorbkfrac(2) != 1){
+      ans -= dnorm(logB(0) - logK, Type(-0.2234), Type(10.0), 1);
+    }
+    //ans -= dnorm(logB(0), Type(10.0), Type(10.0), 1);
+    if(priorF(2) != 1){
+      ans -= dnorm(logF(0), Type(-0.2234), Type(10.0), 1);
+    }
+    if(priorn(2) != 1){
+      ans -= dnorm(logn, Type(0.6931472), Type(10.0), 1); // log(2) = 0.6931472
+    }
+    if(priorbeta(2) != 1){
+      ans -= dnorm(logbeta, Type(0.0), Type(10.0), 1);
+    }
+    if(prioralpha(2) != 1){
+      for(int i=0; i<nsdi; i++){ 
+	ans -= dnorm(logalpha(i), Type(0.0), Type(10.0), 1); 
+      }
+    }
+    if(priorsde(2) != 1){
+      ans -= dnorm(logsde, Type(-0.9162907), Type(10.0), 1); // log(0.4) = -0.9162907
+    }
   }
 
   // PRIORS
