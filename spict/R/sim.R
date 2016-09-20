@@ -385,16 +385,18 @@ sim.spict <- function(input, nobs=100){
         B <- matrix(0, inp$nstocks, nt)
         Fstock <- matrix(0, inp$nstocks, nt)
         e.b <- matrix(0, inp$nstocks, nt-1)
+        mres <- matrix(0, inp$nstocks, nt)
         #B <- numeric(nt)
         B[, 1] <- B0
         for (si in 1:inp$nstocks){
             e.b[si, ] <- exp(rnorm(nt-1, 0, sdb[si]*sqrt(dt)))
             finds <- zero.omit(inp$target[si, ])
             Fstock[si, ] <- apply(F[finds, , drop=FALSE], 2, sum)
+            mres[si, ] <- m[si] * mre[si, ]
             for (t in 2:nt){
-                mres <- m[si] * mre[si, t-1]
-                B[si, t] <- predict.b(B[si, t-1], Fstock[si, t-1], gamma[si], mres, K[si], n[si],
-                                      dt, sdb[si], inp$btype) * e.b[si, t-1]
+                #mres <- m[si] * mre[si, t-1]
+                B[si, t] <- predict.b(B[si, t-1], Fstock[si, t-1], gamma[si], mres[si, t-1],
+                                      K[si], n[si], dt, sdb[si], inp$btype) * e.b[si, t-1]
             }
         }
         flag <- any(B <= 0) # Negative biomass not allowed
@@ -620,17 +622,27 @@ sim.spict <- function(input, nobs=100){
     sim$true$e.b <- e.b
     sim$true$e.f <- e.f
     sim$true$e.m <- e.m
-    
+
+    am <- function(x){ # As matrix
+        if (sim$timevaryinggrowth){
+            x <- matrix(rep(x, inp$ns), length(x), inp$ns)
+        }
+        return(x)
+    }
+    toam <- c('n', 'gamma', 'K', 'sdb')
+    for (nm in toam){
+        assign(nm, am(get(nm)))
+    }
     sign <- 1
-    R <- (n-1)/n * gamma * m / K
+    R <- (n-1)/n * gamma * mres / K
     p <- n-1
     sim$true$R <- R
-    sim$true$logrold <- log(abs(gamma * m / K))
-    sim$true$logr <- log(m / K * n^(n/(n-1.0)))
+    sim$true$logrold <- log(abs(gamma * mres / K))
+    sim$true$logr <- log(mres / K * n^(n/(n-1.0)))
     sim$true$logrc <- log(2 * R)
     # Deterministic reference points
     sim$true$Bmsyd <- K/(n^(1/(n-1)))
-    sim$true$MSYd <- m
+    sim$true$MSYd <- mres
     sim$true$Fmsyd <- sim$true$MSYd / sim$true$Bmsyd
     # Stochastic reference points from Bordet & Rivest (2014)
     sim$true$Bmsys <- K/(p+1)^(1/p) * (1- (1+R*(p-1)/2)/(R*(2-R)^2)*sdb^2)

@@ -533,7 +533,7 @@ sumspict.fixedpars <- function(rep, numdigits=8){
         nms <- nms[-match('logm', nms)]
     }
     nnms <- length(nms)
-    if(nnms > 0){
+    if(nnms > 0 & !any(is.na(nms))){
         vals <- numeric(0)
         valnms <- character(0)
         for(i in 1:nnms){

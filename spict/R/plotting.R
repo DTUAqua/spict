@@ -1461,8 +1461,13 @@ plotspict.catch <- function(rep, stock=1, main='Catch', ylim=NULL, qlegend=TRUE,
         ylimflag <- !is.null(ylim)
         Cscal <- 1
         cicol <- 'lightgray'
-        MSY <- get.par('logMSY', rep, exp=TRUE)[stock, ]
-        MSYvec <- get.msyvec(inp, MSY)
+        if (inp$timevaryinggrowth){
+            MSY <- get.par('logmre', rep, exp=TRUE) # Only works for one stock
+            MSYvec <- list(ll=MSY[, 1], msy=MSY[, 2], ul=MSY[, 3])
+        } else {
+            MSY <- get.par('logMSY', rep, exp=TRUE)[stock, ]
+            MSYvec <- get.msyvec(inp, MSY)
+        }
         finds <- which(inp$targetmap[, 1] == stock)
         nfinds <- length(finds)
         # Line colors
@@ -1557,7 +1562,7 @@ plotspict.catch <- function(rep, stock=1, main='Catch', ylim=NULL, qlegend=TRUE,
         if (!ylimflag){
             if (length(ylim) != 2){
                 ylim <- range(c(clfall[fininds], cufall[fininds],
-                                0.9*MSY[1], 1.07*MSY[3]), na.rm=TRUE)/Cscal
+                                0.9*min(MSYvec$ll), 1.07*max(MSYvec$ul)), na.rm=TRUE)/Cscal
                 if (inp$dtpredc > 0){
                     ylim <- range(ylim, clfall[fininds], cufall[fininds])
                 }
@@ -1582,8 +1587,13 @@ plotspict.catch <- function(rep, stock=1, main='Catch', ylim=NULL, qlegend=TRUE,
             points(inp$timeC[inds], inp$obsC[inds]/Cscal, pch=21, cex=0.9, bg=cols[inds])
         }
         if ('true' %in% names(inp)){
-            abline(h=inp$true$MSY, col=true.col(), lty=1)
-            abline(h=inp$true$MSY, col='black', lty=3)
+            if (inp$timevaryinggrowth){
+                MSY <- inp$true$MSY[stock, ]
+            } else {
+                MSY <- rep(inp$true$MSY[stock], inp$ns)
+            }
+            lines(inp$time, MSY, col=true.col(), lty=1)
+            lines(inp$time, MSY, col='black', lty=3)
         }
         for (j in finds){
             do.plot(j)

@@ -344,7 +344,7 @@ check.inp <- function(inp){
         }
     }
     if (is.null(inp$timeE)){
-        inp$timeE <- list()
+        inp$timeE <- vector('list', inp$neffort)
     }
     for (i in inp$neffortseq){
         if (is.null(inp$timeE[[i]])){

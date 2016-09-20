@@ -407,7 +407,11 @@ guess.m2 <- function(obsC, obsI, all.return=FALSE){
         a <- mod0$coefficients[1]
         b <- mod0$coefficients[2]
         MSY <- -0.25*a^2/b # p. 284 in FAO's book on tropical stock assessment
-        if (MSY <= 0){
+        if (!is.na(MSY)){
+            if (MSY <= 0){
+                MSY <- mean(y) # Mean catch
+            }
+        } else {
             MSY <- mean(y) # Mean catch
         }
         if (all.return){
