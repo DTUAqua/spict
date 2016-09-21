@@ -1635,8 +1635,8 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
         nr <- 1
         gamma <- get.par('gamma', rep)[stock, ]
         n <- get.par('logn', rep, exp=TRUE)[stock, ]
-        Bmsy <- get.par('logBmsy', rep, exp=TRUE)[stock, ]
-        Bmsy <- c(1,1)
+        #Bmsy <- get.par('logBmsy', rep, exp=TRUE)[stock, ]
+        #MSY <- c(1,1)
         nBplot <- 200
         Bplot <- seq(0.5*1e-8, Kest[2], length=nBplot)
         # Calculate production curve (Pst)
@@ -1648,22 +1648,28 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
             #Pst[[i]] <- pfun(gamma[2], mest[i, 2], Kest[2], n[2], Bplot)
             Pst[[i]] <- pfun(gamma[2], mest[2], Kest[2], n[2], Bplot)
         }
-        ylim <- c(0, max(unlist(Pst)/Bmsy[2], na.rm=TRUE))
+        ylim <- c(0, max(unlist(Pst), na.rm=TRUE))
         if (inp$reportall){
             Best <- get.par('logB', rep, exp=TRUE)[inp$idstock == stock, ]
             Pest <- get.par('P', rep)
             pinds <- which(Pest[, colnames(Pest) == 'stock'] == stock)
             Pest <- Pest[pinds, ]
             binds <- match(as.numeric(names(pinds)), inp$time)
+            if (inp$timevaryinggrowth){
+                MSY <- get.par('logmre', rep, exp=TRUE)[binds, 2]
+            } else {
+                MSY <- get.par('logm', rep, exp=TRUE)[2]
+            }
             Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
             for (i in 1:nr){
                 #Pst[[i]] <- pfun(gamma[2], mest[i, 2], Kest[2], n[2], Bplot)
                 Pst[[i]] <- pfun(gamma[2], mest[2], Kest[2], n[2], Bplot)
+                Pst[[i]] <- Pst[[i]]/max(Pst[[i]])
             }
             #Bvec <- Best[ic[1:dim(Pest)[1]], 2]
             Bvec <- Best[binds, 2]
             xlim <- range(Bvec/Kest[2], 0, 1)
-            ylim <- c(min(0, Pest[,2]/Bmsy[2]), max(Pest[,2]/Bmsy[2], unlist(Pst)/Bmsy[2], na.rm=TRUE))
+            ylim <- c(min(0, Pest[,2]/MSY), max(Pest[,2]/MSY, unlist(Pst), na.rm=TRUE))
         } else {
             xlim <- range(Bplot/Kest[2], na.rm=TRUE)
         }
@@ -1671,23 +1677,27 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
         inde <- inp$indest[-length(inp$indest)]
         indp <- inp$indpred[-1]-1
         ylab <- 'Production'
-        ylab <- add.catchunit(ylab, inp$catchunit)
+        if (inp$timevaryinggrowth){
+            ylab <- paste(ylab, '(normalised)')
+        } else {
+            ylab <- add.catchunit(ylab, inp$catchunit)
+        }
         #if (main==-1) main <- 'Production curve'
-        plot(Bplot/Kest[2], Pst[[nr]]/Bmsy[2], typ='l', ylim=ylim, xlim=xlim,
+        plot(Bplot/Kest[2], Pst[[nr]], typ='l', ylim=ylim, xlim=xlim,
              xlab='B/K', ylab=ylab, col=1, main=main)
         if (nr > 1){
             for (i in 1:(nr-1)){
-                lines(Bplot/Kest[2], Pst[[i]]/Bmsy[2], col='gray')
+                lines(Bplot/Kest[2], Pst[[i]], col='gray')
             }
         }
         if (inp$reportall){
-            lines(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, lwd=1.5)
-            points(Bvec/Kest[2], Pest[, 2]/Bmsy[2], col=4, pch=20, cex=0.7)
+            lines(Bvec/Kest[2], Pest[, 2]/MSY, col=4, lwd=1.5)
+            points(Bvec/Kest[2], Pest[, 2]/MSY, col=4, pch=20, cex=0.7)
             par(xpd=TRUE)
             if (length(ic) < n.plotyears){
                 inds <- c(1, length(Bvec), seq(1, length(Bvec), by=2))
                 labs <- round(inp$time[ic], 2)
-                text(Bvec[inds]/Kest[2], Pest[inds, 2]/Bmsy[2], labels=labs[inds],
+                text(Bvec[inds]/Kest[2], Pest[inds, 2]/MSY, labels=labs[inds],
                      cex=0.75, pos=4, offset=0.25)
             }
             par(xpd=FALSE)

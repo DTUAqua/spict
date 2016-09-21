@@ -256,7 +256,10 @@ sumspict.stockpars <- function(rep, stock=1, numdigits=8){
         # Biological parameters
         bionmsbase <- c('logm', 'logK', 'logn', 'logsdb', 'logsdm')
         indsuse <- na.omit(match(names(rep$par.fixed), bionmsbase))
-        bionms <- c(bionmsbase[indsuse], 'logr')
+        bionms <- bionmsbase[indsuse]
+        if (!rep$inp$timevaryinggrowth){
+            bionms <- c(bionms, 'logr')
+        }
         nbionms <- length(bionms)
         est <- get.par(bionms[1], rep)[stock, order]
         for (i in 2:nbionms){
@@ -271,7 +274,7 @@ sumspict.stockpars <- function(rep, stock=1, numdigits=8){
         cn <- c('estimate', 'cilow', 'ciupp')
         if ('true' %in% names(rep$inp)){
             truevals <- unlist(rep$inp$true[rownames(est)]) # Will not work with multiple stocks
-            ci <- est[, 2] < truevals & est[, 3] > truevals
+            ci <- as.numeric(est[, 2] < truevals & est[, 3] > truevals)
             resout <- cbind(resout[, 1], transform(truevals), resout[, 2:3], ci)
             cn <- c(cn[1], 'true', cn[2:3], 'true.in.ci')
         }
@@ -515,22 +518,22 @@ sumspict.fixedpars <- function(rep, numdigits=8){
         nms <- nms[-match(c('logsde', 'logqf'), nms)]
     }
     # Are robust options used? if not remove
-    if(!any(rep$inp$robflagi | rep$inp$robflagc | rep$inp$robflage)){
+    if (!any(rep$inp$robflagi | rep$inp$robflagc | rep$inp$robflage)){
         nms <- nms[-match(c('logitpp', 'logp1robfac'), nms)]
     }
     # Are seasonal spline used? if not remove
-    if(rep$inp$seasontype != 1){
+    if (rep$inp$seasontype != 1){
         nms <- nms[-match('logphi', nms)]
     }
     # Are seasonal SDE used? if not remove
-    if(rep$inp$seasontype != 2){
+    if (rep$inp$seasontype != 2){
         nms <- nms[-match(c('logsdu', 'loglambda'), nms)]
     }
     # Is growth time varying
-    if(rep$inp$timevaryinggrowth){
-        nms <- nms[-match('logsdm', nms)]
-    } else {
+    if (rep$inp$timevaryinggrowth){
         nms <- nms[-match('logm', nms)]
+    } else {
+        nms <- nms[-match('logsdm', nms)]
     }
     nnms <- length(nms)
     if(nnms > 0 & !any(is.na(nms))){
