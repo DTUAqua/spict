@@ -410,7 +410,6 @@ Type objective_function<Type>::operator() ()
       B(si, i) = exp(logB(si, i));
     }
   }
-  vector<Type> mvec(ns);
   matrix<Type> logBmsyvec(nstocks, ns);
   matrix<Type> logFmsyvec(nstocks, ns);
   vector<Type> Cpred(nobsCp);
@@ -420,68 +419,87 @@ Type objective_function<Type>::operator() ()
   vector<Type> logCpred(nobsCp);
   vector<Type> logIpred(nobsI);
   vector<Type> logEpred(nobsE);
+  if (dbg > 0){
+    std::cout << "==== Done initialising vectors ====" << std::endl;
+  }
 
   // Reference points
+  matrix<Type> mres(nstocks, ns);
+  for (int si=0; si < nstocks; si++){
+    for (int i=0; i < ns; i++){
+      mres(si, i) = m(si) * exp(logmre(si, i));
+    }
+  }
   vector<Type> p(nstocks);
   for (int si=0; si < nstocks; si++){
     p(si) = n(si) - 1.0; // Is this allowed?
   }
-  vector<Type> Bmsyd(nstocks);
-  vector<Type> Fmsyd(nstocks);
-  vector<Type> MSYd = m;
-  vector<Type> Bmsys(nstocks);
-  vector<Type> Fmsys(nstocks);
-  vector<Type> MSYs(nstocks);
+  matrix<Type> Bmsyd(nstocks, ns);
+  matrix<Type> Fmsyd(nstocks, ns);
+  matrix<Type> MSYd = mres;
+  matrix<Type> Bmsys(nstocks, ns);
+  matrix<Type> Fmsys(nstocks, ns);
+  matrix<Type> MSYs(nstocks, ns);
   int flag;
   for (int si=0; si < nstocks; si++){
     flag = asDouble(n(si)) > 1; // Cast n as double to calc flag
     // Deterministic reference points
-    Bmsyd(si) = K(si) * pow(1.0/n(si), 1.0/(n(si)-1.0));
-    Fmsyd(si) = MSYd(si) / Bmsyd(si);
-    // Stochastic reference points (NOTE: only proved for n > 1, Bordet and Rivest (2014))
-    // The stepfun ensures that stochastic reference points are only used if n > 1.
-    Type BmsyStochContr = (1.0 - (1.0 + Fmsyd(si)*(p(si)-1.0)/2.0)*sdb2(si) / (Fmsyd(si)*pow(2.0-Fmsyd(si), 2.0)));
-    //Bmsys(si) = Bmsyd(si) * pow(BmsyStochContr, stepfun(p));
-    //Bmsys(si) = Bmsyd(si) * (1.0 - (1.0 + Fmsyd(si)*(p-1.0)/2.0)*sdb2 / (Fmsyd(si)*pow(2.0-Fmsyd(si), 2.0)));
-    Type FmsyStochContr = (p(si)*(1.0-Fmsyd(si))*sdb2(si)) / pow(2.0-Fmsyd(si), 2.0);
-    //Fmsys(si) = Fmsyd(si) - stepfun(p) * FmsyStochContr;
-    //Fmsys(si) = Fmsyd(si) - (p*(1.0-Fmsyd(si))*sdb2) / pow(2.0-Fmsyd(si), 2.0);
-    Type MSYstochContr = (1.0 - ((p(si)+1.0)/2.0*sdb2(si)) / (1.0 - pow(1.0-Fmsyd(si), 2.0)));
-    //MSYs(si) = MSYd(si) * pow(MSYstochContr, stepfun(p));
-    //MSYs(si) = MSYd(si) * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Fmsyd(si), 2.0)));
-
-
-    //flag = asDouble(n) > 1 & asDouble(BmsyStochContr) > 0;
-    if (flag){
-      Bmsys(si) = Bmsyd(si) * BmsyStochContr;
-      Fmsys(si) = Fmsyd(si) - FmsyStochContr;
-      MSYs(si) = MSYd(si) * MSYstochContr;
-    } else {
-      Bmsys(si) = Bmsyd(si);
-      Fmsys(si) = Fmsyd(si);
-      MSYs(si) = MSYd(si);
+    for (int i=0; i < ns; i++){
+      Bmsyd(si, i) = K(si) * pow(1.0/n(si), 1.0/(n(si)-1.0)); // Independent of i
+      Fmsyd(si, i) = MSYd(si, i) / Bmsyd(si, i);
+      // Stochastic reference points (NOTE: only proved for n > 1, Bordet and Rivest (2014))
+      // The stepfun ensures that stochastic reference points are only used if n > 1.
+      Type BmsyStochContr = (1.0 - (1.0 + Fmsyd(si, i)*(p(si)-1.0)/2.0)*sdb2(si) / (Fmsyd(si, i)*pow(2.0-Fmsyd(si, i), 2.0)));
+      Type FmsyStochContr = (p(si)*(1.0-Fmsyd(si, i))*sdb2(si)) / pow(2.0-Fmsyd(si, i), 2.0);
+      Type MSYstochContr = (1.0 - ((p(si)+1.0)/2.0*sdb2(si)) / (1.0 - pow(1.0-Fmsyd(si, i), 2.0)));
+      if (flag){
+	Bmsys(si, i) = Bmsyd(si, i) * BmsyStochContr;
+	Fmsys(si, i) = Fmsyd(si, i) - FmsyStochContr;
+	MSYs(si, i) = MSYd(si, i) * MSYstochContr;
+      } else {
+	Bmsys(si, i) = Bmsyd(si, i);
+	Fmsys(si, i) = Fmsyd(si, i);
+	MSYs(si, i) = MSYd(si, i);
+      }
     }
     //std::cout << "flag: " << flag << std::endl;
     //std::cout << "BmsyStochContr: " << BmsyStochContr << std::endl;
     //std::cout << "Bmsyd(si): " << Bmsyd(si) << std::endl;
     //std::cout << "Bmsys(si): " << Bmsys(si) << std::endl;
   }
+  if (dbg > 0){
+    std::cout << "==== Done calculating reference points ====" << std::endl;
+  }
 
   // log reference points
-  vector<Type> logBmsyd = log(Bmsyd);
-  vector<Type> logMSYd = log(MSYd);
-  vector<Type> logFmsyd = log(Fmsyd);
-  vector<Type> logBmsys = log(Bmsys);
-  vector<Type> logFmsys = log(Fmsys);
-  vector<Type> logMSYs = log(MSYs);
+  matrix<Type> logBmsyd(nstocks, ns);
+  matrix<Type> logMSYd(nstocks, ns);
+  matrix<Type> logFmsyd(nstocks, ns);
+  matrix<Type> logBmsys(nstocks, ns);
+  matrix<Type> logFmsys(nstocks, ns);
+  matrix<Type> logMSYs(nstocks, ns);
+  for (int si=0; si < nstocks; si++){
+    for (int i=0; i < ns; i++){
+      logBmsyd(si, i) = log(Bmsyd(si, i));
+      logMSYd(si, i) = log(MSYd(si, i));
+      logFmsyd(si, i) = log(Fmsyd(si, i));
+      logBmsys(si, i) = log(Bmsys(si, i));
+      logFmsys(si, i) = log(Fmsys(si, i));
+      logMSYs(si, i) = log(MSYs(si, i));
+    }
+  }
   // Used reference points
-  vector<Type> Bmsy(nstocks);
-  vector<Type> MSY(nstocks);
-  vector<Type> Fmsy(nstocks);
-  vector<Type> logBmsy(nstocks);
-  vector<Type> logFmsy(nstocks);
-  vector<Type> logMSY(nstocks);
+  matrix<Type> Bmsy(nstocks, ns);
+  matrix<Type> MSY(nstocks, ns);
+  matrix<Type> Fmsy(nstocks, ns);
+  matrix<Type> logBmsy(nstocks, ns);
+  matrix<Type> logFmsy(nstocks, ns);
+  matrix<Type> logMSY(nstocks, ns);
+  if (dbg > 0){
+    std::cout << "==== Done transforming reference points ====" << std::endl;
+  }
 
+  /*
   vector<Type> Bmsy2(nstocks);
   for (int si=0; si < nstocks; si++){
     flag = asDouble(n(si)) > 1; // Cast n as double to calc flag
@@ -491,6 +509,7 @@ Type objective_function<Type>::operator() ()
       Bmsy2(si) = Bmsyd(si);
     }
   }
+  */
 
   if (stochmsy == 1){
     // Use stochastic reference points
@@ -587,7 +606,7 @@ Type objective_function<Type>::operator() ()
     }
     std::cout << "INPUT: omega: " << omega << std::endl;
 
-    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logE.rows(): " << logE.rows() << "  logE.cols(): " << logE.cols() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.rows(): " << B.rows() << "  B.cols(): " << B.cols() <<  "  mvec.size(): " << mvec.size() << "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logFmsy.size(): " << logFmsy.size() << "  logFmsyvec.size(): " << logFmsyvec.size() << "  logBmsy.size(): " << logBmsy.size() << "  logBmsyvec.size(): " << logBmsyvec.size() << "  m.size(): " << m.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
+    std::cout << "logobsC.size(): " << logobsC.size() << "  Cpred.size(): " << Cpred.size() << "  logobsI.size(): " << logobsI.size() << "  dt.size(): " << dt.size() << "  logE.rows(): " << logE.rows() << "  logE.cols(): " << logE.cols() << "  logu.rows(): " << logu.rows() << "  logu.cols(): " << logu.cols() << "  B.rows(): " << B.rows() << "  B.cols(): " << B.cols() <<  "  iq.size(): " << iq.size() << "  ic.size(): " << ic.size() << "  logFmsy.size(): " << logFmsy.size() << "  logFmsyvec.size(): " << logFmsyvec.size() << "  logBmsy.size(): " << logBmsy.size() << "  logBmsyvec.size(): " << logBmsyvec.size() << "  m.size(): " << m.size() << "  logphi.size(): " << logphi.size() << "  logphipar.size(): " << logphipar.size() << std::endl;
     std::cout << "Bmsys: " << Bmsys << std::endl;
     std::cout << "Fmsys: " << Fmsys << std::endl;
     std::cout << "MSYs: " << MSYs << std::endl;
@@ -595,18 +614,6 @@ Type objective_function<Type>::operator() ()
     std::cout << "Fmsyd: " << Fmsyd << std::endl;
     std::cout << "MSYd: " << MSYd << std::endl;
   }
-  // Calculate mvec if multiple rs are used (rarely the case).
-  /*
-  for (int i=0; i < ns; i++){
-    ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
-    if (dbg>1){
-      std::cout << "-- i: " << i << " -- ind: " << ind << " -   mvec(i): " << mvec(i) << std::endl;
-    }
-    mvec(i) = m(ind);
-    //logFmsyvec(i) = logFmsy(ind);
-    //logBmsyvec(i) = logBmsy(ind);
-  }
-  */
 
   // PRIORS
   if (dbg > 0){
@@ -727,11 +734,11 @@ Type objective_function<Type>::operator() ()
   }
   if (priorBBmsy(2) == 1 & nstocks == 1){
     ind = CppAD::Integer(priorBBmsy(4)-1);
-    ans-= dnorm(logB(0, ind) - logBmsyvec(ind), priorBBmsy(0), priorBBmsy(1), 1); // Prior for logBBmsy
+    ans-= dnorm(logB(0, ind) - logBmsy(0, ind), priorBBmsy(0), priorBBmsy(1), 1); // Prior for logBBmsy
   }
   if (priorFFmsy(2) == 1 & nfisheries == 1){
     ind = CppAD::Integer(priorFFmsy(4)-1);
-    ans-= dnorm(logF(0, ind) - logFmsyvec(ind), priorFFmsy(0), priorFFmsy(1), 1); // Prior for logFFmsy
+    ans-= dnorm(logF(0, ind) - logFmsy(0, ind), priorFFmsy(0), priorFFmsy(1), 1); // Prior for logFFmsy
   }
 
   /*
@@ -909,11 +916,11 @@ Type objective_function<Type>::operator() ()
   matrix<Type> logBpred(nstocks, ns);
   for (int si=0; si < nstocks; si++){
     for (int i=0; i < (ns-1); i++){
-      Type mres = m(si) * exp(logmre(si, i));
+      //Type mres = m(si) * exp(logmre(si, i));
       // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
       if (simple == 0){
 	//logBpred(si, i+1) = predictlogB(B(si, i), Fstock(si, i), gamma(si), m(si), K(si), dt(i), n(si), sdb2(si));
-	logBpred(si, i+1) = predictlogB(B(si, i), Fstock(si, i), gamma(si), mres, K(si), dt(i), n(si), sdb2(si));
+	logBpred(si, i+1) = predictlogB(B(si, i), Fstock(si, i), gamma(si), mres(si, i), K(si), dt(i), n(si), sdb2(si));
       } /* else {
 	Type Ftmp = 0.0;
 	// Use naive approach
@@ -1148,15 +1155,15 @@ Type objective_function<Type>::operator() ()
   vector<Type> logFstockp = logFstock.col(pind);
   vector<Type> logFstockpFmsy(nstocks);
   for (int si=0; si < nstocks; si++){ 
-    logBpBmsy(si) = logBp(si) - logBmsyvec(si, pind);
-    logFstockpFmsy(si) = logFstockp(si) - logFmsyvec(si, pind);
+    logBpBmsy(si) = logBp(si) - logBmsy(si, pind);
+    logFstockpFmsy(si) = logFstockp(si) - logFmsy(si, pind);
   }
   vector<Type> logBpK = logBp - logK;
   vector<Type> logFp = logF.col(pind); 
   vector<Type> logFpFmsy(nfisheries);
   for (int k=0; k < nfisheries; k++){
     sind = CppAD::Integer(targetmap(k, 0) - 1);
-    logFpFmsy(k) = logFp(k) - logFmsyvec(sind, pind);
+    logFpFmsy(k) = logFp(k) - logFmsy(sind, pind);
   }
   vector<Type> logIp(nindex);
   for (int i=0; i < nindex; i++){
@@ -1172,15 +1179,15 @@ Type objective_function<Type>::operator() ()
   vector<Type> logFstockl = logFstock.col(lind);
   vector<Type> logFstocklFmsy(nstocks);
   for (int si=0; si < nstocks; si++){ 
-    logBlBmsy(si) = logBl(si) - logBmsyvec(si, lind);
-    logFstocklFmsy(si) = logFstockl(si) - logFmsyvec(si, lind);
+    logBlBmsy(si) = logBl(si) - logBmsy(si, lind);
+    logFstocklFmsy(si) = logFstockl(si) - logFmsy(si, lind);
   }
   vector<Type> logBlK = logBl - logK;
   vector<Type> logFl = logF.col(lind);
   vector<Type> logFlFmsy(nfisheries);
   for (int k=0; k < nfisheries; k++){
     sind = CppAD::Integer(targetmap(k, 0) - 1);
-    logFlFmsy(k) = logFl(k) - logFmsyvec(sind, lind);
+    logFlFmsy(k) = logFl(k) - logFmsy(sind, lind);
   }
 
   // Calculate relative levels of biomass and fishing mortality per stock
@@ -1188,8 +1195,8 @@ Type objective_function<Type>::operator() ()
   matrix<Type> logFstockFmsy(nstocks, ns);
   for (int si=0; si < nstocks; si++){ 
     for (int i=0; i < ns; i++){ 
-      logBBmsy(si, i) = logB(si, i) - logBmsyvec(si, i); 
-      logFstockFmsy(si, i) = logFstock(si, i) - logFmsyvec(si, i); 
+      logBBmsy(si, i) = logB(si, i) - logBmsy(si, i); 
+      logFstockFmsy(si, i) = logFstock(si, i) - logFmsy(si, i); 
     }
   }
   // Calculate relative fishing mortality per fishery
@@ -1197,7 +1204,7 @@ Type objective_function<Type>::operator() ()
   for (int k=0; k < nfisheries; k++){ 
     sind = CppAD::Integer(targetmap(k, 0) - 1); // minus 1 because R starts at 1 and c++ at 0
     for (int i=0; i < ns; i++){ 
-      logFFmsy(k, i) = logF(k, i) - logFmsyvec(sind, i); 
+      logFFmsy(k, i) = logF(k, i) - logFmsy(sind, i); 
     }
   }
 
@@ -1208,10 +1215,10 @@ Type objective_function<Type>::operator() ()
   }
 
   // ADREPORTS
-  ADREPORT(Bmsy);  
-  ADREPORT(Bmsyd);
-  ADREPORT(Bmsys);
-  ADREPORT(Bmsy2);
+  //ADREPORT(Bmsy);  
+  //ADREPORT(Bmsyd);
+  //ADREPORT(Bmsys);
+  //ADREPORT(Bmsy2);
   ADREPORT(logBmsy);
   ADREPORT(logBmsyd);
   ADREPORT(logBmsys);
@@ -1221,9 +1228,9 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logBl);
   ADREPORT(logBlBmsy);
   ADREPORT(logBlK);
-  ADREPORT(Fmsy);
-  ADREPORT(Fmsyd);
-  ADREPORT(Fmsys);
+  //ADREPORT(Fmsy);
+  //ADREPORT(Fmsyd);
+  //ADREPORT(Fmsys);
   ADREPORT(logFmsy);
   ADREPORT(logFmsyd);
   ADREPORT(logFmsys);
@@ -1235,9 +1242,9 @@ Type objective_function<Type>::operator() ()
   ADREPORT(logFlFmsy);
   ADREPORT(logFstockl);
   ADREPORT(logFstocklFmsy);
-  ADREPORT(MSY);
-  ADREPORT(MSYd);
-  ADREPORT(MSYs);
+  //ADREPORT(MSY);
+  //ADREPORT(MSYd);
+  //ADREPORT(MSYs);
   ADREPORT(logMSY);
   ADREPORT(logMSYd);
   ADREPORT(logMSYs);

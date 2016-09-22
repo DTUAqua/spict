@@ -965,9 +965,13 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
         Fstock <- get.par('logFstock', rep, exp=TRUE)[inp$idstock == stock, ]
         Fest <- get.par('logF', rep, exp=TRUE)
         qf <- get.par('logqf', rep, exp=TRUE)
-        Fmsy <- get.par('logFmsy', rep, exp=TRUE)[stock, ]
-        Fmsyd <- get.par('logFmsyd', rep, exp=TRUE)[stock, ]
-        Fmsyvec <- get.msyvec(inp, Fmsy)
+        Fmsy <- get.par('logFmsy', rep, exp=TRUE)
+        if (inp$timevaryinggrowth){
+            Fmsyvec <- list(ll=Fmsy[, 1], msy=Fmsy[, 2], ul=Fmsy[, 3])
+        } else {
+            Fmsyvec <- get.msyvec(inp, Fmsy)
+        }
+
         # Get relevant indices
         indest <- intersect(inp$indest, inp$indsstock[[stock]])
         indpred <- intersect(inp$indpred, inp$indsstock[[stock]])
@@ -992,8 +996,10 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
             al2f <- annual(inp$time, logFF[, 2])
             al3f <- annual(inp$time, logFF[, 3])
             inds <- which(!is.na(al1f$annvec))
-            clf <- exp(al1f$annvec[inds]) * Fmsy[2]
-            cuf <- exp(al3f$annvec[inds]) * Fmsy[2]
+            if (!inp$timevaryinggrowth){
+                clf <- exp(al1f$annvec[inds]) * Fmsy[2]
+                cuf <- exp(al3f$annvec[inds]) * Fmsy[2]
+            }
             inds <- which(!is.na(al2f$annvec))
             timef <- al2f$anntime[inds]
             Ff <- exp(al2f$annvec[inds]) * Fmsy[2]
@@ -1007,9 +1013,14 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
             Fp <- Fstock[indpred, 2]
             cup <- Fstock[indpred, 3]
             timef <- inp$time[inp$indsstock[[stock]]]
-            clf <- FFstock[inp$indsstock[[stock]], 1] * Fmsy[2]
             Ff <- Fstock[inp$indsstock[[stock]], 2]
-            cuf <- FFstock[inp$indsstock[[stock]], 3] * Fmsy[2]
+            if (!inp$timevaryinggrowth){
+                clf <- FFstock[inp$indsstock[[stock]], 1] * Fmsy[2]
+                cuf <- FFstock[inp$indsstock[[stock]], 3] * Fmsy[2]
+            } else {
+                clf <- cl
+                cuf <- cu
+            }
         }
         flag <- length(cu) == 0 | all(!is.finite(cu))
         ylimflag <- length(ylim) != 2 # If FALSE ylim is manually specified
@@ -1048,7 +1059,7 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
             }
         }
         cicol2 <- rgb(0, 0, 1, 0.1)
-        if (!flag & !'yearsepgrowth' %in% names(inp) & rel.ci){
+        if (!flag & !'yearsepgrowth' %in% names(inp) & rel.ci & !inp$timevaryinggrowth){
             polygon(c(timef[fininds], rev(timef[fininds])),
                     c(clf[fininds], rev(cuf[fininds])), col=cicol2, border=cicol2)
         }
@@ -1069,8 +1080,13 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
                     lty=2, typ='l', lwd=1.5)
             }
             lines(inp$true$time, inp$true$Fstock[stock, ], col=true.col()) # Plot true
-            abline(h=inp$true$Fmsy[stock], col=true.col(), lty=1)
-            abline(h=inp$true$Fmsy[stock], col='black', lty=3)
+            if (inp$timevaryinggrowth){
+                lines(inp$true$time, inp$true$Fmsy[stock, ], col=true.col()) # Plot true
+                lines(inp$true$time, inp$true$Fmsy[stock, ], col='black', lty=3) # Plot true
+            } else {
+                abline(h=inp$true$Fmsy[stock], col=true.col(), lty=1)
+                abline(h=inp$true$Fmsy[stock], col='black', lty=3)
+            }
         }
         maincol <- 'blue'
         if (!flag){
@@ -1081,7 +1097,7 @@ plotspict.f <- function(rep, stock=1, logax=FALSE, main='Absolute fishing mortal
         }
         lines(time, F, col=maincol, lwd=1.5)
         lines(timep, Fp, col=maincol, lty=3)
-        if (!flag & !'yearsepgrowth' %in% names(inp)){
+        if (!flag & !'yearsepgrowth' %in% names(inp) & !inp$timevaryinggrowth){
             lines(timef, clf, col=rgb(0, 0, 1, 0.2))
             lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         }
@@ -1202,7 +1218,7 @@ plotspict.ffmsy <- function(rep, stock=1, logax=FALSE, main='Relative fishing mo
             #         add=TRUE, add.legend=qlegend)
         }
         if ('true' %in% names(inp)){
-            lines(inp$true$time, inp$true$Fstock[stock, ]/inp$true$Fmsy[stock],
+            lines(inp$true$time, inp$true$Fstock[stock, ]/inp$true$Fmsy[stock, ],
                   col=true.col()) # Plot true
         }
         maincol <- 'blue'
