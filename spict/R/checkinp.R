@@ -1444,7 +1444,7 @@ check.inp <- function(inp){
     }
     inp <- check.mapped.ini(inp, 'logsdb', 'nstocks')
     # logsdm
-    inp$ini <- set.default(inp$ini, 'logsdm', log(0.2))
+    inp$ini <- set.default(inp$ini, 'logsdm', log(1e-8))
     inp <- check.mapped.ini(inp, 'logsdm', 'nstocks')
     # logqf
     if (!'logqf' %in% names(inp$ini)){
@@ -1491,6 +1491,9 @@ check.inp <- function(inp){
     #if (!"logbeta" %in% names(inp$ini))  inp$ini$logbeta <- logbeta
 
     # Fill in unspecified (more rarely user defined) model parameter values
+    if (!"logpsi" %in% names(inp$ini)){
+        inp$ini$logpsi <- rep(log(1e-8), inp$nstocks)
+    }
     if (!"loglambda" %in% names(inp$ini)){
         inp$ini$loglambda <- rep(log(0.1), inp$nfisheries)
     }
@@ -1577,6 +1580,7 @@ check.inp <- function(inp){
                         logsde = inp$ini$logsde,
                         logsdc = inp$ini$logsdc,
                         logsdm = inp$ini$logsdm,
+                        logpsi = inp$ini$logpsi,
                         logphi = inp$ini$logphi,
                         loglambda = inp$ini$loglambda,
                         logitpp = inp$ini$logitpp,
@@ -1608,9 +1612,9 @@ check.inp <- function(inp){
         forcefixpars <- c('logq', 'logsdi', forcefixpars)
     }
     if (inp$timevaryinggrowth){
-        forcefixpars <- c('logm', forcefixpars)
+        #forcefixpars <- c('logpsi', forcefixpars)
     } else {
-        forcefixpars <- c('logmre', 'logsdm', forcefixpars)
+        forcefixpars <- c('logmre', 'logsdm', 'logpsi', forcefixpars)
     }
     # Determine phases
     if (!"phases" %in% names(inp)){

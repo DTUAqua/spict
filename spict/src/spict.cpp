@@ -27,6 +27,13 @@ Type predictlogB(const Type &B0, const Type &F, const Type &gamma, const Type &m
   return log(B0) + (gamma*m/K - gamma*m/K*pow(B0/K, n-1.0) - F - 0.5*sdb2)*dt;
 }
 
+/* Predict m */
+template<class Type>
+Type predictm(const Type &logm0, const Type &dt, const Type &sdm2, const Type &psi, const Type &logm)
+{
+  return exp(logm0 + psi*(logm - logm0)*dt);
+}
+
 /* Predict F1 */
 template<class Type>
 Type predictE1(const Type &logE0, const Type &dt, const Type &sdf2)
@@ -161,6 +168,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logsde);    // Stdev of effort obs noise, length nqf
   PARAMETER_VECTOR(logsdc);    // Stdev of catch obs noise, length nfisheries
   PARAMETER_VECTOR(logsdm);    // Stdev of MSY (when growth is time-varying)
+  PARAMETER_VECTOR(logpsi);    // Attraction to mean in OU of logmre
   PARAMETER_VECTOR(logphi);    // Season levels of F when using spline based seasons
   PARAMETER_VECTOR(loglambda); // Damping variable when using seasonal SDEs
   PARAMETER(logitpp);          // Proportion of narrow distribution when using robust obs err.
@@ -266,39 +274,27 @@ Type objective_function<Type>::operator() ()
   seasonsplinefine = splinematfine * logphipar;
   Type pp = 1.0 / (1.0 + exp(-logitpp));
   Type robfac = 1.0 + exp(logp1robfac);
+  // Transform stock related parameters
   vector<Type> m(nstocks); 
+  vector<Type> K(nstocks); 
+  vector<Type> n(nstocks);
+  vector<Type> gamma(nstocks);
+  vector<Type> psi(nstocks); 
   for (int si=0; si < nstocks; si++){ 
     m(si) = exp(logm(si)); 
-  }
-  vector<Type> K(nstocks); 
-  for (int si=0; si < nstocks; si++){ 
     K(si) = exp(logK(si)); 
+    n(si) = exp(logn(si)); 
+    gamma(si) = pow(n(si), n(si)/(n(si)-1.0)) / (n(si)-1.0);
+    psi(si) = exp(logpsi(si)); 
   }
-  //Type K = exp(logK);
   vector<Type> q(nq);
   for (int i=0; i < nq; i++){ 
     q(i) = exp(logq(i)); 
   }
-
   vector<Type> logq2(nq); // This is to be able to compare with Polacheck et al. (1993)
   for (int i=0; i < nq; i++){ 
     logq2(i) = log(100) + logq(i); 
   }
-  //vector<Type> qf(nqf);
-  //for (int i=0; i < nqf; i++){ 
-  //  qf(i) = exp(logqf(i)); 
-  //}
-  //Type qf = exp(logqf);
-  vector<Type> n(nstocks);
-  for (int si=0; si < nstocks; si++){ 
-    n(si) = exp(logn(si)); 
-  }
-  //Type n = exp(logn);
-  vector<Type> gamma(nstocks);
-  for (int si=0; si < nstocks; si++){ 
-    gamma(si) = pow(n(si), n(si)/(n(si)-1.0)) / (n(si)-1.0);
-  }
-  //Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
   vector<Type> lambda(nfisheries);
   for (int i=0; i < nfisheries; i++){ 
     lambda(i) = exp(loglambda(i)); 
@@ -427,7 +423,8 @@ Type objective_function<Type>::operator() ()
   matrix<Type> mres(nstocks, ns);
   for (int si=0; si < nstocks; si++){
     for (int i=0; i < ns; i++){
-      mres(si, i) = m(si) * exp(logmre(si, i));
+      //mres(si, i) = m(si) * exp(logmre(si, i));
+      mres(si, i) = exp(logmre(si, i));
     }
   }
   vector<Type> p(nstocks);
@@ -899,7 +896,11 @@ Type objective_function<Type>::operator() ()
     std::cout << "--- DEBUG: logmre loop start --- ans: " << ans << std::endl;
   }
   for (int si=0; si < nstocks; si++){
+    // Compare initial value with stationary distribution of OU
+    likval = dnorm(logmre(si, 0), logm(si), sdm(si)/sqrt(2.0*psi(si)), 1);
+    ans -= likval;
     for (int i=1; i < ns; i++){
+      Type logmrepred = predictm(logmre(si, i-1), dt(i-1), sdm2(si), psi(si), logm(si));
       likval = dnorm(logmre(si, i), logmre(si, i-1), sqrt(dt(i-1))*sdm(si), 1);
       ans -= likval;
       // DEBUGGING
