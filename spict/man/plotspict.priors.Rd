@@ -4,10 +4,12 @@
 \alias{plotspict.priors}
 \title{Plot priors and posterior distribution.}
 \usage{
-plotspict.priors(rep, do.plot = 4, stamp = get.version())
+plotspict.priors(rep, stock = 1, do.plot = 4, stamp = get.version())
 }
 \arguments{
 \item{rep}{A result from fit.spict.}
+
+\item{stock}{Number of the stock to be plotted.}
 
 \item{do.plot}{Integer defining maximum number of priors to plot.}
 

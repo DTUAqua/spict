@@ -80,9 +80,12 @@ predict.loge <- function(logE0, dt, sdf, efforttype){
 #' @param logmre0 Initial value
 #' @param dt Time step.
 #' @param sdm Standard deviation of mre process.
+#' @param psi Degree of attraction toward mean.
+#' @param logm Mean logm.
 #' @return Predicted mre at the end of dt.
-predict.logmre <- function(logmre0, dt, sdm){
-    return(logmre0)
+predict.logmre <- function(logmre0, dt, sdm, psi, logm){
+    #return(logmre0)
+    return(logmre0 + psi*(logm - logmre0)*dt)
 }
 
 
@@ -285,6 +288,7 @@ sim.spict <- function(input, nobs=100){
     }
     m <- exp(pl$logm)
     mre <- exp(pl$logmre)
+    psi <- exp(pl$logpsi)
     n <- exp(pl$logn)
     gamma <- calc.gamma(n)
     K <- exp(pl$logK)
@@ -375,7 +379,8 @@ sim.spict <- function(input, nobs=100){
             logmre[si, 1] <- log(mre[si, 1])
             e.m[si, ] <- rnorm(nt-1, 0, sdm[si]*sqrt(dt))
             for (t in 2:nt){
-                logmre[si, t] <- predict.logmre(logmre[si, t-1], dt, sdm[si]) + e.m[si, t-1]
+                #logmre[si, t] <- predict.logmre(logmre[si, t-1], dt, sdm[si]) + e.m[si, t-1]
+                logmre[si, t] <- predict.logmre(logmre[si, t-1], dt, sdm[si], psi[si], log(m[si])) + e.m[si, t-1]
             }
         }
         if (inp$timevaryinggrowth){

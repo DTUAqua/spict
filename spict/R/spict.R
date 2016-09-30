@@ -176,7 +176,7 @@ fit.spict <- function(inp, dbg=0){
     }
     toc <- Sys.time()
     if (!is.null(rep)){
-        rep$computing.time <- as.numeric(toc - tic)
+        rep$computing.time <- toc - tic
         class(rep) <- "spictcls"
     }
     return(rep)

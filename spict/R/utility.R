@@ -349,6 +349,7 @@ get.AIC <- function(rep){
 #' @title Inverse logit transform.
 #' @param a Value to take inverse logit of.
 #' @return Inverse logit.
+#' @export
 invlogit <- function(a) 1/(1+exp(-a))
 
 
@@ -357,6 +358,7 @@ invlogit <- function(a) 1/(1+exp(-a))
 #' @details If a = log(b-1), then the inverse transform is b = 1 + exp(a). Useful for values with lower bound at 1.
 #' @param a Value to take inverse logp1 of.
 #' @return Inverse logp1.
+#' @export
 invlogp1 <- function(a) 1 + exp(a)
 
 

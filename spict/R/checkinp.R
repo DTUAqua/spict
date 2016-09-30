@@ -689,7 +689,7 @@ check.inp <- function(inp){
     }
     # Reporting
     if (!"reportall" %in% names(inp)){
-        inp$reportall <- TRUE
+        inp$reportall <- 2
     }
     if (!"do.sd.report" %in% names(inp)){
         inp$do.sd.report <- TRUE

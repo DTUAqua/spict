@@ -30,7 +30,7 @@ Optional inputs:
  \item{"inp$timeI"}{ List containing vectors of index times. Default: even time steps starting at 1.}
  \item{"inp$timeE"}{ Vector of effort times. Default: even time steps starting at 1.}
  \item{"inp$dtc"}{ Time interval for catches, e.g. for annual catches inp$dtc=1, for quarterly catches inp$dtc=0.25. Can be given as a scalar, which is then used for all catch observations. Can also be given as a vector specifying the catch interval of each catch observation. Default: min(diff(inp$timeC)). }
- \item{"inp$dte"}{ Time interval for effort observations. For annual effort inp$dte=1, for quarterly effort inp$dte=0.25. Default: min(diff(inp$timeE)). }
+ \item{"inp$dtef"}{ Time interval for effort observations. For annual effort inp$dtef=1, for quarterly effort inp$dtef=0.25. Default: min(diff(inp$timeE)). }
  \item{"inp$nseasons"}{ Number of within-year seasons in data. If inp$nseasons > 1 then a seasonal pattern is used in F. Valid values of inp$nseasons are 1, 2 or 4. Default: number of unique within-year time points present in data.}
 }
 

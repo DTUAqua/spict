@@ -438,12 +438,15 @@ Type objective_function<Type>::operator() ()
   matrix<Type> Fmsys(nstocks, ns);
   matrix<Type> MSYs(nstocks, ns);
   int flag;
+  //int fmsyflag; 
   for (int si=0; si < nstocks; si++){
     flag = asDouble(n(si)) > 1; // Cast n as double to calc flag
     // Deterministic reference points
     for (int i=0; i < ns; i++){
       Bmsyd(si, i) = K(si) * pow(1.0/n(si), 1.0/(n(si)-1.0)); // Independent of i
       Fmsyd(si, i) = MSYd(si, i) / Bmsyd(si, i);
+      //fmsyflag = asDouble(Fmsyd(si, i)) > 2.0;
+      //}
       // Stochastic reference points (NOTE: only proved for n > 1, Bordet and Rivest (2014))
       // The stepfun ensures that stochastic reference points are only used if n > 1.
       Type BmsyStochContr = (1.0 - (1.0 + Fmsyd(si, i)*(p(si)-1.0)/2.0)*sdb2(si) / (Fmsyd(si, i)*pow(2.0-Fmsyd(si, i), 2.0)));
@@ -1221,8 +1224,6 @@ Type objective_function<Type>::operator() ()
   //ADREPORT(Bmsys);
   //ADREPORT(Bmsy2);
   ADREPORT(logBmsy);
-  ADREPORT(logBmsyd);
-  ADREPORT(logBmsys);
   ADREPORT(logBp);
   ADREPORT(logBpBmsy);
   ADREPORT(logBpK);
@@ -1233,8 +1234,6 @@ Type objective_function<Type>::operator() ()
   //ADREPORT(Fmsyd);
   //ADREPORT(Fmsys);
   ADREPORT(logFmsy);
-  ADREPORT(logFmsyd);
-  ADREPORT(logFmsys);
   ADREPORT(logFp);
   ADREPORT(logFpFmsy);
   ADREPORT(logFstockp);
@@ -1247,8 +1246,6 @@ Type objective_function<Type>::operator() ()
   //ADREPORT(MSYd);
   //ADREPORT(MSYs);
   ADREPORT(logMSY);
-  ADREPORT(logMSYd);
-  ADREPORT(logMSYs);
   /*
   ADREPORT(Emsy);
   ADREPORT(Emsy2);
@@ -1291,7 +1288,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(isdi2);
   ADREPORT(logalpha);
   ADREPORT(logbeta);
-  if (reportall){ 
+  if (reportall > 0){ 
     // These reports are derived from the random effects and are therefore vectors. TMB calculates the covariance of all sdreports leading to a very large covariance matrix which may cause memory problems.
     // B
     ADREPORT(logBBmsy);
@@ -1306,6 +1303,15 @@ Type objective_function<Type>::operator() ()
     ADREPORT(logIpred);
     // E
     ADREPORT(logEpred);
+    if (reportall > 1){ 
+      // Reference points (these are now vectors)
+      ADREPORT(logBmsyd);
+      ADREPORT(logBmsys);
+      ADREPORT(logFmsyd);
+      ADREPORT(logFmsys);
+      ADREPORT(logMSYd);
+      ADREPORT(logMSYs);
+    }
   }
 
   // REPORTS (these don't require sdreport to be output)

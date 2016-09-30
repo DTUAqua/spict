@@ -6,7 +6,7 @@
 \usage{
 \method{plot}{col}(time, obs, obsx = NULL, pch = 1, add = FALSE,
   typ = "p", do.line = TRUE, add.legend = FALSE, add.vline.at = NULL,
-  ...)
+  name = NULL, ...)
 }
 \arguments{
 \item{time}{Time vector.}
@@ -26,6 +26,8 @@
 \item{add.legend}{If TRUE add legend containing information on quarters.}
 
 \item{add.vline.at}{If not NULL will draw a vertical line at the given time point.}
+
+\item{name}{If not NULL stock name is added to plot}
 
 \item{...}{Additional plotting arguments.}
 }

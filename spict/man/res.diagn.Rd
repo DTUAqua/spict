@@ -4,7 +4,7 @@
 \alias{res.diagn}
 \title{Helper function for calc.osar.resid that calculates residual statistics.}
 \usage{
-res.diagn(resid, id, name = "")
+res.diagn(resid, id, name = id)
 }
 \arguments{
 \item{resid}{Residuals from either catches or indices.}

@@ -142,6 +142,9 @@ summary.spictcls <- function(object, ...){
         cat('\nFixed parameters\n')
         cat('', paste(capture.output(resout),' \n'))
     }
+    if (!rep$inp$do.sd.report){
+        cat('\ninp$do.sd.report = FALSE (no uncertainties calculated)\n')
+    }
     # -- Model parameters --
     for (si in 1:rep$inp$nstocks){
         cat('\n---', rep$inp$stocknames[si], '\n')
@@ -189,6 +192,10 @@ summary.spictcls <- function(object, ...){
                     cat(paste0('\nPredictions omitted because inp$reportall = FALSE\n'))
                 }
             }
+        } else {
+            parest <- transform(rep$opt$par)
+            colnames(parest) <- 'estimate'
+            print(parest)
         }
     }
 }
@@ -211,6 +218,7 @@ get.colnms <- function() return(c('estimate', 'cilow', 'ciupp'))
 #' @name transform
 #' @title Transform parameters
 #' @return Data frame containing transformed parameters.
+#' @export
 transform <- function(est){
     if (class(est) != 'matrix'){
         est <- as.matrix(est)
