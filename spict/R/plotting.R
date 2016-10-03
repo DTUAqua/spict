@@ -1713,7 +1713,7 @@ plotspict.production <- function(rep, stock=1, n.plotyears=40, main='Production 
             if (length(ic) < n.plotyears){
                 inds <- c(1, length(Bvec), seq(1, length(Bvec), by=2))
                 labs <- round(inp$time[ic], 2)
-                text(Bvec[inds]/Kest[2], Pest[inds, 2]/MSY, labels=labs[inds],
+                text(Bvec[inds]/Kest[2], Pest[inds, 2]/MSY[inds], labels=labs[inds],
                      cex=0.75, pos=4, offset=0.25)
             }
             par(xpd=FALSE)
