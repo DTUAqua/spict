@@ -332,6 +332,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
                               rel.axes=TRUE, rel.ci=TRUE, stamp=get.version()){
     if (!'sderr' %in% names(rep)){
         ylabflag <- is.null(ylab)
+        ylimflag <- !is.null(ylim)
         mar <- c(5.1, 4.3, 4.1, 4.1)
         if (dev.cur()==1){ # If plot is not open
             opar <- par(mar=mar)
@@ -368,11 +369,13 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         }
         fininds <- which(Best[, 5] < 5) # Use CV to check for large uncertainties
         BBfininds <- unname(which(is.finite(BB[, 1]) & is.finite(BB[, 3]))) # Use CV to check for large uncertainties
-        if (length(ylim)!=2){
-            ylim <- range(BB[BBfininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2],
-                          unlist(obsI), 0.95*Bmsy[1], 1.05*Bmsy[3], na.rm=TRUE)/scal
+        if (!ylimflag){
+            if (length(ylim)!=2){
+                ylim <- range(BB[BBfininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2],
+                              unlist(obsI), 0.95*Bmsy[1], 1.05*Bmsy[3], na.rm=TRUE)/scal
+            }
+            ylim[2] <- min(c(ylim[2], 3*max(Best[fininds, 2], unlist(obsI)))) # Limit upper limit
         }
-        ylim[2] <- min(c(ylim[2], 3*max(Best[fininds, 2], unlist(obsI)))) # Limit upper limit
         #if (main==-1) main <- 'Absolute biomass'
         if (ylabflag){
             ylab <- expression(B[t])
@@ -478,6 +481,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
     if (!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
+        ylimflag <- !is.null(ylim)
         # Biomass plot
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
@@ -497,10 +501,12 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
             }
             fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
             BBfininds <- which(is.finite(BB[, 1]) & is.finite(BB[, 3]))
-            if (length(ylim) != 2){
-                ylim <- range(c(lineat, BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
+            if (!ylimflag){
+                if (length(ylim) != 2){
+                    ylim <- range(c(lineat, BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
+                }
+                ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
             }
-            ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
             plot(inp$time, BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]),
                  ylim=ylim, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log,
                  main=main)
@@ -879,33 +885,34 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             Ff <- Fest[, 2] #*Fmsy[2]
             cuf <- FF[, 3]*Fmsy[2]
         }
-        ylimflag <- length(ylim)!=2 # If FALSE ylim is manually specified
+        #ylimflag <- !is.null(ylim)
+        ylimflag <- !is.null(ylim) & length(ylim) == 2 # If FALSE ylim is manually specified
         # Check whether nan values are present in CI limits
         absflag <- length(cu)==0 | all(!is.finite(cu))
         if (absflag){ # if problems with NaN in absolute
             fininds <- which(is.finite(Ff))
-            if (ylimflag){
+            if (!ylimflag){
                 ylim <- range(c(Ff, Fmsy[fmsyinds], tail(Fest[, 2],1)), na.rm=TRUE)
             }
         } else { # No problems
             fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))))
-            if (ylimflag){
+            if (!ylimflag){
                 ylim <- range(c(cl[fininds], cu[fininds], tail(Fest[, 2],1)), na.rm=TRUE)
             }
         }
         relflag <- length(cuf)==0 | all(!is.finite(cuf))
         if (relflag){ # Problems
             relfininds <- which(is.finite(cuf))
-            if (ylimflag){
+            if (!ylimflag){
                 ylim <- range(ylim, Ff, Fmsy[fmsyinds], tail(Fest[, 2],1), na.rm=TRUE)
             }
         } else { # No problems
             relfininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
-            if (ylimflag){
+            if (!ylimflag){
                 ylim <- range(c(ylim, clf[relfininds], cuf[relfininds], na.rm=TRUE))
             }
         }
-        if (ylimflag){
+        if (!ylimflag){
             ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         }
         #if (main==-1) main <- 'Absolute fishing mortality'
