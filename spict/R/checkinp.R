@@ -274,6 +274,16 @@ check.inp <- function(inp){
 
     # Check effort observations
     inp <- make.time(inp, 'E')
+    if (!is.null(inp$timeE)){
+        if (class(inp$timeE) != 'numeric'){
+            stop('class(inp$timeE) is not numeric!')
+        }
+    }
+    if (!is.null(inp$obsE)){
+        if (class(inp$obsE) != 'numeric'){
+            stop('class(inp$obsE) is not numeric!')
+        }
+    }
     if (any(diff(inp$timeE) <= 0)){
         stop('Effort times are not strictly increasing!')
     }
@@ -1140,7 +1150,7 @@ check.inp <- function(inp){
     # Set default ranges (that aren't set)
     for (nm in defaultranges){
         if (!nm %in% names(inp$ranges)){
-            inp$ranges[[nm]] <- inp$ini[[nm]] + logfacs
+            inp$ranges[[nm]] <- outer(inp$ini[[nm]], logfacs, FUN='+')
         }
     }
     
