@@ -2503,12 +2503,6 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
                  lwd=1.5, col=true.col(), main='True biomass')
             add.name(inp$stocknames[si])
             box(lwd=1.5)
-            if (inp$timevaryinggrowth){
-                plot(inp$time, inp$true$mre[si, ], typ='l', xlim=xlim, xlab='Time', ylab='m',
-                     lwd=1.5, col=true.col(), main='True MSY')
-                add.name(inp$stocknames[si])
-                box(lwd=1.5)
-            }
         }
         for (k in inp$nfisheriesseq){
             plot(inp$time, inp$true$F[k, ], typ='l', col=c.cols()[k], xlim=xlim, xlab='Time',
@@ -2517,6 +2511,14 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
                       inp$fleetnames[inp$targetmap[k, 2]])
             add.name(name)
             box(lwd=1.5)
+        }
+        for (si in 1:inp$nstocks){
+            if (inp$timevaryinggrowth){
+                plot(inp$time, inp$true$mre[si, ], typ='l', xlim=xlim, xlab='Time', ylab='m',
+                     lwd=1.5, col=true.col(), main='True MSY')
+                add.name(inp$stocknames[si])
+                box(lwd=1.5)
+            }
         }
     }
     # Plot catch
