@@ -2498,6 +2498,14 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
     # Plot simulated biomass and fishing mortality
     if ('true' %in% names(inp)){
         for (si in 1:inp$nstocks){
+            if (inp$timevaryinggrowth){
+                plot(inp$time, inp$true$mre[si, ], typ='l', xlim=xlim, xlab='Time', ylab='m',
+                     lwd=1.5, col=true.col(), main='True MSY')
+                add.name(inp$stocknames[si])
+                box(lwd=1.5)
+            }
+        }
+        for (si in 1:inp$nstocks){
             ylab <- add.catchunit(expression(B[t]), inp$catchunit)
             plot(inp$time, inp$true$B[si, ], typ='l', xlim=xlim, xlab='Time', ylab=ylab,
                  lwd=1.5, col=true.col(), main='True biomass')
@@ -2511,14 +2519,6 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=FALSE, stamp
                       inp$fleetnames[inp$targetmap[k, 2]])
             add.name(name)
             box(lwd=1.5)
-        }
-        for (si in 1:inp$nstocks){
-            if (inp$timevaryinggrowth){
-                plot(inp$time, inp$true$mre[si, ], typ='l', xlim=xlim, xlab='Time', ylab='m',
-                     lwd=1.5, col=true.col(), main='True MSY')
-                add.name(inp$stocknames[si])
-                box(lwd=1.5)
-            }
         }
     }
     # Plot catch
