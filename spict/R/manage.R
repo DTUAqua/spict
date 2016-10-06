@@ -320,13 +320,13 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE, include.unc=TRUE, verb
 #' @name pred.catch
 #' @title Predict the catch of the prediction interval specified in inp
 #' @param rep Result list as output from fit.spict().
-#' @param fac Factor to multiply current F by. If NULL future will be set to Fmsy.
+#' @param fmsyfac Projection are made using F = fmsyfac * Fmsy.
 #' @param get.sd Get uncertainty of the predicted catch.
 #' @param exp If TRUE report exp of log predicted catch.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
 #' @return A vector containing predicted catch (possibly with uncertainty).
 #' @export
-pred.catch <- function(repin, fac=NULL, get.sd=FALSE, exp=FALSE, dbg=0){
+pred.catch <- function(repin, fmsyfac=1, get.sd=FALSE, exp=FALSE, dbg=0){
     inpin <- list()
     inpin$dteuler <- repin$inp$dteuler
     inpin$timeC <- repin$inp$timeC
@@ -337,11 +337,9 @@ pred.catch <- function(repin, fac=NULL, get.sd=FALSE, exp=FALSE, dbg=0){
     # Always predict at least two years
     inpin$timepredc <- repin$inp$timepredc
     inpin$timepredi <- repin$inp$timepredi
-    if (is.null(fac)){
-        Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
-        Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indpred[1], 2]
-        fac <- Fmsy / Flast
-    }
+    Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
+    Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indpred[1], 2]
+    fac <- (fmsyfac + 1e-6) * Fmsy / Flast
     inpt <- check.inp(inpin)
     plt <- repin$obj$env$parList(repin$opt$par)
     datint <- make.datin(inpt, dbg=dbg)
