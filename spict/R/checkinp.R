@@ -1091,6 +1091,7 @@ check.inp <- function(inp){
     inp$matrixpriors <- list()
     for (nm in matrixpriors){
         inp$matrixpriors[[nm]] <- do.call(rbind, inp$priors[[nm]])
+        rownames(inp$matrixpriors[[nm]]) <- paste0(nm, 1:length(inp$priors[[nm]]))
     }
     npriors <- length(inp$priors)
     inp$priorsuseflags <- numeric(npriors)

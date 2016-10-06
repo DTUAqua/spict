@@ -71,32 +71,47 @@ summary.spictcls <- function(object, ...){
         cat('', paste(capture.output(diagout),' \n'))
     }
     # -- Priors --
-    indso <- which(rep$inp$priorsuseflag==1)
-    if(length(indso)>0){
-        usepriors <- names(rep$inp$priors)[indso]
+    indso <- which(rep$inp$priorsuseflag == 1)
+    if(length(indso) > 0){
+        priors <- rep$inp$priors[indso]
+        usepriors <- names(priors)
         gammainds <- grep('gamma', usepriors)
         usepriors <- gsub('gamma', '', usepriors) # Strip gamma-text away
         npriors <- length(usepriors)
+        # RE priors
         repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
         if(any(repriors %in% usepriors)){
-            inds <- match(repriors, usepriors)
-            inds <- inds[!is.na(inds)]
-            for(i in 1:length(inds)) usepriors[inds[i]] <- paste0(usepriors[inds[i]], fd(rep$inp$priors[[inds[i]]][4]))
+            inds <- na.omit(match(repriors, usepriors))
+            #inds <- inds[!is.na(inds)]
+            for(i in 1:length(inds)){
+                usepriors[inds[i]] <- paste0(usepriors[inds[i]], fd(priors[[inds[i]]][4]))
+            }
         }
+        # Matrix priors
+        matpriors <- rep$inp$matrixpriors
+        nmmatpriors <- names(matpriors)
+        if (length(nmmatpriors) > 0){
+            for (nm in nmmatpriors){
+                priors[[nm]] <- matpriors[[nm]]
+            }
+        }
+        priorsmat <- do.call(rbind, priors)
+        npriors <- dim(priorsmat)[1]
+        usepriors <- rownames(priorsmat)
         str <- character(npriors)
         cat(paste('\nPriors\n'))
         maxchar <- max(nchar(usepriors))
         for(i in 1:npriors){
             if (i %in% gammainds){
-                shape <- rep$inp$priors[[indso[i]]][1]
-                rate <- rep$inp$priors[[indso[i]]][2]
+                shape <- rep$inp$priors[[i]][1]
+                rate <- rep$inp$priors[[i]][2]
                 vec <- shaperate2meanvar(shape, rate)
                 str[i] <- paste0('~  dgamma[', round(shape, 3),
                                  ', ', round(rate, 3), '] (mean=', round(vec[1], 3), ', sd=', round(vec[3], 3), ')')
             } else {
-                str[i] <- paste0('~  dnorm[log(', round(exp(rep$inp$priors[[indso[i]]][1]), 3),
-                                 '), ', round(rep$inp$priors[[indso[i]]][2], 3), '^2]',
-                                 ifelse(rep$inp$priors[[indso[i]]][2] <= 1e-3, ' (fixed)', ''))
+                str[i] <- paste0('~  dnorm[log(', round(exp(priorsmat[i, 1]), 3),
+                                 '), ', round(priorsmat[i, 2], 3), '^2]',
+                                 ifelse(priorsmat[i, 2] <= 1e-3, ' (fixed)', ''))
             }
             usepriors[i] <- formatC(usepriors[i], width = maxchar, flag = 0)
             cat(paste0(' ', usepriors[i], '  ', str[i], '\n'))
