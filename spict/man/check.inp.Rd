@@ -63,7 +63,7 @@ Optional inputs:
 Priors on model parameters are assumed generally assumed Gaussian and specified in a vector of length 2: c(log(mean), stdev in log domain, useflag [optional]). NOTE: if specifying a prior for a value in a temporal vector e.g. logB, then a fourth element is required specifying the year the prior should be applied.
 log(mean): log of the mean of the prior distribution.
 stdev in log: standard deviation of the prior distribution in log domain.
-useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
+useflag: if 1 then the prior is used, if 0 it is not used. Default is 1.
 To list parameters to which priors can be applied run list.possible.priors().
 Example: intrinsic growth rate of 0.8
  inp$priors$logr <- c(log(0.8), 0.1)

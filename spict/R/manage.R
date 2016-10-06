@@ -315,3 +315,54 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE, include.unc=TRUE, verb
         }
     }
 }
+
+
+#' @name pred.catch
+#' @title Predict the catch of the prediction interval specified in inp
+#' @param rep Result list as output from fit.spict().
+#' @param fac Factor to multiply current F by. If NULL future will be set to Fmsy.
+#' @param get.sd Get uncertainty of the predicted catch.
+#' @param exp If TRUE report exp of log predicted catch.
+#' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
+#' @return A vector containing predicted catch (possibly with uncertainty).
+#' @export
+pred.catch <- function(repin, fac=NULL, get.sd=FALSE, exp=FALSE, dbg=0){
+    inpin <- list()
+    inpin$dteuler <- repin$inp$dteuler
+    inpin$timeC <- repin$inp$timeC
+    inpin$obsC <- repin$inp$obsC
+    inpin$timeI <- repin$inp$timeI
+    inpin$obsI <- repin$inp$obsI
+    timelastobs <- repin$inp$time[repin$inp$indlastobs]
+    # Always predict at least two years
+    inpin$timepredc <- repin$inp$timepredc
+    inpin$timepredi <- repin$inp$timepredi
+    if (is.null(fac)){
+        Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
+        Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indpred[1], 2]
+        fac <- Fmsy / Flast
+    }
+    inpt <- check.inp(inpin)
+    plt <- repin$obj$env$parList(repin$opt$par)
+    datint <- make.datin(inpt, dbg=dbg)
+    maninds <- inpt$indpred
+    nmaninds <- length(maninds)
+    # Set F fac
+    ffacvec <- rep(1, nmaninds)
+    ffacvec[1] <- fac
+    datint$ffacvec[maninds] <- ffacvec
+    # Make object
+    objt <- make.obj(datint, plt, inpt, phase=1)
+    objt$fn(repin$opt$par)
+    if (get.sd){
+        repmant <- sdreport(objt)
+        Cp <- get.par('logCp', repmant, exp=exp)
+    } else {
+        Cp <- c(NA, log(objt$report()$Cp), NA, NA, NA)
+        if (exp){
+            Cp <- exp(Cp)
+        }
+        names(Cp) <- names(get.par('logK', repin)) # Just to get the names
+    }
+    return(Cp)
+}
