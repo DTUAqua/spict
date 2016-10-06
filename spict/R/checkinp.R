@@ -67,7 +67,7 @@
 #' Priors on model parameters are assumed generally assumed Gaussian and specified in a vector of length 2: c(log(mean), stdev in log domain, useflag [optional]). NOTE: if specifying a prior for a value in a temporal vector e.g. logB, then a fourth element is required specifying the year the prior should be applied.
 #' log(mean): log of the mean of the prior distribution.
 #' stdev in log: standard deviation of the prior distribution in log domain.
-#' useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
+#' useflag: if 1 then the prior is used, if 0 it is not used. Default is 1.
 #' To list parameters to which priors can be applied run list.possible.priors().
 #' Example: intrinsic growth rate of 0.8
 #'  inp$priors$logr <- c(log(0.8), 0.1)
@@ -749,110 +749,14 @@ check.inp <- function(inp){
     inp$osar.conditional <- which(inp$timeobssrt < (inp$time[1]+1))
     inp$osar.subset <- setdiff(1:length(inp$obssrt), inp$osar.conditional)
 
-    # -- PRIORS --
-    # Priors are assumed Gaussian and specified in a vector of length 3:
-    # c(log(mean), stdev in log, useflag).
-    # log(mean): log of the mean of the prior distribution.
-    # stdev in log: standard deviation of the prior distribution in log domain.
-    # useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
-    check.prior <- function(priors, priorname){
-        priorvec <- priors[[priorname]]
-        if (priorname %in% repriors){ # RE priors
-            if (length(priorvec) < 3){
-                priorvec <- rep(0, 5)
-                warning('Invalid prior length specified for', priorname,
-                        ', must be 3 (without useflag or 4 (with useflag). Not using this prior.')
-            }
-            if (length(priorvec) == 3){
-                #warning('Length of ', priorname, ' is 3. Proceeding assuming useflag has not been specified.')
-                priorvec <- c(priorvec[1:2], 1, priorvec[3])
-            }
-            if (length(priorvec) == 4){
-                ib <- match(priorvec[4], inp$time)
-                if (is.na(ib)){
-                    ib <- 0
-                    priorvec[3] <- 0
-                    warning('Year for prior on ', priorname, ' (', priorvec[3], ') did not match times where this RE is estimated. Not using this prior. To fix this use a year where an observation is available.')
-                }
-                priorvec <- c(priorvec, ib) # Add index in time vec to which this year corresponds
-            }
-        } else { # FE priors
-            if (!length(priorvec) %in% 2:3){
-                priorvec <- rep(0, 3)
-                warning('Invalid prior length specified for', priorname,
-                        ', must be 2 (without useflag or 3 (with useflag). Not using this prior.')
-            }
-            if (length(priorvec) == 2){
-                #warning('Length of ', priorname, ' is 2. Proceeding assuming useflag has not been specified.')
-                priorvec <- c(priorvec, 1)
-            }
-        }
-        if (priorvec[3] == 1){
-            # Check st dev
-            if (priorvec[2] <= 0){
-                warning('Invalid standard deviation specified in prior for', priorname,
-                        '(must be > 0). Not using this prior.')
-                priorvec[3] <- 0
-            }
-        }
-        return(priorvec)
-    }
-    possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq',
-                        'iqgamma', 'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy',
-                        'logFFmsy', 'logsdb', 'isdb2gamma', 'logsdf', 'isdf2gamma',
-                        'logsdi', 'isdi2gamma', 'logsde', 'isde2gamma', 'logsdc', 'isdc2gamma')
-    repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
-    npossiblepriors <- length(possiblepriors)
-    if (!"priors" %in% names(inp)){
-        inp$priors <- list()
-    }
-    # Default priors
+    # -- MODEL PARAMETERS --
+    # Default values
     lognflag <- TRUE
     logalphaflag <- TRUE
     logbetaflag <- TRUE
     logn <- log(2)
     logalpha <- log(1)
     logbeta <- log(1)
-    small <- 1e-3
-    wide <- 2 # Value suggested by Casper 
-    lognsd <- wide
-    logalphasd <- wide
-    logbetasd <- wide
-    if (!'logn' %in% names(inp$priors)) inp$priors$logn <- c(logn, lognsd)
-    if (!'logalpha' %in% names(inp$priors)) inp$priors$logalpha <- c(logalpha, logalphasd) 
-    if (!'logbeta' %in% names(inp$priors)) inp$priors$logbeta <- c(logbeta, logbetasd)
-
-    # Remaining priors, set to something, but will not be used
-    if ("priors" %in% names(inp)){
-        # Remove wrong priors names
-        nms <- names(inp$priors)
-        inds <- which(is.na(match(nms, possiblepriors)))
-        if (length(inds)>0){
-            warning('Wrong prior names specified: ', nms[inds])
-            inp$priors[inds] <- NULL
-        }
-        # Check priors
-        for (nm in possiblepriors){
-            if (!nm %in% names(inp$priors)){
-                # Set default prior values. These will not be used
-                if (nm %in% repriors){
-                    inp$priors[[nm]] <- c(log(1e-4), 0.2, 0, 2000, 0) # RE prior
-                } else {
-                    inp$priors[[nm]] <- c(log(1e-4), 0.2, 0) # FE priors
-                }
-            } else {
-                inp$priors[[nm]] <- check.prior(inp$priors, nm)
-            }
-        }
-    }
-    npriors <- length(inp$priors)
-    inp$priorsuseflags <- numeric(npriors)
-    for (i in 1:npriors){
-        inp$priorsuseflags[i] <- inp$priors[[i]][3]
-    }
-           
-    # -- MODEL PARAMETERS --
-    # logn
     if (!"logn" %in% names(inp$ini)){
         inp$ini$logn <- logn
     } else {
@@ -1059,7 +963,147 @@ check.inp <- function(inp){
                         logF=inp$ini$logF,
                         logu=inp$ini$logu,
                         logB=inp$ini$logB)
-    
+
+
+    # -- PRIORS --
+    # Priors are assumed Gaussian and specified in a vector of length 3:
+    # c(log(mean), stdev in log, useflag).
+    # log(mean): log of the mean of the prior distribution.
+    # stdev in log: standard deviation of the prior distribution in log domain.
+    # useflag: if 1 then the prior is used, if 0 it is not used. Default is 0.
+    check.prior <- function(priorvec, priorname){
+        #priorvec <- priors[[priorname]]
+        if (priorname %in% repriors){ # RE priors
+            if (length(priorvec) < 3){
+                priorvec <- rep(0, 5)
+                warning('Invalid prior length specified for', priorname,
+                        ', must be 3 (without useflag or 4 (with useflag). Not using this prior.')
+            }
+            if (length(priorvec) == 3){
+                #warning('Length of ', priorname, ' is 3. Proceeding assuming useflag has not been specified.')
+                priorvec <- c(priorvec[1:2], 1, priorvec[3])
+            }
+            if (length(priorvec) == 4){
+                ib <- match(priorvec[4], inp$time)
+                if (is.na(ib)){
+                    ib <- 0
+                    priorvec[3] <- 0
+                    warning('Year for prior on ', priorname, ' (', priorvec[3], ') did not match times where this RE is estimated. Not using this prior. To fix this use a year where an observation is available.')
+                }
+                priorvec <- c(priorvec, ib) # Add index in time vec to which this year corresponds
+            }
+        } else { # FE priors
+            if (!length(priorvec) %in% 2:3){
+                priorvec <- rep(0, 3)
+                warning('Invalid prior length specified for', priorname,
+                        ', must be 2 (without useflag or 3 (with useflag). Not using this prior.')
+            }
+            if (length(priorvec) == 2){
+                #warning('Length of ', priorname, ' is 2. Proceeding assuming useflag has not been specified.')
+                priorvec <- c(priorvec, 1)
+            }
+        }
+        if (priorvec[3] == 1){
+            # Check st dev
+            if (priorvec[2] <= 0){
+                warning('Invalid standard deviation specified in prior for', priorname,
+                        '(must be > 0). Not using this prior.')
+                priorvec[3] <- 0
+            }
+        }
+        return(priorvec)
+    }
+    possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq',
+                        'iqgamma', 'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy',
+                        'logFFmsy', 'logsdb', 'isdb2gamma', 'logsdf', 'isdf2gamma',
+                        'logsdi', 'isdi2gamma', 'logsde', 'isde2gamma', 'logsdc', 'isdc2gamma')
+    repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
+    matrixpriors <- c('logsdi')
+    npossiblepriors <- length(possiblepriors)
+    if (!"priors" %in% names(inp)){
+        inp$priors <- list()
+    }
+
+    # Default prior uncertainties
+    small <- 1e-3
+    wide <- 2 # Value suggested by Casper 
+    lognsd <- wide
+    logalphasd <- wide
+    logbetasd <- wide
+    if (!'logn' %in% names(inp$priors)) inp$priors$logn <- c(logn, lognsd)
+    if (!'logalpha' %in% names(inp$priors)) inp$priors$logalpha <- c(logalpha, logalphasd) 
+    if (!'logbeta' %in% names(inp$priors)) inp$priors$logbeta <- c(logbeta, logbetasd)
+
+    # Remaining priors, set to something, but will not be used
+    if ("priors" %in% names(inp)){
+        # Remove wrong priors names
+        nms <- names(inp$priors)
+        inds <- which(is.na(match(nms, possiblepriors)))
+        if (length(inds)>0){
+            warning('Wrong prior names specified: ', nms[inds])
+            inp$priors[inds] <- NULL
+        }
+        # Check priors
+        for (nm in possiblepriors){
+            if (!nm %in% names(inp$priors)){
+                # Set default prior values. These will not be used
+                if (nm %in% repriors){
+                    inp$priors[[nm]] <- c(log(1e-4), 0.2, 0, 2000, 0) # RE prior
+                } else {
+                    if (nm %in% matrixpriors){
+                        npar <- length(inp$ini[[nm]])
+                        inp$priors[[nm]] <- list()
+                        for (i in 1:npar){
+                            inp$priors[[nm]][[i]] <- c(log(1e-4), 0.2, 0) # FE priors
+                        }
+                    } else {
+                        inp$priors[[nm]] <- c(log(1e-4), 0.2, 0) # FE priors
+                    }
+                }
+            } else {
+                if (nm %in% matrixpriors){
+                    if (is(inp$priors[[nm]], 'list')){
+                        npar <- length(inp$ini[[nm]])
+                        if (length(inp$priors[[nm]]) == npar){
+                            for (i in 1:npar){
+                                inp$priors[[nm]][[i]] <- check.prior(inp$priors[[nm]][[i]], nm)
+                            }
+                        } else {
+                            stop('Wrong number of priors specified for ', nm)
+                        }
+                    } else {
+                        if (is(inp$priors[[nm]], 'numeric')){
+                            warning('The prior specified for ', nm, ' is replicated for each time series.')
+                            thisprior <- check.prior(inp$priors[[nm]], nm)
+                            npar <- length(inp$ini[[nm]])
+                            inp$priors[[nm]] <- rep(list(thisprior), each=npar)
+                        } else {
+                            stop('Prior specified for ', nm, ' should be a list of length ', npar, ' or a vector.')
+                        }
+                    }
+                } else {
+                    inp$priors[[nm]] <- check.prior(inp$priors[[nm]], nm)
+                }
+            }
+        }
+    }
+    # Translate matrixpriors from lists to matrices
+    inp$matrixpriors <- list()
+    for (nm in matrixpriors){
+        inp$matrixpriors[[nm]] <- do.call(rbind, inp$priors[[nm]])
+    }
+    npriors <- length(inp$priors)
+    inp$priorsuseflags <- numeric(npriors)
+    for (i in 1:npriors){
+        nm <- names(inp$priors)[i]
+        if (nm %in% matrixpriors){
+            inp$priorsuseflags[i] <- max(inp$matrixpriors[[nm]][, 3])
+        } else {
+            inp$priorsuseflags[i] <- inp$priors[[i]][3]
+        }
+    }
+           
+    # ------------------------------
     # Determine fixed parameters
     forcefixpars <- c() # Parameters that are forced to be fixed.
     if (inp$nseasons==1){

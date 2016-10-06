@@ -122,7 +122,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(priorisdb2gamma);// Prior vector for sdb2, inv. gamma distribution, [shape, rate, useflag]
   DATA_VECTOR(priorsdf);       // Prior vector for sdf, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorisdf2gamma);// Prior vector for sdf2, inv. gamma distribution, [shape, rate, useflag]
-  DATA_VECTOR(priorsdi);       // Prior vector for sdi, [log(mean), stdev in log, useflag]
+  DATA_MATRIX(priorsdi);       // Prior vector for sdi, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorisdi2gamma);// Prior vector for sdi2, inv. gamma distribution, [shape, rate, useflag]
   DATA_VECTOR(priorsde);       // Prior vector for sde, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorisde2gamma);// Prior vector for sde2, inv. gamma distribution, [shape, rate, useflag]
@@ -499,7 +499,11 @@ Type objective_function<Type>::operator() ()
       ans-= dnorm(logsdf(i), priorsdf(0), priorsdf(1), 1); // Prior for logsdf
     }
   }
-  if(priorsdi(2) == 1) for(int i=0; i<nsdi; i++){ ans-= dnorm(logsdi(i), priorsdi(0), priorsdi(1), 1); } // Prior for logsdi
+  for(int i=0; i<nsdi; i++){ 
+    if(priorsdi(i, 2) == 1){
+      ans-= dnorm(logsdi(i), priorsdi(i, 0), priorsdi(i, 1), 1);  // Prior for logsdi
+    }
+  }
   if(priorsde(2) == 1) ans-= dnorm(logsde, priorsde(0), priorsde(1), 1); // Prior for logsde
   if(priorsdc(2) == 1) ans-= dnorm(logsdc, priorsdc(0), priorsdc(1), 1); // Prior for logsdc
   if(prioralpha(2) == 1) for(int i=0; i<nsdi; i++){ ans-= dnorm(logalpha(i), prioralpha(0), prioralpha(1), 1); } // Prior for logalpha

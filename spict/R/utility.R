@@ -52,6 +52,7 @@ shaperate2meanvar <- function(shape, rate){
 #' @title Get version of spict including git sha1 version if available.
 #' @param pkg Name of package.
 #' @return Package version
+#' @export
 get.version <- function(pkg='spict'){
   pd <- packageDescription(pkg)
   v <- paste0(pd$Package, "_v", pd$Version)
