@@ -563,21 +563,25 @@ Type objective_function<Type>::operator() ()
   //if (n < 1.0) sign = -1.0; // Following Fletcher (1978)
   vector<Type> r(nstocks);
   vector<Type> logr(nstocks);
+  matrix<Type> logrre(nstocks, ns);
   vector<Type> rc(nstocks);
   vector<Type> logrc(nstocks);
   vector<Type> rold(nstocks);
   vector<Type> logrold(nstocks);
   //vector<Type> rp(nstocks);
   //vector<Type> logrp(nstocks);
-  for (int i=0; i < nstocks; i++){ 
-    rold(i) =  abs(gamma(i) * m(i) / K(i));
-    logrold(i) = log(rold(i)); 
-    rc(i) = abs(2.0 * rold(i) * (n(i) - 1.0) / n(i));
-    logrc(i) = log(rc(i)); 
-    //rp(i) = abs(r(i) * (n - 1.0));
-    //logrp(i) = log(rp(i)); 
-    r(i) = m(i) / K(i) * pow(n(i), (n(i)/(n(i)-1.0))); //abs(r(i) * (n - 1.0));
-    logr(i) = log(r(i)); 
+  for (int si=0; si < nstocks; si++){ 
+    rold(si) =  abs(gamma(si) * m(si) / K(si));
+    logrold(si) = log(rold(si)); 
+    rc(si) = abs(2.0 * rold(si) * (n(si) - 1.0) / n(si));
+    logrc(si) = log(rc(si)); 
+    //rp(si) = abs(r(si) * (n - 1.0));
+    //logrp(si) = log(rp(si)); 
+    r(si) = m(si) / K(si) * pow(n(si), (n(si)/(n(si)-1.0))); //abs(r(si) * (n - 1.0));
+    logr(si) = log(r(si)); 
+    for (int i=0; i < ns; i++){
+      logrre(si, i) = log(mres(si, i) / K(si) * pow(n(si), (n(si)/(n(si)-1.0)))); //abs(r(si) * (n - 1.0));
+    }
     //std::cout << " -- n: " << n << " -- gamma: " << gamma << n << " -- m(i): " << m(i)<< n << " -- K: " << K << " -- r(i): " << r(i) << " -- logr(i): " << logr(i) << std::endl;
   }
 
@@ -1263,6 +1267,7 @@ Type objective_function<Type>::operator() ()
   // PARAMETERS
   ADREPORT(r);
   ADREPORT(logr);
+  ADREPORT(logrre);
   ADREPORT(rc);
   ADREPORT(logrc);
   //ADREPORT(rp);
