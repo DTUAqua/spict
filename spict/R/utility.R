@@ -22,6 +22,21 @@
 setClass("spictcls")
 
 
+#' @name make.ffacvec
+#' @title Make ffac vector
+#' @param inp Input list
+#' @param ffac Factor to multiply current F by
+#' @return Input list containing ffacvec
+#' @export
+make.ffacvec <- function(inp, ffac){
+    inp$ffacvec <- rep(1, inp$ns)
+    # Start in indpred[2] because indpred[1] is mainly for plotting
+    ind <- which(inp$time == inp$manstart)
+    inp$ffacvec[ind] <- ffac + 1e-8 # Add small to avoid taking log of 0
+    return(inp)
+}
+
+
 #' @name meanvar2shaperate
 #' @title Convert mean and variance to shape and rate of gamma distribution
 #' @param mean Mean value.
@@ -228,6 +243,7 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
 #' @param inp An input list as validated by check.inp().
 #' @param msy Matrix containing reference point values as given by get.par().
 #' @return A list containing reference point estimates with upper and lower CI bounds.
+#' @export
 get.msyvec <- function(inp, msy){
     vec <- rep(0, inp$ns)
     ul <- rep(0, inp$ns)

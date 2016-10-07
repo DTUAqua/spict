@@ -4,13 +4,13 @@
 \alias{mansummary}
 \title{Print management summary.}
 \usage{
-mansummary(rep, ypred = 1, include.EBinf = FALSE, include.unc = TRUE,
+mansummary(repin, ypred = 1, include.EBinf = FALSE, include.unc = TRUE,
   verbose = TRUE)
 }
 \arguments{
-\item{rep}{Result list as output from manage().}
+\item{repin}{Result list as output from manage().}
 
-\item{ypred}{Show results for ypred years into the future.}
+\item{ypred}{Show results for ypred years from manstart.}
 
 \item{include.EBinf}{Include EBinf/Bmsy in the output.}
 

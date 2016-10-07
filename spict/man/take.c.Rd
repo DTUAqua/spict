@@ -4,16 +4,14 @@
 \alias{take.c}
 \title{Calculate management when taking a constant catch (proxy for setting a TAC).}
 \usage{
-take.c(catch, inpin, repin, maninds, dbg = 0)
+take.c(catchfac, inpin, repin, dbg = 0)
 }
 \arguments{
-\item{catch}{Annual catch to take in the prediction period.}
+\item{catchfac}{Take the catch corresponding to the catch at manstart time catchfac.}
 
 \item{inpin}{Input list.}
 
 \item{repin}{Results list.}
-
-\item{maninds}{Indices of time vector for which to apply management.}
 
 \item{dbg}{Debug flag, dbg=1 some output, dbg=2 more ourput.}
 }

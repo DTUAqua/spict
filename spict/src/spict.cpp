@@ -963,6 +963,10 @@ Type objective_function<Type>::operator() ()
   REPORT(Bmsy);
   REPORT(Fmsy);
   REPORT(stochmsy);
+  REPORT(logBBmsy);
+  REPORT(logFFmsy);
+  REPORT(logB);
+  REPORT(logF);
 
   return ans;
 }

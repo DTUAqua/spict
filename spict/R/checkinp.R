@@ -82,7 +82,7 @@
 #' 
 #' \itemize{
 #'  \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc). Should be 1 to get annual predictions and 0.25 for quarterly predictions.}
-#'  \item{"inp$timepredc"}{ Predict catches in interval lengths given by $dtpredc until this time. Default: Time of last observation. Example: inp$timepredc <- 2012}
+#'  \item{"inp$timepredc"}{ Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default: Time of last observation. Example: inp$timepredc <- 2012}
 #'  \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation. Example: inp$timepredi <- 2012}
 #'  \item{"inp$do.sd.report"}{ Flag indicating whether SD report (uncertainty of derived quantities) should be calculated. For small values of inp$dteuler this may require a lot of memory. Default: TRUE.}
 #'  \item{"inp$reportall"}{ Flag indicating whether quantities derived from state vectors (e.g. B/Bmsy, F/Fmsy etc.) should be calculated by SD report. For small values of inp$dteuler (< 1/32) reporting all may have to be set to FALSE for sdreport to run. Additionally, if only reference points of parameter estimates are of interest one can set to FALSE to gain a speed-up. Default: TRUE.}
@@ -579,7 +579,9 @@ check.inp <- function(inp){
     inp$indpred <- which(inp$time >= inp$timerange[2])
     inp$indCpred <- which(inp$time >= max(inp$timeC + inp$dtc))
     # Management
-    inp$manstart <- ceiling(inp$time[inp$indpred[1]])
+    if (!"manstart" %in% names(inp)){
+        inp$manstart <- ceiling(inp$time[inp$indpred[1]])
+    }
     if (!"ffac" %in% names(inp)) inp$ffac <- 1
     if ("ffac" %in% names(inp)){
         if (inp$ffac < 0){
@@ -595,18 +597,13 @@ check.inp <- function(inp){
         }
     }
     if (!"ffacvec" %in% names(inp)){
-        inp$ffacvec <- numeric(inp$ns) + 1
-        # -1 in indpred because 1 is for plotting
-        #inp$ffacvec[inp$indpred[-1]] <- inp$ffac + 1e-8 # Add small to avoid taking log of 0
-        # Start in indpred[2] because indpred[1] is mainly for plotting
-        inp$ffacvec[inp$indpred[2]] <- inp$ffac + 1e-8 # Add small to avoid taking log of 0
+        inp <- make.ffacvec(inp, inp$ffac)
     }
     if (!"fconvec" %in% names(inp)){
         inp$fconvec <- numeric(inp$ns)
         # -1 in indpred because 1 is for plotting
         inp$fconvec[inp$indpred[-1]] <- inp$fcon + 1e-8 # Add small to avoid taking log of 0
     }
-    inp$ffaceuler <- inp$ffac^inp$dteuler
     # Seasons
     if (!"nseasons" %in% names(inp)){
         expnseasons <- 1/min(inp$dtc)
@@ -898,7 +895,7 @@ check.inp <- function(inp){
     }
     # Fill in unspecified (more rarely user defined) model parameter values
     if (!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
-    if (!"logdelta" %in% names(inp$ini)) inp$ini$logdelta <- log(1e-3) # Strength of mean reversion of OU for F
+    if (!"logdelta" %in% names(inp$ini)) inp$ini$logdelta <- log(1e-8) # Strength of mean reversion of OU for F
     if (!"logeta" %in% names(inp$ini)) inp$ini$logeta <- log(0.2) # Mean of OU for F
     if ("logphi" %in% names(inp$ini)){
         if (length(inp$ini$logphi)+1 != dim(inp$splinemat)[2]){

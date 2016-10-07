@@ -4,10 +4,10 @@
 \alias{pred.catch}
 \title{Predict the catch of the prediction interval specified in inp}
 \usage{
-pred.catch(repin, fac = NULL, get.sd = FALSE, exp = FALSE, dbg = 0)
+pred.catch(repin, fmsyfac = 1, get.sd = FALSE, exp = FALSE, dbg = 0)
 }
 \arguments{
-\item{fac}{Factor to multiply current F by. If NULL future will be set to Fmsy.}
+\item{fmsyfac}{Projection are made using F = fmsyfac * Fmsy.}
 
 \item{get.sd}{Get uncertainty of the predicted catch.}
 

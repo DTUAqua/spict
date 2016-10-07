@@ -57,15 +57,15 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
     inpin$obsI <- repin$inp$obsI
     timelastobs <- repin$inp$time[repin$inp$indlastobs]
     if (!repin$inp$timepredc < timelastobs+1){
-        # Always predict at least two years
+        # Add prediction horizons
         inpin$timepredc <- repin$inp$timepredc
         inpin$timepredi <- repin$inp$timepredi
-        inp <- list()
+        inpin$manstart <- repin$inp$manstart
         repman <- list() # Output list
         if (1 %in% scenarios){
             # 1. Specify the catch, which will be taken each year in the prediction period
             catch <- tail(inpin$obsC, 1)
-            repman[[1]] <- take.c(catch, inpin, repin, maninds, dbg=dbg)
+            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg)
         }
         if (2 %in% scenarios){
             # Keep current F
@@ -95,6 +95,8 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
             repman[[6]] <- prop.F(fac6, inpin, repin, maninds, dbg=dbg)
         }
         repin$man <- repman
+        # Create an baseline F trajectory with constant F and store
+        repin$manbase <- prop.F(fac=1, inpin, repin, maninds, dbg=dbg)
     } else {
         stop('Error: Could not do management calculations because prediction horizon is too short. Increase inp$timepredc to be at least one year into the future.\n')
     }
@@ -114,26 +116,16 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
 #' @export
 prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
     inpt <- check.inp(inpin)
+    inpt <- make.ffacvec(inpt, fac)
+    # Make object
     plt <- repin$obj$env$parList(repin$opt$par)
     datint <- make.datin(inpt, dbg=dbg)
-    maninds <- inpt$indpred
-    nmaninds <- length(maninds)
-    # Set F fac
-    if (corF){
-        # This is to compensate for the -0.5*sdf^2*dt term in the logF process
-        sdf <- get.par('logsdf', repin, exp=TRUE)[2]
-        ffacvec <- exp(0.5 * sdf^2 * inpt$dt[maninds])
-    } else {
-        ffacvec <- rep(1, nmaninds)
-    }
-    ffacvec[1] <- ffacvec[1] * fac
-    datint$ffacvec[maninds] <- ffacvec
-    # Make object
     objt <- make.obj(datint, plt, inpt, phase=1)
     objt$fn(repin$opt$par)
     repmant <- sdreport(objt)
     repmant$inp <- inpt
     repmant$obj <- objt
+    repmant$opt <- list(convergence=0)
     if (!is.null(repmant)){
         class(repmant) <- "spictcls"
     }
@@ -143,26 +135,32 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
 
 #' @name take.c
 #' @title Calculate management when taking a constant catch (proxy for setting a TAC).
-#' @param catch Annual catch to take in the prediction period.
+#' @param catchfac Take the catch corresponding to the catch at manstart time catchfac.
 #' @param inpin Input list.
 #' @param repin Results list.
-#' @param maninds Indices of time vector for which to apply management.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
 #' @return List containing results of management calculations.
 #' @export
-take.c <- function(catch, inpin, repin, maninds, dbg=0){
-    inpc <- check.inp(inpin)
+take.c <- function(catchfac, inpin, repin, dbg=0){
+    #inpc <- check.inp(inpin)
     inpt <- inpin
-    plt <- repin$obj$env$parList(repin$opt$par)
-    nmaninds <- length(maninds)
-    timecatch <- annual(inpc$time[maninds[-nmaninds]],
-                        numeric(length(maninds[-nmaninds])))$anntime
-    ncatch <- length(timecatch)
-    obscatch <- rep(catch, ncatch)
-    inpt$timeC <- c(inpt$timeC, timecatch)
-    inpt$obsC <- c(inpt$obsC, obscatch)
+    inpt$timeC <- repin$inp$timeCpred
+    inpt$obsC <- unname(get.par('logCpred', repin, exp=TRUE)[, 2])
+    obsinds <- match(repin$inp$timeC, inpt$timeC)
+    inpt$obsC[obsinds] <- repin$inp$obsC
+    maninds <- which(inpt$timeC >= inpin$manstart)
+    catch <- inpt$obsC[maninds[1]-1]
+    inpt$obsC[maninds] <- rep(catch, length(maninds))
+    #nmaninds <- length(maninds)
+    #timecatch <- annual(inpc$time[maninds[-nmaninds]],
+    #                    numeric(length(maninds[-nmaninds])))$anntime
+    #ncatch <- length(timecatch)
+    #obscatch <- rep(catch, ncatch)
+    #inpt$timeC <- c(inpt$timeC, timecatch)
+    #inpt$obsC <- c(inpt$obsC, obscatch)
     inpt <- check.inp(inpt)
     # Make TMB data and object
+    plt <- repin$obj$env$parList(repin$opt$par)
     datint <- make.datin(inpt, dbg=dbg)
     objt <- make.obj(datint, plt, inpt, phase=1)
     # Get updated sd report
@@ -170,6 +168,7 @@ take.c <- function(catch, inpin, repin, maninds, dbg=0){
     repmant <- sdreport(objt)
     repmant$inp <- inpt
     repmant$obj <- objt
+    repmant$opt <- list(convergence=0)
     if (!is.null(repmant)){
         class(repmant) <- "spictcls"
     }
@@ -179,25 +178,26 @@ take.c <- function(catch, inpin, repin, maninds, dbg=0){
 
 #' @name mansummary
 #' @title Print management summary.
-#' @param rep Result list as output from manage().
-#' @param ypred Show results for ypred years into the future.
+#' @param repin Result list as output from manage().
+#' @param ypred Show results for ypred years from manstart.
 #' @param include.EBinf Include EBinf/Bmsy in the output.
 #' @param include.unc Include uncertainty of management quantities.
 #' @param verbose Print more details on observed and predicted time intervals.
 #' @return Data frame containing management summary.
 #' @export
-mansummary <- function(rep, ypred=1, include.EBinf=FALSE, include.unc=TRUE, verbose=TRUE){
-    if (!'man' %in% names(rep)){
+mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, verbose=TRUE){
+    if (!'man' %in% names(repin)){
         stop('Management calculations not found, run manage() to include them.')
     } else {
-        repman <- rep$man
+        repman <- repin$man
+        rep <- repin$manbase
         # Calculate percent difference.
         get.pdelta <- function(rep, repman, indstart, indnext, parname='logB'){
             val <- get.par(parname, rep, exp=TRUE)[indstart, 2]
             val1 <- get.par(parname, repman, exp=TRUE)[indnext, 2]
             return(round((val1 - val)/val*100, 1))
         }
-        indstart <- which(rep$inp$time == rep$inp$manstart) - 1
+        indstart <- which(rep$inp$time == rep$inp$manstart)
         #indstart <- rep$inp$indpred[1]-1 # Current time (last time interval of last year)
         #curtime <- rep$inp$time[indstart+1]
         curtime <- rep$inp$manstart
@@ -217,7 +217,7 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE, include.unc=TRUE, verb
             BBn <- paste0('BqBmsy') # Should use / instead of q, but / is not accepted in varnames
             FFn <- paste0('FqFmsy')
             EBinfBn <- paste0('EBinfqBmsy')
-            indnextC <- which((rep$inp$timeCpred+rep$inp$dtcp) == curtime+ypred)
+            
             nsc <- length(repman)
             Cnextyear <- matrix(0, nsc, 3)
             colnames(Cnextyear) <- get.cn(Cn)
@@ -233,18 +233,21 @@ mansummary <- function(rep, ypred=1, include.EBinf=FALSE, include.unc=TRUE, verb
             perc.dF <- numeric(nsc)
             EBinf <- numeric(nsc)
             for(i in 1:nsc){
-                EBinf[i] <- get.EBinf(repman[[i]])
-                perc.dB[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logB')
-                perc.dF[i] <- get.pdelta(rep, repman[[i]], indstart, indnext, parname='logF')
-                Cnextyear[i, ] <- round(get.par('logCpred', repman[[i]], exp=TRUE)[indnextC, 1:3], 1)
-                Bnextyear[i, ] <- round(get.par('logB', repman[[i]], exp=TRUE)[indnext, 1:3], 1)
-                Fnextyear[i, ] <- round(get.par('logF', repman[[i]], exp=TRUE)[indnext, 1:3], 3)
-                BBnextyear[i, ] <- round(get.par('logBBmsy', repman[[i]], exp=TRUE)[indnext, 1:3], 3)
-                FFnextyear[i, ] <- round(get.par('logFFmsy', repman[[i]], exp=TRUE)[indnext, 1:3], 3)
+                rp <- repman[[i]]
+                EBinf[i] <- get.EBinf(rp)
+                perc.dB[i] <- get.pdelta(rep, rp, indstart, indnext, parname='logB')
+                perc.dF[i] <- get.pdelta(rep, rp, indstart, indnext, parname='logF')
+                indnextC <- which((rp$inp$timeCpred + rp$inp$dtcp) == curtime+ypred)
+                Cnextyear[i, ] <- round(get.par('logCpred', rp, exp=TRUE)[indnextC, 1:3], 1)
+                Bnextyear[i, ] <- round(get.par('logB', rp, exp=TRUE)[indnext, 1:3], 1)
+                Fnextyear[i, ] <- round(get.par('logF', rp, exp=TRUE)[indnext, 1:3], 3)
+                BBnextyear[i, ] <- round(get.par('logBBmsy', rp, exp=TRUE)[indnext, 1:3], 3)
+                FFnextyear[i, ] <- round(get.par('logFFmsy', rp, exp=TRUE)[indnext, 1:3], 3)
             }
+            indnextCrep <- which((rep$inp$timeCpred+rep$inp$dtcp) == curtime+ypred)
             FBtime <- fd(curtime+ypred)
-            Ctime1 <- fd(rep$inp$timeCpred[indnextC])
-            Ctime2 <- fd(rep$inp$timeCpred[indnextC]+rep$inp$dtcp[indnextC])
+            Ctime1 <- fd(rep$inp$timeCpred[indnextCrep])
+            Ctime2 <- fd(rep$inp$timeCpred[indnextCrep]+rep$inp$dtcp[indnextCrep])
             if (!verbose){
                 Cn <- paste0('C', Ctime1)
                 Bn <- paste0('B', FBtime)
@@ -341,15 +344,11 @@ pred.catch <- function(repin, fmsyfac=1, get.sd=FALSE, exp=FALSE, dbg=0){
     Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indpred[1], 2]
     fac <- (fmsyfac + 1e-6) * Fmsy / Flast
     inpt <- check.inp(inpin)
-    plt <- repin$obj$env$parList(repin$opt$par)
-    datint <- make.datin(inpt, dbg=dbg)
-    maninds <- inpt$indpred
-    nmaninds <- length(maninds)
     # Set F fac
-    ffacvec <- rep(1, nmaninds)
-    ffacvec[1] <- fac
-    datint$ffacvec[maninds] <- ffacvec
+    inpt <- make.ffacvec(inpt, fac)
     # Make object
+    datint <- make.datin(inpt, dbg=dbg)
+    plt <- repin$obj$env$parList(repin$opt$par)
     objt <- make.obj(datint, plt, inpt, phase=1)
     objt$fn(repin$opt$par)
     if (get.sd){
