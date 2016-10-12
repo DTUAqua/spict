@@ -1,10 +1,10 @@
-
 fn <- 'spict/DESCRIPTION'
+date <- format(Sys.Date(), "%Y-%m-%d")
 cat('Package: spict
 Type: Package
 Title: Stochastic suplus Production model in Continuous-Time (SPiCT)
 Version: 1.0
-Date: 2016-06-09
+Date:', date, '
 Author: Martin Waever Pedersen
 Maintainer: Martin Waever Pedersen <mawp@dtu.dk>
 Description: Fits a surplus production model to fisheries catch and biomass index data.
@@ -21,7 +21,8 @@ Suggests:
     rjags,
     coda,
     knitr,
-    rmarkdown
+    rmarkdown,
+    DLMtool
 LazyData: true
 VignetteBuilder: knitr\n',
     file=fn)
