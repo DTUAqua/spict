@@ -134,9 +134,23 @@ This plot shows estimated catches (blue line) versus observed catches (points) w
 
 ## Checking robustness to initial parameter values
 
+# How to fix parameters using estimation phases
+
 # Priors
 
-# Estimation phases
+# Seasonality
+
+# Extracting estimates
+
+get.par()
+
+# Robust estimation (reducing influence of outliers)
+
+Estimation becomes less stable
+
+Perhaps fix some parameters
+
+# Simulation
 
 ## More Examples
 
