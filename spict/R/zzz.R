@@ -18,6 +18,9 @@
 #' @useDynLib spict
 .onUnload <- function (lib) {
   library.dynam.unload("spict", lib)
+  ## if(suppressPackageStartupMessages(require(DLMtool, quietly = TRUE, warn.conflicts = FALSE))) {
+  ##   environment(SPiCT_Feq08Fmsy) <- asNamespace("DLMtool")
+  ## }
 }
 
 .onAttach <- function(lib, pkg) {
@@ -25,3 +28,4 @@
     ver <- get.version('spict')
     packageStartupMessage(paste0('Welcome to ', ver))
  }
+

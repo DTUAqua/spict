@@ -2,10 +2,11 @@ Package: spict
 Type: Package
 Title: Stochastic suplus Production model in Continuous-Time (SPiCT)
 Version: 1.0
-Date: 2016-06-09
+Date: 2016-10-12
 Author: Martin Waever Pedersen
 Maintainer: Martin Waever Pedersen <mawp@dtu.dk>
-Description: Fits a surplus production model to fisheries catch and biomass index data.
+Description: Fits a surplus production model to fisheries catch and biomass
+    index data.
 License: GPL (>=3)
 Copyright: Martin Waever Pedersen <mawp@dtu.dk>
 Depends:
@@ -19,6 +20,7 @@ Suggests:
     rjags,
     coda,
     knitr,
-    rmarkdown
+    rmarkdown,
+    DLMtool
 LazyData: true
 VignetteBuilder: knitr
