@@ -108,6 +108,7 @@
 #' (inp <- check.inp(pol$albacore))
 #' @export
 check.inp <- function(inp){
+    
     check.ini <- function(parname, inp, min=NULL, max=NULL){
         if (!parname %in% names(inp$ini)){
             stop('Please specify an initial value for ', parname, '!')
@@ -316,7 +317,6 @@ check.inp <- function(inp){
              ') does not match effort observation vector (inp$obsE, ',
              inp$nobsE, ') in length')
     }
-
     inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
     
     # -- MODEL OPTIONS --
@@ -499,7 +499,6 @@ check.inp <- function(inp){
             }
         }
     }
-
     # This may give a problem if effort data has later time points than catches or index
     if (inp$nobsE > 0 & sum(inp$nobsI) > 0){
         if (max(inp$timeE) > max(unlist(inp$timeI), inp$timeC)){
@@ -655,7 +654,6 @@ check.inp <- function(inp){
     if (any(inp$nc == 0)){
         stop('Current inp$dteuler is too large to accommodate some catch intervals. Make inp$dteuler smaller!')
     }
-
     # ie is the indices of inp$time to which effort observations correspond
     if (length(inp$dte)>0){
         dtepred <- min(inp$dte)

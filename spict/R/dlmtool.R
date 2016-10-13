@@ -46,16 +46,19 @@ SPiCT_Feq08Fmsy <- structure(function(x, DLM_data, reps) {
   inp <- list(timeC=time, obsC=Catch, 
               timeI=time, obsI=Index,
               ## timepredc = max(time) + 1,
-              dteuler = 1 / 4)
+              dteuler = 1 / 4,
+              do.sd.report=FALSE)
   rep <- try(spict::fit.spict(inp))
   if(is(rep, "try-error")) {
     TAC <- rep(NA, reps)
   } else {
-    predcatch <- spict::pred.catch(rep, get.sd = TRUE, exp = FALSE, fmsyfac = 0.8)
+    #predcatch <- spict::pred.catch(rep, get.sd = TRUE, exp = FALSE, fmsyfac = 0.8)
+    predcatch <- spict::pred.catch(rep, get.sd = FALSE, exp = FALSE, fmsyfac = 0.8)
     ## The repetitions of TAC are log normally distributed with CV of 10% to match
     ## the implementation of DD management procedure. To accuratelly represent the
     ## uncertainty estimated by SPiCT one should use the estimated standard deviation
-    ## reported by SPiCT, i.e. TAC <- exp(rnorm(reps, predcatch[2], predcatch[4])) 
+    ## reported by SPiCT, i.e. TAC <- exp(rnorm(reps, predcatch[2], predcatch[4]))
+    ## remember to set do.sd.report = TRUE when creating inp
     TAC <- exp(rnorm(reps, predcatch[2], predcatch[2] * 0.1))
   }
   DLMtool:::TACfilter(TAC)

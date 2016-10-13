@@ -349,12 +349,22 @@ invlogp1 <- function(a) 1 + exp(a)
 #' @export
 guess.m <- function(inp, all.return=FALSE){
     meancatch <- mean(unlist(inp$obsC))
-    out <- get.catchindexoverlap(inp)
-    ty <- out$ty
-    y <- out$y
-    tz <- out$tz
-    z <- out$z
-    if (length(y) == length(z)){
+    flag <- FALSE
+    if ('obsI' %in% names(inp)){
+        if (length(inp$obsI) > 0){
+            out <- get.catchindexoverlap(inp)
+            if (!is.null(out)){
+                ty <- out$ty
+                y <- out$y
+                tz <- out$tz
+                z <- out$z
+                if (length(y) == length(z)){
+                    flag <- TRUE
+                }
+            }
+        }
+    }
+    if (flag){
         x <- y/z
         mod0 <- lm(z ~ x)
         a <- mod0$coefficients[1]
@@ -383,7 +393,7 @@ guess.m <- function(inp, all.return=FALSE){
 get.catchindexoverlap <- function(inp){
     y <- inp$obsC
     ty <- inp$timeC
-    if (length(inp$obsI)>0 & inp$nseasons == 1){
+    if (length(inp$obsI) > 0 & inp$nseasons == 1){
         # Get index observations
         if (class(inp$obsI)=='list'){
             z <- inp$obsI[[1]]

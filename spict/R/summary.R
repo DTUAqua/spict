@@ -92,7 +92,11 @@ summary.spictcls <- function(object, ...){
         nmmatpriors <- names(matpriors)
         if (length(nmmatpriors) > 0){
             for (nm in nmmatpriors){
-                priors[[nm]] <- matpriors[[nm]]
+                for (i in nrow(matpriors[[nm]])){
+                    if (matpriors[[nm]][i, 3] == 1){
+                        priors[[nm]] <- matpriors[[nm]][i, ]
+                    }
+                }
             }
         }
         priorsmat <- do.call(rbind, priors)
