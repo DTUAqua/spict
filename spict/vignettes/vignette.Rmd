@@ -2,8 +2,10 @@
 title: "SPiCT"
 author: "Martin W. Pedersen"
 date: '`16-08-2016`'
-output: 
-  pdf_document: 
+output:
+  word_document:
+    toc: yes
+  pdf_document:
     number_sections: yes
     toc: yes
 vignette: |
@@ -80,7 +82,7 @@ The call to `fit.spict` is wrapped in the `system.time` command to check the tim
 
 # Interpreting the plot of results
 
-Let's look at the plot
+The results are plotted using
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
 plot(rep)
@@ -97,7 +99,7 @@ Some general comments can be made regarding the style and colours of these plots
 - Predictions beyond the data range are shown using dotted blue lines.
 - Data are shown using points coloured by season. Different index series use different point characters (not shown here).
 
-The individual plots can be plotted separately. Let's look at them one at a time. The top left is the plot of absolute biomass
+The individual plots can be plotted separately. We will now look at them one at a time. The top left is the plot of absolute biomass
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 plotspict.biomass(rep)
@@ -137,6 +139,73 @@ This plot shows estimated catches (blue line) versus observed catches (points) w
 # Priors
 
 # Estimation phases
+
+# Forecasting
+
+To make a catch forecast a forecast interval needs to be specified. This is done by specifying the start of the interval (`inp$timepredc`) and the length of the interval in years (`inp$dtpredc`). In addition to the forecast interval a fishing scenario needs to be specified. This is done by specifying a factor (`inp$ffac`) to multiply the current fishing mortality by (i.e. the F at the last time point of the time period where data are available) and the time that management should start (`inp$manstart`). The time point of the reported forecast of biomass and fishing mortality can be controlled by setting `inp$timepredi`. Producing short-term forecasts entails minimal additional computing time.
+
+Forecasts are produced as part of the usual model fitting. To illustrate the procedure, a short example using the South Atlantic albacore dataset of Polacheck et al. (1993) containing catch and commercial CPUE data in the interval 1967 to 1989 is presented. The code to obtain the forecasted annual catch in the interval starting 1991 under a management scenario where the fishing pressure is reduced by 25% starting in 1991, and a forecasted index in 1992 is:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+library(spict)
+data(pol)
+inp <- pol$albacore
+inp$manstart <- 1991
+inp$timepredc <- 1991
+inp$dtpredc <- 1
+inp$timepredi <- 1992
+inp$ffac <- 0.75
+rep <- fit.spict(inp)
+```
+
+To specifically show forecast results use
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+sumspict.predictions(rep)
+```
+
+This output is also shown when using `summary(rep)`. The results can be plotted using `plot(rep)`, however to visualise the change in forecasted fishing mortality and associated change in forecasted catch more clearly we use
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+par(mfrow=c(2, 2), mar=c(4, 4.5, 3, 3.5))
+plotspict.bbmsy(rep, stamp='')
+plotspict.ffmsy(rep, qlegend=FALSE, stamp='')
+plotspict.catch(rep, qlegend=FALSE, stamp='')
+plotspict.fb(rep, man.legend=FALSE, stamp='')
+```
+
+Note in the plot that the decrease in fishing pressure results in a constant biomass as opposed to the expected decrease if fishing effort had remained constant.
+
+SPiCT has a function that runs several predefined management scenarios, which can be presented in a forecast table. To perform the calculations required to produce the forecast table run:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+rep <- manage(rep)
+```
+
+where `rep` is the result of `fit.spict()` from the code above. Then, the results can be summarised (and extracted) by running:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+df <- mansummary(rep)
+```
+
+Then, `df` is a data frame with each line containing a line of the output
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+head(df)
+```
+
+The resulting biomass, fishing mortality and catch of the management scenarios are included in the standard plots
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+par(mfrow=c(2, 2), mar=c(4, 4.5, 3, 3.5))
+plotspict.bbmsy(rep, stamp='')
+plotspict.ffmsy(rep, qlegend=FALSE, stamp='')
+plotspict.catch(rep, qlegend=FALSE, stamp='')
+plotspict.fb(rep, man.legend=FALSE, stamp='')
+```
+
+
+
 
 ## More Examples
 
