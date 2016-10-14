@@ -27,6 +27,13 @@ Type predictlogB(const Type &B0, const Type &F, const Type &gamma, const Type &m
   return log(B0) + (gamma*m/K - gamma*m/K*pow(B0/K, n-1.0) - F - 0.5*sdb2)*dt;
 }
 
+/* Predict m */
+template<class Type>
+Type predictm(const Type &logm0, const Type &dt, const Type &sdm2, const Type &psi)
+{
+  return exp(logm0 - psi*logm0*dt);
+}
+
 /* Predict F1 */
 template<class Type>
 Type predictF1(const Type &logF0, const Type &dt, const Type &sdf2, const Type &delta, const Type &logeta)
@@ -91,6 +98,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(isdi);           // A vector such that isdi(i) is the index number corresponding to I_isdi(i)
   DATA_VECTOR(ir);             // A vector indicating when the different rs should be used
   DATA_VECTOR(isdf);           // 
+  DATA_VECTOR(logmcov);        // A vector containing covariate information for logm
   DATA_VECTOR(seasons);        // A vector of length ns indicating to which season a state belongs
   DATA_VECTOR(seasonindex);    // A vector of length ns giving the number stepped within the current year
   DATA_MATRIX(splinemat);      // Design matrix for the seasonal spline
@@ -98,6 +106,7 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(omega);          // Period time of seasonal SDEs (2*pi = 1 year period)
   DATA_SCALAR(seasontype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
   DATA_SCALAR(efforttype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
+  DATA_INTEGER(timevaryinggrowth); // 
   DATA_VECTOR(ffacvec);        // Management factor each year multiply the predicted F with ffac
   DATA_VECTOR(fconvec);        // Management factor each year add this constant to the predicted F
   DATA_VECTOR(indpred);        // A vector indicating when the management factor should be applied
@@ -141,6 +150,7 @@ Type objective_function<Type>::operator() ()
 
   // PARAMETERS
   PARAMETER_VECTOR(logm);      // m following the Fletcher formulation (see Prager 2002)
+  PARAMETER(mu);               // Coefficient for covariate info for logm
   PARAMETER(logK);             // Carrying capacity
   PARAMETER_VECTOR(logq);      // Catchability for index
   PARAMETER(logqf);            // Catchability for effort
@@ -151,6 +161,8 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logsdi);    // sdi = alpha*sdb
   PARAMETER(logsde);           // sdc = beta*sdf
   PARAMETER(logsdc);           // sdc = beta*sdf
+  PARAMETER(logsdm);           // 
+  PARAMETER(logpsi);           // Mean reversion in OU for logm
   PARAMETER_VECTOR(logphi);    // Season levels of F.
   PARAMETER(loglambda);        // Damping variable when using seasonal SDEs
   PARAMETER(logdelta);          // Strength of mean reversion in OU F process (delta = 0 mean RW)
@@ -160,7 +172,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logF);      // Diffusion component of F in log
   PARAMETER_MATRIX(logu);      // Seasonal component of F in log
   PARAMETER_VECTOR(logB);      // Biomass in log
-
+  PARAMETER_VECTOR(logmre);    // Random effect on m
 
   //std::cout << "expmosc: " << expmosc(lambda, omega, 0.1) << std::endl;
    if(dbg > 0){
@@ -197,6 +209,7 @@ Type objective_function<Type>::operator() ()
   int ns = logF.size();
 
   // Transform parameters
+  Type psi = exp(logpsi);
   vector<Type> logphipar(logphi.size()+1);
   logphipar(0) = 0.0; // The first logphi is set to 0, the rest are estimated relative to this.
   for(int i=1; i<logphipar.size(); i++){ logphipar(i) = logphi(i-1); }
@@ -233,6 +246,9 @@ Type objective_function<Type>::operator() ()
   Type sdb = exp(logsdb);
   Type sdb2 = sdb*sdb;
   Type isdb2 = 1.0/sdb2;
+  Type sdm = exp(logsdm);
+  Type sdm2 = sdm*sdm;
+  Type isdm2 = 1.0/sdm2;
   vector<Type> sdi = exp(logsdi);
   vector<Type> sdi2(nsdi);
   vector<Type> isdi2(nsdi);
@@ -254,16 +270,24 @@ Type objective_function<Type>::operator() ()
   // Initialise vectors
   vector<Type> P(ns-1);
   vector<Type> B = exp(logB);
-  vector<Type> mvec(ns);
+  //vector<Type> mvec(ns);
   vector<Type> logBmsyvec(ns);
   vector<Type> logFmsyvec(ns);
   vector<Type> Cpred(nobsCp);
-  for(int i=0; i<nobsCp; i++){ Cpred(i) = 0.0; }
+  for(int i=0; i < nobsCp; i++){ 
+    Cpred(i) = 0.0; 
+  }
   vector<Type> logIpred(nobsI);
   vector<Type> logCpred(nobsCp);
   vector<Type> logEpred(nobsE);
 
   // Reference points
+
+  vector<Type> mvec(ns);
+  for(int i=0; i < ns; i++){
+    mvec(i) = exp(logm(0) + logmre(i));
+  }
+
   Type p = n - 1.0;
   vector<Type> Bmsyd(nm);
   vector<Type> Fmsyd(nm);
@@ -418,7 +442,7 @@ Type objective_function<Type>::operator() ()
     if(dbg>1){
       std::cout << "-- i: " << i << " -- ind: " << ind << " -   mvec(i): " << mvec(i) << std::endl;
     }
-    mvec(i) = m(ind);
+    //mvec(i) = m(ind);
     //logFmsyvec(i) = logFmsy(ind);
     //logBmsyvec(i) = logBmsy(ind);
   }
@@ -630,6 +654,27 @@ Type objective_function<Type>::operator() ()
   }
   vector<Type> F = exp(logS + logF); // This is the fishing mortality used to calculate catch
   vector<Type> logFs = log(F);
+
+
+  // GROWTH RATE (modelled as time-varying m)
+  if (timevaryinggrowth == 1){
+    if (dbg > 0){
+      std::cout << "--- DEBUG: logmre loop start --- ans: " << ans << std::endl;
+    }
+    // Compare initial value with stationary distribution of OU
+    likval = dnorm(logmre(0), Type(0.0), sdm/sqrt(2.0*psi), 1);
+    ans -= likval;
+    for (int i=1; i < ns; i++){
+      Type logmrepred = predictm(logmre(i-1), dt(i-1), sdm2, psi);
+      likval = dnorm(logmre(i), logmrepred, sqrt(dt(i-1))*sdm, 1);
+      //likval = dnorm(logmre(i), logmre(i-1), sqrt(dt(i-1))*sdm, 1);
+      ans -= likval;
+      // DEBUGGING
+      if (dbg > 1){
+	std::cout << "-- i: " << i << " -   logmre(i-1): " << logmre(i-1) << "  sdm: " << sdm << "  likval: " << likval << "  ans:" << ans << std::endl;
+      }
+    }
+  }
 
   // BIOMASS PREDICTIONS
   if(dbg>0){

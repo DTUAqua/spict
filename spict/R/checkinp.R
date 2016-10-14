@@ -108,7 +108,13 @@
 #' (inp <- check.inp(pol$albacore))
 #' @export
 check.inp <- function(inp){
-    
+
+    set.default <- function(inpin, key, val){
+        if (!key %in% names(inpin)){
+            inpin[[key]] <- val
+        }
+        return(inpin)
+    }
     check.ini <- function(parname, inp, min=NULL, max=NULL){
         if (!parname %in% names(inp$ini)){
             stop('Please specify an initial value for ', parname, '!')
@@ -320,7 +326,7 @@ check.inp <- function(inp){
     inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
     
     # -- MODEL OPTIONS --
-    if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB')
+    if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB', 'logmre')
     if (!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
     # Index related
     if (!"onealpha" %in% names(inp)){
@@ -353,6 +359,9 @@ check.inp <- function(inp){
     if (!"bias.correct" %in% names(inp)) inp$bias.correct <- FALSE # This is time consuming
     if (!"bias.correct.control" %in% names(inp)) inp$bias.correct.control <- list(sd=FALSE) # This is time consuming
     if (!"getReportCovariance" %in% names(inp)) inp$getReportCovariance <- TRUE # Set to FALSE to save memory
+    if (!"getJointPrecision" %in% names(inp)){
+        inp$getJointPrecision <- FALSE
+    }
     # Simulation options
     #if (!"armalistF" %in% names(inp)) inp$armalistF <- list() # Used for simulating arma noise for F instead of white noise.
     # When simulating using sim.comm.cpue == TRUE, the simulation calculates
@@ -378,6 +387,8 @@ check.inp <- function(inp){
     inp$robflagi <- as.numeric(inp$robflagi)
     if (!"robflage" %in% names(inp)) inp$robflage <- 0
     inp$robflage <- as.numeric(inp$robflage)
+    # Time-varying growth option
+    inp <- set.default(inp, 'timevaryinggrowth', FALSE)
     # ASPIC options 
     if (!"aspic" %in% names(inp)) inp$aspic <- list()
     if (!"mode" %in% names(inp$aspic)) inp$aspic$mode <- 'FIT'
@@ -745,36 +756,53 @@ check.inp <- function(inp){
     inp$osar.subset <- setdiff(1:length(inp$obssrt), inp$osar.conditional)
 
     # -- COVARIATES --
+    inp$logmcovflag <- FALSE
     if (!'logmcovariate' %in% names(inp)){
-        inp$logmcovariate <- c()
+        inp$logmcovariate <- NA
+        if (!'logmcovariatein' %in% names(inp)){
+            inp$logmcovariatein <- rep(0, inp$ns)
+        }
     }
     if ('logmcovariate' %in% names(inp)){
-        if (!'logmcovariatetime' %in% names(inp)){
-            stop('inp$logmcovariatetime unspecified but required!')
-        }
-        if ('logmcovariatetime' %in% names(inp)){
-            if (length(inp$logmcovariatetime) != length(inp$logmcovariate)){
-                stop('length(inp$logmcovariatetime) != length(inp$logmcovariate), cannot continue!')
+        if (all(is.finite(inp$logmcovariate))){
+            if (!'logmcovariatetime' %in% names(inp)){
+                stop('inp$logmcovariatetime unspecified but required!')
             }
-        }
-        if (!'logmcovariatein' %in% names(inp)){
-            if (length(inp$logmcovariate) == 0){
-                inp$logmcovariatein <- rep(0, inp$ns)
-            } else {
-                if (all(is.finite(inp$logmcovariate))){
-                    smoocov <- loess(logmcovariate ~ logmcovariatetime, data=inp)
-                    covpred <- predict(smoocov, data=data.frame(logmcovariatetime=inp$time))
+            if ('logmcovariatetime' %in% names(inp)){
+                if (length(inp$logmcovariatetime) != length(inp$logmcovariate)){
+                    stop('length(inp$logmcovariatetime) != length(inp$logmcovariate), cannot continue!')
                 }
             }
-            
-        }
-        if ('logmcovariatein' %in% names(inp)){
-            if (length(inp$logmcovariatein) != inp$ns){
-                stop('length(inp$logmcovariatein) != inp$ns, cannot continue. Avoid specifying inp$logmcovariatein manually.')
+            dat <- data.frame(x=inp$logmcovariatetime, y=inp$logmcovariate)
+            smoocov <- loess(y ~ x, data=dat)
+            covpred <- predict(smoocov, newdata=data.frame(x=inp$time))
+            inds <- which(is.na(unname(covpred)))
+            # Replace NAs at beginning
+            if (1 %in% inds){
+                cp <- which(diff(inds) > 1)
+                if (length(cp) > 0){
+                    ind2 <- min(cp)
+                    inds2 <- 1:inds[ind2]
+                } else {
+                    inds2 <- 1:tail(inds, 1)
+                }
+                covpred[inds2] <- rep(covpred[tail(inds2, 1)+1], length(inds2))
             }
+            # Replace NAs at end
+            if (inp$ns %in% inds){
+                cp <- which(diff(inds) > 1)
+                if (length(cp) > 0){
+                    ind3 <- min(cp > 1) + 1
+                    inds3 <- inds[ind3]:inp$ns
+                } else {
+                    inds3 <- inds
+                }
+                covpred[inds3] <- rep(covpred[inds3[1]-1], length(inds3))
+            }
+            inp$logmcovariatein <- covpred
+            inp$logmcovflag <- TRUE
         }
     }
-
     
     # -- MODEL PARAMETERS --
     # Default values
@@ -903,6 +931,7 @@ check.inp <- function(inp){
     }
     if (!'logsdu' %in% names(inp$ini)) inp$ini$logsdu <- log(0.1)
     if (!'logsdb' %in% names(inp$ini)) inp$ini$logsdb <- log(0.2)
+    inp$ini <- set.default(inp$ini, 'logsdm', log(1e-8))
     if (!'logsdc' %in% names(inp$ini)) inp$ini$logsdc <- log(0.2)
     if (!'logsdi' %in% names(inp$ini)) inp$ini$logsdi <- log(0.2)
     if (sum(inp$nobsI)>0) inp <- check.mapped.ini(inp, 'logsdi', 'nsdi')
@@ -918,17 +947,17 @@ check.inp <- function(inp){
         K <- exp(inp$ini$logK)
         n <- exp(inp$ini$logn)
         m <- r * K / (n^(n/(n-1)))
-        #m <- r * K / gamma # n > 1 # rold
-        #if (n>1){
-        #    inp$ini$logm <- log(m)
-        #} else {
-        #    inp$ini$logm <- log(-m)
-        #}
+    }
+    logm <- inp$ini$logm # Store this to be able to set logmre later
+    if (inp$timevaryinggrowth){
+        inp$ini$logm <- log(1)
     }
     # Fill in unspecified (more rarely user defined) model parameter values
-    if (!"mu" %in% names(inp$ini)){
-        inp$ini$mu <- 0
-    }
+    inp$ini <- set.default(inp$ini, 'logpsi', log(1e-8))
+    inp$ini <- set.default(inp$ini, 'mu', 0)
+    #if (!"mu" %in% names(inp$ini)){
+    #    inp$ini$mu <- 0
+    #}
     if (!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
     if (!"logdelta" %in% names(inp$ini)) inp$ini$logdelta <- log(1e-8) # Strength of mean reversion of OU for F
     if (!"logeta" %in% names(inp$ini)) inp$ini$logeta <- log(0.2) # Mean of OU for F
@@ -973,7 +1002,13 @@ check.inp <- function(inp){
             inp$ini$logB <- inp$ini$logB[1:inp$ns]
         }
     }
-
+    if (!"logmre" %in% names(inp$ini)){
+        inp$ini$logmre <- rep(log(1), inp$ns)
+    }
+    #if ("logmre" %in% names(inp$ini)){    
+    #    inp$ini$logmre <- check.mat(inp$ini$logmre, c(inp$nstocks, inp$ns), 'inp$ini$logmre')
+    #}
+    
     # Reorder parameter list
     inp$parlist <- list(logm=inp$ini$logm,
                         mu=inp$ini$mu,
@@ -987,6 +1022,8 @@ check.inp <- function(inp){
                         logsdi=inp$ini$logsdi,
                         logsde=inp$ini$logsde,
                         logsdc=inp$ini$logsdc,
+                        logsdm=inp$ini$logsdm,
+                        logpsi=inp$ini$logpsi,
                         logphi=inp$ini$logphi,
                         loglambda=inp$ini$loglambda,
                         logdelta=inp$ini$logdelta,
@@ -995,7 +1032,8 @@ check.inp <- function(inp){
                         logp1robfac=inp$ini$logp1robfac,
                         logF=inp$ini$logF,
                         logu=inp$ini$logu,
-                        logB=inp$ini$logB)
+                        logB=inp$ini$logB,
+                        logmre=inp$ini$logmre)
 
 
     # -- PRIORS --
@@ -1161,6 +1199,12 @@ check.inp <- function(inp){
     }
     if (inp$effortmodel == 'RW'){
         forcefixpars <- c('logdelta', 'logeta', forcefixpars)
+    }
+    if (!inp$logmcovflag){
+        forcefixpars <- c('mu', forcefixpars)
+    }
+    if (!inp$timevaryinggrowth){
+        forcefixpars <- c('logmre', 'logsdm', 'logpsi', forcefixpars)
     }
     # Determine phases
     if (!"phases" %in% names(inp)){

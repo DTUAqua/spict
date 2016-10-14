@@ -141,11 +141,13 @@ fit.spict <- function(inp, dbg=0){
                 verflag <- as.numeric(gsub('[.]', '', as.character(packageVersion('TMB')))) >= 171
                 if (verflag & inp$getReportCovariance){
                     rep <- try(TMB::sdreport(obj,
+                                             getJointPrecision=inp$getJointPrecision,
                                              bias.correct=inp$bias.correct,
                                              bias.correct.control=inp$bias.correct.control,
                                              getReportCovariance = inp$getReportCovariance))
                 } else {
                     rep <- try(TMB::sdreport(obj,
+                                             getJointPrecision=inp$getJointPrecision,
                                              bias.correct=inp$bias.correct,
                                              bias.correct.control=inp$bias.correct.control))
                 }
@@ -250,6 +252,7 @@ make.datin <- function(inp, dbg=0){
                   isdi=inp$isdiin,
                   ir=inp$ir,
                   isdf=inp$isdf,
+                  logmcov=inp$logmcovariatein,
                   seasons=inp$seasons,
                   seasonindex=inp$seasonindex,
                   splinemat=inp$splinemat,
@@ -257,6 +260,7 @@ make.datin <- function(inp, dbg=0){
                   omega=inp$omega,
                   seasontype=inp$seasontype,
                   efforttype=inp$efforttype,
+                  timevaryinggrowth=as.numeric(inp$timevaryinggrowth),
                   ffacvec=inp$ffacvec,
                   fconvec=inp$fconvec,
                   indpred=inp$indpred,

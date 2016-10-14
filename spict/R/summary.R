@@ -500,6 +500,16 @@ sumspict.fixedpars <- function(rep, numdigits=8){
     if (rep$inp$effortmodel == 'RW'){
         nms <- nms[-match(c('logeta', 'logdelta'), nms)]
     }
+    # Is covariate information used for logm?
+    if (!rep$inp$logmcovflag){
+        nms <- nms[-match('mu', nms)]
+    }
+    # Is growth time varying
+    if (rep$inp$timevaryinggrowth){
+        nms <- nms[-match('logm', nms)]
+    } else {
+        nms <- nms[-match(c('logsdm', 'logpsi'),  nms)]
+    }
     nnms <- length(nms)
     if(nnms > 0){
         vals <- numeric(0)
