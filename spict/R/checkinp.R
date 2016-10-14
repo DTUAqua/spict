@@ -637,7 +637,7 @@ check.inp <- function(inp){
         inp$seasons[inds] <- i
     }
     # ic is the indices of inp$time to which catch observations correspond
-    if (length(inp$dtc)>0){
+    if (length(inp$dtc) > 0){
         dtcpred <- min(inp$dtc)
     } else {
         dtcpred <- 1
@@ -655,7 +655,7 @@ check.inp <- function(inp){
         stop('Current inp$dteuler is too large to accommodate some catch intervals. Make inp$dteuler smaller!')
     }
     # ie is the indices of inp$time to which effort observations correspond
-    if (length(inp$dte)>0){
+    if (length(inp$dte) > 0){
         dtepred <- min(inp$dte)
     } else {
         dtepred <- 1
@@ -741,9 +741,41 @@ check.inp <- function(inp){
                 ' and sum(inp$nobsE) ', sum(inp$nobsE), '.')
     }
     # Condition on the first year of data.
-    inp$osar.conditional <- which(inp$timeobssrt < (inp$time[1]+1))
+    inp$osar.conditional <- which(inp$timeobssrt < (inp$time[1] + 1))
     inp$osar.subset <- setdiff(1:length(inp$obssrt), inp$osar.conditional)
 
+    # -- COVARIATES --
+    if (!'logmcovariate' %in% names(inp)){
+        inp$logmcovariate <- c()
+    }
+    if ('logmcovariate' %in% names(inp)){
+        if (!'logmcovariatetime' %in% names(inp)){
+            stop('inp$logmcovariatetime unspecified but required!')
+        }
+        if ('logmcovariatetime' %in% names(inp)){
+            if (length(inp$logmcovariatetime) != length(inp$logmcovariate)){
+                stop('length(inp$logmcovariatetime) != length(inp$logmcovariate), cannot continue!')
+            }
+        }
+        if (!'logmcovariatein' %in% names(inp)){
+            if (length(inp$logmcovariate) == 0){
+                inp$logmcovariatein <- rep(0, inp$ns)
+            } else {
+                if (all(is.finite(inp$logmcovariate))){
+                    smoocov <- loess(logmcovariate ~ logmcovariatetime, data=inp)
+                    covpred <- predict(smoocov, data=data.frame(logmcovariatetime=inp$time))
+                }
+            }
+            
+        }
+        if ('logmcovariatein' %in% names(inp)){
+            if (length(inp$logmcovariatein) != inp$ns){
+                stop('length(inp$logmcovariatein) != inp$ns, cannot continue. Avoid specifying inp$logmcovariatein manually.')
+            }
+        }
+    }
+
+    
     # -- MODEL PARAMETERS --
     # Default values
     lognflag <- TRUE
@@ -763,7 +795,9 @@ check.inp <- function(inp){
     n <- exp(inp$ini$logn)
     inp$ini$gamma <- calc.gamma(n)
     # logK
-    if (!'logK' %in% names(inp$ini)) inp$ini$logK <- log(4*max(inp$obsC))
+    if (!'logK' %in% names(inp$ini)){
+        inp$ini$logK <- log(4*max(inp$obsC))
+    }
     # logr
     if ('logr' %in% names(inp$ini) & 'logm' %in% names(inp$ini)){
         inp$ini$logr <- NULL # If both r and m are specified use m and discard r
@@ -839,7 +873,7 @@ check.inp <- function(inp){
         return(inp)
     }
 
-    if (length(inp$obsI)==0){
+    if (length(inp$obsI) == 0){
         logmaxI <- 0
     } else {
         logmaxI <- log(max(inp$obsI[[1]]))
@@ -892,6 +926,9 @@ check.inp <- function(inp){
         #}
     }
     # Fill in unspecified (more rarely user defined) model parameter values
+    if (!"mu" %in% names(inp$ini)){
+        inp$ini$mu <- 0
+    }
     if (!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
     if (!"logdelta" %in% names(inp$ini)) inp$ini$logdelta <- log(1e-8) # Strength of mean reversion of OU for F
     if (!"logeta" %in% names(inp$ini)) inp$ini$logeta <- log(0.2) # Mean of OU for F
@@ -939,6 +976,7 @@ check.inp <- function(inp){
 
     # Reorder parameter list
     inp$parlist <- list(logm=inp$ini$logm,
+                        mu=inp$ini$mu,
                         logK=inp$ini$logK,
                         logq=inp$ini$logq,
                         logqf=inp$ini$logqf,
@@ -1102,17 +1140,17 @@ check.inp <- function(inp){
     # ------------------------------
     # Determine fixed parameters
     forcefixpars <- c() # Parameters that are forced to be fixed.
-    if (inp$nseasons==1){
+    if (inp$nseasons == 1){
         forcefixpars <- c('logphi', 'logu', 'logsdu', 'loglambda', forcefixpars)
     } else {
-        if (inp$seasontype==1){ # Use spline
+        if (inp$seasontype == 1){ # Use spline
             forcefixpars <- c('logu', 'logsdu', 'loglambda', forcefixpars)
         }
-        if (inp$seasontype==2){ # Use coupled SDEs
+        if (inp$seasontype == 2){ # Use coupled SDEs
             forcefixpars <- c('logphi', forcefixpars)
         }
     }
-    if (inp$robflagc==0 & inp$robflagi==0 & inp$robflage==0){
+    if (inp$robflagc == 0 & inp$robflagi == 0 & inp$robflage == 0){
         forcefixpars <- c('logitpp', 'logp1robfac', forcefixpars)
     }
     if (inp$nobsE == 0){
