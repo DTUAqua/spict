@@ -102,12 +102,12 @@ Here the `capture.output()` is only used to provide line numbers for easier refe
 - Line 2: Objective function value at the optimum. The objective function is the likelihood function if priors are not used and the posterior density function if priors are used.
 - Line 3: The Euler time step used in the calculation.
 - Line 4: Number of observations for the time series used.
-- Line 6-9: Summary of the priors used in the fit.
-- Line 11-25: Summary of the parameter estimates and their 95% CIs. These can be extracted as a data frame with `sumspict.parest(rep)`.
+- Line 6-9: Summary of the priors used in the fit. The priors shown here are the default priors that are applied when priors are unspecified. These are relatively uninformative and are applied because most data-limited situations do not allow simultaneous estimation of all noise parameters and `logn`. The default priors can be disabled (see the section on priors).
+- Line 11-25: Summary of the parameter estimates and their 95% CIs. These can be extracted as a data frame with `sumspict.parest(rep)`. 
 - Line 27-31: Estimates of deterministic reference points with 95% CIs. These are the reference points one would derive if stochasticity were ignored. Can be extracted with `sumspict.drefpoints(rep)`.
 - Line 32-36: Estimates of stochastic reference points with 95% CIs. These are the reference points of the stochastic model. The column ´rel.diff.Drp´ shows the relative difference when compared to the deterministic reference points. The information can be extracted with `sumspict.srefpoints(rep)`.
-- Line 38-43: State estimates in the final year where data were available. The states of the model are biomass (`B`) and fishing mortality (`F`) with the year of the estimates appended. The year is shown as a decimal number as estimates within year are possible. Both absolute (`B` and `F`) and relative estimates (`B/Bmsy` and `F/Fmsy`) are shown. The relative estimates are calculated using the type of reference points given by `msytype` (line 38), where `s` is stochastic and `d` is deterministic. Here `msytype` is ´s´.
-- Line 45-52: Predictions of absolute and relative biomass and fishing mortality at the time indicated by `inp$timepredi`, here 1990 (line 47-50). In addition, predicted catch at the time indicated by `inp$timepredc` (line 51). Finally, the equilibrium biomass, indicated by E(B_inf), if current conditions remain constant. There predictions or forecasts are calculated under the fishing scenario given by `inp$ffac`. See the section on forecasting for more information.
+- Line 38-43: State estimates in the final year where data were available. The states of the model are biomass (`B`) and fishing mortality (`F`) with the year of the estimates appended. The year is shown as a decimal number as estimates within year are possible. Both absolute (`B` and `F`) and relative estimates (`B/Bmsy` and `F/Fmsy`) are shown. The relative estimates are calculated using the type of reference points given by `msytype` (line 38), where `s` is stochastic and `d` is deterministic. Here `msytype` is ´s´. This information can be extracted using `sumspict.states(rep)`.
+- Line 45-52: Predictions of absolute and relative biomass and fishing mortality at the time indicated by `inp$timepredi`, here 1990 (line 47-50). In addition, predicted catch at the time indicated by `inp$timepredc` (line 51). Finally, the equilibrium biomass, indicated by E(B_inf), if current conditions remain constant. There predictions or forecasts are calculated under the fishing scenario given by `inp$ffac`. See the section on forecasting for more information. The prediction summary can be extracted using `sumspict.predictions(rep)`.
 
 # Interpreting the plot of results
 
@@ -185,6 +185,32 @@ sort(unique(c(names(rep$value), names(rep$par.fixed), names(rep$par.random))))
 
 These should be relatively self-explanatory when knowing that reference points ending with `s` are stochastic and those ending with `d` are deterministic, quantities ending with `p` are predictions and quantities ending with `l` are estimates in the final year. If a quantity is available both on natural and log scale and it is preferred to transform the quantity from log as most quantities are estimated on the log scale.
 
+## Extracting correlation between parameters
+
+The covariance between the model parameters (fixed effects) can be extracted from the results list
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+rep$cov.fixed
+```
+
+It is however easier to interpret the correlation rather than covariance. The correlation matrix can be calculated using 
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+cov2cor(rep$cov.fixed)
+```
+
+For this data most parameters are well separated, i.e. relatively low correlation, perhaps with the exception of `logm` and `logn`, which have a correlation of -0.9. Note that `logr` is absent from the covariance matrix. This is because the model is parameterised in terms of `logm`, `logK`, and `logn` from which `logr` can be derived. The estimate of `logr` is reported using TMB's `sdreport()` function.
+
+The covariance between random effects (biomass and fishing mortality) is not reported automatically, but can be obtained by setting `inp$getJointPrecision` to `TRUE` (this entails longer computation time and memory requirement).
+
+The covariance between sdported values (i.e. the values reported in `rep$value`) are given in `rep$cov`. As this matrix is typically large, the function `get.cov()` can be used to extract the covariance between two scalar quantities
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+cov2cor(get.cov(rep, 'logBmsy', 'logFmsy'))
+```
+
+This reveals that for this data set the estimates of log Fmsy and log Bmsy are highly correlated (which is often the case). 
+
 # Setting initial parameter values
 
 Initial parameter values used as starting guess of the optimiser can be set using `inp$ini`. For example, to specify the initial value of `logK` set
@@ -224,8 +250,17 @@ rep <- fit.spict(inp)
 summary(rep)
 ```
 
-
 # Priors
+
+## Priors on random effects
+
+## Fixing parameters using priors
+
+## Default priors and how to disable them
+
+# Pitfalls when fixing parameters and specifying priors
+
+Particular caution is required when fixing a parameter that is highly correlated with other parameters because this will to some extent restrict the estimates of the correlated parameters. This could also be a problem when specifying priors depending on the amount of a priori information available. 
 
 # Seasonality
 
