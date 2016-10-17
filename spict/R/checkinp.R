@@ -757,6 +757,7 @@ check.inp <- function(inp){
 
     # -- COVARIATES --
     inp$logmcovflag <- FALSE
+    inp <- set.default(inp, 'logmcovspar', 0.5)
     if (!'logmcovariate' %in% names(inp)){
         inp$logmcovariate <- NA
         if (!'logmcovariatein' %in% names(inp)){
@@ -764,44 +765,27 @@ check.inp <- function(inp){
         }
     }
     if ('logmcovariate' %in% names(inp)){
-        if (all(is.finite(inp$logmcovariate))){
-            if (!'logmcovariatetime' %in% names(inp)){
-                stop('inp$logmcovariatetime unspecified but required!')
-            }
-            if ('logmcovariatetime' %in% names(inp)){
-                if (length(inp$logmcovariatetime) != length(inp$logmcovariate)){
-                    stop('length(inp$logmcovariatetime) != length(inp$logmcovariate), cannot continue!')
-                }
-            }
-            dat <- data.frame(x=inp$logmcovariatetime, y=inp$logmcovariate)
-            smoocov <- loess(y ~ x, data=dat)
-            covpred <- predict(smoocov, newdata=data.frame(x=inp$time))
-            inds <- which(is.na(unname(covpred)))
-            # Replace NAs at beginning
-            if (1 %in% inds){
-                cp <- which(diff(inds) > 1)
-                if (length(cp) > 0){
-                    ind2 <- min(cp)
-                    inds2 <- 1:inds[ind2]
-                } else {
-                    inds2 <- 1:tail(inds, 1)
-                }
-                covpred[inds2] <- rep(covpred[tail(inds2, 1)+1], length(inds2))
-            }
-            # Replace NAs at end
-            if (inp$ns %in% inds){
-                cp <- which(diff(inds) > 1)
-                if (length(cp) > 0){
-                    ind3 <- min(cp > 1) + 1
-                    inds3 <- inds[ind3]:inp$ns
-                } else {
-                    inds3 <- inds
-                }
-                covpred[inds3] <- rep(covpred[inds3[1]-1], length(inds3))
-            }
-            inp$logmcovariatein <- covpred
-            inp$logmcovflag <- TRUE
+        if (!'logmcovariatetime' %in% names(inp)){
+            stop('inp$logmcovariatetime unspecified but required!')
         }
+        if ('logmcovariatetime' %in% names(inp)){
+            if (length(inp$logmcovariatetime) != length(inp$logmcovariate)){
+                stop('length(inp$logmcovariatetime) != length(inp$logmcovariate), cannot continue!')
+            }
+        }
+        # Check for NAs and remove
+        nainds <- which(is.na(inp$logmcovariate))
+        if (length(nainds) > 0){
+            inp$logmcovariate <- inp$logmcovariate[-nainds]
+            inp$logmcovariatetime <- inp$logmcovariatetime[-nainds]
+        } 
+        dat <- data.frame(x=inp$logmcovariatetime, y=inp$logmcovariate)
+        smoocov <- smooth.spline(dat$x, dat$y, spar=inp$logmcovspar)
+        covpred <- predict(smoocov, x=inp$time)
+        #plot(covpred$x, covpred$y, typ='l')
+        #points(inp$logmcovariatetime, inp$logmcovariate)
+        inp$logmcovariatein <- covpred$y
+        inp$logmcovflag <- TRUE
     }
     
     # -- MODEL PARAMETERS --
