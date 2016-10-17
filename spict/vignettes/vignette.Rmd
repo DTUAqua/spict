@@ -4,6 +4,7 @@ author: "Martin W. Pedersen"
 date: '`16-08-2016`'
 output:
   pdf_document:
+    keep_tex: true  
     number_sections: yes
     toc: yes
   word_document:
@@ -239,6 +240,7 @@ If there is catch information available in sub-annual aggregations, e.g. quarter
   2. using coupled SDE's
 
 Further, the number of seasons in a year can be set using the `seasons` to 1, 2, or 4.
+
 # Extracting estimates
 
 To extract an estimated quantity, here `logBmsy` use
