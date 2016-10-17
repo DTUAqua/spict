@@ -31,7 +31,7 @@ Type predictlogB(const Type &B0, const Type &F, const Type &gamma, const Type &m
 template<class Type>
 Type predictm(const Type &logm0, const Type &dt, const Type &sdm2, const Type &psi)
 {
-  return exp(logm0 - psi*logm0*dt);
+  return logm0 - psi*logm0*dt;
 }
 
 /* Predict F1 */
@@ -394,6 +394,7 @@ Type objective_function<Type>::operator() ()
   //if(n < 1.0) sign = -1.0; // Following Fletcher (1978)
   vector<Type> r(nm);
   vector<Type> logr(nm);
+  vector<Type> logrre(ns);
   vector<Type> rc(nm);
   vector<Type> logrc(nm);
   vector<Type> rold(nm);
@@ -410,6 +411,9 @@ Type objective_function<Type>::operator() ()
     r(i) = m(i)/K * pow(n,(n/(n-1.0))); //abs(r(i) * (n - 1.0));
     logr(i) = log(r(i)); 
     //std::cout << " -- n: " << n << " -- gamma: " << gamma << n << " -- m(i): " << m(i)<< n << " -- K: " << K << " -- r(i): " << r(i) << " -- logr(i): " << logr(i) << std::endl;
+  }
+  for(int i=0; i<ns; i++){ 
+    logrre(i) = log(mvec(i)/K * pow(n,(n/(n-1.0))));
   }
 
   Type likval;
@@ -663,10 +667,11 @@ Type objective_function<Type>::operator() ()
     }
     // Compare initial value with stationary distribution of OU
     likval = dnorm(logmre(0), Type(0.0), sdm/sqrt(2.0*psi), 1);
+    //likval = dnorm(logmre(0), logm(0), sdm/sqrt(2.0*psi), 1);
     ans -= likval;
     for (int i=1; i < ns; i++){
       Type logmrepred = predictm(logmre(i-1), dt(i-1), sdm2, psi);
-      likval = dnorm(logmre(i), logmrepred, sqrt(dt(i-1))*sdm, 1);
+      likval = dnorm(logmre(i), logmrepred, sqrt(dt(i-1))*sdm, 1);      
       //likval = dnorm(logmre(i), logmre(i-1), sqrt(dt(i-1))*sdm, 1);
       ans -= likval;
       // DEBUGGING
@@ -998,6 +1003,8 @@ Type objective_function<Type>::operator() ()
     ADREPORT(logIpred);
     // E
     ADREPORT(logEpred);
+    // r random effect
+    ADREPORT(logrre);
   }
 
   // REPORTS (these don't require sdreport to be output)

@@ -506,7 +506,7 @@ sumspict.fixedpars <- function(rep, numdigits=8){
     }
     # Is growth time varying
     if (rep$inp$timevaryinggrowth){
-        nms <- nms[-match('logm', nms)]
+        #nms <- nms[-match('logm', nms)]
     } else {
         nms <- nms[-match(c('logsdm', 'logpsi'),  nms)]
     }
