@@ -57,6 +57,20 @@ predict.logf <- function(logF0, dt, sdf, efforttype){
 }
 
 
+#' @name predict.logmre
+#' @title Helper function for sim.spict().
+#' @param logmre0 Initial value
+#' @param dt Time step.
+#' @param sdm Standard deviation of mre process.
+#' @param psi Degree of attraction toward mean.
+#' @param logm Mean logm.
+#' @return Predicted mre at the end of dt.
+predict.logmre <- function(logmre0, dt, sdm, psi, logm){
+    #return(logmre0)
+    return(logmre0 + psi*(logm - logmre0)*dt)
+}
+
+
 #' @name sim.spict
 #' @title Simulate data from Pella-Tomlinson model
 #' @details Simulates data using either manually specified parameters values or parameters estimated by fit.spict().
@@ -305,6 +319,21 @@ sim.spict <- function(input, nobs=100){
             }
         }
         F <- exp(logFbase + season)
+        # - Growth (time-varying via RW) -
+        # Always run this even when timevaryinggrowth == FALSE to obtain same random numbers
+        #e.m <- matrix(0, inp$nstocks, nt-1)
+        #logmre <- matrix(0, inp$nstocks, nt)
+        #for (si in 1:inp$nstocks){
+        #    logmre[si, 1] <- log(mre[si, 1])
+        #    e.m[si, ] <- rnorm(nt-1, 0, sdm[si]*sqrt(dt))
+        #    for (t in 2:nt){
+        #        #logmre[si, t] <- predict.logmre(logmre[si, t-1], dt, sdm[si]) + e.m[si, t-1]
+        #        logmre[si, t] <- predict.logmre(logmre[si, t-1], dt, sdm[si], psi[si], log(m[si])) + e.m[si, t-1]
+        #    }
+        #}
+        #if (inp$timevaryinggrowth){
+        #    mre <- exp(logmre) # To be used in mres below
+        #}
         # - Biomass -
         B <- numeric(nt)
         B[1] <- B0

@@ -2366,6 +2366,12 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=TRUE, stamp=
     inp <- check.inp(inpin)
     #nseries <- inp$nindex + 1 + as.numeric(inp$nobsE > 0)
     nseries <- inp$nseries + as.numeric(inp$logmcovflag)
+    if ('true' %in% names(inp)){
+        nseries <- nseries + 2
+        if (inp$timevaryinggrowth){
+            nseries <- nseries + 1
+        }
+    }
     mfrow <- get.mfrow(nseries)
     #if (nseries %in% 1:2) mfrow <- c(2, 1)
     #if (nseries %in% 3:4) mfrow <- c(2, 2)
@@ -2381,6 +2387,21 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=TRUE, stamp=
         }
     }
     xlim <- range(inp$timeC, unlist(inp$timeI), inp$timeE)
+    # Plot simulated biomass and fishing mortality
+    if ('true' %in% names(inp)){
+        if (inp$timevaryinggrowth){
+            plot(inp$time, inp$true$mre, typ='l', xlim=xlim, xlab='Time', ylab='m',
+                 lwd=1.5, col=true.col(), main='True MSY')
+            box(lwd=1.5)
+        }
+        plot(inp$time, inp$true$F, typ='l', col=true.col(), xlim=xlim, xlab='Time',
+             ylab=expression(F[t]), lwd=1.5, main='True F')
+        box(lwd=1.5)
+        ylab <- add.catchunit(expression(B[t]), inp$catchunit)
+        plot(inp$time, inp$true$B, typ='l', xlim=xlim, xlab='Time', ylab=ylab,
+             lwd=1.5, col=true.col(), main='True biomass')
+        box(lwd=1.5)
+    }
     # Plot catch
     main <- paste0('Nobs C: ', inp$nobsC)
     ylab <- 'Catch'

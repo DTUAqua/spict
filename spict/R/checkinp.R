@@ -282,12 +282,12 @@ check.inp <- function(inp){
     # Check effort observations
     inp <- make.time(inp, 'E')
     if (!is.null(inp$timeE)){
-        if (class(inp$timeE) != 'numeric'){
+        if (class(inp$timeE) != 'numeric' & class(inp$timeE) != 'integer'){
             stop('class(inp$timeE) is not numeric!')
         }
     }
     if (!is.null(inp$obsE)){
-        if (class(inp$obsE) != 'numeric'){
+        if (class(inp$obsE) != 'numeric' & class(inp$obsE) != 'integer'){
             stop('class(inp$obsE) is not numeric!')
         }
     }
