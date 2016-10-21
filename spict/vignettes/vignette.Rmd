@@ -4,6 +4,7 @@ author: "Martin W. Pedersen"
 date: '`16-08-2016`'
 output:
   pdf_document:
+    keep_tex: true  
     number_sections: yes
     toc: yes
   word_document:
@@ -16,30 +17,39 @@ vignette: |
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = 'center')
 ```
 
-This vignette explains basic and more advanced functions of the `spict` package. When loading the package you are notified which version of the package you have installed:
+# Getting started
+This vignette explains basic and more advanced functions of the `spict` package. The package is installed from gihtub using the `devtools` package:
+```{r, eval=FALSE}
+devtools::install_github("mawp/spict/spict")
+```
+installs the stable version of `spict` and 
+```{r, eval=FALSE}
+devtools::install_github("mawp/spict/spict", ref = "dev")
+```
+installs the current development version that has new features, but it is not fully tested yet. When loading the package you are notified which version of the package you have installed:
 
 ```{r}
 library(spict)
 ```
-The printed version follows the format ver@SHA, where ver is the manually defined version number and SHA refers to a unique commit on [github](http://github.com/mawp/spict). The content of this vignette pertains to the version printed above. 
+The printed version follows the format ver\@SHA, where ver is the manually defined version number and SHA refers to a unique commit on [github](https://github.com/mawp/spict). The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/mawp/spict/tree/", packageDescription("spict")$GithubSHA1)`). 
 
 # Loading built-in example data 
 
-The package contains the catch and index data analysed in Polacheck et al. (1993). This data can be loaded and plotted by typing
+The package contains the catch and index data analysed in Polacheck et al. (1993). This data can be loaded by typing
 
 ```{r}
 data(pol) 
 ```
 
-Data on three stocks are contained in this dataset. Here focus will be on the South Atlantic albacore data. This dataset contains the following
+Data on three stocks are contained in this dataset: South Atlantic albacore, northern Namibian hake, and New Zealand rock lobster. Here focus will be on the South Atlantic albacore data. This dataset contains the following
 
 ```{r}
 pol$albacore
 ```
 
-Note that data are structure in a list containing the entries `obsC` (catch observations), `timeC` (time of catch observations), `obsI` (index observations), and `timeI` (time of index observations). If times are not specified it is assumed that the first observation is observed at time 1 and then sequentially onward with a time step of one year. It is therefore recommended to always specify observation times.
+Note that data are structured as a list containing the entries `obsC` (catch observations), `timeC` (time of catch observations), `obsI` (index observations), and `timeI` (time of index observations). If times are not specified it is assumed that the first observation is observed at time 1 and then sequentially onward with a time step of one year. It is therefore recommended to always specify observation times.
 
-# Plotting data
+# \label{pldat} Plotting data 
 
 The data can be plotted using the command
 
@@ -47,7 +57,7 @@ The data can be plotted using the command
 plotspict.data(pol$albacore)
 ```
 
-Note that the number of catch and index observations are given in the respective plot headers. Furthermore, note colour legend in the top-right corner, which explains at what time of the year an observation was observed based on the colour of the individual points. For illustrative purposes let's try shifting the data a bit
+Note that the number of catch and index observations are given in the respective plot headers. Furthermore, the color of individual points shows when the observation was made and the corresponding colors are shown in the color legend in the top left corner. For illustrative purposes let's try shifting the data a bit
 
 ```{r, fig.width=5, fig.height=5.5, out.width='0.5\\textwidth', fig.show='hold'}
 inpshift <- pol$albacore
@@ -58,7 +68,7 @@ plotspict.data(inpshift)
 
 Now the colours show that catches are observed in the spring and index in the autumn.
 
-# Advanced data plotting
+# \label{advpldat} Advanced data plotting
 
 There is also a more advanced function for plotting data, which at the same time does some basic model fitting (linear regression) and shows the results
 
@@ -66,7 +76,7 @@ There is also a more advanced function for plotting data, which at the same time
 plotspict.ci(pol$albacore)
 ```
 
-The two top plots come from `plotspict.data`, with the dashed horizontal line representing a guess of MSY. This guess comes from a linear regression between the index and the catch divided by the index (middle row, left). This regression is expected to have a negative slope. A similar plot can be made showing catch versus catch/index (middle row, right) to approximatively find the optimal effort (or effort proxy). The proportional increase in the index as a function of catch (bottom row, right) should show primarily positive increases in index at low catches and vice versa. Positive increases in index at large catches could indicate model violations. In the current plot these are not seen.
+The two top plots come from `plotspict.data`, with the dashed horizontal line representing a guess of MSY. This guess comes from a linear regression between the index and the catch divided by the index (middle row, left). This regression is expected to have a negative slope. A similar plot can be made showing catch versus catch/index (middle row, right) to approximately find the optimal effort (or effort proxy). The proportional increase in the index as a function of catch (bottom row, right) should show primarily positive increases in index at low catches and vice versa. Positive increases in index at large catches could indicate model violations. In the current plot these are not seen.
 
 # Fitting the model
 
@@ -109,9 +119,9 @@ Here the `capture.output()` is only used to provide line numbers for easier refe
 - Line 38-43: State estimates in the final year where data were available. The states of the model are biomass (`B`) and fishing mortality (`F`) with the year of the estimates appended. The year is shown as a decimal number as estimates within year are possible. Both absolute (`B` and `F`) and relative estimates (`B/Bmsy` and `F/Fmsy`) are shown. The relative estimates are calculated using the type of reference points given by `msytype` (line 38), where `s` is stochastic and `d` is deterministic. Here `msytype` is ´s´. This information can be extracted using `sumspict.states(rep)`.
 - Line 45-52: Predictions of absolute and relative biomass and fishing mortality at the time indicated by `inp$timepredi`, here 1990 (line 47-50). In addition, predicted catch at the time indicated by `inp$timepredc` (line 51). Finally, the equilibrium biomass, indicated by E(B_inf), if current conditions remain constant. There predictions or forecasts are calculated under the fishing scenario given by `inp$ffac`. See the section on forecasting for more information. The prediction summary can be extracted using `sumspict.predictions(rep)`.
 
-# Interpreting the plot of results
+# Plotting and interpreting results
 
-The results are plotted using
+`spict` comes with several plotting abilities. The basic plottin of the results is done using the generic function `plot` that produces a multipanel plot with the most important outputs.
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
 plot(rep)
@@ -128,7 +138,62 @@ Some general comments can be made regarding the style and colours of these plots
 - Predictions beyond the data range are shown using dotted blue lines.
 - Data are shown using points coloured by season. Different index series use different point characters (not shown here).
 
-The individual plots can be plotted separately. We will now look at them one at a time. The top left is the plot of absolute biomass
+The individual plots can be plotted separately using the `plotspict.*` family of plotting functions; all functions are summarised in Table 1 and their common arguments that control their look in Table 2:
+
+```{r, echo = FALSE}
+knitr::kable(data.frame(## ls(pattern = "plotspict.*", envir = asNamespace("spict")), 
+  Function = c("**Data**",
+               "`plotspict.ci`", "`plotspict.data`",
+               "**Estimates**",
+               "`plotspict.bbmsy`", "`plotspict.biomass`", "`plotspict.btrend`", "`plotspict.catch`",
+               "`plotspict.f`", "`plotspict.fb`", "`plotspict.ffmsy`", "`plotspict.priors`", "`plotspict.production`",
+               "`plotspict.season`", 
+               "**Diagnostics & extras**",
+               "`plotspict.diagnostic`", "`plotspict.osar`", "`plotspict.likprof`", "`plotspict.retro`",
+               "`plotspict.infl`", "`plotspict.inflsum`", "`plotspict.tc`"),
+  Plot = c("",
+           "Basic data plotting (see section \\ref{pldat})",
+           "Advanced data plotting (see section \\ref{advpldat})",
+           "",
+           "Relative biomass $B/B_{MSY}$ estimates with uncertainty",
+           "Absolute (and relative) biomass estimates with uncertainty",
+           "Expected biomass trend",
+           "Catch data and estimates",
+           "Absolute (and relative) fishing mortality $F$",
+           "Kobe plot of relative fishing mortality over biomass estimates",
+           "Relative fishing mortality $F/F_{MSY}$",
+           "Prior-posterior distribution of all parameters that are estimated using priors",
+           "Production over $B/K$",
+           "Seasonal pattern of fishing mortality $F$", 
+           "",
+           "OSA residual analysis to evaluate the fit",
+           "One-step-ahead residual plots, one for data time-series",
+           "Profile likelihood of one or two parameters",
+           "Retrospective analysis",
+           "Influence statistics of observations",
+           "Summary of influence of observations",
+            "Time to $B_{MSY}$ under different scenarios about $F$"
+           )),
+  caption = "Available plotting functions.")
+```
+
+
+
+Argument        Value            Result
+--------        -----            ------
+`logax`         logical           If `TRUE`, the y-axis is in log scale
+`main`          string            The title of the plot
+`ylim`          numeric vector    The limits of the y-axis
+`plot.obs`      logical           If `TRUE` (default) the observations are shown
+`qlegend`       logical           If `TRUE` (default) the color legend is shown
+`xlab`, `ylab`  string            The x and y axes labels
+`stamp`         string            Adds a "stamp" at the bottom right corner of the plotting area
+                                  Default is the version and SHA hash of `spict`.
+                                  An empty string removes the stamp.
+                              
+Table: Common arguments in the `plotspict.*` family of funtions
+
+We will now look at them one at a time. The top left is the plot of absolute biomass
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 plotspict.biomass(rep)
@@ -160,6 +225,21 @@ plotspict.catch(rep)
 ```
 
 This plot shows estimated catches (blue line) versus observed catches (points) with the estimate of $MSY$ plotted as a horizontal black line with its 95% CI given by the grey region.
+
+# Simulating data
+
+# Estimation using catch and effort data
+
+# Estimation using two or more biomass indices
+The estimation can be done using more than one biomass index, for example when scientific surveys are performed more than once every year or when there are both commercial and survey CPUE time-series available.
+
+# Estimation using quarterly data
+If there is catch information available in sub-annual aggregations, e.g. quarterly catch we can fit estimate the seasonal pattern of the fishing mortality $F$. The user can choose between the two types of seasonality that are implemented by setting the `seasontype` argument to 1 or 2:
+
+  1. using cyclic B-splines
+  2. using coupled SDE's
+
+Further, the number of seasons in a year can be set using the `seasons` to 1, 2, or 4.
 
 # Extracting estimates
 
