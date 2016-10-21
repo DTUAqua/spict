@@ -106,7 +106,8 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(omega);          // Period time of seasonal SDEs (2*pi = 1 year period)
   DATA_SCALAR(seasontype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
   DATA_SCALAR(efforttype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
-  DATA_INTEGER(timevaryinggrowth); // 
+  DATA_INTEGER(timevaryinggrowth); //  Flag indicating whether REs are used for growth
+  DATA_INTEGER(logmcovflag);   // Flag indicating whether covariate information is available
   DATA_VECTOR(ffacvec);        // Management factor each year multiply the predicted F with ffac
   DATA_VECTOR(fconvec);        // Management factor each year add this constant to the predicted F
   DATA_VECTOR(indpred);        // A vector indicating when the management factor should be applied
@@ -129,6 +130,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(priorbkfrac);    // Prior vector for B0/K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorsdb);       // Prior vector for sdb, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorisdb2gamma);// Prior vector for sdb2, inv. gamma distribution, [shape, rate, useflag]
+  DATA_VECTOR(priorsdm);       // Prior vector for sdm, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorsdf);       // Prior vector for sdf, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorisdf2gamma);// Prior vector for sdf2, inv. gamma distribution, [shape, rate, useflag]
   DATA_MATRIX(priorsdi);       // Prior vector for sdi, [log(mean), stdev in log, useflag]
@@ -139,6 +141,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(priorisdc2gamma);// Prior vector for sdc2, inv. gamma distribution, [shape, rate, useflag]
   DATA_VECTOR(prioralpha);     // Prior vector for alpha, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorbeta);      // Prior vector for beta, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorpsi);       // Prior vector for psi, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorB);         // Prior vector for B, [log(mean), stdev in log, useflag, year, ib]
   DATA_VECTOR(priorF);         // Prior vector for F, [log(mean), stdev in log, useflag, year, if]
   DATA_VECTOR(priorBBmsy);     // Prior vector for B/Bmsy, [log(mean), stdev in log, useflag, year, ib]
@@ -271,8 +274,6 @@ Type objective_function<Type>::operator() ()
   vector<Type> P(ns-1);
   vector<Type> B = exp(logB);
   //vector<Type> mvec(ns);
-  vector<Type> logBmsyvec(ns);
-  vector<Type> logFmsyvec(ns);
   vector<Type> Cpred(nobsCp);
   for(int i=0; i < nobsCp; i++){ 
     Cpred(i) = 0.0; 
@@ -282,10 +283,9 @@ Type objective_function<Type>::operator() ()
   vector<Type> logEpred(nobsE);
 
   // Reference points
-
   vector<Type> mvec(ns);
   for(int i=0; i < ns; i++){
-    mvec(i) = exp(logm(0) + logmre(i));
+    mvec(i) = exp(logm(0) + mu*logmcov(i) + logmre(i));
   }
 
   Type p = n - 1.0;
@@ -303,15 +303,8 @@ Type objective_function<Type>::operator() ()
     // Stochastic reference points (NOTE: only proved for n>1, Bordet and Rivest (2014))
     // The stepfun ensures that stochastic reference points are only used if n > 1.
     Type BmsyStochContr = (1.0 - (1.0 + Fmsyd(i)*(p-1.0)/2.0)*sdb2 / (Fmsyd(i)*pow(2.0-Fmsyd(i), 2.0)));
-    //Bmsys(i) = Bmsyd(i) * pow(BmsyStochContr, stepfun(p));
-    //Bmsys(i) = Bmsyd(i) * (1.0 - (1.0 + Fmsyd(i)*(p-1.0)/2.0)*sdb2 / (Fmsyd(i)*pow(2.0-Fmsyd(i), 2.0)));
     Type FmsyStochContr = (p*(1.0-Fmsyd(i))*sdb2) / pow(2.0-Fmsyd(i), 2.0);
-    //Fmsys(i) = Fmsyd(i) - stepfun(p) * FmsyStochContr;
-    //Fmsys(i) = Fmsyd(i) - (p*(1.0-Fmsyd(i))*sdb2) / pow(2.0-Fmsyd(i), 2.0);
     Type MSYstochContr = (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Fmsyd(i), 2.0)));
-    //MSYs(i) = MSYd(i) * pow(MSYstochContr, stepfun(p));
-    //MSYs(i) = MSYd(i) * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Fmsyd(i), 2.0)));
-
 
     //flag = asDouble(n) > 1 & asDouble(BmsyStochContr) > 0;
     if(flag){
@@ -343,6 +336,10 @@ Type objective_function<Type>::operator() ()
   vector<Type> logBmsy(nm);
   vector<Type> logFmsy(nm);
   vector<Type> logMSY(nm);
+  // Reference point vectors (when time varying growth)
+  vector<Type> logFmsyvec(ns);
+  vector<Type> logBmsyvec(ns);
+  vector<Type> logMSYvec(ns);
 
   vector<Type> Bmsy2(nm);
   if(flag){
@@ -359,10 +356,12 @@ Type objective_function<Type>::operator() ()
     logBmsy = logBmsys;
     logFmsy = logFmsys;
     logMSY = logMSYs;
-    for(int i=0; i<ns; i++){
+    for(int i=0; i < ns; i++){
       ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
+      Type Fmsydveci = mvec(i) / Bmsyd(ind);
+      logFmsyvec(i) = log(Fmsydveci - (p*(1.0-Fmsydveci)*sdb2) / pow(2.0-Fmsydveci, 2.0));
       logBmsyvec(i) = logBmsys(ind);
-      logFmsyvec(i) = logFmsys(ind);
+      logMSYvec(i) = log(mvec(i) * (1.0 - ((p+1.0)/2.0*sdb2) / (1.0 - pow(1.0-Fmsydveci, 2.0))));
     }
   } else {
     // Use deterministic reference points
@@ -374,8 +373,9 @@ Type objective_function<Type>::operator() ()
     logMSY = logMSYd;
     for(int i=0; i<ns; i++){
       ind = CppAD::Integer(ir(i)-1); // minus 1 because R starts at 1 and c++ at 0
+      logFmsyvec(i) = log(mvec(i) / Bmsyd(ind));
       logBmsyvec(i) = logBmsyd(ind);
-      logFmsyvec(i) = logFmsyd(ind);
+      logMSYvec(i) = log(mvec(i));
     }
   }
 
@@ -513,15 +513,33 @@ Type objective_function<Type>::operator() ()
     //ans-= dgamma(1.0/exp(2.0*logsdi), priorisdi2gamma(0), 1.0/priorisdi2gamma(1), 1); 
   }
   // Log-normal priors
-  if(priorn(2) == 1) ans-= dnorm(logn, priorn(0), priorn(1), 1); // Prior for logn
-  if(priorr(2) == 1 & nm == 1) ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
-  //if(priorrp(2) == 1 & nm == 1) ans-= dnorm(logrp(0), priorrp(0), priorrp(1), 1); // Prior for logrp
-  if(priorK(2) == 1) ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
-  if(priorm(2) == 1 & nm == 1) ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
-  if(priorq(2) == 1 & nq == 1) ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq - log-normal
-  if(priorqf(2) == 1) ans-= dnorm(logqf, priorqf(0), priorqf(1), 1); // Prior for logqf
-  if(priorbkfrac(2) == 1) ans-= dnorm(logB(0) - logK, priorbkfrac(0), priorbkfrac(1), 1); // Prior for logbkfrac
-  if(priorsdb(2) == 1) ans-= dnorm(logsdb, priorsdb(0), priorsdb(1), 1); // Prior for logsdb
+  if(priorn(2) == 1){
+    ans-= dnorm(logn, priorn(0), priorn(1), 1); // Prior for logn
+  }
+  if(priorr(2) == 1 & nm == 1){
+    ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
+  }
+  if(priorK(2) == 1){
+    ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
+  }
+  if(priorm(2) == 1 & nm == 1){
+    ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
+  }
+  if(priorq(2) == 1 & nq == 1){
+    ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq - log-normal
+  }
+  if(priorqf(2) == 1){
+    ans-= dnorm(logqf, priorqf(0), priorqf(1), 1); // Prior for logqf
+  }
+  if(priorbkfrac(2) == 1){
+    ans-= dnorm(logB(0) - logK, priorbkfrac(0), priorbkfrac(1), 1); // Prior for logbkfrac
+  }
+  if(priorsdb(2) == 1){ 
+    ans-= dnorm(logsdb, priorsdb(0), priorsdb(1), 1); // Prior for logsdb
+  }
+  if(priorsdm(2) == 1){ 
+    ans-= dnorm(logsdm, priorsdm(0), priorsdm(1), 1); // Prior for logsdm
+  }
   if(priorsdf(2) == 1){
     for(int i=0; i<nsdf; i++){
       ans-= dnorm(logsdf(i), priorsdf(0), priorsdf(1), 1); // Prior for logsdf
@@ -532,10 +550,23 @@ Type objective_function<Type>::operator() ()
       ans-= dnorm(logsdi(i), priorsdi(i, 0), priorsdi(i, 1), 1);  // Prior for logsdi
     }
   }
-  if(priorsde(2) == 1) ans-= dnorm(logsde, priorsde(0), priorsde(1), 1); // Prior for logsde
-  if(priorsdc(2) == 1) ans-= dnorm(logsdc, priorsdc(0), priorsdc(1), 1); // Prior for logsdc
-  if(prioralpha(2) == 1) for(int i=0; i<nsdi; i++){ ans-= dnorm(logalpha(i), prioralpha(0), prioralpha(1), 1); } // Prior for logalpha
-  if(priorbeta(2) == 1) ans-= dnorm(logbeta, priorbeta(0), priorbeta(1), 1); // Prior for logbeta
+  if(priorsde(2) == 1){
+    ans-= dnorm(logsde, priorsde(0), priorsde(1), 1); // Prior for logsde
+  }
+  if(priorsdc(2) == 1){
+    ans-= dnorm(logsdc, priorsdc(0), priorsdc(1), 1); // Prior for logsdc
+  }
+  if(prioralpha(2) == 1){
+    for(int i=0; i<nsdi; i++){ 
+      ans-= dnorm(logalpha(i), prioralpha(0), prioralpha(1), 1);  // Prior for logalpha
+    }
+  }
+  if(priorbeta(2) == 1){
+    ans-= dnorm(logbeta, priorbeta(0), priorbeta(1), 1); // Prior for logbeta
+  }
+  if(priorpsi(2) == 1){ 
+    ans-= dnorm(logpsi, priorpsi(0), priorpsi(1), 1); // Prior for logsdm
+  }
   if(priorB(2) == 1){
     ind = CppAD::Integer(priorB(4)-1);
     ans-= dnorm(logB(ind), priorB(0), priorB(1), 1); // Prior for logB
@@ -1003,8 +1034,12 @@ Type objective_function<Type>::operator() ()
     ADREPORT(logIpred);
     // E
     ADREPORT(logEpred);
-    // r random effect
-    ADREPORT(logrre);
+    // Time varying growth
+    if (timevaryinggrowth == 1 | logmcovflag == 1){
+      ADREPORT(logrre); // r random effect
+      ADREPORT(logFmsyvec);
+      ADREPORT(logMSYvec);
+    }
   }
 
   // REPORTS (these don't require sdreport to be output)

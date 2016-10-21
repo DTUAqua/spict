@@ -199,7 +199,7 @@ It is however easier to interpret the correlation rather than covariance. The co
 cov2cor(rep$cov.fixed)
 ```
 
-For this data most parameters are well separated, i.e. relatively low correlation, perhaps with the exception of `logm` and `logn`, which have a correlation of -0.9. Note that `logr` is absent from the covariance matrix. This is because the model is parameterised in terms of `logm`, `logK`, and `logn` from which `logr` can be derived. The estimate of `logr` is reported using TMB's `sdreport()` function.
+For this data most parameters are well separated, i.e. relatively low correlation, perhaps with the exception of `logm` and `logn`, which have a correlation of $-0.9$. Note that `logr` is absent from the covariance matrix. This is because the model is parameterised in terms of `logm`, `logK`, and `logn` from which `logr` can be derived. The estimate of `logr` is reported using TMB's `sdreport()` function and can be extracted using `get.par()`.
 
 The covariance between random effects (biomass and fishing mortality) is not reported automatically, but can be obtained by setting `inp$getJointPrecision` to `TRUE` (this entails longer computation time and memory requirement).
 
@@ -209,7 +209,7 @@ The covariance between sdported values (i.e. the values reported in `rep$value`)
 cov2cor(get.cov(rep, 'logBmsy', 'logFmsy'))
 ```
 
-This reveals that for this data set the estimates of log Fmsy and log Bmsy are highly correlated (which is often the case). 
+This reveals that for this data set the estimates of log Fmsy and log Bmsy are highly correlated. This is often the case and the reason why the model is reparameterised. 
 
 # Setting initial parameter values
 
@@ -340,6 +340,7 @@ plotspict.fb(rep, man.legend=FALSE, stamp='')
 
 ## Temporal discretisation and time step (dteuler)
 
+## Stochastic and deterministic reference points
 
 ## More Examples
 

@@ -758,12 +758,6 @@ check.inp <- function(inp){
     # -- COVARIATES --
     inp$logmcovflag <- FALSE
     inp <- set.default(inp, 'logmcovspar', 0.5)
-    if (!'logmcovariate' %in% names(inp)){
-        inp$logmcovariate <- NA
-        if (!'logmcovariatein' %in% names(inp)){
-            inp$logmcovariatein <- rep(0, inp$ns)
-        }
-    }
     if ('logmcovariate' %in% names(inp)){
         if (!'logmcovariatetime' %in% names(inp)){
             stop('inp$logmcovariatetime unspecified but required!')
@@ -787,6 +781,10 @@ check.inp <- function(inp){
         inp$logmcovariatein <- covpred$y
         inp$logmcovflag <- TRUE
     }
+    # Fill in dummy defaults if unspecified
+    inp <- set.default(inp,'logmcovariate', rep(0, inp$nobsC))
+    inp <- set.default(inp, 'logmcovariatetime', 1:inp$nobsC)
+    inp <- set.default(inp, 'logmcovariatein', rep(0, inp$ns))
     
     # -- MODEL PARAMETERS --
     # Default values
@@ -1071,7 +1069,8 @@ check.inp <- function(inp){
     possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq',
                         'iqgamma', 'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy',
                         'logFFmsy', 'logsdb', 'isdb2gamma', 'logsdf', 'isdf2gamma',
-                        'logsdi', 'isdi2gamma', 'logsde', 'isde2gamma', 'logsdc', 'isdc2gamma')
+                        'logsdi', 'isdi2gamma', 'logsde', 'isde2gamma', 'logsdc',
+                        'isdc2gamma', 'logsdm', 'logpsi')
     repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
     matrixpriors <- c('logsdi')
     npossiblepriors <- length(possiblepriors)
@@ -1085,10 +1084,19 @@ check.inp <- function(inp){
     lognsd <- wide
     logalphasd <- wide
     logbetasd <- wide
-    if (!'logn' %in% names(inp$priors)) inp$priors$logn <- c(logn, lognsd)
-    if (!'logalpha' %in% names(inp$priors)) inp$priors$logalpha <- c(logalpha, logalphasd) 
-    if (!'logbeta' %in% names(inp$priors)) inp$priors$logbeta <- c(logbeta, logbetasd)
-
+    if (!'logn' %in% names(inp$priors)){
+        inp$priors$logn <- c(logn, lognsd)
+    }
+    if (!'logalpha' %in% names(inp$priors)){
+        inp$priors$logalpha <- c(logalpha, logalphasd)
+    }
+    if (!'logbeta' %in% names(inp$priors)){
+        inp$priors$logbeta <- c(logbeta, logbetasd)
+    }
+    if (inp$timevaryinggrowth){
+        inp$priors <- set.default(inp$priors, 'logsdm', c(log(0.2), wide))
+        inp$priors <- set.default(inp$priors, 'logpsi', c(log(0.01), wide))
+    }
     # Remaining priors, set to something, but will not be used
     if ("priors" %in% names(inp)){
         # Remove wrong priors names
