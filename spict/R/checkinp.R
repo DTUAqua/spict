@@ -782,8 +782,8 @@ check.inp <- function(inp){
         inp$logmcovflag <- TRUE
     }
     # Fill in dummy defaults if unspecified
-    inp <- set.default(inp,'logmcovariate', rep(0, inp$nobsC))
-    inp <- set.default(inp, 'logmcovariatetime', 1:inp$nobsC)
+    #inp <- set.default(inp,'logmcovariate', rep(0, inp$nobsC))
+    #inp <- set.default(inp, 'logmcovariatetime', 1:inp$nobsC)
     inp <- set.default(inp, 'logmcovariatein', rep(0, inp$ns))
     
     # -- MODEL PARAMETERS --
