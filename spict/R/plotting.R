@@ -2273,7 +2273,6 @@ plotspict.ci <- function(inp, stamp=get.version()){
 #' @export
 plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
     inp <- rep$inp
-    npriors <- length(inp$priors)
     useflags <- inp$priorsuseflags
     #useflags <- numeric(npriors)
     #for (i in 1:npriors){
@@ -2287,7 +2286,7 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
     #        useflags[i] <- 0
     #    }
     #}
-    inds <- which(useflags==1)
+    inds <- which(useflags == 1)
     ninds <- length(inds)
     ninds <- min(ninds, do.plot)
     nused <- sum(useflags)
@@ -2307,14 +2306,14 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
             par <- get.par(nm, rep, exp=FALSE)
             repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
             if (nm %in% repriors){
-                par <- par[priorvec[5], ]
+                par <- par[priorvec[5], , drop=FALSE]
                 nmpl <- paste0(nmpl, fd(priorvec[4]))
                 if (nm == 'logB'){
                     nmpl <- add.catchunit(nmpl, inp$catchunit)
                 }
             }
             for (rr in 1:nrow(par)){
-                nmpl <- sub('log', '', nm)
+                #nmpl <- sub('log', '', nm)
                 if (nrow(par) > 1){
                     nmpl <- paste0(nmpl, rr)
                 }

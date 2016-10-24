@@ -82,9 +82,9 @@ summary.spictcls <- function(object, ...){
         repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
         if(any(repriors %in% usepriors)){
             inds <- na.omit(match(repriors, usepriors))
-            #inds <- inds[!is.na(inds)]
             for(i in 1:length(inds)){
                 usepriors[inds[i]] <- paste0(usepriors[inds[i]], fd(priors[[inds[i]]][4]))
+                priors[inds[i]] <- priors[inds[i]][1:3] # Remove additional columns
             }
         }
         # Matrix priors
