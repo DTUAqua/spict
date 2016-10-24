@@ -2159,6 +2159,7 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
                     nmpl <- add.catchunit(nmpl, inp$catchunit)
                 }
             }
+            par <- matrix(par, ncol = 5)
             for (rr in 1:nrow(par)){
                 nmpl <- sub('log', '', nm)
                 if (nrow(par) > 1){
