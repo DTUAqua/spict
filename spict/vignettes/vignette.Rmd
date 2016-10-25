@@ -224,6 +224,8 @@ plotspict.catch(res)
 
 This plot shows estimated catches (blue line) versus observed catches (points) with the estimate of $MSY$ plotted as a horizontal black line with its 95% CI given by the grey region.
 
+# Using effort data instead of commercial CPUE
+
 # Simulating data
 The package has built-in functionality for simulating data. 
 
@@ -247,17 +249,57 @@ sim <- sim.spict(inp, nobs=50)
 plotspict.data(sim)
 ```
 
-Here the required parameters are specified (the rest use default values), and the number of observations is specified.
+Here the required parameters are specified (the rest use default values), and the number of observations is specified as an argument to `sim.spict()`.
 
-A more interesting example is
+A more customised example including model fitting is
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
-inp <- list(ini=list(logK=log(100), logm=log(10), logq=log(1)))
-sim <- sim.spict(inp, nobs=50)
-plotspict.data(sim)
+set.seed(31415926)
+inp <- list(ini=list(logK=log(100), logm=log(10), logq=log(1),
+                     logbkfrac=log(1), logF0=log(0.3), logsdc=log(0.1),
+                     logsdf=log(0.3)))
+sim <- sim.spict(inp, nobs=30)
+res <- fit.spict(sim)
+sumspict.parest(res)
+par(mfrow=c(2, 2))
+plotspict.biomass(res, stamp='')
+plotspict.f(res, qlegend=FALSE, stamp='')
+plotspict.catch(res, qlegend=FALSE, stamp='')
+plotspict.fb(res, stamp='')
 ```
 
+Here the ratio between biomass in the initial year relative to `K` is set using `logbkfrac`, the initial fishing mortality is set using `logF0`, process noise of `F` is set using `logsdf`, and finally observation noise on catches is specified using `logsdc`. 
+
+When printing the summary of the parameter estimates the true values are included as well as a check whether the true value was inside the 95% CIs. Similarly, the true biomass, fishing mortality, and reference points are included in the results plot using a yellow/orange colour.
+
 ## Seasonal data
+
+It is possible to simulate seasonal data. Additional variables must be specified in the input list that define the type of seasonality to be used. Spline based seasonality is shown first (`inp$seasontype = 1`). This is the default and therefore need not be explicitly specified. It is required that number of seasons is specified using `nseasons` (typically 4), the order of the spline must be specified using `splineorder` (typically 3), time vectors for catch and index containing subannual time points must be specified, and finally the spline parameters (`logphi`) must be set. With four seasons `logphi` must be a vector of length 3, where each value in the vector gives the log fishing intensity relative to level in season four, which is `log(1)`. An example of simulating seasonal data using a spline is
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
+set.seed(1234)
+inp <- list()
+inp$dteuler <- 1/16
+inp$nseasons <- 4
+dt <- 1/inp$nseasons
+inp$splineorder <- 3
+nyears <- 30
+inp$timeC <- seq(0, nyears-dt, by=dt)
+inp$obsC <- rep(1, length(inp$timeC))
+inp$timeI <- seq(0, nyears-dt, by=dt)
+inp$obsI <- rep(1, length(inp$timeC))
+inp$ini <- list(logK=log(100), logm=log(20), logq=log(1),
+                logbkfrac=log(1), logsdf=log(0.4), logF0=log(0.5))
+inp$ini$logphi <- log(c(0.05, 0.1, 1.8))
+sim <- sim.spict(inp)
+res <- fit.spict(sim)
+plotspict.data(sim)
+plotspict.biomass(res)
+plotspict.f(res, qlegend=FALSE)
+plotspict.season(res)
+```
+
+The data plot shows clear seasonality in the catches. In the results plots, the model is able to estimate the seasonal variation in fishing mortality as seen both in the plot of `F` and in the plot of the estimated spline, where blue is the estimated spline, orange is the true spline, and green is the spline if time were truly continuous (it is discretised with the steps show by the blue line).
 
 ## Checking estimation performance of the model
 
