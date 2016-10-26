@@ -20,21 +20,21 @@
 #' @param input Either an inp list passing check.inp(), or a rep list where rep is the output of running fit.spict().
 #' @param ntrials The number of trials with different starting values to run.
 #' @param verbose If true write information to screen.
+#' @param numdigits Number of digits in reported results.
 #' @return List containing results of sensitivity check and associated initial values.
 #' @export
-check.ini <- function(input, ntrials=10, verbose=TRUE){
+check.ini <- function(input, ntrials=10, verbose=TRUE, numdigits=2){
+    nd <- numdigits
     if ('par.fixed' %in% names(input)){
         rep <- input
         inp <- rep$inp
     } else {
         if ('obsC' %in% names(input)){
             inp <- check.inp(input)
+            rep <- fit.spict(inp)
         } else {
             stop('Invalid input! use either an inp list or a fit.spict() result.')
         }
-    }
-    if (!exists('rep')){
-        rep <- fit.spict(inp)
     }
     calc.dist <- function(vec1, vec2){
         return(sqrt(sum((as.numeric(vec1) - as.numeric(vec2))^2)))
@@ -48,8 +48,8 @@ check.ini <- function(input, ntrials=10, verbose=TRUE){
         colnames(resmat) <- names(resbasevec)
         inimat <- matrix(nrow=ntrials, ncol=length(nms))
         colnames(inimat) <- nms
-        perchange <- inimat
-        rownames(perchange) <- paste('Trial', 1:ntrials)
+        propchng <- inimat
+        rownames(propchng) <- paste('Trial', 1:ntrials)
         resdist <- numeric(ntrials)
         inidist <- numeric(ntrials)
         if(verbose){
@@ -70,7 +70,7 @@ check.ini <- function(input, ntrials=10, verbose=TRUE){
                 randval <- runif(1, min=inp$ranges[[nm]][1], max=inp$ranges[[nm]][2])
                 inpsens$ini[[nm]] <- randval
                 inimat[i, j] <- randval
-                perchange[i, j] <- randval - inp$ini[[nm]]
+                propchng[i, j] <- (randval - inp$ini[[nm]]) / inp$ini[[nm]] 
                 j <- j + 1
             }
             inidist[i] <- calc.dist(inimat[i, ], inibasevec)
@@ -101,6 +101,7 @@ check.ini <- function(input, ntrials=10, verbose=TRUE){
         inimat <- rbind(c(0, inibasevec), inimat)
         rownames(inimat) <- c('Basevec', paste('Trial', 1:ntrials))
         colnames(inimat)[1] <- 'Distance'
-        return(list(perchange=perchange, inimat=inimat, resmat=resmat))
+        return(list(propchng=round(propchng, nd), inimat=round(inimat, nd),
+                    resmat=round(resmat, nd)))
     }
 }
