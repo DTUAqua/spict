@@ -4,7 +4,7 @@
 \alias{txt.stamp}
 \title{Add spict version to plot}
 \usage{
-txt.stamp(string = get.version(), cex = 0.5)
+txt.stamp(string = get.version(), cex = 0.5, do.flag = NULL)
 }
 \arguments{
 \item{string}{Character string to stamp.}

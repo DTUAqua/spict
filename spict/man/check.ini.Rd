@@ -4,7 +4,7 @@
 \alias{check.ini}
 \title{Check sensitivity of fit to initial parameter values}
 \usage{
-check.ini(input, ntrials = 10, verbose = TRUE)
+check.ini(input, ntrials = 10, verbose = TRUE, numdigits = 2)
 }
 \arguments{
 \item{input}{Either an inp list passing check.inp(), or a rep list where rep is the output of running fit.spict().}
@@ -12,6 +12,8 @@ check.ini(input, ntrials = 10, verbose = TRUE)
 \item{ntrials}{The number of trials with different starting values to run.}
 
 \item{verbose}{If true write information to screen.}
+
+\item{numdigits}{Number of digits in reported results.}
 }
 \value{
 List containing results of sensitivity check and associated initial values.
