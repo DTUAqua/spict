@@ -405,7 +405,20 @@ The model estimates seperate observation noises and finds that the first index (
 
 # Scaling the uncertainty of individual data points
 
-It is not always appropriate to assume that the observation noise of a data series is constant in time. Knowledge that certain data points are more uncertain than others can be implemented using ...
+It is not always appropriate to assume that the observation noise of a data series is constant in time. Knowledge that certain data points are more uncertain than others can be implemented using `stdevfacC`, `stdevfacI`, and `stdevfacE`, which are vectors containing factors that are multiplied onto the standard deviation of the data points of the corresponding observation vectors. An example where the first 10 years of the biomass index are considered uncertain relative to the remaining time series and therefore are scaled by a factor 5.
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=6.5, fig.show='hold'}
+inp <- pol$albacore
+res1 <- fit.spict(inp)
+inp$stdevfacC <- rep(1, length(inp$obsC))
+inp$stdevfacC[1:10] <- 5
+res2 <- fit.spict(inp)
+par(mfrow=c(2, 1))
+plotspict.catch(res1, main='No scaling')
+plotspict.catch(res2, main='With scaling', qlegend=FALSE)
+```
+
+From the plot it is noted that the scaling factor widens the 95% CIs of the initial ten years of catch data, while narrowing the 95% CIs of the remaining years.
 
 # Estimation using quarterly data
 Catch information available in sub-annual aggregations, e.g. quarterly catch, can be used to estimate the seasonal pattern of the fishing mortality. The user can choose between two types of seasonality by setting `seasontype` to 1 or 2:
@@ -475,9 +488,18 @@ This can also be done posterior to fitting the model by printing `res$inp$ini$lo
 
 ## Checking robustness to initial parameter values
 
+It is prudent to check that the same parameter estimates are obtained if using different initial values. If the optimum of the objective function is poorly defined, i.e. possibly containing multiple optima, it is possible that different parameter estimates will be returned depending on the initial values. To check whether this is the case run
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+set.seed(123)
+check.ini(pol$albacore, ntrials=2)
+```
+
+The argument `ntrials` set the number of different initial values to test for. To keep it simple only two are generated here, however for real data cases more should be used, say 30. If such a test return varying estimates further investigation is required, i.e. inspection of objective function values, differences in results and residual diagnostics etc.
+
 # Phases and how to fix parameters
 
-The `spict`-package has the ability to estimate parameters in phases. Users familiar with AD model builder will know that this means that some parameters are held constant in phase 1, some are then released and estimated in phase 2, more are released in phase 3 etc. until all parameters are estimated. Per default all parameters are estimated in phase 1. As an example the standard deviation on the biomass process, `logsdb`, is estimated in phase 2:
+The package has the ability to estimate parameters in phases. Users familiar with AD model builder will know that this means that some parameters are held constant in phase 1, some are then released and estimated in phase 2, more are released in phase 3 etc. until all parameters are estimated. Per default all parameters are estimated in phase 1. As an example the standard deviation on the biomass process, `logsdb`, is estimated in phase 2:
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 inp <- pol$albacore
