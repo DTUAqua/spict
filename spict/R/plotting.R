@@ -65,12 +65,19 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
 #' @param cex Stamp cex.
 #' @return Nothing
 #' @export
-txt.stamp <- function(string = get.version(), cex=0.5) {
+txt.stamp <- function(string = get.version(), cex=0.5, do.flag=NULL) {
     #if (string == 'undef'){
     #    string <- get.version()
     #}
+    if (is.null(do.flag)){
+        if (mean(par()$mfrow) > 1){
+            do.flag <- FALSE
+        } else {
+            do.flag <- TRUE
+        }
+    }
     if (!is.null(string)){
-        if (string != '' & !is.na(string)){
+        if (string != '' & !is.na(string) & do.flag){
             opar <- par(new = "TRUE", plt = c(0, 1, 0, 1), mfrow=c(1, 1), xpd=FALSE)
             on.exit(par(opar))
             plot(1, typ='n', xaxt='n', yaxt='n', xlab='', ylab='', bty='n') # Empty plot 
@@ -763,7 +770,6 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
         opar <- par(mfrow=mfrow, mar=mar)
     }
     on.exit(par(opar))
-    
     # Plot data
     if (plot.data){
         plot.col(inp$timeC, log(inp$obsC), ylab='log catch data', main='Catch', xlab='Time',
@@ -780,7 +786,6 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
             }
         }
     }
-   
     # OSAR plots
     osar.acf.plot <- function(res, lag.max, pval, ylab){
         inds <- which(acf.signf(res, lag.max=lag.max))
@@ -844,7 +849,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
             }
         }
     }
-    txt.stamp(stamp)
+    txt.stamp(stamp, do.flag=TRUE)
 }
 
 
@@ -1930,7 +1935,7 @@ plot.spictcls <- function(x, stamp=get.version(), ...){
             stop('Nothing to plot!')
         }
     }
-    txt.stamp(stamp)
+    txt.stamp(stamp, do.flag=TRUE)
 }
 
 
@@ -2115,7 +2120,7 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 #' @return Nothing
 #' @export
 plotspict.retro <- function(rep, stamp=get.version()){
-    opar <- par(mfrow=c(2, 2), oma=c(1, 0.2, 0, 2), mar=c(4,4,2,1))
+    opar <- par(mfrow=c(2, 2), mar=c(5, 4.2, 2, 2))
     on.exit(par(opar))
     nretroyear <- length(rep$retro)
     bs <- list()
@@ -2138,7 +2143,6 @@ plotspict.retro <- function(rep, stamp=get.version()){
     for (i in 1:nretroyear){
         time[[i]] <- rep$retro[[i]]$inp$time[rep$retro[[i]]$inp$indest]
     }
-
     # Do plots
     par(mfrow=c(2, 2))
     plot(time[[1]], bs[[1]], typ='l', ylim=range(unlist(bs)), xlab='Time',
@@ -2165,7 +2169,7 @@ plotspict.retro <- function(rep, stamp=get.version()){
         lines(time[[i]], ffs[[i]], col=i, lwd=1.5)
     }
     box(lwd=1.5)
-    txt.stamp(stamp)
+    txt.stamp(stamp, do.flag=TRUE)
 }
 
 
@@ -2300,7 +2304,6 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
                     gpnm <- paste0('log', substr(nm, 2, 4))
                     par <- get.par(gpnm, rep, exp=FALSE)
                 }
-                
             }
             nmpl <- sub('log', '', nm)
             par <- get.par(nm, rep, exp=FALSE)
@@ -2347,7 +2350,7 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
                 }
             }
         }
-        txt.stamp(stamp)
+        txt.stamp(stamp, do.flag=TRUE)
     }
 }
 
@@ -2372,10 +2375,6 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=TRUE, stamp=
         }
     }
     mfrow <- get.mfrow(nseries)
-    #if (nseries %in% 1:2) mfrow <- c(2, 1)
-    #if (nseries %in% 3:4) mfrow <- c(2, 2)
-    #if (nseries %in% 5:6) mfrow <- c(2, 3)
-    #if (nseries %in% 7:9) mfrow <- c(3, 3)
     if (dev.cur() == 1){
         opar <- par(mfrow=mfrow)
         on.exit(par(opar))
@@ -2452,7 +2451,7 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=TRUE, stamp=
         plot.col(inp$logmcovariatetime, inp$logmcovariate, do.line=FALSE, cex=0.6, add=TRUE, add.legend=FALSE)
         box(lwd=1.5)
     }
-    txt.stamp(stamp)
+    txt.stamp(stamp, do.flag=TRUE)
 }
 
 
