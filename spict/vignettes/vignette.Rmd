@@ -9,6 +9,7 @@ output:
     toc: yes
   word_document:
     toc: yes
+bibliography: bibliography.bib  
 vignette: |
   %\VignetteIndexEntry{SPiCT} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
 ---
@@ -35,7 +36,7 @@ The printed version follows the format ver\@SHA, where ver is the manually defin
 
 # Loading built-in example data 
 
-The package contains the catch and index data analysed in Polacheck et al. (1993). This data can be loaded by typing
+The package contains the catch and index data analysed in @polacheck1993. This data can be loaded by typing
 
 ```{r}
 data(pol) 
@@ -47,7 +48,16 @@ Data on three stocks are contained in this dataset: South Atlantic albacore, nor
 pol$albacore
 ```
 
-Note that data are structured as a list containing the entries `obsC` (catch observations), `timeC` (time of catch observations), `obsI` (index observations), and `timeI` (time of index observations). If times are not specified it is assumed that the first observation is observed at time 1 and then sequentially onward with a time step of one year. It is therefore recommended to always specify observation times.
+Note that data are structured as a list containing the entries `obsC` (catch observations), `timeC` (time of catch observations), `obsI` (index observations), and `timeI` (time of index observations). If times are not specified it is assumed that the first observation is observed at time 1 and then sequentially onward with a time step of one year. It is therefore recommended to always specify observation times. 
+
+Each catch observation relates to a time interval. This is specified using `dtc`. If `dtc` is left unspecified (as is the case here) each catch observation is assumed to cover the time interval until the next catch observation. For this example with annual catches `dtc` therefore is
+
+```{r}
+inp <- check.inp(pol$albacore)
+inp$dtc
+```
+
+It is important to specify `dtc` is the default assumption is not fulfilled.
 
 # Plotting data 
 \label{pldat} 
@@ -228,7 +238,7 @@ This plot shows estimated catches (blue line) versus observed catches (points) w
 
 # Residuals and diagnostics
 
-Before proceeding with the results for an actual assessment it is very important that the model residuals are checked and possible model deficiencies identified. Residuals can be calculated using `calc.osa.resid()`. OSA stands for one-step-ahead, which are the proper residuals for state-space models. More information about OSA residuals is contained in Pedersen \& Berg (2016). To calculate and plot residuals and diagnostics do
+Before proceeding with the results for an actual assessment it is very important that the model residuals are checked and possible model deficiencies identified. Residuals can be calculated using `calc.osa.resid()`. OSA stands for one-step-ahead, which are the proper residuals for state-space models. More information about OSA residuals is contained in @pedersen2016. To calculate and plot residuals and diagnostics do
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=7, fig.show='hold'}
 res <- calc.osa.resid(res)
@@ -242,7 +252,7 @@ The first column of the plot contains information related to catch data and the 
   3. Empirical autocorrelation of the residuals. Two tests for significant autocorrelation is performed. A Ljung-Box simultaneous test of multiple lags (here 4) with p-value shown in the header, and tests for individual lags shown by dashed horizontal lines in the plot. Here no violation is identified.
   4. Tests for normality of the residuals both as a QQ-plot and with a Shapiro test with p-value shown in the plot header.
 
-This data did not have any significant violations of the assumptions, which increases confidence in the results. For a discussion of possible violations and remedies the reader is referred to Pedersen \& Berg (2016).
+This data did not have any significant violations of the assumptions, which increases confidence in the results. For a discussion of possible violations and remedies the reader is referred to @pedersen2016.
 
 # Extracting estimates
 
@@ -308,7 +318,7 @@ plotspict.retro(rep)
 
 It is possible to use effort data directly in the model instead of calculating commercial CPUE and inputting this as an index. It is beyond the scope of this vignette to discuss all problems associated with indices based on commercial CPUEs, however it is intuitively clear that using the same information twice (catch as catch and catch in catch/effort) induces a correlation, which the model does not account for. These problems are easily avoided by putting catch and effort seperately
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=5, fig.height=4.5, fig.show='hold'}
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
 inpeff <- list(timeC=pol$albacore$timeC, obsC=pol$albacore$obsC,
                timeE=pol$albacore$timeC, obsE=pol$albacore$obsC/pol$albacore$obsI)
 repeff <- fit.spict(inpeff)
@@ -426,7 +436,7 @@ Catch information available in sub-annual aggregations, e.g. quarterly catch, ca
   1. using cyclic B-splines.
   2. using coupled stochastic differential equations (SDEs).
   
-Technical description of the season types is found in Pedersen \& Berg (2016).
+Technical description of the season types is found in @pedersen2016.
 
 Here is shown an example of a spline-based model fitted to quarterly data simulated in section \ref{sec:seas}
 
@@ -492,10 +502,10 @@ It is prudent to check that the same parameter estimates are obtained if using d
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 set.seed(123)
-check.ini(pol$albacore, ntrials=2)
+check.ini(pol$albacore, ntrials=4)
 ```
 
-The argument `ntrials` set the number of different initial values to test for. To keep it simple only two are generated here, however for real data cases more should be used, say 30. If such a test return varying estimates further investigation is required, i.e. inspection of objective function values, differences in results and residual diagnostics etc.
+The argument `ntrials` set the number of different initial values to test for. To keep it simple only few trials are generated here, however for real data cases more should be used, say 30. The `propchng` contains the proportional change of the new randomly generated initial value relative to the base initial value, `inimat` contains the new randomly generated initial values, and `resmat` contains the resulting parameter estimates and a distance from the estimated parameter vector to the base parameter vector. The distance should preferably be close to zero. If that is not the case further investigation is required, i.e. inspection of objective function values, differences in results and residual diagnostics etc. should be performed. The example shown here looks fine in that all converged runs return the same parameter estimates. One trial did not converge, however non-converging trials are to some extent expected as the initial parameters are generated independently from a wide uniform distribution and may thus by chance be very inappropriately chosen.
 
 # Phases and how to fix parameters
 
@@ -519,27 +529,99 @@ summary(res)
 
 # Priors
 
-## Priors on random effects
+SPiCT is a generalisation of previous surplus production models in the sense that stochastic noise is included in both observation and state processes of both fishing and biomass. Estimating all model parameters is only possible if data contain sufficient information, which may not be the case for short time series or time series with limited contrast. The basic data requirements of the model are limited to only a catch and in biomass index time series. More information may be available, which can be used to improve the model fit. This is particularly advantageous if the model is not able to converge with only catch and index time series. Additional information can then be included in the fit via prior distributions for model parameters. 
 
-## Fixing parameters using priors
+The model parameters to which priors can be applied can be listed using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+list.possible.priors()
+```
+
+A priors is set using 
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+inp <- pol$albacore
+inp$priors$logK <- c(log(300), 2)
+fit.spict(inp)
+```
+
+This imposes a Gaussian prior on `logK` with mean $\log(300)$ and standard deviation 2. From the summary it is evident that three other priors were imposed (`logn`, `logalpha`, `logbeta`). The reasoning behind these is described next.
 
 ## Default priors and how to disable them
 
-# Pitfalls when fixing parameters and specifying priors
+Quantities that are traditionally difficult to estimate are `logn`, and the noise ratios `logalpha` and `logbeta` where `logalpha = logsdi - logsdb` and `logbeta = logsdc - logsdf` respectively. Therefore, to generally stabilise estimation default semi-informative priors are imposed on these quantities. If informative data are available these priors should have limited effect on results, if informative data are not available estimates will reduce to the priors.
+
+If informative data are available and the default priors therefore are unwanted they can be disabled using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+inp <- pol$albacore
+inp$priors$logn <- c(1, 1, 0)
+inp$priors$logalpha <- c(1, 1, 0)
+inp$priors$logbeta <- c(1, 1, 0)
+fit.spict(inp)
+```
+
+The model converges, however the estimates of `alpha`, `beta` and `n` are very uncertain indicating that limited information is available about these parameters.
+
+## Priors on random effects
+
+Priors can be applied to random effects of the model, i.e. `logB`, `logF`, `logBBmsy`, (which is $\log(B/Bmsy)$) `logFFmsy` (which is $\log(F/Fmsy)$). An additional argument is required to specify these priors
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=3.5, fig.show='hold'}
+inp <- pol$albacore
+inp$priors$logB <- c(log(80), 0.1, 1, 1980)
+par(mfrow=c(1, 2), mar=c(5, 4.1, 3, 4))
+plotspict.biomass(fit.spict(pol$albacore), ylim=c(0, 500))
+plotspict.biomass(fit.spict(inp), qlegend=FALSE, ylim=c(0, 500))
+```
+
+This imposes a Gaussian prior on `logB` with mean $\log(80)$, standard deviation 0.1 (very informative), the third entry in the vector indicates that the prior is used (1 means use, 0 means do not use), the fourth entry indicates the year to which the prior should be applied, here 1980.
+
+It is clear from the plots that the prior influences the results significantly. Furthermore, it is not only the biomass in the year 1980 that is affected, but the information is propagated forward and backward because all estimates are correlated. In reality such an informative prior is rarely available, however it may be possible to derive information about the absolute biomass from acoustic survey and swept area estimates. It is, however, critical that the standard deviation used reflects the quality of the information.
+
+## Fixing parameters using priors
+
+Model parameters can be fixed using `phases` as described previously. This technique can, however, only be used to fix model parameters and therefore not derived quantities such as `logalpha`, `logr` (which is derived from `logK`, `logm` and `logn`). Fixing a parameter can be regarded as imposing an highly informative prior to the parameter
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=3.5, fig.show='hold'}
+inp <- pol$albacore
+inp$priors$logn <- c(log(2), 1e-3)
+inp$priors$logalpha <- c(log(1), 1e-3)
+inp$priors$logbeta <- c(log(1), 1e-3)
+fit.spict(inp)
+```
+
+The summary indicates that the priors are so informative that the quantities are essentially fixed. It is also noted that the estimates of these quantities are very close to the mean of their respective priors.
+
+## Pitfalls when fixing parameters and specifying priors
 
 Particular caution is required when fixing a parameter that is highly correlated with other parameters because this will to some extent restrict the estimates of the correlated parameters. This could also be a problem when specifying priors depending on the amount of a priori information available. 
 
-# Robust estimation (reducing influence of outliers)
+# Robust estimation (reducing influence of extreme observations)
 
-Estimation becomes less stable
+The presence of extreme observations may inflate estimates of observation noise and increase the general uncertainty of the fit. To reduce this effect it is possible to apply a robust estimation scheme, which is less sensitive to extreme observations. An example with an extreme observation in the index series is
 
-Perhaps fix some parameters
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=3.5, fig.show='hold'}
+inp <- pol$albacore
+inp$obsC[10] <- 3*inp$obsC[10]
+res1 <- fit.spict(inp)
+inp$robflagc <- 1
+res2 <- fit.spict(inp)
+sumspict.parest(res2)
+par(mfrow=c(1, 2))
+plotspict.catch(res1, main='Regular fit')
+plotspict.catch(res2, qlegend=FALSE, main='Robust fit')
+```
 
-# Forecasting
+It is evident from the plot that the presence of the extreme catch observation generally inflates the uncertainty of the estimated catches, while the robust fit is less sensitive. Robust estimation can be applied to index and effort data using `robflagi` and `robflage` respectively.
+
+Robust estimation is implemented using a mixture of light-tailed and a heavy-tailed Gaussian distribution as described in @pedersen2016. This entails two additional parameters (`pp` and `robfac`) that require estimation. This may not always be possible given the increased model complexity. In such cases these parameters should be fixed by setting their phases to `-1`.
+
+# Forecasting and management scenarios
 
 To make a catch forecast a forecast interval needs to be specified. This is done by specifying the start of the interval (`inp$timepredc`) and the length of the interval in years (`inp$dtpredc`). In addition to the forecast interval a fishing scenario needs to be specified. This is done by specifying a factor (`inp$ffac`) to multiply the current fishing mortality by (i.e. the F at the last time point of the time period where data are available) and the time that management should start (`inp$manstart`). The time point of the reported forecast of biomass and fishing mortality can be controlled by setting `inp$timepredi`. Producing short-term forecasts entails minimal additional computing time.
 
-Forecasts are produced as part of the usual model fitting. To illustrate the procedure, a short example using the South Atlantic albacore dataset of Polacheck et al. (1993) containing catch and commercial CPUE data in the interval 1967 to 1989 is presented. The code to obtain the forecasted annual catch in the interval starting 1991 under a management scenario where the fishing pressure is reduced by 25% starting in 1991, and a forecasted index in 1992 is:
+Forecasts are produced as part of the usual model fitting. To illustrate the procedure, a short example using the South Atlantic albacore dataset of @polacheck1993 containing catch and commercial CPUE data in the interval 1967 to 1989 is presented. The code to obtain the forecasted annual catch in the interval starting 1991 under a management scenario where the fishing pressure is reduced by 25% starting in 1991, and a forecasted index in 1992 is:
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 library(spict)
@@ -571,7 +653,9 @@ plotspict.fb(res, man.legend=FALSE)
 
 Note in the plot that the decrease in fishing pressure results in a constant biomass as opposed to the expected decrease if fishing effort had remained constant.
 
-SPiCT has a function that runs several predefined management scenarios, which can be presented in a forecast table. To perform the calculations required to produce the forecast table run:
+## Management scenarios
+
+The package has a function that runs several predefined management scenarios, which can be presented in a forecast table. To perform the calculations required to produce the forecast table run:
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 res <- manage(res)
@@ -599,21 +683,32 @@ plotspict.catch(res, qlegend=FALSE)
 plotspict.fb(res, man.legend=FALSE)
 ```
 
-# Model settings
+# Model settings and options
 
-## Temporal discretisation and time step (dteuler)
+## `catchunit` - Define unit of catch observations
 
-## Stochastic and deterministic reference points
+This will print the unit of the catches on relevant plots.
 
-## More Examples
+Example: `inp$catchunit <- "'000 t"`. 
 
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
+## `dteuler` - Temporal discretisation and time step
 
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
-```
+To solve the continuous-time system an Euler discretisation scheme is used. This requires a time step to be specified (`dteuler`). The smaller the time step the more accurate the approximation to the continuous-time solution, however with the cost of increased memory requirements and computing time. The default value of `dteuler` is $1/16$, which seems sufficiently fine for most cases, and perhaps too fine for some cases. When fitting quarterly data and species with fast growth it is important to have a small time step. The influence of `dteuler` can be checked by using different values and comparing resulting model estimates. If `dteuler <- 1` the model essentially becomes a discrete-time model with one Euler step per year.
 
-Also a quote using `>`:
+## `msytype` - Stochastic and deterministic reference points
 
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
+As default the stochastic reference points are reported and used for calculation of relative levels of biomass and fishing mortality. It is, however, possible to use the deterministic reference points by setting `inp$msytype <- 'd'`.
+
+## `do.sd.report` - Perform SD report calculations
+
+The sdreport step calculates the uncertainty of all quantities that are reported in addition to the model parameters. For long time series and with small `dteuler` this step may have high memory requirements and a substantial computing time. Thus, if one is only interested in the point estimates of the model parameters it is advisable to set `do.sd.report <- 0` to increase speed.
+
+## `reportall` - Report all derived quantities
+
+If uncertainties of some quantities (such as reference points) are required, but uncertainty on state variables (biomass and fishing mortality) are not needed, then `reportall <- 0` can be used to increase speed.
+
+## `optim.method` - Report all derived quantities
+
+Parameter estimation is per default performed using R's `nlminb()` optimiser. Alternatively it is possible to use `optim` by setting `inp$optim.method <- 'optim'`.
+
+# References
