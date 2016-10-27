@@ -314,6 +314,22 @@ rep <- retro(rep)
 plotspict.retro(rep)
 ```
 
+# Estimation using two or more biomass indices
+The estimation can be done using more than one biomass index, for example when scientific surveys are performed more than once every year or when there are both commercial and survey CPUE time-series available. The following example emulates a situation where a long but noisy first quarter index series and a shorter and less noisy second quarter index series are available with different catchabilities
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
+inp <- list(timeC=pol$albacore$timeC, obsC=pol$albacore$obsC)
+inp$timeI <- list(pol$albacore$timeI, pol$albacore$timeI[10:23]+0.25)
+inp$obsI <- list()
+inp$obsI[[1]] <- pol$albacore$obsI * exp(rnorm(23, sd=0.1)) # Index 1
+inp$obsI[[2]] <- 10*pol$albacore$obsI[10:23] # Index 2
+res <- fit.spict(inp)
+sumspict.parest(res)
+plotspict.biomass(res)
+```
+
+The model estimates seperate observation noises and finds that the first index (`sdi1`) is more noisy than the second (`sdi2`). It is furthermore estimated that the catchabilities are different by a factor 10 (`q1` versus `q2`). The biomass plot shows both indices with circles indicating the first index and squares indicating the second index (the two series can also be distringuished by their colours).
+
 # Using effort data instead of commercial CPUE
 
 It is possible to use effort data directly in the model instead of calculating commercial CPUE and inputting this as an index. It is beyond the scope of this vignette to discuss all problems associated with indices based on commercial CPUEs, however it is intuitively clear that using the same information twice (catch as catch and catch in catch/effort) induces a correlation, which the model does not account for. These problems are easily avoided by putting catch and effort seperately
@@ -333,6 +349,23 @@ plotspict.fb(repeff)
 Here the model runs without and index of biomass and instead uses effort as an index of fishing mortality Note that index observations are missing from the biomass plot, but effort observations are present in the plot of fishing mortality. Note also that `q` is missing from the summary of parameter estimates and instead `qf` is  present, which is the commercial catchability. 
 
 Overall for this data set the results in terms of stock status etc. do not change much, and this will probably often be the case, however using effort data directly instead of commercial CPUE is cleaner and avoids inputting the same data twice.
+
+# Scaling the uncertainty of individual data points
+
+It is not always appropriate to assume that the observation noise of a data series is constant in time. Knowledge that certain data points are more uncertain than others can be implemented using `stdevfacC`, `stdevfacI`, and `stdevfacE`, which are vectors containing factors that are multiplied onto the standard deviation of the data points of the corresponding observation vectors. An example where the first 10 years of the biomass index are considered uncertain relative to the remaining time series and therefore are scaled by a factor 5.
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=6.5, fig.show='hold'}
+inp <- pol$albacore
+res1 <- fit.spict(inp)
+inp$stdevfacC <- rep(1, length(inp$obsC))
+inp$stdevfacC[1:10] <- 5
+res2 <- fit.spict(inp)
+par(mfrow=c(2, 1))
+plotspict.catch(res1, main='No scaling')
+plotspict.catch(res2, main='With scaling', qlegend=FALSE)
+```
+
+From the plot it is noted that the scaling factor widens the 95% CIs of the initial ten years of catch data, while narrowing the 95% CIs of the remaining years.
 
 # Simulating data
 The package has built-in functionality for simulating data, which is useful for testing. 
@@ -397,38 +430,18 @@ seasonsim <- sim.spict(inp)
 plotspict.data(seasonsim)
 ```
 
-The data plot shows clear seasonality in the catches. 
+The data plot shows clear seasonality in the catches. To simulate seasonal data using the coupled SDE approach `seasontype` must be set to 2 and `nseasons` to 4. 
 
-# Estimation using two or more biomass indices
-The estimation can be done using more than one biomass index, for example when scientific surveys are performed more than once every year or when there are both commercial and survey CPUE time-series available. The following example emulates a situation where a long but noisy first quarter index series and a shorter and less noisy second quarter index series are available with different catchabilities
-
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
-inp <- list(timeC=pol$albacore$timeC, obsC=pol$albacore$obsC)
-inp$timeI <- list(pol$albacore$timeI, pol$albacore$timeI[10:23]+0.25)
-inp$obsI <- list(pol$albacore$obsI * exp(rnorm(23, sd=0.1)), 10*pol$albacore$obsI[10:23])
-res <- fit.spict(inp)
-sumspict.parest(res)
-plotspict.biomass(res)
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=4.5, fig.show='hold'}
+set.seed(432)
+inp <- list(nseasons=4, seasontype=2)
+inp$timeC <- seq(0, 30-1/inp$nseasons, by=1/inp$nseasons)
+inp$timeI <- seq(0, 30-1/inp$nseasons, by=1/inp$nseasons)
+inp$ini <- list(logK=log(100), logm=log(20), logq=log(1),
+                logbkfrac=log(1), logsdf=log(0.4), logF0=log(0.5))
+seasonsim2 <- sim.spict(inp)
+plotspict.data(seasonsim2)
 ```
-
-The model estimates seperate observation noises and finds that the first index (`sdi1`) is more noisy than the second (`sdi2`. It is furthermore estimated that the catchabilities are different by a factor 10 (`q1` versus `q2`). The biomass plot shows both indices with circles indicating the first index and squares indicating the second index (the two series can also be distringuished by their colours).
-
-# Scaling the uncertainty of individual data points
-
-It is not always appropriate to assume that the observation noise of a data series is constant in time. Knowledge that certain data points are more uncertain than others can be implemented using `stdevfacC`, `stdevfacI`, and `stdevfacE`, which are vectors containing factors that are multiplied onto the standard deviation of the data points of the corresponding observation vectors. An example where the first 10 years of the biomass index are considered uncertain relative to the remaining time series and therefore are scaled by a factor 5.
-
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=6.5, fig.show='hold'}
-inp <- pol$albacore
-res1 <- fit.spict(inp)
-inp$stdevfacC <- rep(1, length(inp$obsC))
-inp$stdevfacC[1:10] <- 5
-res2 <- fit.spict(inp)
-par(mfrow=c(2, 1))
-plotspict.catch(res1, main='No scaling')
-plotspict.catch(res2, main='With scaling', qlegend=FALSE)
-```
-
-From the plot it is noted that the scaling factor widens the 95% CIs of the initial ten years of catch data, while narrowing the 95% CIs of the remaining years.
 
 # Estimation using quarterly data
 Catch information available in sub-annual aggregations, e.g. quarterly catch, can be used to estimate the seasonal pattern of the fishing mortality. The user can choose between two types of seasonality by setting `seasontype` to 1 or 2:
@@ -449,16 +462,9 @@ plotspict.season(seasonres)
 
 In the results plots, the model is able to estimate the seasonal variation in fishing mortality as seen both in the plot of `F` and in the plot of the estimated spline, where blue is the estimated spline, orange is the true spline, and green is the spline if time were truly continuous (it is discretised with the Euler steps show by the blue line).
 
-To simulate seasonal data using the coupled SDE approach `seasontype` must be set to 2 and `nseasons` to 4. 
+To fit the coupled SDE model run
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=4.5, fig.show='hold'}
-set.seed(432)
-inp <- list(nseasons=4, seasontype=2)
-inp$timeC <- seq(0, 30-1/inp$nseasons, by=1/inp$nseasons)
-inp$timeI <- seq(0, 30-1/inp$nseasons, by=1/inp$nseasons)
-inp$ini <- list(logK=log(100), logm=log(20), logq=log(1),
-                logbkfrac=log(1), logsdf=log(0.4), logF0=log(0.5))
-seasonsim2 <- sim.spict(inp)
 seasonres2 <- fit.spict(seasonsim2)
 sumspict.parest(seasonres2)
 plotspict.biomass(seasonres2)
