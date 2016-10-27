@@ -32,36 +32,40 @@ latex.figure <- function(figfile, reportfile, caption=''){
 #' @details This function probably requires that you are running linux and that you have latex functions installed (pdflatex).
 #' @param rep A valid result from fit.spict with OSA residuals.
 #' @param reporttitle This character string will be printed as the first line of the report.
-#' @param reportfile The generated tex code will be stored in this file.
-#' @param summaryoutfile Output of the summary will be stored in this file as plain text.
+#' @param reportfile A \link{connection}, or a character string naming the file ('.tex' file) to print
+#'    to. If not a connection, \code{make.report} prints to the working directory (default).
 #' @param keep.figurefiles If TRUE generated figure files will not be cleaned up.
 #' @param keep.txtfiles If TRUE generated txt files will not be cleaned up.
 #' @param keep.texfiles If TRUE generated tex file will not be cleaned up.
 #' @return Nothing.
 #' @export
 make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryoutfile='summaryout.txt', keep.figurefiles=FALSE, keep.txtfiles=FALSE, keep.texfiles=FALSE){
+    if(basename(reportfile) == "") reportfile <- 'report.tex'
+    if(file.access(dirname(reportfile), mode=1) != 0)  reportfile <- file.path(getwd(), reportfile)
+    
     latexstart <- '\\documentclass[12pt]{article}\n\\usepackage{graphicx}\n\\usepackage{verbatim}\n\\begin{document}\n'
     latexend <- '\\end{document}\n'
-    cat(reporttitle, '- report compiled', as.character(Sys.time()), '\n', file=summaryoutfile)
 
     # -- Write tex file -- #
     cat(latexstart, file=reportfile)
 
     # Results plot
-    figfile1 <- 'res.pdf'
+    figfile1 <- file.path(dirname(reportfile),'res.pdf')
     pdf(figfile1, width=8, height=9)
     plot(rep)
     dev.off()
     latex.figure(figfile1, reportfile, caption='Results.')
 
     # Summary
+    summaryoutfile <- file.path(dirname(reportfile),'summaryout.txt')    
+    cat(reporttitle, '- report compiled', as.character(Sys.time()), '\n', file=summaryoutfile)
     summaryout <- capture.output(summary(rep), file=summaryoutfile, append=TRUE)
     cat('\\scriptsize\n', file=reportfile, append=TRUE)
     cat(paste0('\\verbatiminput{', summaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
 
     # Management summary
     if ('man' %in% names(rep)){
-        mansummaryoutfile <- 'mansummaryout.txt'
+        mansummaryoutfile <- file.path(dirname(reportfile),'mansummaryout.txt')
         cat('Management results\n\n', file=mansummaryoutfile)
         mansummaryout <- capture.output(mansummary(rep), file=mansummaryoutfile, append=TRUE)
         cat('\\scriptsize\n', file=reportfile, append=TRUE)
@@ -70,7 +74,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     
     # Retrospective analysis plot
     if ('retro' %in% names(rep)){
-        figfile1b <- 'retro.pdf'
+        figfile1b <- file.path(dirname(reportfile),'retro.pdf')
         pdf(figfile1b)
         plotspict.retro(rep)
         dev.off()
@@ -79,7 +83,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     
     # Diagnostic plot
     if ('osar' %in% names(rep)){
-        figfile2 <- 'diag.pdf'
+        figfile2 <- file.path(dirname(reportfile),'diag.pdf')
         pdf(figfile2, width=7, height=9)
         plotspict.diagnostic(rep)
         dev.off()
@@ -87,7 +91,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     }    
 
     # Data plot
-    figfile3 <- 'data.pdf'
+    figfile3 <- file.path(dirname(reportfile),'data.pdf')
     pdf(figfile3, width=7, height=9)
     plotspict.data(rep$inp)
     dev.off()
@@ -97,7 +101,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
 
     # -- Compile tex file -- #
     #latexcompile <- system(paste('pdflatex -output-directory=../res/', reportfile), intern=TRUE)
-    latexcompile <- system(paste('pdflatex', reportfile), intern=TRUE)
+    latexcompile <- system(paste(paste0('pdflatex -output-directory=',file.path(dirname(reportfile))), file.path(reportfile)), intern=TRUE)
 
     # -- Remove temporary files -- #
     #file.remove(paste0('../res/', substr(reportfile, 1, nchar(reportfile)-4), '.log'))
