@@ -11,6 +11,10 @@ An R-package for fittng surplus production models in continuous-time to fisherie
 
 4. The model is formulated in continuous-time and can therefore incorporate arbitrarily sampled data.
 
+## Help files
+
+There is currently no manual or vignette for the package. A reasonable documentation is included in the package as help texts associated with each function (some may not be fully up-to-date). These can be accessed in the usual R manner by writing e.g. ```?check.inp```. A pdf compiling help texts for all functions can be downloaded [`here`](http://mwpedersen.dk/spicthelp.pdf). As a new user a good start is to read ```?check.inp``` and ```?fit.spict```.
+
 ## Package requirements
 
 The package requires [`TMB`](http://www.tmb-project.org) to be installed. TMB is now a part of CRAN and can therefore be installed using the install.packages() command. For more information about TMB click [`here`](https://github.com/kaskr/adcomp).
