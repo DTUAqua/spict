@@ -560,7 +560,9 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
             } else {
                 nindexseq <- 1:inp$nindex
                 obsI <- list()
-                for (i in nindexseq) obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]/Bmsy[1,2]
+                for (i in nindexseq){
+                    obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]/Bmsy[1,2]
+                }
             }
             fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
             BBfininds <- which(is.finite(BB[, 1]) & is.finite(BB[, 3]))
@@ -1112,21 +1114,23 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             Ff <- FF[, 2]
             cuf <- FF[, 3]
         }
-        flag <- length(cu)==0 | all(!is.finite(cu))
+        flag <- length(cu) == 0 | all(!is.finite(cu))
         if (flag){
+            # CIs don't exist or are not finite
             fininds <- which(is.finite(Ff))
-            if (length(ylim) != 2){
-                ylim <- range(c(lineat, Ff[fininds]), na.rm=TRUE)
-            }
+            ys <- c(lineat, Ff[fininds])
         } else {
             fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
-            if (length(ylim) != 2){
-                ylim <- range(c(lineat, cl[fininds], cu[fininds]), na.rm=TRUE)
-            }
+            ys <- c(lineat, cl[fininds], cu[fininds])
         }
-        ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
-        ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat)) # Ensure that lineat is included in ylim
-        #if (main==-1) main <- 'Relative fishing mortality'
+        if (length(ylim) != 2){
+            ylim <- range(ys, na.rm=TRUE)
+            # Limit upper limit
+            ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) 
+            # Ensure that lineat is included in ylim
+            ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat)) 
+        }
+
         plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]),
              xlab=xlab, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log)
         cicol2 <- rgb(0, 0, 1, 0.1)
