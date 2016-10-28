@@ -13,9 +13,8 @@ make.report(rep, reporttitle = "", reportfile = "report.tex",
 
 \item{reporttitle}{This character string will be printed as the first line of the report.}
 
-\item{reportfile}{The generated tex code will be stored in this file.}
-
-\item{summaryoutfile}{Output of the summary will be stored in this file as plain text.}
+\item{reportfile}{A \link{connection}, or a character string naming the file ('.tex' file) to print
+to. If not a connection, \code{make.report} prints to the working directory (default).}
 
 \item{keep.figurefiles}{If TRUE generated figure files will not be cleaned up.}
 
