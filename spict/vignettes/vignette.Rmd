@@ -537,25 +537,9 @@ summary(res)
 
 SPiCT is a generalisation of previous surplus production models in the sense that stochastic noise is included in both observation and state processes of both fishing and biomass. Estimating all model parameters is only possible if data contain sufficient information, which may not be the case for short time series or time series with limited contrast. The basic data requirements of the model are limited to only a catch and in biomass index time series. More information may be available, which can be used to improve the model fit. This is particularly advantageous if the model is not able to converge with only catch and index time series. Additional information can then be included in the fit via prior distributions for model parameters. 
 
-The model parameters to which priors can be applied can be listed using
-
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
-list.possible.priors()
-```
-
-A priors is set using 
-
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
-inp <- pol$albacore
-inp$priors$logK <- c(log(300), 2)
-fit.spict(inp)
-```
-
-This imposes a Gaussian prior on `logK` with mean $\log(300)$ and standard deviation 2. From the summary it is evident that three other priors were imposed (`logn`, `logalpha`, `logbeta`). The reasoning behind these is described next.
-
 ## Default priors and how to disable them
 
-Quantities that are traditionally difficult to estimate are `logn`, and the noise ratios `logalpha` and `logbeta` where `logalpha = logsdi - logsdb` and `logbeta = logsdc - logsdf` respectively. Therefore, to generally stabilise estimation default semi-informative priors are imposed on these quantities. If informative data are available these priors should have limited effect on results, if informative data are not available estimates will reduce to the priors.
+Quantities that are traditionally difficult to estimate are `logn`, and the noise ratios `logalpha` and `logbeta` where `logalpha = logsdi - logsdb` and `logbeta = logsdc - logsdf` respectively. Therefore, to generally stabilise estimation default semi-informative priors are imposed on these quantities that inhibit them from taking extreme and unrealistic values. If informative data are available these priors should have limited effect on results, if informative data are not available estimates will reduce to the priors.
 
 If informative data are available and the default priors therefore are unwanted they can be disabled using
 
@@ -567,7 +551,25 @@ inp$priors$logbeta <- c(1, 1, 0)
 fit.spict(inp)
 ```
 
-The model converges, however the estimates of `alpha`, `beta` and `n` are very uncertain indicating that limited information is available about these parameters.
+The model is able to converge without priors, however the estimates of `alpha`, `beta` and `n` are very uncertain indicating that limited information is available about these parameters.
+
+## Setting a prior
+
+The model parameters to which priors can be applied can be listed using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+list.possible.priors()
+```
+
+A prior is set using 
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+inp <- pol$albacore
+inp$priors$logK <- c(log(300), 2, 1)
+fit.spict(inp)
+```
+
+This imposes a Gaussian prior on `logK` with mean $\log(300)$ and standard deviation 2. The third entry indicates that the prior is used (1 means use, 0 means do not use). From the summary it is evident that the default priors were also imposed.
 
 ## Priors on random effects
 
@@ -581,7 +583,7 @@ plotspict.biomass(fit.spict(pol$albacore), ylim=c(0, 500))
 plotspict.biomass(fit.spict(inp), qlegend=FALSE, ylim=c(0, 500))
 ```
 
-This imposes a Gaussian prior on `logB` with mean $\log(80)$, standard deviation 0.1 (very informative), the third entry in the vector indicates that the prior is used (1 means use, 0 means do not use), the fourth entry indicates the year to which the prior should be applied, here 1980.
+This imposes a Gaussian prior on `logB` with mean $\log(80)$, standard deviation 0.1 (very informative), the third entry in the vector indicates that the prior is used, the fourth entry indicates the year to which the prior should be applied, here 1980.
 
 It is clear from the plots that the prior influences the results significantly. Furthermore, it is not only the biomass in the year 1980 that is affected, but the information is propagated forward and backward because all estimates are correlated. In reality such an informative prior is rarely available, however it may be possible to derive information about the absolute biomass from acoustic survey and swept area estimates. It is, however, critical that the standard deviation used reflects the quality of the information.
 
