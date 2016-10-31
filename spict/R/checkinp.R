@@ -311,7 +311,7 @@ check.inp <- function(inp){
         inp$stdevfacE <- rep(1, length(inp$obsE))
     }
     base.checks(inp$obsE, inp$timeE, inp$stdevfacE, 'E')
-    inp <- remove.neg(inp, 'E')
+    inp <- remove.neg(inp, 'E', extrakeys='dte')
     inp$nobsE <- length(inp$obsE)
     if (inp$nobsE > 0){
         inp$obsidE <- (1:inp$nobsE) + inp$nobsC + sum(inp$nobsI)
