@@ -427,7 +427,8 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         for (i in nindexseq){
             obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]
         }
-        fininds <- which(Best[, 5] < 5) # Use CV to check for large uncertainties
+        cvCheck <- ifelse(any(Best[,5] <= 5),5,min(Best[,5]))
+        fininds <- which(Best[, 5] <= cvCheck) # Use CV to check for large uncertainties
         BBfininds <- unname(which(is.finite(BB[, 1]) & is.finite(BB[, 3]))) # Use CV to check for large uncertainties
         if (!ylimflag){
             if (length(ylim)!=2){
