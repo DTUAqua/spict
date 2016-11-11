@@ -31,6 +31,7 @@ Type predictlogB(const Type &B0, const Type &F, const Type &gamma, const Type &m
 template<class Type>
 Type predictm(const Type &logm0, const Type &dt, const Type &sdm2, const Type &psi)
 {
+  //return logm0 + psi*(logmc - logm0)*dt;
   return logm0 - psi*logm0*dt;
 }
 
@@ -282,10 +283,17 @@ Type objective_function<Type>::operator() ()
   vector<Type> logCpred(nobsCp);
   vector<Type> logEpred(nobsE);
 
+  // Covariate for m
+  vector<Type> logmc(ns);
+  for(int i=0; i < ns; i++){
+    logmc(i) = logm(0) + mu*logmcov(i);
+  }
+
   // Reference points
   vector<Type> mvec(ns);
   for(int i=0; i < ns; i++){
-    mvec(i) = exp(logm(0) + mu*logmcov(i) + logmre(i));
+    //mvec(i) = exp(logm(0) + mu*logmcov(i) + logmre(i));
+    mvec(i) = exp(logmc(i) + logmre(i));
   }
 
   Type p = n - 1.0;
