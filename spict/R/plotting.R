@@ -63,6 +63,7 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
 #' @title Add spict version to plot
 #' @param string Character string to stamp.
 #' @param cex Stamp cex.
+#' @param do.flag If NULL stamp will be added if not in a multi plot, i.e. mean(par()$mfrow) > 1
 #' @return Nothing
 #' @export
 txt.stamp <- function(string = get.version(), cex=0.5, do.flag=NULL) {
@@ -1354,7 +1355,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
             Bll <- tail(Best[inp$indpred,2]/bscal, 1)
             Fll <- tail(Fest[inp$indpred,2]/fscal, 1)
             lines(c(Bll, EBinf), rep(Fll, 2), lwd=1.5, lty=3, col='blue')
-            points(EBinf, Fll, pch=24, bg='gold')
+            points(EBinf, Fll, pch=23, bg='gold')
         }
         nr <- length(inp$ini$logr)
         if (nr > 1){
@@ -1370,12 +1371,12 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
                         legend('topright', 'True', pch=25, pt.bg=true.col(), bg='white')
                     } else {
                         legend('topright', c(expression('E(B'[infinity]*')'), 'True'),
-                               pch=c(24, 25), pt.bg=c('gold', true.col()), bg='white')
+                               pch=c(23, 25), pt.bg=c('gold', true.col()), bg='white')
                     }
                 } else {
                     if (!min(inp$dtc) < 1){
                         legend('topright', expression('E(B'[infinity]*')'),
-                               pch=24, pt.bg='gold', bg='white')
+                               pch=23, pt.bg='gold', bg='white')
                     }
                 }
             }
