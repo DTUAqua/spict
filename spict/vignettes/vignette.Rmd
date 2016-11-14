@@ -15,7 +15,7 @@ vignette: |
 ---
 
 ```{r, echo = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = 'center', cache=TRUE)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = 'center', cache=FALSE)
 ```
 
 # Basic functionality 
@@ -236,6 +236,16 @@ plotspict.catch(res)
 ```
 
 This plot shows estimated catches (blue line) versus observed catches (points) with the estimate of $MSY$ plotted as a horizontal black line with its 95% CI given by the grey region.
+
+A phase plot (or kobe plot) of fishing mortality versus biomass is plotted using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+plotspict.fb(res, ylim=c(0, 1.3), xlim=c(0, 300))
+```
+
+The plot shows the development of biomass and fishing mortality since the initial year (here 1967) indicated with a circle until the terminal year (here 1990) indicated with a square. The yellow diamond indicates the mean biomass over a long period if the current (1990) fishing pressure remains. This point can be interpreted as the fished equilibrium and is denoted $E(B_\infty)$ in the legend as a statistical way of expressing the expectation of the biomass as $t \rightarrow \infty$. As the current fishing mortality is close to $F_{MSY}$ the expected long term biomass is close to $B_{MSY}$. 
+
+A vertical dashed red line at $B_t = 0$ indicates the biomass level below which the stock has crashed. The grey shaded banana-shaped area indicates the 95\% confidence region of the pair $F_{MSY}$, $B_{MSY}$. This region is important to visualise jointly as the two reference points are highly (negatively) correlated.
 
 ## Residuals and diagnostics
 
