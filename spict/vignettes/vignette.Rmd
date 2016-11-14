@@ -59,7 +59,7 @@ inp <- check.inp(pol$albacore)
 inp$dtc
 ```
 
-It is important to specify `dtc` is the default assumption is not fulfilled.
+It is important to specify `dtc` if the default assumption is not fulfilled.
 
 ## Plotting data 
 \label{pldat} 
@@ -70,7 +70,7 @@ The data can be plotted using the command
 plotspict.data(pol$albacore)
 ```
 
-Note that the number of catch and index observations are given in the respective plot headers. Furthermore, the color of individual points shows when the observation was made and the corresponding colors are shown in the color legend in the top left corner. For illustrative purposes let's try shifting the data a bit
+Note that the number of catch and index observations are given in the respective plot headers. Furthermore, the color of individual points shows when the observation was made and the corresponding colors are shown in the color legend in the top right corner. For illustrative purposes let's try shifting the data a bit
 
 ```{r, fig.width=5, fig.height=5.5, out.width='0.5\\textwidth', fig.show='hold'}
 inpshift <- pol$albacore
@@ -79,7 +79,7 @@ inpshift$timeI <- inpshift$timeI + 0.8
 plotspict.data(inpshift)
 ```
 
-Now the colours show that catches are observed in the spring and index in the autumn.
+Now the colours show that catches are observed in spring and index in autumn.
 
 ## Advanced data plotting
 \label{advpldat}
@@ -133,7 +133,7 @@ Here the `capture.output()` is only used to provide line numbers for easier refe
 
 ## Interpreting plots of results
 
-`spict` comes with several plotting abilities. The basic plottin of the results is done using the generic function `plot` that produces a multipanel plot with the most important outputs.
+`spict` comes with several plotting abilities. The basic plotting of the results is done using the generic function `plot` that produces a multipanel plot with the most important outputs.
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
 plot(res)
@@ -148,7 +148,7 @@ Some general comments can be made regarding the style and colours of these plots
 - 95% CIs of reference points are shown using grey shaded regions.
 - The end of the data range is shown using a vertical grey line.
 - Predictions beyond the data range are shown using dotted blue lines.
-- Data are shown using points coloured by season. Different index series use different point characters (not shown here).
+- Data are shown using points colored by season. Different index series use different point characters (not shown here).
 
 The individual plots can be plotted separately using the `plotspict.*` family of plotting functions; all functions are summarised in Table 1 and their common arguments that control their look in Table 2:
 
@@ -277,7 +277,7 @@ For a standard fit (not using robust observation error, seasonality etc.), the q
 sort(unique(c(names(res$value), names(res$par.fixed), names(res$par.random))))
 ```
 
-These should be relatively self-explanatory when knowing that reference points ending with `s` are stochastic and those ending with `d` are deterministic, quantities ending with `p` are predictions and quantities ending with `l` are estimates in the final year. If a quantity is available both on natural and log scale and it is preferred to transform the quantity from log as most quantities are estimated on the log scale.
+These should be relatively self-explanatory when knowing that reference points ending with `s` are stochastic and those ending with `d` are deterministic, quantities ending with `p` are predictions and quantities ending with `l` are estimates in the final year. If a quantity is available both on natural and log scale, it is preferred to transform the quantity from log as most quantities are estimated on the log scale.
 
 ### Extracting correlation between parameter estimates
 
@@ -316,6 +316,7 @@ rep <- fit.spict(pol$albacore)
 rep <- retro(rep)
 plotspict.retro(rep)
 ```
+By default `retro` creates 5 scenarios with catch and index time series which are shortened by the 1 to 5 last observations. The number of scenarios and thus observations which are removed can be changed with the argument `nretroyear` in the function `retro`. The graphs show the different scenarios with different colors. For the albacore data, there is a high consistency between the scenarios except for the fishing mortalites of the second scenario (in red), which indicate a large increase in F.
 
 ## Estimation using two or more biomass indices
 
@@ -332,7 +333,7 @@ sumspict.parest(res)
 plotspict.biomass(res)
 ```
 
-The model estimates seperate observation noises and finds that the first index (`sdi1`) is more noisy than the second (`sdi2`). It is furthermore estimated that the catchabilities are different by a factor 10 (`q1` versus `q2`). The biomass plot shows both indices with circles indicating the first index and squares indicating the second index (the two series can also be distringuished by their colours).
+The model estimates seperate observation noises and finds that the first index (`sdi1`) is more noisy than the second (`sdi2`). It is furthermore estimated that the catchabilities are different by a factor 10 (`q1` versus `q2`). The biomass plot shows both indices, with circles indicating the first index and squares indicating the second index (the two series can also be distringuished by their colours).
 
 ## Using effort data instead of commercial CPUE
 
@@ -350,7 +351,7 @@ plotspict.catch(repeff, qlegend=FALSE)
 plotspict.fb(repeff)
 ```
 
-Here the model runs without and index of biomass and instead uses effort as an index of fishing mortality Note that index observations are missing from the biomass plot, but effort observations are present in the plot of fishing mortality. Note also that `q` is missing from the summary of parameter estimates and instead `qf` is  present, which is the commercial catchability. 
+Here the model runs without an index of biomass and instead uses effort as an index of fishing mortality Note that index observations are missing from the biomass plot, but effort observations are present in the plot of fishing mortality. Note also that `q` is missing from the summary of parameter estimates and instead `qf` is  present, which is the commercial catchability. 
 
 Overall for this data set the results in terms of stock status etc. do not change much, and this will probably often be the case, however using effort data directly instead of commercial CPUE is cleaner and avoids inputting the same data twice.
 
@@ -421,7 +422,7 @@ When printing the summary of the parameter estimates the true values are include
 ### Seasonal data
 \label{sec:seas}
 
-It is possible to simulate seasonal data (most often quarterly). Additional variables must be specified in the input list that define the type of seasonality to be used. Spline based seasonality is shown first (`inp$seasontype = 1`). This is the default and therefore need not be explicitly specified. It is required that number of seasons is specified using `nseasons` (4 indicates quarterly), the order of the spline must be specified using `splineorder` (3 for quarterly data), time vectors for catch and index containing subannual time points must be specified, and finally the spline parameters (`logphi`) must be set. With four seasons `logphi` must be a vector of length 3, where each value in the vector gives the log fishing intensity relative to level in season four, which is `log(1)`. An example of simulating seasonal data using a spline is
+It is possible to simulate seasonal data (most often quarterly). Additional variables must be specified in the input list that define the type of seasonality to be used. Spline based seasonality is shown first (`inp$seasontype = 1`). This is the default and therefore does not need to be explicitly specified. It is required that number of seasons is specified using `nseasons` (4 indicates quarterly), the order of the spline must be specified using `splineorder` (3 for quarterly data), time vectors for catch and index containing subannual time points must be specified, and finally the spline parameters (`logphi`) must be set. With four seasons `logphi` must be a vector of length 3, where each value in the vector gives the log fishing intensity relative to level in season four, which is `log(1)`. An example of simulating seasonal data using a spline is
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
 set.seed(1234)
@@ -456,7 +457,7 @@ Catch information available in sub-annual aggregations, e.g. quarterly catch, ca
   
 Technical description of the season types is found in @pedersen2016.
 
-Here is shown an example of a spline-based model fitted to quarterly data simulated in section \ref{sec:seas}
+Here, an example of a spline-based model fitted to quarterly data simulated in section \ref{sec:seas} is shown
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=4.5, fig.show='hold'}
 seasonres <- fit.spict(seasonsim)
@@ -465,7 +466,7 @@ plotspict.f(seasonres, qlegend=FALSE)
 plotspict.season(seasonres)
 ```
 
-In the results plots, the model is able to estimate the seasonal variation in fishing mortality as seen both in the plot of `F` and in the plot of the estimated spline, where blue is the estimated spline, orange is the true spline, and green is the spline if time were truly continuous (it is discretised with the Euler steps show by the blue line).
+The model is able to estimate the seasonal variation in fishing mortality as seen both in the plot of `F` and in the plot of the estimated spline, where blue is the estimated spline, orange is the true spline, and green is the spline if time were truly continuous (it is discretised with the Euler steps shown by the blue line).
 
 To fit the coupled SDE model run
 
@@ -476,7 +477,7 @@ plotspict.biomass(seasonres2)
 plotspict.f(seasonres2, qlegend=FALSE)
 ```
 
-Two parameters related to the coupled SDEs are estimated (`sdu` and `lambda`) as evident from the summary of estimated parameters. In the plot of fishing mortality it is noted that the amplitude of the seasonal pattern varies over time. This is a property of the coupled SDE model, which is not possible to obtain with the spline based seasonal model. The spline based model has a fixed amplitude and phases, which if in reality the seasonal pattern shifts a bit, will lead to biased estimates and autocorrelation in residuals. This is illustrated by fitting a spline based model to data generated with a coupled SDE model
+Two parameters related to the coupled SDEs are estimated (`sdu` and `lambda`) as evident from the summary of estimated parameters. In the plot of fishing mortality it is noted that the amplitude of the seasonal pattern varies over time. This is a property of the coupled SDE model, which is not possible to obtain with the spline based seasonal model. The spline based model has a fixed amplitude and phases, which will lead to biased estimates and autocorrelation in residuals if in reality the seasonal pattern shifts a bit. This is illustrated by fitting a spline based model to data generated with a coupled SDE model
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=7, fig.show='hold'}
 inp2 <- list(obsC=seasonsim2$obsC, obsI=seasonsim2$obsI, 
@@ -540,11 +541,11 @@ summary(res)
 
 ## Priors
 
-SPiCT is a generalisation of previous surplus production models in the sense that stochastic noise is included in both observation and state processes of both fishing and biomass. Estimating all model parameters is only possible if data contain sufficient information, which may not be the case for short time series or time series with limited contrast. The basic data requirements of the model are limited to only a catch and in biomass index time series. More information may be available, which can be used to improve the model fit. This is particularly advantageous if the model is not able to converge with only catch and index time series. Additional information can then be included in the fit via prior distributions for model parameters. 
+SPiCT is a generalisation of previous surplus production models in the sense that stochastic noise is included in both observation and state processes of both fishing and biomass. Estimating all model parameters is only possible if data contain sufficient information, which may not be the case for short time series or time series with limited contrast. The basic data requirements of the model are limited to only catch and biomass index time series. More information may be available, which can be used to improve the model fit. This is particularly advantageous if the model is not able to converge with only catch and index time series. Additional information can then be included in the fit via prior distributions for model parameters. 
 
 ### Default priors and how to disable them
 
-Quantities that are traditionally difficult to estimate are `logn`, and the noise ratios `logalpha` and `logbeta` where `logalpha = logsdi - logsdb` and `logbeta = logsdc - logsdf` respectively. Therefore, to generally stabilise estimation default semi-informative priors are imposed on these quantities that inhibit them from taking extreme and unrealistic values. If informative data are available these priors should have limited effect on results, if informative data are not available estimates will reduce to the priors.
+Quantities that are traditionally difficult to estimate are `logn`, and the noise ratios `logalpha` and `logbeta` where `logalpha = logsdi - logsdb` and `logbeta = logsdc - logsdf`, respectively. Therefore, to generally stabilise estimation default semi-informative priors are imposed on these quantities that inhibit them from taking extreme and unrealistic values. If informative data are available these priors should have limited effect on results, if informative data are not available estimates will reduce to the priors.
 
 If informative data are available and the default priors therefore are unwanted they can be disabled using
 
@@ -590,7 +591,7 @@ plotspict.biomass(fit.spict(inp), qlegend=FALSE, ylim=c(0, 500))
 
 This imposes a Gaussian prior on `logB` with mean $\log(80)$, standard deviation 0.1 (very informative), the third entry in the vector indicates that the prior is used, the fourth entry indicates the year to which the prior should be applied, here 1980.
 
-It is clear from the plots that the prior influences the results significantly. Furthermore, it is not only the biomass in the year 1980 that is affected, but the information is propagated forward and backward because all estimates are correlated. In reality such an informative prior is rarely available, however it may be possible to derive information about the absolute biomass from acoustic survey and swept area estimates. It is, however, critical that the standard deviation used reflects the quality of the information.
+It is clear from the plots that the prior influences the results significantly. Furthermore, it is not only the biomass in the year 1980 that is affected, but the information propagates forward and backward because all estimates are correlated. In reality such an informative prior is rarely available, however it may be possible to derive information about the absolute biomass from acoustic survey and swept area estimates. It is, however, critical that the standard deviation used reflects the quality of the information.
 
 ### Fixing parameters using priors
 
