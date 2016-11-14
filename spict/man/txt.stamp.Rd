@@ -10,6 +10,8 @@ txt.stamp(string = get.version(), cex = 0.5, do.flag = NULL)
 \item{string}{Character string to stamp.}
 
 \item{cex}{Stamp cex.}
+
+\item{do.flag}{If NULL stamp will be added if not in a multi plot, i.e. mean(par()$mfrow) > 1}
 }
 \value{
 Nothing
