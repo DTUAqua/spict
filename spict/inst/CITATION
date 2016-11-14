@@ -1,11 +1,11 @@
-citHeader("To cite SPiCT in publications, please use:")
+citHeader("To cite spict in publications, please use:")
 citEntry(entry="article",
-         title = "A stochastic surplus production model in continuous-time",
+         title = "A stochastic surplus production model in continuous time",
          author = c(person(given=c("Martin", "W."), family="Pedersen", email="mawp@dtu.dk"),
              person(given=c("Casper", "W."), family="Berg", email="cbe@aqua.dtu.dk")),
-         note="In review",
-         doi="xxx/xxx",
+         doi="10.1111/faf.12174",
          year="2016",
-         journal="Science",
+         journal="Fish and Fisheries",
+         url = {http://onlinelibrary.wiley.com/doi/10.1111/faf.12174/full},
          textVersion=NULL
          )
