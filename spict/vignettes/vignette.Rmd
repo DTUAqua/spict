@@ -623,7 +623,7 @@ Particular caution is required when fixing a parameter that is highly correlated
 
 ## Robust estimation (reducing influence of extreme observations)
 
-The presence of extreme observations may inflate estimates of observation noise and increase the general uncertainty of the fit. To reduce this effect it is possible to apply a robust estimation scheme, which is less sensitive to extreme observations. An example with an extreme observation in the index series is
+The presence of extreme observations may inflate estimates of observation noise and increase the general uncertainty of the fit. To reduce this effect it is possible to apply a robust estimation scheme, which is less sensitive to extreme observations. An example with an extreme observation in the catch series is
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=3.5, fig.show='hold'}
 inp <- pol$albacore
@@ -643,7 +643,7 @@ Robust estimation is implemented using a mixture of light-tailed and a heavy-tai
 
 ## Forecasting and management scenarios
 
-To make a catch forecast a forecast interval needs to be specified. This is done by specifying the start of the interval (`inp$timepredc`) and the length of the interval in years (`inp$dtpredc`). In addition to the forecast interval a fishing scenario needs to be specified. This is done by specifying a factor (`inp$ffac`) to multiply the current fishing mortality by (i.e. the F at the last time point of the time period where data are available) and the time that management should start (`inp$manstart`). The time point of the reported forecast of biomass and fishing mortality can be controlled by setting `inp$timepredi`. Producing short-term forecasts entails minimal additional computing time.
+To make a catch forecast a forecast interval needs to be specified. This is done by specifying the start of the interval (`inp$timepredc`) and the length of the interval in years (`inp$dtpredc`). For example, if a forecast of the annual catch of 2018 is of interest, then `inp$timepredc = 2018` and `inp$dtpredc = 1`. In addition to the forecast interval a fishing scenario needs to be specified. This is done by specifying a factor (`inp$ffac`) to multiply the current fishing mortality by (i.e. the F at the last time point of the time period where data are available) and the time that management should start (`inp$manstart`). The time point of the reported forecast of biomass and fishing mortality can be controlled by setting `inp$timepredi`. Producing short-term forecasts entails minimal additional computing time.
 
 Forecasts are produced as part of the usual model fitting. To illustrate the procedure, a short example using the South Atlantic albacore dataset of @polacheck1993 containing catch and commercial CPUE data in the interval 1967 to 1989 is presented. The code to obtain the forecasted annual catch in the interval starting 1991 under a management scenario where the fishing pressure is reduced by 25% starting in 1991, and a forecasted index in 1992 is:
 
@@ -707,6 +707,28 @@ plotspict.catch(res, qlegend=FALSE)
 plotspict.fb(res, man.legend=FALSE)
 ```
 
+To obtain results for several forecast horizons without having to rerun the model each time it is required to set `inp$timepredc` equal to the longest horizon of interest. For example
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+inp <- pol$albacore
+inp$timepredc <- 1991
+res <- fit.spict(inp)
+res <- manage(res)
+```
+
+Then the management table for 1990 is:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+mansummary(res, ypred=1, include.unc = FALSE)
+```
+
+and for 1991 is:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+mansummary(res, ypred=2, include.unc = FALSE)
+```
+
+
 # Other model settings and options
 
 ## `catchunit` - Define unit of catch observations
@@ -715,9 +737,11 @@ This will print the unit of the catches on relevant plots.
 
 Example: `inp$catchunit <- "'000 t"`. 
 
-## `dteuler` - Temporal discretisation and time step
+## `dteuler` and `eulertype` - Temporal discretisation and time step
 
-To solve the continuous-time system an Euler discretisation scheme is used. This requires a time step to be specified (`dteuler`). The smaller the time step the more accurate the approximation to the continuous-time solution, however with the cost of increased memory requirements and computing time. The default value of `dteuler` is $1/16$, which seems sufficiently fine for most cases, and perhaps too fine for some cases. When fitting quarterly data and species with fast growth it is important to have a small time step. The influence of `dteuler` can be checked by using different values and comparing resulting model estimates. If `dteuler <- 1` the model essentially becomes a discrete-time model with one Euler step per year.
+To solve the continuous-time system an Euler discretisation scheme is used. This requires a time step to be specified (`dteuler`). The smaller the time step the more accurate the approximation to the continuous-time solution, however with the cost of increased memory requirements and computing time. The default value of `dteuler` is $1/16$, which seems sufficiently fine for most cases, and perhaps too fine for some cases. When fitting quarterly data and species with fast growth it is important to have a small `dteuler`. The influence of `dteuler` on the results can be checked by using different values and comparing resulting model estimates. If `dteuler <- 1` the model essentially becomes a discrete-time model with one Euler step per year.
+
+There are two possible temporal discretisation schemes which can be set to either `eulertype = 'hard'` (default) or `eulertype = 'soft'`. If `eulertype = 'hard'` then time is discretised into intervals of length `dteuler`. Observations are then assigned to these intervals. For annual and quarterly data `dteuler = 1/16` is appropriate,  however if fitting to monthly data `dteuler` should be changed to e.g. `1/24`. If `eulertype = 'soft'` (careful, this feature has not been thoroughly tested), then time is discretised into intervals of length `dteuler` and additional time points corresponding to the times of observation are added to the discretisation. This feature is particularly useful if observations (most likely index series) are observed at odd times during the year. The model then estimates values of biomass and fishing mortality at the exact time of the observation instead of assigning the observation to an interval.
 
 ## `msytype` - Stochastic and deterministic reference points
 
