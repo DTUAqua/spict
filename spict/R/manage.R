@@ -314,7 +314,7 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
             }
             invisible(df)
         } else {
-            cat('Warning: Could not show management results because ypred is larger than the calculated management time frame. Reduce ypred.\n')
+            cat('Warning: Could not show management results because ypred is larger than the calculated management time frame. Reduce ypred or increase inp$timepredc and run fit.spict() and manage() again.\n')
         }
     }
 }
