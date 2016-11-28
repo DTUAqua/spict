@@ -274,6 +274,7 @@ make.datin <- function(inp, dbg=0){
                   priorr=inp$priors$logr,
                   priorK=inp$priors$logK,
                   priorm=inp$priors$logm,
+                  priormu=inp$priors$mu,
                   priorq=inp$priors$logq,
                   prioriqgamma=inp$priors$iqgamma,
                   priorqf=inp$priors$logqf,

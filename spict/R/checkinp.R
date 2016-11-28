@@ -937,9 +937,6 @@ check.inp <- function(inp){
     # Fill in unspecified (more rarely user defined) model parameter values
     inp$ini <- set.default(inp$ini, 'logpsi', log(1e-8))
     inp$ini <- set.default(inp$ini, 'mu', 0)
-    #if (!"mu" %in% names(inp$ini)){
-    #    inp$ini$mu <- 0
-    #}
     if (!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
     if (!"logdelta" %in% names(inp$ini)) inp$ini$logdelta <- log(1e-8) # Strength of mean reversion of OU for F
     if (!"logeta" %in% names(inp$ini)) inp$ini$logeta <- log(0.2) # Mean of OU for F
@@ -1070,7 +1067,7 @@ check.inp <- function(inp){
                         'iqgamma', 'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy',
                         'logFFmsy', 'logsdb', 'isdb2gamma', 'logsdf', 'isdf2gamma',
                         'logsdi', 'isdi2gamma', 'logsde', 'isde2gamma', 'logsdc',
-                        'isdc2gamma', 'logsdm', 'logpsi')
+                        'isdc2gamma', 'logsdm', 'logpsi', 'mu')
     repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
     matrixpriors <- c('logsdi')
     npossiblepriors <- length(possiblepriors)

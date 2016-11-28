@@ -125,6 +125,7 @@ Type objective_function<Type>::operator() ()
   //DATA_VECTOR(priorrp);        // Prior vector for rp, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priormu);        // Prior vector for mu, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorq);         // Prior vector for q, [log(mean), stdev in log, useflag]
   DATA_VECTOR(prioriqgamma);   // Prior vector for q, inverse gamma distribution, [shape, rate, useflag]
   DATA_VECTOR(priorqf);        // Prior vector for qf, [log(mean), stdev in log, useflag]
@@ -183,7 +184,7 @@ Type objective_function<Type>::operator() ()
      std::cout << "==== DATA read, now calculating derived quantities ====" << std::endl;
    }
 
-  int ind;
+  int ind = 0;
   // Distribute sorted observations into logobsC and logobsI vectors
   //int nobsC = isc.size();
   vector<Type> logobsC(nobsC);
@@ -232,7 +233,7 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<nq; i++){ q(i) = exp(logq(i)); }
   vector<Type> logq2(nq);
   for(int i=0; i<nq; i++){ logq2(i) = log(100) + logq(i); }
-  Type qf = exp(logqf);
+  //Type qf = exp(logqf);
   Type n = exp(logn);
   Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
   Type lambda = exp(loglambda);
@@ -252,7 +253,7 @@ Type objective_function<Type>::operator() ()
   Type isdb2 = 1.0/sdb2;
   Type sdm = exp(logsdm);
   Type sdm2 = sdm*sdm;
-  Type isdm2 = 1.0/sdm2;
+  //Type isdm2 = 1.0/sdm2;
   vector<Type> sdi = exp(logsdi);
   vector<Type> sdi2(nsdi);
   vector<Type> isdi2(nsdi);
@@ -498,7 +499,7 @@ Type objective_function<Type>::operator() ()
   // Inverse gamma priors
   // TMB uses shape and scale parameterisation, but spict uses shape and rate similar to jags.
   // Prior for q. 
-  if(prioriqgamma(2) == 1 & nq == 1){
+  if((prioriqgamma(2) == 1) & (nq == 1)){
     ans-= dgamma(1.0/exp(logq(0)), prioriqgamma(0), 1.0/prioriqgamma(1), 1); 
   }
   if(priorisdb2gamma(2) == 1){
@@ -524,16 +525,19 @@ Type objective_function<Type>::operator() ()
   if(priorn(2) == 1){
     ans-= dnorm(logn, priorn(0), priorn(1), 1); // Prior for logn
   }
-  if(priorr(2) == 1 & nm == 1){
+  if((priorr(2) == 1) & (nm == 1)){
     ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
   }
   if(priorK(2) == 1){
     ans-= dnorm(logK, priorK(0), priorK(1), 1); // Prior for logK
   }
-  if(priorm(2) == 1 & nm == 1){
+  if((priorm(2) == 1) & (nm == 1)){
     ans-= dnorm(logm(0), priorm(0), priorm(1), 1); // Prior for logm
   }
-  if(priorq(2) == 1 & nq == 1){
+  if((priormu(2) == 1) & (nm == 1)){
+    ans-= dnorm(mu, priormu(0), priormu(1), 1); // Prior for mu
+  }
+  if((priorq(2) == 1) & (nq == 1)){
     ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq - log-normal
   }
   if(priorqf(2) == 1){
@@ -618,7 +622,7 @@ Type objective_function<Type>::operator() ()
     // Diffusion component of F
     int iisdf;
     for(int i=1; i<ns; i++){
-      Type Fpredtmp;
+      Type Fpredtmp = 0.0;
       iisdf = CppAD::Integer(isdf(i)) - 1;
       if (efforttype == 1.0){
 	Fpredtmp = predictF1(logF(i-1), dt(i), sdf2(iisdf), delta, logeta);
@@ -1043,7 +1047,7 @@ Type objective_function<Type>::operator() ()
     // E
     ADREPORT(logEpred);
     // Time varying growth
-    if (timevaryinggrowth == 1 | logmcovflag == 1){
+    if ((timevaryinggrowth == 1) | (logmcovflag == 1)){
       ADREPORT(logrre); // r random effect
       ADREPORT(logFmsyvec);
       ADREPORT(logMSYvec);
