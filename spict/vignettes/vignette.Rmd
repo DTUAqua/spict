@@ -1,17 +1,16 @@
 ---
 title: "SPiCT"
 author: "Martin W. Pedersen"
-date: '`07-11-2016`'
-output:
-  pdf_document:
-    keep_tex: true  
+date: '`20-01-2017`'
+output: 
+  rmarkdown::html_vignette: 
     number_sections: yes
     toc: yes
-  word_document:
-    toc: yes
 bibliography: bibliography.bib  
-vignette: |
-  %\VignetteIndexEntry{SPiCT} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
+vignette: >
+  %\VignetteIndexEntry{SPiCT}
+  %\VignetteEngine{knitr::rmarkdown} 
+  \usepackage[utf8]{inputenc}
 ---
 
 ```{r, echo = FALSE}
@@ -279,12 +278,12 @@ This returns a vector with `ll` being the lower 95% limit of the CI, `est` being
 get.par('logBmsy', res, exp=TRUE)
 ```
 
-This essentially takes the exponential of `ll`, `est` and `ul` of the values in log, while `sd` is unchanged as it is the standard deviation of the quantity on the scale that it is estimated (here log). When transforming using `exp=TRUE` the $CV = \sqrt{e^{\sigma^2}-1}$. Most parameters are log-transformed under estimation and should therefore be extracted using `exp=TRUE´.
+This essentially takes the exponential of `ll`, `est` and `ul` of the values in log, while `sd` is unchanged as it is the standard deviation of the quantity on the scale that it is estimated (here log). When transforming using `exp=TRUE` the $CV = \sqrt{e^{\sigma^2}-1}$. Most parameters are log-transformed under estimation and should therefore be extracted using `exp=TRUE`.
 
 For a standard fit (not using robust observation error, seasonality etc.), the quantities that can be extracted using this method are
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
-sort(unique(c(names(res$value), names(res$par.fixed), names(res$par.random))))
+list.quantities(res)
 ```
 
 These should be relatively self-explanatory when knowing that reference points ending with `s` are stochastic and those ending with `d` are deterministic, quantities ending with `p` are predictions and quantities ending with `l` are estimates in the final year. If a quantity is available both on natural and log scale, it is preferred to transform the quantity from log as most quantities are estimated on the log scale.
