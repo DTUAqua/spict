@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotting.R
 \name{annual}
 \alias{annual}
-\title{Convert from quarterly (or other sub-annual) data to annual means or sums.}
+\title{Convert from quarterly (or other sub-annual) data to annual means, sums or a custom function.}
 \usage{
 annual(intime, vec, type = "mean")
 }
@@ -11,7 +11,7 @@ annual(intime, vec, type = "mean")
 
 \item{vec}{The vector of values to convert to annual means}
 
-\item{type}{If type='mean' then annual mean is calculated, if type='sum' then annual sum is calculated.}
+\item{type}{If type='mean' then annual mean is calculated, if type='sum' then annual sum is calculated. If type is a function, that function is used.}
 }
 \value{
 A list containing the annual means and a corresponding time vector.
