@@ -163,6 +163,7 @@ arrow.line <- function(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"
 #' @param vec The vector of values to convert to annual means
 #' @param type If type='mean' then annual mean is calculated, if type='sum' then annual sum is calculated.
 #' @return A list containing the annual means and a corresponding time vector.
+#' @export
 annual <- function(intime, vec, type='mean'){
     anntime <- intime[which(intime %% 1 ==0)]
     nanntime <- length(anntime)
