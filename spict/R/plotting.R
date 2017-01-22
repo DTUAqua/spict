@@ -158,10 +158,10 @@ arrow.line <- function(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"
 
 
 #' @name annual
-#' @title Convert from quarterly (or other sub-annual) data to annual means or sums.
+#' @title Convert from quarterly (or other sub-annual) data to annual means, sums or a custom function.
 #' @param intime A time vector corresponding to the values in vec.
 #' @param vec The vector of values to convert to annual means
-#' @param type If type='mean' then annual mean is calculated, if type='sum' then annual sum is calculated.
+#' @param type If type='mean' then annual mean is calculated, if type='sum' then annual sum is calculated. If type is a function, that function is used.
 #' @return A list containing the annual means and a corresponding time vector.
 #' @export
 annual <- function(intime, vec, type='mean'){
@@ -179,11 +179,15 @@ annual <- function(intime, vec, type='mean'){
     annvec <- rep(0, nanntime)
     for (i in 1:nanntime){
         inds <- which(anntime[i]==floortime)
-        if (type=='mean'){
+        if (is(type, "function")) {
+          annvec[i] <- type(vec[inds])
+        } else{
+          if (type=='mean'){
             annvec[i] <- mean(vec[inds])
-        }
-        if (type=='sum'){
+          }
+          if (type=='sum'){
             annvec[i] <- sum(vec[inds])
+          }
         }
     }
     return(list(anntime=anntime, annvec=annvec))
