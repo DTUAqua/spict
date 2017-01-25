@@ -122,7 +122,20 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
     datint <- make.datin(inpt, dbg=dbg)
     objt <- make.obj(datint, plt, inpt, phase=1)
     objt$fn(repin$opt$par)
-    repmant <- sdreport(objt)
+    ## repmant <- sdreport(objt)
+    verflag <- as.numeric(gsub('[.]', '', as.character(packageVersion('TMB')))) >= 171
+    if (verflag) { 
+      repmant <- sdreport(objt,
+                          getJointPrecision=repin$inp$getJointPrecision,
+                          bias.correct=repin$inp$bias.correct,
+                          bias.correct.control=repin$inp$bias.correct.control,
+                          getReportCovariance=repin$inp$getReportCovariance)
+    } else {
+      repmant <-sdreport(objt,
+                         getJointPrecision=repin$inp$getJointPrecision,
+                         bias.correct=repin$inp$bias.correct,
+                         bias.correct.control=repin$inp$bias.correct.control)
+    }
     repmant$inp <- inpt
     repmant$obj <- objt
     repmant$opt <- list(convergence=0)

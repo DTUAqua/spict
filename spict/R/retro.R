@@ -29,6 +29,7 @@
 #' plotspict.retro(rep)
 #' @export
 retro <- function(rep, nretroyear=5){
+    verflag <- as.numeric(gsub('[.]', '', as.character(packageVersion('TMB')))) >= 171
     inp1 <- rep$inp
     inpall <- list()
     for (i in 1:nretroyear){
@@ -37,6 +38,12 @@ retro <- function(rep, nretroyear=5){
         inpall[[i]]$ini <- inp1$ini
         inpall[[i]]$priors <- inp1$priors
         inpall[[i]]$phases <- inp1$phases
+        if(verflag) {
+          inpall[[i]]$getReportCovariance <- inp1$getReportCovariance
+        }
+        inpall[[i]]$getJointPrecision <- inp1$getJointPrecision
+        inpall[[i]]$bias.correct <- inp1$bias.correct
+        inpall[[i]]$bias.correct.control <- inp1$bias.correct.control
         #inpall[[i]]$ini <- as.list(rep$par.fixed)
         #inpall[[i]]$dtpredc <- 0
         indsC <- which(inp1$timeC <= inp1$timeC[inp1$nobsC]-i)
