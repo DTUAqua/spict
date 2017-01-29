@@ -40,8 +40,30 @@ latex.figure <- function(figfile, reportfile, caption=''){
 #' @return Nothing.
 #' @export
 make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryoutfile='summaryout.txt', keep.figurefiles=FALSE, keep.txtfiles=FALSE, keep.texfiles=FALSE){
-    if(basename(reportfile) == "") reportfile <- 'report.tex'
-    if(file.access(dirname(reportfile), mode=1) != 0)  reportfile <- file.path(getwd(), reportfile)
+    
+    # if file name specified
+    if("tex" %in% unlist(strsplit(basename(reportfile),"[.]"))){
+        # use filename
+        FileName <- basename(reportfile)
+        # if no path specified
+        if(file.access(dirname(reportfile), mode = 1) != 0 | dirname(reportfile) == "."){
+            reportfile <- file.path(getwd(), FileName)
+            # if path exists
+        }else{
+            reportfile <- file.path(dirname(reportfile), FileName)
+        }
+    }else{
+        # if file name is empty  -  default file name
+        FileName <- "report.tex"
+        # if no path specified - getwd()
+        if(file.access(reportfile, mode = 1) != 0){
+            reportfile <- file.path(getwd(), FileName)
+            # if path exists
+        }else{
+            reportfile <- file.path(reportfile, FileName)
+            reportfile <- gsub(pattern = "//",replacement = "/",reportfile)
+        }    
+    }
     
     latexstart <- '\\documentclass[12pt]{article}\n\\usepackage{graphicx}\n\\usepackage{verbatim}\n\\begin{document}\n'
     latexend <- '\\end{document}\n'
@@ -101,8 +123,12 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
 
     # -- Compile tex file -- #
     #latexcompile <- system(paste('pdflatex -output-directory=../res/', reportfile), intern=TRUE)
-    latexcompile <- system(paste(paste0('pdflatex -output-directory=',file.path(dirname(reportfile))), file.path(reportfile)), intern=TRUE)
+    console_path1 <- gsub(x = file.path(dirname(reportfile)), pattern = " ", replacement = "\\\ ", fixed=TRUE)
+    console_path2 <- gsub(x = file.path(reportfile), pattern = " ", replacement = "\\\ ", fixed=TRUE)
 
+    latexcompile <- system(paste(paste0("pdflatex -output-directory=", console_path1),
+                                 console_path2), intern = TRUE)
+    
     # -- Remove temporary files -- #
     #file.remove(paste0('../res/', substr(reportfile, 1, nchar(reportfile)-4), '.log'))
     #file.remove(paste0('../res/', substr(reportfile, 1, nchar(reportfile)-4), '.aux'))
