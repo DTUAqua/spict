@@ -2475,7 +2475,7 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=TRUE, stamp=
 #' @param ylim Limits for y-axis.
 #' @param xlim Limits for x-axis.
 #' @param xlab Label of x-axis.
-#' @param plot.ci If TRUE 95% CIs are included.
+#' @param plot.ci If TRUE 95\% CIs are included.
 #' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @export
