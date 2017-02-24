@@ -41,13 +41,13 @@ check.ini <- function(input, ntrials=10, verbose=TRUE, numdigits=2){
     }
     # Start sensitivity check by drawing random initial parameters
     if ('par.fixed' %in% names(rep)){
-        nms <- names(inp$ranges)
-        inibasevec <- unlist(inp$ini[names(inp$ranges)])
+        nms <- intersect( names(inp$ranges), names(rep$par.fixed) )
+        inibasevec <- unlist(inp$ini[nms])
         resbasevec <- trans2real(rep$opt$par, names(rep$opt$par))
         resmat <- matrix(nrow=ntrials, ncol=length(rep$par.fixed))
-        colnames(resmat) <- names(resbasevec)
-        inimat <- matrix(nrow=ntrials, ncol=length(nms))
-        colnames(inimat) <- nms
+        colnames(resmat) <- names(rep$par.fixed)
+        inimat <- matrix(nrow=ntrials, ncol=length(rep$par.fixed))
+        colnames(inimat) <- names(rep$par.fixed) 
         propchng <- inimat
         rownames(propchng) <- paste('Trial', 1:ntrials)
         resdist <- numeric(ntrials)
@@ -67,13 +67,17 @@ check.ini <- function(input, ntrials=10, verbose=TRUE, numdigits=2){
             # Draw random initial values
             j <- 1
             for (nm in nms){
-                randval <- runif(1, min=inp$ranges[[nm]][1], max=inp$ranges[[nm]][2])
-                inpsens$ini[[nm]] <- randval
-                inimat[i, j] <- randval
-                propchng[i, j] <- (randval - inp$ini[[nm]]) / inp$ini[[nm]] 
-                j <- j + 1
+                for(kk in 1:nrow(inp$ranges[[nm]])) {
+                    randval <- runif(1, min = inp$ranges[[nm]][kk,1], 
+                                     max = inp$ranges[[nm]][kk,2])
+                    inpsens$ini[[nm]][kk] <- randval
+                    inimat[i, j] <- randval
+                    propchng[i, j] <- (randval - inp$ini[[nm]][kk])/inp$ini[[nm]][kk]
+                    j <- j + 1
+                }
             }
             inidist[i] <- calc.dist(inimat[i, ], inibasevec)
+            inpsens$osar.method <- "none"
             repsens <- try(fit.spict(inpsens))
             if (class(repsens) != 'try-error' & 'opt' %in% names(repsens)){
                 if (repsens$opt$convergence == 0){
