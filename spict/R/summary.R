@@ -278,9 +278,9 @@ sumspict.parest <- function(rep, numdigits=8){
                 roldnms <- c('rold   ', paste0('rold', rep$inp$yearsepgrowth))
                 rcnms <- c('rc   ', paste0('rc', rep$inp$yearsepgrowth))
             } else {
-                rnms <- 'r  '
-                roldnms <- 'rold  '
-                rcnms <- 'rc  '
+                rnms <- rep('r  ',length(rep$inp$ini$logr))
+                roldnms <- rep('rold  ', length(rep$inp$ini$logr))
+                rcnms <- rep('rc  ', length(rep$inp$ini$logr))
             }
             if (nalpha > 0){
                 if(nalpha > 1){

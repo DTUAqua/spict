@@ -118,6 +118,7 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
   DATA_INTEGER(stabilise);     // If 1 stabilise optimisation using uninformative priors
   //DATA_SCALAR(effortflag);     // If effortflag == 1 use effort data, else use index data
+  DATA_FACTOR(MSYregime);      // factor mapping each time step to an m-regime
 
   // Priors
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
@@ -287,7 +288,7 @@ Type objective_function<Type>::operator() ()
   // Covariate for m
   vector<Type> logmc(ns);
   for(int i=0; i < ns; i++){
-    logmc(i) = logm(0) + mu*logmcov(i);
+    logmc(i) = logm(MSYregime[i]) + mu*logmcov(i);
   }
 
   // Reference points

@@ -812,9 +812,17 @@ check.inp <- function(inp){
     if ('logr' %in% names(inp$ini) & 'logm' %in% names(inp$ini)){
         inp$ini$logr <- NULL # If both r and m are specified use m and discard r
     }
+    # find number of regimes for 'm'
+    if(!'MSYregime' %in% names(inp)){
+        inp$MSYregime<-factor(rep(1,length(inp$time)))
+        ##inp$noms<-nlevels(inp$MSYregime)
+    }
+    inp$noms<-nlevels(inp$MSYregime)
+    inp$ir<-as.numeric(inp$MSYregime)
+    
     if (!'logr' %in% names(inp$ini)){
-        if (!'logm' %in% names(inp$ini)){
-            inp$ini$logm <- unname(log(guess.m(inp)))
+        if (!'logm' %in% names(inp$ini) | length(inp$ini$logm)!=inp$noms){
+            inp$ini$logm <- rep(unname(log(guess.m(inp))), inp$noms)
         }
         r <- exp(inp$ini$logm)/exp(inp$ini$logK) * n^(n/(n-1))
         inp$ini$logr <- log(r)
@@ -825,6 +833,8 @@ check.inp <- function(inp){
         #    inp$ini$logr <- log(-r)
         #}
     }
+    if(length(inp$ini$logm)!=inp$noms) inp$ini$logm <- rep(inp$ini$logm,noms)
+    
     if ('logr' %in% names(inp$ini)){
         nr <- length(inp$ini$logr)
         if (!'ir' %in% names(inp) | nr == 1){
@@ -928,7 +938,7 @@ check.inp <- function(inp){
         r <- exp(inp$ini$logr)
         K <- exp(inp$ini$logK)
         n <- exp(inp$ini$logn)
-        m <- r * K / (n^(n/(n-1)))
+        m <- rep( r * K / (n^(n/(n-1))), inp$noms)
     }
     logm <- inp$ini$logm # Store this to be able to set logmre later
     if (inp$timevaryinggrowth){
