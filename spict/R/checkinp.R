@@ -326,7 +326,7 @@ check.inp <- function(inp){
     inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
     
     # -- MODEL OPTIONS --
-    if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB', 'logmre')
+    if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB', 'logmre','SARvec')
     if (!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
     # Index related
     if (!"onealpha" %in% names(inp)){
@@ -641,6 +641,7 @@ check.inp <- function(inp){
     inp$splinematfine <- make.splinemat(inp$nseasons, inp$splineorder, dtfine=1/100)
     inp$seasonindex <- 1/inp$dteuler*(inp$time %% 1)
     inp$seasons <- rep(0, inp$ns)
+    inp$seasonindex2 <- rep(1:inp$ns,each=inp$nseasons,length.out=inp$ns)
     for (i in 1:inp$nseasons){
         frac <- 1/inp$nseasons
         modtime <- inp$time %% 1
@@ -815,10 +816,14 @@ check.inp <- function(inp){
     # find number of regimes for 'm'
     if(!'MSYregime' %in% names(inp)){
         inp$MSYregime<-factor(rep(1,length(inp$time)))
-        ##inp$noms<-nlevels(inp$MSYregime)
+    } else if(length(inp$MSYregime)<length(inp$time)) { # manage changes number of time steps!
+        inp$MSYregime<-c( inp$MSYregime, rep( tail(inp$MSYregime,1), length(inp$time)-length(inp$MSYregime)) )
     }
     inp$noms<-nlevels(inp$MSYregime)
     inp$ir<-as.numeric(inp$MSYregime)
+
+    if (!'logitSARphi' %in% names(inp$ini)) inp$ini$logitSARphi <- 0
+    if (!'logSdSAR' %in% names(inp$ini)) inp$ini$logSdSAR <- -2
     
     if (!'logr' %in% names(inp$ini)){
         if (!'logm' %in% names(inp$ini) | length(inp$ini$logm)!=inp$noms){
@@ -997,6 +1002,7 @@ check.inp <- function(inp){
     #if ("logmre" %in% names(inp$ini)){    
     #    inp$ini$logmre <- check.mat(inp$ini$logmre, c(inp$nstocks, inp$ns), 'inp$ini$logmre')
     #}
+    inp$ini$SARvec <- rep(0, max(inp$seasonindex2))
     
     # Reorder parameter list
     inp$parlist <- list(logm=inp$ini$logm,
@@ -1022,7 +1028,10 @@ check.inp <- function(inp){
                         logF=inp$ini$logF,
                         logu=inp$ini$logu,
                         logB=inp$ini$logB,
-                        logmre=inp$ini$logmre)
+                        logmre=inp$ini$logmre,
+                        SARvec=inp$ini$SARvec,
+                        logitSARphi=inp$ini$logitSARphi,
+                        logSdSAR=inp$ini$logSdSAR)
 
 
     # -- PRIORS --
@@ -1178,13 +1187,16 @@ check.inp <- function(inp){
     # Determine fixed parameters
     forcefixpars <- c() # Parameters that are forced to be fixed.
     if (inp$nseasons == 1){
-        forcefixpars <- c('logphi', 'logu', 'logsdu', 'loglambda', forcefixpars)
+        forcefixpars <- c('logphi', 'logu', 'logsdu', 'loglambda', 'SARvec','logitSARphi','logSdSAR',forcefixpars)
     } else {
         if (inp$seasontype == 1){ # Use spline
             forcefixpars <- c('logu', 'logsdu', 'loglambda', forcefixpars)
         }
         if (inp$seasontype == 2){ # Use coupled SDEs
             forcefixpars <- c('logphi', forcefixpars)
+        }
+        if(inp$seasontype == 3){ # Use spline + AR
+            forcefixpars <- c('logu', 'logsdu', 'loglambda', forcefixpars)
         }
     }
     if (inp$robflagc == 0 & inp$robflagi == 0 & inp$robflage == 0){

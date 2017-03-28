@@ -64,6 +64,12 @@ Type stepfun(const Type &p)
   return 1.0 / (1.0 + exp(-10000 * p));
 }
 
+template <class Type>
+Type ilogit(Type x){
+  return Type(1.0)/(Type(1.0)+exp(-x));
+}
+
+
 /* Main script */
 template<class Type>
 Type objective_function<Type>::operator() ()
@@ -102,6 +108,8 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(logmcov);        // A vector containing covariate information for logm
   DATA_VECTOR(seasons);        // A vector of length ns indicating to which season a state belongs
   DATA_VECTOR(seasonindex);    // A vector of length ns giving the number stepped within the current year
+  DATA_INTEGER(nseasons);      // Number of seasons pr year
+  DATA_VECTOR(seasonindex2)    // A vector of length ns mapping states to seasonal AR component (for seasontype=3)
   DATA_MATRIX(splinemat);      // Design matrix for the seasonal spline
   DATA_MATRIX(splinematfine);  // Design matrix for the seasonal spline on a fine time scale to get spline uncertainty
   DATA_SCALAR(omega);          // Period time of seasonal SDEs (2*pi = 1 year period)
@@ -179,6 +187,9 @@ Type objective_function<Type>::operator() ()
   PARAMETER_MATRIX(logu);      // Seasonal component of F in log
   PARAMETER_VECTOR(logB);      // Biomass in log
   PARAMETER_VECTOR(logmre);    // Random effect on m
+  PARAMETER_VECTOR(SARvec);    // Autoregressive deviations to seasonal spline
+  PARAMETER(logitSARphi);      // AR coefficient for seasonal spline dev
+  PARAMETER(logSdSAR);         // Standard deviation seasonal spline deviations  
 
   //std::cout << "expmosc: " << expmosc(lambda, omega, 0.1) << std::endl;
    if(dbg > 0){
@@ -272,6 +283,9 @@ Type objective_function<Type>::operator() ()
   Type isdc2 = 1.0/sdc2;
   Type beta = sdc/sdf(0);
   Type logbeta = log(beta);
+  Type SARphi = ilogit(logitSARphi);
+  Type sdSAR = exp(logSdSAR);
+
 
   // Initialise vectors
   vector<Type> P(ns-1);
@@ -614,6 +628,16 @@ Type objective_function<Type>::operator() ()
   */
 
   // FISHING MORTALITY
+
+  int stepsPrYear = CppAD::Integer(1/dt[0]);
+  vector<Type> SARphivec(nseasons);
+  SARphivec.setZero();
+  SARphivec(nseasons-1) = SARphi;
+
+  using namespace density;
+  ARk_t<Type> nldens(SARphivec);
+  ans += SCALE(nldens, sdSAR)(vector<Type>(SARvec));
+
   //vector<Type> logFs = logF
   vector<Type> logS(ns);
   if(simple==0){
@@ -643,13 +667,16 @@ Type objective_function<Type>::operator() ()
     // Seasonal component
     if(dbg>0){ std::cout << "-- seasontype: " << seasontype << std::endl; }
     for(int i=1; i<ns; i++) logS(i) = 0.0; // Initialise
-    if(seasontype == 1.0){
+    if(seasontype == 1.0 || seasontype == 3.0 ){
       // Spline
-      int ind2;
+      int ind2, ind3;
       for(int i=0; i<ns; i++){
 	ind2 = CppAD::Integer(seasonindex(i));
+	ind3 = CppAD::Integer(seasonindex2(i));
 	//logFs(i) += seasonspline(ind2);
 	logS(i) += seasonspline(ind2);
+
+	if(seasontype == 3.0) logS(i) += SARvec(ind3-1); 
 	// DEBUGGING
 	if(dbg>1){
 	  //std::cout << "-- i: " << i << " -   logF(i): " << logF(i) << " logFs(i): " << logFs(i) << " ind2: " << ind2 << " seasonspline(ind2): " << seasonspline(ind2) << std::endl;

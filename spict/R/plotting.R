@@ -421,6 +421,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         qest <- get.par('logq', rep, exp=TRUE)
         BB <- get.par('logBBmsy', rep, exp=TRUE)
         Bp <- get.par('logBp', rep, exp=TRUE)
+        if(!is.null(nrow(Bmsy))) Bmsy <- Bmsy[1,] ## time-varying m leads to several (identical) Bmsy values, drop them
         scal <- 1
         cicol <- 'lightgray'
         if (inp$nindex == 0){
@@ -984,7 +985,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
                 ylim <- range(c(cl[fininds], cu[fininds], tail(Fest[, 2],1)), na.rm=TRUE)
             }
         }
-        relflag <- length(cuf)==0 | all(!is.finite(cuf))
+        relflag <-  length(cuf)==0 | all(!is.finite(cuf)) | nlevels(rep$inp$MSYregime)>1
         if (relflag){ # Problems
             relfininds <- which(is.finite(cuf))
             if (!ylimflag){
@@ -1364,7 +1365,8 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
         }
         nr <- length(inp$ini$logr)
         if (nr > 1){
-            points(Bmsyall[1:(nr-1), 2]/bscal, Fmsyall[1:(nr-1), 2]/fscal, pch=24, bg='magenta')
+            points(Bmsyall[1:(nr-1), 2]/bscal, Fmsyall[1:(nr-1), 2]/fscal, pch=3, col='magenta')
+            points(Bmsyall[nr, 2]/bscal, Fmsyall[nr, 2]/fscal, pch=3, col='black')
         }
         if (plot.legend){
             if (nr > 1){
@@ -1919,7 +1921,7 @@ plot.spictcls <- function(x, stamp=get.version(), ...){
         # Production curve
         plotspict.production(rep, stamp='')
         # Seasonal F
-        if (inp$nseasons > 1 & inp$seasontype==1){
+        if (inp$nseasons > 1 & inp$seasontype%in%c(1,3)){
             plotspict.season(rep, stamp='')
         }
         # Time constant

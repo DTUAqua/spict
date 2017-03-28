@@ -210,7 +210,7 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
                             ul <- est
                         }
                     }else {
-                        if (parname == 'P'){
+                        if (!is.na(parname) && parname == 'P'){
                             B <- get.par('logB', rep, exp=TRUE)
                             C <- get.par('logCpred', rep, exp=TRUE)
                             ic <- rep$inp$ic
