@@ -649,12 +649,14 @@ check.inp <- function(inp){
         inp$seasons[inds] <- i
     }
     # ic is the indices of inp$time to which catch observations correspond
-    if (length(inp$dtc) > 0){
-        dtcpred <- min(inp$dtc)
-    } else {
-        dtcpred <- 1
-    }
-    inp$timeCpred <- unique(c(inp$timeC, (seq(tail(inp$timeC,1), inp$timepredc, by=dtcpred))))
+    #if (length(inp$dtc) > 0){
+    #    dtcpred <- min(inp$dtc)
+    #} else {
+    #    dtcpred <- 1
+    #}
+    dtcpred <- inp$dtpredc
+    
+    inp$timeCpred <- unique(c(inp$timeC, (seq(tail(inp$timeC,1), inp$timepredc, by=tail(inp$dtc,1))), inp$timepredc))
     inp$nobsCp <- length(inp$timeCpred)
     inp$dtcp <- c(inp$dtc, rep(dtcpred, inp$nobsCp-inp$nobsC))
     inp$ic <- cut(inp$timeCpred, inp$time, right=FALSE, labels=FALSE)

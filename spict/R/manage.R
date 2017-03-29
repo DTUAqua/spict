@@ -49,12 +49,13 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
     }
     maninds <- which(repin$inp$time >= manstart)
     # inpin is a list containing only observations (later prediction horizons are added)
-    inpin <- list()
-    inpin$dteuler <- repin$inp$dteuler
-    inpin$timeC <- repin$inp$timeC
-    inpin$obsC <- repin$inp$obsC
-    inpin$timeI <- repin$inp$timeI
-    inpin$obsI <- repin$inp$obsI
+    ##inpin <- list()
+    inpin <- repin$inp
+    ##inpin$dteuler <- repin$inp$dteuler
+    ##inpin$timeC <- repin$inp$timeC
+    ##inpin$obsC <- repin$inp$obsC
+    ##inpin$timeI <- repin$inp$timeI
+    ##inpin$obsI <- repin$inp$obsI
     timelastobs <- repin$inp$time[repin$inp$indlastobs]
     if (!repin$inp$timepredc < timelastobs+1){
         # Add prediction horizons
@@ -62,6 +63,7 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
         inpin$timepredi <- repin$inp$timepredi
         inpin$manstart <- repin$inp$manstart
         repman <- list() # Output list
+        attr(repman, "scenarios") <- scenarios 
         if (1 %in% scenarios){
             # 1. Specify the catch, which will be taken each year in the prediction period
             catch <- tail(inpin$obsC, 1)
@@ -164,6 +166,9 @@ take.c <- function(catchfac, inpin, repin, dbg=0){
     maninds <- which(inpt$timeC >= inpin$manstart)
     catch <- inpt$obsC[maninds[1]-1]
     inpt$obsC[maninds] <- rep(catch, length(maninds))
+    inpt$stdevfacC <- c(inpt$stdevfacC, rep(tail(inpt$stdevfacC,1), length(maninds)) )
+    inpt$dtc <- c(inpt$dtc, rep(tail(inpt$dtc,1), length(maninds)) )
+    
     #nmaninds <- length(maninds)
     #timecatch <- annual(inpc$time[maninds[-nmaninds]],
     #                    numeric(length(maninds[-nmaninds])))$anntime
@@ -230,8 +235,9 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
             BBn <- paste0('BqBmsy') # Should use / instead of q, but / is not accepted in varnames
             FFn <- paste0('FqFmsy')
             EBinfBn <- paste0('EBinfqBmsy')
-            
-            nsc <- length(repman)
+
+            scenarios <- attr(repman,"scenarios")
+            nsc <- length( scenarios )
             Cnextyear <- matrix(0, nsc, 3)
             colnames(Cnextyear) <- get.cn(Cn)
             Bnextyear <- matrix(0, nsc, 3)
@@ -246,7 +252,7 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
             perc.dF <- numeric(nsc)
             EBinf <- numeric(nsc)
             for(i in 1:nsc){
-                rp <- repman[[i]]
+                rp <- repman[[ scenarios[i] ]]  ##repman[[i]]
                 EBinf[i] <- get.EBinf(rp)
                 perc.dB[i] <- get.pdelta(rep, rp, indstart, indnext, parname='logB')
                 perc.dF[i] <- get.pdelta(rep, rp, indstart, indnext, parname='logF')
@@ -274,17 +280,19 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
             colnames(df)[qinds] <- sub('q', '/', colnames(df)[qinds]) # Replace q with /
             # Data frame with uncertainties of absolute predictions
             inds <- c(1, 3)
-            dfabs <- cbind(Cnextyear[, inds], Bnextyear[, inds], Fnextyear[, inds])
+            dfabs <- cbind(Cnextyear[, inds,drop=FALSE], Bnextyear[, inds,drop=FALSE], Fnextyear[, inds,drop=FALSE])
             colnames(dfabs) <- c(colnames(Cnextyear)[inds], colnames(Bnextyear)[inds],
                                  colnames(Fnextyear)[inds])
             # Data frame with uncertainties of relateive predictions
-            dfrel <- cbind(BBnextyear[, inds], FFnextyear[, inds])
+            dfrel <- cbind(BBnextyear[, inds,drop=FALSE], FFnextyear[, inds,drop=FALSE])
             colnames(dfrel) <- c(colnames(BBnextyear)[inds], colnames(FFnextyear)[inds])
             qinds <- grep('q', colnames(dfrel))
             colnames(dfrel)[qinds] <- sub('q', '/', colnames(dfrel)[qinds]) # Replace q with /
             # Set row names
+            scenarios <- attr(repman, "scenarios")
             rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy',
-                    '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')
+                    '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')[scenarios]
+            
             rownames(df) <- rn
             rownames(dfrel) <- rn
             rownames(dfabs) <- rn

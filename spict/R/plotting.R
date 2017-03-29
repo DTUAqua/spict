@@ -36,19 +36,20 @@ get.mfrow <- function(n){
 #' @export
 add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, ...){
     nman <- length(rep$man)
+    scenarios <- attr( rep$man, "scenarios" )
     for (i in 1:nman){
         if (par == 'logCpred'){
-            time <- rep$man[[i]]$inp$timeCpred
+            time <- rep$man[[ scenarios[i] ]]$inp$timeCpred
         } else {
-            time <- rep$man[[i]]$inp$time
+            time <- rep$man[[ scenarios[i] ]]$inp$time
         }
         maninds <- which(time >= rep$inp$manstart)
         maninds <- (maninds[1] - index.shift):tail(maninds, 1)
-        bman <- get.par(par, rep$man[[i]], exp=TRUE)[maninds, 2]
+        bman <- get.par(par, rep$man[[ scenarios[i] ]], exp=TRUE)[maninds, 2]
         if (is.null(par2)){
             x <- time[maninds]
         } else {
-            x <- get.par(par2, rep$man[[i]], exp=TRUE)[maninds, 2]
+            x <- get.par(par2, rep$man[[ scenarios[i] ]], exp=TRUE)[maninds, 2]
         }
         lines(x, bman, col=man.cols()[i], ...)
     }
