@@ -602,7 +602,13 @@ sumspict.priors <- function(rep, numdigits=8){
 #' @param numdigits Present values with this number of digits after the dot.
 #' @return data.frame containing diagnostics information.
 #' @export
-sumspict.diagnostics <- function(rep, numdigits=8){
+sumspict.diagnostics <- function(rep, numdigits=8) {
+    if(! is(rep, "spictcls")) {
+      stop("rep should be a spictcls object as it is returned by fit.spict")
+    }
+    if (is.null(rep$diagn)) {
+      stop("rep does not contain diagnostics, calculate them using calc.osa.resid.")
+    }
     # Diagnostics matrix
     diagn <- rep$diagn
     nms <- names(diagn)
