@@ -21,7 +21,7 @@ plotspict.growth(rep, logax = FALSE, main = "Time-varying growth",
 
 \item{xlab}{Label of x-axis.}
 
-\item{plot.ci}{If TRUE 95% CIs are included.}
+\item{plot.ci}{If TRUE 95\% CIs are included.}
 
 \item{stamp}{Stamp plot with this character string.}
 }
