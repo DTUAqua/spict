@@ -105,7 +105,11 @@ check.ini <- function(input, ntrials=10, verbose=TRUE, numdigits=2){
         inimat <- rbind(c(0, inibasevec), inimat)
         rownames(inimat) <- c('Basevec', paste('Trial', 1:ntrials))
         colnames(inimat)[1] <- 'Distance'
-        return(list(propchng=round(propchng, nd), inimat=round(inimat, nd),
-                    resmat=round(resmat, nd)))
+        input$check.ini <- list(propchng=round(propchng, nd), inimat=round(inimat, nd),
+                                resmat=round(resmat, nd))
+        if (verbose) {
+          print(input$check.ini)
+        }
+        return(input)
     }
 }

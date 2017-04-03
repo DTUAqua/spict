@@ -19,3 +19,8 @@ _region_.tex
 _region_.el
 prv_report.log
 *.gz
+.Rproj.user
+*.Rproj
+vignette_*
+spict/inst/doc
+.Rbuildignore
