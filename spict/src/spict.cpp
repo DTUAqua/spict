@@ -655,7 +655,7 @@ Type objective_function<Type>::operator() ()
       if (efforttype == 2.0){
 	Fpredtmp = predictF2(logF(i-1), dt(i), sdf2(iisdf), delta, logeta);
       }
-      Type logFpred = log( ffacvec(i) * Fpredtmp + fconvec(i) );;
+      Type logFpred = log( ffacvec(i) * Fpredtmp + fconvec(i) );
       likval = dnorm(logF(i), logFpred, sqrt(dt(i-1))*sdf(iisdf), 1);
       ans-=likval;
       // DEBUGGING

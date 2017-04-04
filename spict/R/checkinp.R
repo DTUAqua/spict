@@ -658,8 +658,10 @@ check.inp <- function(inp){
     
     inp$timeCpred <- unique(c(inp$timeC, (seq(tail(inp$timeC,1), inp$timepredc, by=tail(inp$dtc,1))), inp$timepredc))
     inp$nobsCp <- length(inp$timeCpred)
-    inp$dtcp <- c(inp$dtc, rep(dtcpred, inp$nobsCp-inp$nobsC))
-    inp$ic <- cut(inp$timeCpred, inp$time, right=FALSE, labels=FALSE)
+    if( inp$nobsCp > inp$nobsC )  inp$dtcp <- c(inp$dtc, rep(tail(inp$dtc,1), inp$nobsCp-inp$nobsC-1),dtcpred) else inp$dtcp <- inp$dtc
+    
+    inp$ic <- cut(inp$timeCpred, inp$time, right=FALSE, labels=FALSE) 
+    
     # nc is number of states to integrate a catch observation over
     inp$nc <- rep(0, inp$nobsCp)
     for (i in 1:inp$nobsCp){

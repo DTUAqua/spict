@@ -35,8 +35,8 @@ get.mfrow <- function(n){
 #' @return Nothing
 #' @export
 add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, ...){
-    nman <- length(rep$man)
     scenarios <- attr( rep$man, "scenarios" )
+    nman <- length(scenarios)
     for (i in 1:nman){
         if (par == 'logCpred'){
             time <- rep$man[[ scenarios[i] ]]$inp$timeCpred

@@ -38,7 +38,7 @@
 #' rep <- fit.spict(pol$albacore)
 #' repman <- manage(rep)
 #' mansummary(repman) # To print projections
-manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
+manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL){
     if (scenarios == 'all'){
         scenarios <- 1:6
     }
@@ -48,14 +48,8 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
         repin$inp$manstart <- manstart
     }
     maninds <- which(repin$inp$time >= manstart)
-    # inpin is a list containing only observations (later prediction horizons are added)
-    ##inpin <- list()
     inpin <- repin$inp
-    ##inpin$dteuler <- repin$inp$dteuler
-    ##inpin$timeC <- repin$inp$timeC
-    ##inpin$obsC <- repin$inp$obsC
-    ##inpin$timeI <- repin$inp$timeI
-    ##inpin$obsI <- repin$inp$obsI
+
     timelastobs <- repin$inp$time[repin$inp$indlastobs]
     if (!repin$inp$timepredc < timelastobs+1){
         # Add prediction horizons
@@ -66,7 +60,8 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
         attr(repman, "scenarios") <- scenarios 
         if (1 %in% scenarios){
             # 1. Specify the catch, which will be taken each year in the prediction period
-            catch <- tail(inpin$obsC, 1)
+            lastyearidxs <- which.min(cumsum(rev(inpin$dtc))>=1) ## warning: this will not make sense with subannual/mixed data with missing values
+            if(is.null(catch)) catch <- sum(tail(inpin$obsC, lastyearidxs))
             repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg)
         }
         if (2 %in% scenarios){
@@ -150,32 +145,23 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
 
 #' @name take.c
 #' @title Calculate management when taking a constant catch (proxy for setting a TAC).
-#' @param catchfac Take the catch corresponding to the catch at manstart time catchfac.
+#' @param catch Take this catch 'dtpredc' ahead from manstart time 
 #' @param inpin Input list.
 #' @param repin Results list.
-#' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
+#' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
+#' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3) 
 #' @return List containing results of management calculations.
 #' @export
-take.c <- function(catchfac, inpin, repin, dbg=0){
-    #inpc <- check.inp(inpin)
-    inpt <- inpin
-    inpt$timeC <- repin$inp$timeCpred
-    inpt$obsC <- unname(get.par('logCpred', repin, exp=TRUE)[, 2])
-    obsinds <- match(repin$inp$timeC, inpt$timeC)
-    inpt$obsC[obsinds] <- repin$inp$obsC
-    maninds <- which(inpt$timeC >= inpin$manstart)
-    catch <- inpt$obsC[maninds[1]-1]
-    inpt$obsC[maninds] <- rep(catch, length(maninds))
-    inpt$stdevfacC <- c(inpt$stdevfacC, rep(tail(inpt$stdevfacC,1), length(maninds)) )
-    inpt$dtc <- c(inpt$dtc, rep(tail(inpt$dtc,1), length(maninds)) )
+take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3){
     
-    #nmaninds <- length(maninds)
-    #timecatch <- annual(inpc$time[maninds[-nmaninds]],
-    #                    numeric(length(maninds[-nmaninds])))$anntime
-    #ncatch <- length(timecatch)
-    #obscatch <- rep(catch, ncatch)
-    #inpt$timeC <- c(inpt$timeC, timecatch)
-    #inpt$obsC <- c(inpt$obsC, obscatch)
+    inpt <- inpin
+    tmpTime <- repin$inp$timeCpred  
+    maninds <- which(tmpTime >= inpin$manstart)
+    inpt$timeC <- c( inpt$timeC, tmpTime[maninds] )
+    inpt$obsC <- c( inpt$obsC, rep(catch, length(maninds)) )
+    inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(maninds)) )  
+    inpt$dtc <- c(inpt$dtc, rep(inpt$dtpredc, length(maninds)) )
+    
     inpt <- check.inp(inpt)
     # Make TMB data and object
     plt <- repin$obj$env$parList(repin$opt$par)
