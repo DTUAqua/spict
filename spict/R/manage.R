@@ -38,7 +38,7 @@
 #' rep <- fit.spict(pol$albacore)
 #' repman <- manage(rep)
 #' mansummary(repman) # To print projections
-manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL){
+manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, catchList=NULL){
     if (scenarios == 'all'){
         scenarios <- 1:6
     }
@@ -60,9 +60,9 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL){
         attr(repman, "scenarios") <- scenarios 
         if (1 %in% scenarios){
             # 1. Specify the catch, which will be taken each year in the prediction period
-            lastyearidxs <- which.min(cumsum(rev(inpin$dtc))>=1) ## warning: this will not make sense with subannual/mixed data with missing values
+            lastyearidxs <- min( which( cumsum(rev(inpin$dtc))>=1 ) ) ## warning: this will not make sense with subannual/mixed data with missing values
             if(is.null(catch)) catch <- sum(tail(inpin$obsC, lastyearidxs))
-            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg)
+            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg, catchList=catchList)
         }
         if (2 %in% scenarios){
             # Keep current F
@@ -152,15 +152,26 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
 #' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3) 
 #' @return List containing results of management calculations.
 #' @export
-take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3){
+take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
     
     inpt <- inpin
-    tmpTime <- repin$inp$timeCpred  
-    maninds <- which(tmpTime >= inpin$manstart)
-    inpt$timeC <- c( inpt$timeC, tmpTime[maninds] )
-    inpt$obsC <- c( inpt$obsC, rep(catch, length(maninds)) )
-    inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(maninds)) )  
-    inpt$dtc <- c(inpt$dtc, rep(inpt$dtpredc, length(maninds)) )
+    if(is.null(catchList)){
+        tmpTime <- repin$inp$timeCpred  
+        maninds <- which(tmpTime >= inpin$manstart)
+        inpt$timeC <- c( inpt$timeC, tmpTime[maninds] )
+        inpt$obsC <- c( inpt$obsC, rep(catch, length(maninds)) )
+        inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(maninds)) )  
+        inpt$dtc <- c(inpt$dtc, rep(inpt$dtpredc, length(maninds)) )
+    } else {
+        inpt$timeC <- c( inpt$timeC, catchList$timeC )
+        inpt$obsC <- c( inpt$obsC, catchList$obsC )
+        if(is.null(catchList$stdevfacC))
+            inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(catchList$timeC)) )  else
+            inpt$stdevfacC <- c(inpt$stdevfacC, catchList$stdevfacC)
+        
+        inpt$dtc <- c(inpt$dtc, catchList$dtc )
+    }
+
     
     inpt <- check.inp(inpt)
     # Make TMB data and object

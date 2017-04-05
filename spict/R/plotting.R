@@ -43,7 +43,7 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
         } else {
             time <- rep$man[[ scenarios[i] ]]$inp$time
         }
-        maninds <- which(time >= rep$inp$manstart)
+        maninds <- which(time >= rep$inp$timerange[2]) ##rep$inp$manstart)
         maninds <- (maninds[1] - index.shift):tail(maninds, 1)
         bman <- get.par(par, rep$man[[ scenarios[i] ]], exp=TRUE)[maninds, 2]
         if (is.null(par2)){
@@ -910,15 +910,16 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         cicol <- 'lightgray'
         tvgflag <- rep$inp$timevaryinggrowth | rep$inp$logmcovflag
         qf <- get.par('logqf', rep, exp=TRUE)
-        Fest <- get.par('logFs', rep, exp=TRUE)
-        logFest <- get.par('logFs', rep)
+        Fest <- get.par('logFnotS', rep, exp=TRUE)
+        logFest <- get.par('logFnotS', rep)
+        
         if (tvgflag){
             Fmsy <- get.par('logFmsyvec', rep, exp=TRUE)
             Fmsyvec <- as.data.frame(Fmsy)
             Fmsyvec$msy <- Fmsyvec$est
             fmsycols <- matrix(rep(Fmsyvec$msy, each=3), ncol=3, byrow=TRUE)
-            FF <- get.par('logFFmsy', rep, exp=TRUE)[, 1:3] * fmsycols
-            logFF <- get.par('logFFmsy', rep)[, 1:3] + log(fmsycols)
+            FF <- get.par('logFFmsynotS', rep, exp=TRUE)[, 1:3] * fmsycols
+            logFF <- get.par('logFFmsynotS', rep)[, 1:3] + log(fmsycols)
             rel.axes <- FALSE
         } else {
             Fmsy <- get.par('logFmsy', rep, exp=TRUE)
@@ -927,50 +928,24 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
                 Fmsy <- Fmsyd
             }
             Fmsyvec <- get.msyvec(inp, Fmsy)
-            FF <- get.par('logFFmsy', rep, exp=TRUE)[, 1:3] * Fmsy[2]
-            logFF <- get.par('logFFmsy', rep)[, 1:3] + log(Fmsy[2])
+            FF <- get.par('logFFmsynotS', rep, exp=TRUE)[, 1:3] * Fmsy[2]
+            logFF <- get.par('logFFmsynotS', rep)[, 1:3] + log(Fmsy[2])
         }
         Fmsy <- Fmsy[Fmsy[, 1:3] < 50] # only use these inds to calculate ylim
-        if (min(inp$dtc) < 1){
-            # Annual    
-            al1 <- annual(inp$time, logFest[, 1])
-            al2 <- annual(inp$time, logFest[, 2])
-            al3 <- annual(inp$time, logFest[, 3])
-            inds <- which(!is.na(al1$annvec) & al2$anntime<=tail(inp$time[inp$indest],1))
-            cl <- exp(al1$annvec[inds])
-            cu <- exp(al3$annvec[inds])
-            inds <- which(!is.na(al2$annvec) & al2$anntime<=tail(inp$time[inp$indest],1))
-            time <- al1$anntime[inds]
-            F <- exp(al2$annvec[inds])
-            inds <- which(!is.na(al1$annvec) & al2$anntime>=tail(inp$time[inp$indest],1))
-            clp <- exp(al1$annvec[inds])
-            cup <- exp(al3$annvec[inds])
-            inds <- which(!is.na(al2$annvec) & al2$anntime>=tail(inp$time[inp$indest],1))
-            timep <- al1$anntime[inds]
-            Fp <- exp(al2$annvec[inds])
-            al1f <- annual(inp$time, logFF[, 1])
-            al2f <- annual(inp$time, logFF[, 2])
-            al3f <- annual(inp$time, logFF[, 3])
-            inds <- which(!is.na(al1f$annvec))
-            clf <- exp(al1f$annvec[inds]) #*Fmsy[2]
-            cuf <- exp(al3f$annvec[inds]) #*Fmsy[2]
-            inds <- which(!is.na(al2f$annvec))
-            timef <- al2f$anntime[inds]
-            Ff <- exp(al2f$annvec[inds]) #*Fmsy[2]
-        } else {
-            time <- inp$time[inp$indest]
-            cl <- Fest[inp$indest, 1]
-            F <- Fest[inp$indest, 2]
-            cu <- Fest[inp$indest, 3]
-            timep <- inp$time[inp$indpred]
-            clp <- Fest[inp$indpred, 1]
-            Fp <- Fest[inp$indpred, 2]
-            cup <- Fest[inp$indpred, 3]
-            timef <- inp$time
-            Ff <- Fest[, 2]
-            clf <- FF[, 1] #*Fmsy[2]
-            cuf <- FF[, 3] #*Fmsy[2]
-        }
+
+        time <- inp$time[inp$indest]
+        cl <- Fest[inp$indest, 1]
+        F <- Fest[inp$indest, 2]
+        cu <- Fest[inp$indest, 3]
+        timep <- inp$time[inp$indpred]
+        clp <- Fest[inp$indpred, 1]
+        Fp <- Fest[inp$indpred, 2]
+        cup <- Fest[inp$indpred, 3]
+        timef <- inp$time
+        Ff <- Fest[, 2]
+        clf <- FF[, 1] #*Fmsy[2]
+        cuf <- FF[, 3] #*Fmsy[2]
+            
         #ylimflag <- !is.null(ylim)
         ylimflag <- !is.null(ylim) & length(ylim) == 2 # If FALSE ylim is manually specified
         # Check whether nan values are present in CI limits
@@ -1019,8 +994,9 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             polygon(c(timef[relfininds], rev(timef[relfininds])),
                     c(clf[relfininds], rev(cuf[relfininds])), col=cicol2, border=cicol2)
         }
-        if (min(inp$dtc) < 1){ # Plot estimated sub annual F 
-            lines(inp$time, Fest[, 2], col=rgb(0, 0, 1, 0.4))
+        if (min(inp$dtc) < 1){ # Plot estimated sub annual F
+            sF <- get.par('logFs', rep, exp=TRUE)
+            lines(inp$time, sF[, 2], col=rgb(0, 0, 1, 0.4))
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
         if (plot.obs){
@@ -1080,49 +1056,23 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         inp <- rep$inp
         cicol <- 'lightgray'
         qf <- get.par('logqf', rep, exp=TRUE)
-        Fest <- get.par('logFs', rep, exp=TRUE)
-        FF <- get.par('logFFmsy', rep, exp=TRUE)
-        logFF <- get.par('logFFmsy', rep)
-        if (min(inp$dtc) < 1){
-            # Annual    
-            al1 <- annual(inp$time, logFF[, 1])
-            al2 <- annual(inp$time, logFF[, 2])
-            al3 <- annual(inp$time, logFF[, 3])
-            inds <- which(!is.na(al1$annvec) & al2$anntime<=tail(inp$time[inp$indest],1))
-            cl <- exp(al1$annvec[inds])
-            cu <- exp(al3$annvec[inds])
-            inds <- which(!is.na(al2$annvec) & al2$anntime<=tail(inp$time[inp$indest],1))
-            time <- al1$anntime[inds]
-            F <- exp(al2$annvec[inds])
-            inds <- which(!is.na(al1$annvec) & al2$anntime>=tail(inp$time[inp$indest],1))
-            clp <- exp(al1$annvec[inds])
-            cup <- exp(al3$annvec[inds])
-            inds <- which(!is.na(al2$annvec) & al2$anntime>=tail(inp$time[inp$indest],1))
-            timep <- al1$anntime[inds]
-            Fp <- exp(al2$annvec[inds])
-            al1f <- annual(inp$time, logFF[, 1])
-            al2f <- annual(inp$time, logFF[, 2])
-            al3f <- annual(inp$time, logFF[, 3])
-            inds <- which(!is.na(al1f$annvec))
-            clf <- exp(al1f$annvec[inds])
-            cuf <- exp(al3f$annvec[inds])
-            inds <- which(!is.na(al2f$annvec))
-            timef <- al2f$anntime[inds]
-            Ff <- exp(al2f$annvec[inds])
-        } else {
-            time <- inp$time[inp$indest]
-            cl <- FF[inp$indest, 1]
-            F <- FF[inp$indest, 2]
-            cu <- FF[inp$indest, 3]
-            timep <- inp$time[inp$indpred]
-            clp <- FF[inp$indpred, 1]
-            Fp <- FF[inp$indpred, 2]
-            cup <- FF[inp$indpred, 3]
-            timef <- inp$time
-            clf <- FF[, 1]
-            Ff <- FF[, 2]
-            cuf <- FF[, 3]
-        }
+        FF <- get.par('logFFmsynotS', rep, exp=TRUE)
+        logFF <- get.par('logFFmsynotS', rep)
+        FFs <- get.par('logFFmsy', rep, exp=TRUE)
+        
+        time <- inp$time[inp$indest]
+        cl <- FF[inp$indest, 1]
+        F <- FF[inp$indest, 2]
+        cu <- FF[inp$indest, 3]
+        timep <- inp$time[inp$indpred]
+        clp <- FF[inp$indpred, 1]
+        Fp <- FF[inp$indpred, 2]
+        cup <- FF[inp$indpred, 3]
+        timef <- inp$time
+        clf <- FF[, 1]
+        Ff <- FF[, 2]
+        cuf <- FF[, 3]
+        
         flag <- length(cu) == 0 | all(!is.finite(cu))
         if (flag){
             # CIs don't exist or are not finite
@@ -1147,8 +1097,8 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             polygon(c(timef[fininds], rev(timef[fininds])), c(clf[fininds], rev(cuf[fininds])),
                     col=cicol2, border=cicol2)
         }
-        if (min(inp$dtc) < 1){ # Plot estimated sub annual F 
-            lines(inp$time, FF[, 2], col=rgb(0, 0, 1, 0.4))
+        if (min(inp$dtc) < 1){ # Plot estimated sub annual F
+            lines(inp$time, FFs[, 2], col=rgb(0, 0, 1, 0.4))
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
         if (plot.obs){

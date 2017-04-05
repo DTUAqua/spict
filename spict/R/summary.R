@@ -384,11 +384,12 @@ sumspict.srefpoints <- function(rep, numdigits=8){
 sumspict.states <- function(rep, numdigits=8){
     order <- get.order()
     colnms <- get.colnms()
+    idx <- rep$obj$env$data$indlastobs
     stateout <- rbind(
         get.par(parname='logBl', rep, exp=TRUE)[order],
-        get.par(parname='logFl', rep, exp=TRUE)[order],
+        get.par(parname='logFnotS', rep, exp=TRUE)[idx,order],
         get.par(parname='logBlBmsy', rep, exp=TRUE)[order],
-        get.par(parname='logFlFmsy', rep, exp=TRUE)[order])
+        get.par(parname='logFFmsynotS', rep, exp=TRUE)[idx,order])
     stateout[, 4] <- log(stateout[, 4])
     stateout <- round(stateout, numdigits)
     colnames(stateout) <- colnms
@@ -421,11 +422,12 @@ sumspict.predictions <- function(rep, numdigits=8){
     order <- get.order()
     colnms <- get.colnms()
     EBinf <- get.EBinf(rep)
+    idx <- rep$obj$env$data$dtprediind
     predout <- rbind(
         get.par(parname='logBp', rep, exp=TRUE)[order],
-        get.par(parname='logFp', rep, exp=TRUE)[order],
+        get.par(parname='logFnotS', rep, exp=TRUE)[idx,order],
         get.par(parname='logBpBmsy', rep, exp=TRUE)[order],
-        get.par(parname='logFpFmsy', rep, exp=TRUE)[order],
+        get.par(parname='logFFmsynotS', rep, exp=TRUE)[idx,order],
         tail(get.par(parname='logCpred', rep, exp=TRUE),1)[order],
         c(EBinf, NA, NA, EBinf))
     inds <- predout[, 4] <= 0

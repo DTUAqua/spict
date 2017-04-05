@@ -992,6 +992,15 @@ Type objective_function<Type>::operator() ()
     std::cout << "--- DEBUG: Calculations done, doing ADREPORTS --- ans: " << ans << std::endl;
   }
 
+  vector<Type> logFnotS(ns);
+  vector<Type> logFFmsynotS(ns);
+  
+  Type meanlogS = (logFs - logF).sum() / logF.size(); 
+  for(int i=0; i<ns; i++){
+    logFnotS(i) = logF(i) + meanlogS;
+    logFFmsynotS(i) = logFnotS(i) - logFmsyvec(i); 
+  }
+
   // ADREPORTS
   ADREPORT(Bmsy);  
   ADREPORT(Bmsyd);
@@ -1080,8 +1089,11 @@ Type objective_function<Type>::operator() ()
       ADREPORT(logFmsyvec);
       ADREPORT(logMSYvec);
     }
+    ADREPORT(logFnotS);
+    ADREPORT(logFFmsynotS);
   }
-
+  
+  
   // REPORTS (these don't require sdreport to be output)
   REPORT(Cp);
   REPORT(Ep);
