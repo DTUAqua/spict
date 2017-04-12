@@ -995,9 +995,9 @@ Type objective_function<Type>::operator() ()
   vector<Type> logFnotS(ns);
   vector<Type> logFFmsynotS(ns);
   
-  Type meanlogS = (logFs - logF).sum() / logF.size(); 
+  Type meanS = (exp(logFs - logF)).sum() / logF.size(); 
   for(int i=0; i<ns; i++){
-    logFnotS(i) = logF(i) + meanlogS;
+    logFnotS(i) = logF(i) + log(meanS);
     logFFmsynotS(i) = logFnotS(i) - logFmsyvec(i); 
   }
 
