@@ -51,7 +51,7 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, cat
     inpin <- repin$inp
 
     timelastobs <- repin$inp$time[repin$inp$indlastobs]
-    if (!repin$inp$timepredc < timelastobs+1){
+    if (!repin$inp$timepredc < timelastobs){
         # Add prediction horizons
         inpin$timepredc <- repin$inp$timepredc
         inpin$timepredi <- repin$inp$timepredi
@@ -95,7 +95,7 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, cat
         # Create an baseline F trajectory with constant F and store
         repin$manbase <- prop.F(fac=1, inpin, repin, maninds, dbg=dbg)
     } else {
-        stop('Error: Could not do management calculations because prediction horizon is too short. Increase inp$timepredc to be at least one year into the future.\n')
+        stop('Error: Could not do management calculations because prediction horizon is too short. Increase inp$timepredc to be at least one timestep into the future.\n')
     }
     return(repin)
 }

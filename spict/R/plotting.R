@@ -2097,11 +2097,11 @@ plotspict.retro <- function(rep, stamp=get.version()){
     }
     fs <- list()
     for (i in 1:nretroyear){
-        fs[[i]] <- get.par('logF', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 2]
+        fs[[i]] <- get.par('logFnotS', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 2]
     }
     ffs <- list()
     for (i in 1:nretroyear){
-        ffs[[i]] <- get.par('logFFmsy', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 2]
+        ffs[[i]] <- get.par('logFFmsynotS', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 2]
     }
     time <- list()
     for (i in 1:nretroyear){
