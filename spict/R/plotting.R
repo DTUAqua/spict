@@ -1895,6 +1895,7 @@ plot.spictcls <- function(x, stamp=get.version(), ...){
             } else {
                 opar <- par(mfrow=c(3, 3), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
             }
+            on.exit(par(opar))
             # Biomass
             plotspict.biomass(rep, logax=logax, stamp='')
             # F
@@ -1914,7 +1915,7 @@ plot.spictcls <- function(x, stamp=get.version(), ...){
             } else {
                 opar <- par(mfrow=c(2, 1), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2,3.5))
             }
-            on.exit(opar)
+            on.exit(par(opar))
         }
         # Production curve
         plotspict.production(rep, stamp='')
@@ -2156,7 +2157,6 @@ plotspict.retro <- function(rep, stamp=get.version()){
   }
   sel <- function(x) x[,2]
   # Do plots
-  par(mfrow=c(2, 2))
   plot(time[[1]], sel(bs[[1]]), typ='l', ylim=range(sapply(bs, sel)), xlab='Time',
        ylab = expression(B[t]), lwd=1.5)
   polygon(c(time[[1]], rev(time[[1]])), c(bs[[1]][,1], rev(bs[[1]][,3])), col = "#00000022", border = NA)
