@@ -411,9 +411,9 @@ Type objective_function<Type>::operator() ()
   //vector<Type> rp(nm);
   //vector<Type> logrp(nm);
   for(int i=0; i<nm; i++){ 
-    rold(i) =  abs(gamma * m(i) / K);
+    rold(i) =  CppAD::abs(gamma * m(i) / K);
     logrold(i) = log(rold(i)); 
-    rc(i) = abs(2.0 * rold(i) * (n - 1.0) / n);
+    rc(i) = CppAD::abs(2.0 * rold(i) * (n - 1.0) / n);
     logrc(i) = log(rc(i)); 
     //rp(i) = abs(r(i) * (n - 1.0));
     //logrp(i) = log(rp(i)); 
