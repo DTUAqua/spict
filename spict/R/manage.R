@@ -38,7 +38,7 @@
 #' rep <- fit.spict(pol$albacore)
 #' repman <- manage(rep)
 #' mansummary(repman) # To print projections
-manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
+manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, catchList=NULL){
     if (scenarios == 'all'){
         scenarios <- 1:6
     }
@@ -48,24 +48,21 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
         repin$inp$manstart <- manstart
     }
     maninds <- which(repin$inp$time >= manstart)
-    # inpin is a list containing only observations (later prediction horizons are added)
-    inpin <- list()
-    inpin$dteuler <- repin$inp$dteuler
-    inpin$timeC <- repin$inp$timeC
-    inpin$obsC <- repin$inp$obsC
-    inpin$timeI <- repin$inp$timeI
-    inpin$obsI <- repin$inp$obsI
+    inpin <- repin$inp
+
     timelastobs <- repin$inp$time[repin$inp$indlastobs]
-    if (!repin$inp$timepredc < timelastobs+1){
+    if (!repin$inp$timepredc < timelastobs){
         # Add prediction horizons
         inpin$timepredc <- repin$inp$timepredc
         inpin$timepredi <- repin$inp$timepredi
         inpin$manstart <- repin$inp$manstart
         repman <- list() # Output list
+        attr(repman, "scenarios") <- scenarios 
         if (1 %in% scenarios){
             # 1. Specify the catch, which will be taken each year in the prediction period
-            catch <- tail(inpin$obsC, 1)
-            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg)
+            lastyearidxs <- min( which( cumsum(rev(inpin$dtc))>=1 ) ) ## warning: this will not make sense with subannual/mixed data with missing values
+            if(is.null(catch)) catch <- sum(tail(inpin$obsC, lastyearidxs))
+            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg, catchList=catchList)
         }
         if (2 %in% scenarios){
             # Keep current F
@@ -98,7 +95,7 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0){
         # Create an baseline F trajectory with constant F and store
         repin$manbase <- prop.F(fac=1, inpin, repin, maninds, dbg=dbg)
     } else {
-        stop('Error: Could not do management calculations because prediction horizon is too short. Increase inp$timepredc to be at least one year into the future.\n')
+        stop('Error: Could not do management calculations because prediction horizon is too short. Increase inp$timepredc to be at least one timestep into the future.\n')
     }
     return(repin)
 }
@@ -148,29 +145,34 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
 
 #' @name take.c
 #' @title Calculate management when taking a constant catch (proxy for setting a TAC).
-#' @param catchfac Take the catch corresponding to the catch at manstart time catchfac.
+#' @param catch Take this catch 'dtpredc' ahead from manstart time 
 #' @param inpin Input list.
 #' @param repin Results list.
-#' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
+#' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
+#' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3) 
 #' @return List containing results of management calculations.
 #' @export
-take.c <- function(catchfac, inpin, repin, dbg=0){
-    #inpc <- check.inp(inpin)
+take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
+    
     inpt <- inpin
-    inpt$timeC <- repin$inp$timeCpred
-    inpt$obsC <- unname(get.par('logCpred', repin, exp=TRUE)[, 2])
-    obsinds <- match(repin$inp$timeC, inpt$timeC)
-    inpt$obsC[obsinds] <- repin$inp$obsC
-    maninds <- which(inpt$timeC >= inpin$manstart)
-    catch <- inpt$obsC[maninds[1]-1]
-    inpt$obsC[maninds] <- rep(catch, length(maninds))
-    #nmaninds <- length(maninds)
-    #timecatch <- annual(inpc$time[maninds[-nmaninds]],
-    #                    numeric(length(maninds[-nmaninds])))$anntime
-    #ncatch <- length(timecatch)
-    #obscatch <- rep(catch, ncatch)
-    #inpt$timeC <- c(inpt$timeC, timecatch)
-    #inpt$obsC <- c(inpt$obsC, obscatch)
+    if(is.null(catchList)){
+        tmpTime <- repin$inp$timeCpred  
+        maninds <- which(tmpTime >= inpin$manstart)
+        inpt$timeC <- c( inpt$timeC, tmpTime[maninds] )
+        inpt$obsC <- c( inpt$obsC, rep(catch, length(maninds)) )
+        inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(maninds)) )  
+        inpt$dtc <- c(inpt$dtc, rep(inpt$dtpredc, length(maninds)) )
+    } else {
+        inpt$timeC <- c( inpt$timeC, catchList$timeC )
+        inpt$obsC <- c( inpt$obsC, catchList$obsC )
+        if(is.null(catchList$stdevfacC))
+            inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(catchList$timeC)) )  else
+            inpt$stdevfacC <- c(inpt$stdevfacC, catchList$stdevfacC)
+        
+        inpt$dtc <- c(inpt$dtc, catchList$dtc )
+    }
+
+    
     inpt <- check.inp(inpt)
     # Make TMB data and object
     plt <- repin$obj$env$parList(repin$opt$par)
@@ -230,8 +232,9 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
             BBn <- paste0('BqBmsy') # Should use / instead of q, but / is not accepted in varnames
             FFn <- paste0('FqFmsy')
             EBinfBn <- paste0('EBinfqBmsy')
-            
-            nsc <- length(repman)
+
+            scenarios <- attr(repman,"scenarios")
+            nsc <- length( scenarios )
             Cnextyear <- matrix(0, nsc, 3)
             colnames(Cnextyear) <- get.cn(Cn)
             Bnextyear <- matrix(0, nsc, 3)
@@ -246,7 +249,7 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
             perc.dF <- numeric(nsc)
             EBinf <- numeric(nsc)
             for(i in 1:nsc){
-                rp <- repman[[i]]
+                rp <- repman[[ scenarios[i] ]]  ##repman[[i]]
                 EBinf[i] <- get.EBinf(rp)
                 perc.dB[i] <- get.pdelta(rep, rp, indstart, indnext, parname='logB')
                 perc.dF[i] <- get.pdelta(rep, rp, indstart, indnext, parname='logF')
@@ -274,17 +277,19 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
             colnames(df)[qinds] <- sub('q', '/', colnames(df)[qinds]) # Replace q with /
             # Data frame with uncertainties of absolute predictions
             inds <- c(1, 3)
-            dfabs <- cbind(Cnextyear[, inds], Bnextyear[, inds], Fnextyear[, inds])
+            dfabs <- cbind(Cnextyear[, inds,drop=FALSE], Bnextyear[, inds,drop=FALSE], Fnextyear[, inds,drop=FALSE])
             colnames(dfabs) <- c(colnames(Cnextyear)[inds], colnames(Bnextyear)[inds],
                                  colnames(Fnextyear)[inds])
             # Data frame with uncertainties of relateive predictions
-            dfrel <- cbind(BBnextyear[, inds], FFnextyear[, inds])
+            dfrel <- cbind(BBnextyear[, inds,drop=FALSE], FFnextyear[, inds,drop=FALSE])
             colnames(dfrel) <- c(colnames(BBnextyear)[inds], colnames(FFnextyear)[inds])
             qinds <- grep('q', colnames(dfrel))
             colnames(dfrel)[qinds] <- sub('q', '/', colnames(dfrel)[qinds]) # Replace q with /
             # Set row names
+            scenarios <- attr(repman, "scenarios")
             rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy',
-                    '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')
+                    '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')[scenarios]
+            
             rownames(df) <- rn
             rownames(dfrel) <- rn
             rownames(dfabs) <- rn

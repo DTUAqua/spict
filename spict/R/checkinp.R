@@ -326,7 +326,7 @@ check.inp <- function(inp){
     inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
     
     # -- MODEL OPTIONS --
-    if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB', 'logmre')
+    if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB', 'logmre','SARvec')
     if (!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
     # Index related
     if (!"onealpha" %in% names(inp)){
@@ -641,6 +641,7 @@ check.inp <- function(inp){
     inp$splinematfine <- make.splinemat(inp$nseasons, inp$splineorder, dtfine=1/100)
     inp$seasonindex <- 1/inp$dteuler*(inp$time %% 1)
     inp$seasons <- rep(0, inp$ns)
+    inp$seasonindex2 <- rep(1:inp$ns,each=inp$nseasons,length.out=inp$ns)
     for (i in 1:inp$nseasons){
         frac <- 1/inp$nseasons
         modtime <- inp$time %% 1
@@ -648,15 +649,19 @@ check.inp <- function(inp){
         inp$seasons[inds] <- i
     }
     # ic is the indices of inp$time to which catch observations correspond
-    if (length(inp$dtc) > 0){
-        dtcpred <- min(inp$dtc)
-    } else {
-        dtcpred <- 1
-    }
-    inp$timeCpred <- unique(c(inp$timeC, (seq(tail(inp$timeC,1), inp$timepredc, by=dtcpred))))
+    #if (length(inp$dtc) > 0){
+    #    dtcpred <- min(inp$dtc)
+    #} else {
+    #    dtcpred <- 1
+    #}
+    dtcpred <- inp$dtpredc
+    
+    inp$timeCpred <- unique(c(inp$timeC, (seq(tail(inp$timeC,1), inp$timepredc, by=tail(inp$dtc,1))), inp$timepredc))
     inp$nobsCp <- length(inp$timeCpred)
-    inp$dtcp <- c(inp$dtc, rep(dtcpred, inp$nobsCp-inp$nobsC))
-    inp$ic <- cut(inp$timeCpred, inp$time, right=FALSE, labels=FALSE)
+    if( inp$nobsCp > inp$nobsC )  inp$dtcp <- c(inp$dtc, rep(tail(inp$dtc,1), inp$nobsCp-inp$nobsC-1),dtcpred) else inp$dtcp <- inp$dtc
+    
+    inp$ic <- cut(inp$timeCpred, inp$time, right=FALSE, labels=FALSE) 
+    
     # nc is number of states to integrate a catch observation over
     inp$nc <- rep(0, inp$nobsCp)
     for (i in 1:inp$nobsCp){
@@ -812,9 +817,21 @@ check.inp <- function(inp){
     if ('logr' %in% names(inp$ini) & 'logm' %in% names(inp$ini)){
         inp$ini$logr <- NULL # If both r and m are specified use m and discard r
     }
+    # find number of regimes for 'm'
+    if(!'MSYregime' %in% names(inp)){
+        inp$MSYregime<-factor(rep(1,length(inp$time)))
+    } else if(length(inp$MSYregime)<length(inp$time)) { # manage changes number of time steps!
+        inp$MSYregime<-c( inp$MSYregime, rep( tail(inp$MSYregime,1), length(inp$time)-length(inp$MSYregime)) )
+    }
+    inp$noms<-nlevels(inp$MSYregime)
+    inp$ir<-as.numeric(inp$MSYregime)
+
+    if (!'logitSARphi' %in% names(inp$ini)) inp$ini$logitSARphi <- 0
+    if (!'logSdSAR' %in% names(inp$ini)) inp$ini$logSdSAR <- -2
+    
     if (!'logr' %in% names(inp$ini)){
-        if (!'logm' %in% names(inp$ini)){
-            inp$ini$logm <- unname(log(guess.m(inp)))
+        if (!'logm' %in% names(inp$ini) | length(inp$ini$logm)!=inp$noms){
+            inp$ini$logm <- rep(unname(log(guess.m(inp))), inp$noms)
         }
         r <- exp(inp$ini$logm)/exp(inp$ini$logK) * n^(n/(n-1))
         inp$ini$logr <- log(r)
@@ -825,6 +842,8 @@ check.inp <- function(inp){
         #    inp$ini$logr <- log(-r)
         #}
     }
+    if(length(inp$ini$logm)!=inp$noms) inp$ini$logm <- rep(inp$ini$logm,noms)
+    
     if ('logr' %in% names(inp$ini)){
         nr <- length(inp$ini$logr)
         if (!'ir' %in% names(inp) | nr == 1){
@@ -928,7 +947,7 @@ check.inp <- function(inp){
         r <- exp(inp$ini$logr)
         K <- exp(inp$ini$logK)
         n <- exp(inp$ini$logn)
-        m <- r * K / (n^(n/(n-1)))
+        m <- rep( r * K / (n^(n/(n-1))), inp$noms)
     }
     logm <- inp$ini$logm # Store this to be able to set logmre later
     if (inp$timevaryinggrowth){
@@ -987,6 +1006,7 @@ check.inp <- function(inp){
     #if ("logmre" %in% names(inp$ini)){    
     #    inp$ini$logmre <- check.mat(inp$ini$logmre, c(inp$nstocks, inp$ns), 'inp$ini$logmre')
     #}
+    inp$ini$SARvec <- rep(0, max(inp$seasonindex2))
     
     # Reorder parameter list
     inp$parlist <- list(logm=inp$ini$logm,
@@ -1012,7 +1032,10 @@ check.inp <- function(inp){
                         logF=inp$ini$logF,
                         logu=inp$ini$logu,
                         logB=inp$ini$logB,
-                        logmre=inp$ini$logmre)
+                        logmre=inp$ini$logmre,
+                        SARvec=inp$ini$SARvec,
+                        logitSARphi=inp$ini$logitSARphi,
+                        logSdSAR=inp$ini$logSdSAR)
 
 
     # -- PRIORS --
@@ -1168,13 +1191,16 @@ check.inp <- function(inp){
     # Determine fixed parameters
     forcefixpars <- c() # Parameters that are forced to be fixed.
     if (inp$nseasons == 1){
-        forcefixpars <- c('logphi', 'logu', 'logsdu', 'loglambda', forcefixpars)
+        forcefixpars <- c('logphi', 'logu', 'logsdu', 'loglambda', 'SARvec','logitSARphi','logSdSAR',forcefixpars)
     } else {
         if (inp$seasontype == 1){ # Use spline
             forcefixpars <- c('logu', 'logsdu', 'loglambda', forcefixpars)
         }
         if (inp$seasontype == 2){ # Use coupled SDEs
             forcefixpars <- c('logphi', forcefixpars)
+        }
+        if(inp$seasontype == 3){ # Use spline + AR
+            forcefixpars <- c('logu', 'logsdu', 'loglambda', forcefixpars)
         }
     }
     if (inp$robflagc == 0 & inp$robflagi == 0 & inp$robflage == 0){
