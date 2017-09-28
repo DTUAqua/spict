@@ -1,15 +1,19 @@
-#' @name SPiCT_Feq08Fmsy
-#' @title SPiCT assessment with F equal 80\% Fmsy harvest control rule
+#' @name spict_catchPercentile
+#' @title SPiCT assessment with specified percentiles from the predicted catch distribution
 #' 
 #' @details SPiCT assessment is done using catch and relative biomass index observations. 
-#' Stock status estimates are used to set the TAC for the next year, equal to the
-#' catch that corresponds to fishing mortality equal to 80\% of Fmsy.
+#' Stock status estimates are used to set the TAC for the next year, equal to the specified
+#' percentile of the distribution of predicted catches.
 #'
 #' @param x A position in a data-limited mehods data object
 #' @param DLM_data A data-limited methods data object (see DLMtool)
 #' @param reps The number of stochastic samples of the TAC recommendation
+#' @param percentile The percentile of the catch distribution to be used for setting TAC
+#' @param cap Logical; If true TAC is multiplied with 1 or the ratio of current biomass
+#'   over Blim (0.5*Bmsy) if this ratio is smaller than 1. Default is FALSE.
 #'
-#' @return A numeric vector of TAC recommendations
+#' @return A numeric vector of TAC recommendations (one TAC and a number of NAs corresponding to
+#'   reps - 1).
 #' @export
 #'
 #' @examples
@@ -17,9 +21,9 @@
 #' library(DLMtool)
 #' 
 #' ## Put together an operating model from the available DLM toolkit examples
-#' stock <- DLMdat[[6]] ## Herring
-#' Fleet.example <- DLMdat[[22]] # Generic_IncE
-#' Observation.example <- DLMdat[[34]] # Precise_Unbiased
+#' stock <- Herring
+#' Fleet.example <- Generic_IncE
+#' Observation.example <- Precise_Unbiased
 #' 
 #' ## Remove changes in life history parameters
 #' stock@Mgrad <- c(0,0)
@@ -31,37 +35,56 @@
 #' stock@D <- c(0.3, 0.4)
 #'
 #' OM.example <- new("OM", Stock = stock, Fleet = Fleet.example, 
-#'                   Observation = Observation.example)
+#'                   Obs = Observation.example)
+#' OM.example@nsim <- 20
+#' OM.example@nyears <- 25
+#' OM.example@proyears <- 5
 #'
-#' MP.vec <- c("SPiCT_Feq08Fmsy")
-#' 
-#' MSE.example <- runMSE(OM.example, MPs = MP.vec, nsim = 200, proyears = 20,
-#'                       interval = 1, reps = 100, timelimit = 150, CheckMPs = FALSE)
+#' MP.vec <- c("spict_catchPercentile")
+#'
+#' MSE.example <- runMSE(OM.example, MPs = MP.vec,
+#'                       interval = 1, reps = 1, timelimit = 150, CheckMPs = FALSE)
 #' }
-SPiCT_Feq08Fmsy <- structure(function(x, DLM_data, reps) {
-  dependencies <- "DLM_data@Year DLM_data@Cat DLM_data@Ind"
-  time <- DLM_data@Year
-  Catch <- DLM_data@Cat[x, ]
-  Index <- DLM_data@Ind[x, ]
-  inp <- list(timeC=time, obsC=Catch, 
-              timeI=time, obsI=Index,
-              ## timepredc = max(time) + 1,
-              dteuler = 1 / 4,
-              do.sd.report=FALSE)
-  rep <- try(spict::fit.spict(inp))
-  if(is(rep, "try-error")) {
-    TAC <- rep(NA, reps)
-  } else {
-    #predcatch <- spict::pred.catch(rep, get.sd = TRUE, exp = FALSE, fmsyfac = 0.8)
-    predcatch <- spict::pred.catch(rep, get.sd = FALSE, exp = FALSE, fmsyfac = 0.8)
-    ## The repetitions of TAC are log normally distributed with CV of 10% to match
-    ## the implementation of DD management procedure. To accuratelly represent the
-    ## uncertainty estimated by SPiCT one should use the estimated standard deviation
-    ## reported by SPiCT, i.e. TAC <- exp(rnorm(reps, predcatch[2], predcatch[4]))
-    ## remember to set do.sd.report = TRUE when creating inp
-    TAC <- exp(rnorm(reps, predcatch[2], predcatch[2] * 0.1))
-  }
-  DLMtool:::TACfilter(TAC)
-}, class = "DLM_output")
-
-
+#'
+spict_catchPercentile <- structure(
+    function(x, Data, reps = 1, percentile = 0.5, cap = FALSE){
+        dependencies <- "Data@Year, Data@Cat, Data@Ind"
+        time <- Data@Year
+        Catch <- Data@Cat[x,]
+        Index <- Data@Ind[x,]
+        inp <- list(timeC=time, obsC=Catch, 
+                    timeI=time, obsI=Index,
+                    ## timepredc = max(time) + 1,
+                    dteuler = 1 / 16,
+                    do.sd.report=TRUE,
+                    getReportCovariance = FALSE)
+        rep <- try(spict::fit.spict(inp))
+        if(is(rep, "try-error") | rep$opt$convergence != 0) {
+            TAC <- rep(NA, 1)
+        } else {
+            predcatch <- try(spict::pred.catch(rep, get.sd = TRUE, exp = FALSE, fmsyfac = 1))
+            if(is(predcatch, "try-error")) {
+                TAC <- rep(NA, 1)
+            } else {
+                TAC <- exp(qnorm(percentile, predcatch[2], predcatch[4]))
+                if(cap){
+                    ## cap
+                    bio <- spict::get.par("logB", rep, exp = TRUE)
+                    bioLast <- bio[nrow(bio),]
+                    Bmsy <- spict::get.par("logBmsy", rep, exp = TRUE)
+                    Blim <- 0.5 * Bmsy
+                    cap <- min(1, bioLast[2]/Blim[2])
+                } else {
+                    cap <- 1
+                }
+                ## correct TAC
+                TAC <- TAC * cap
+            }
+        }
+        rm(rep); gc()
+        tacTemp <- DLMtool:::TACfilter(TAC)
+        res <- c(tacTemp, rep(NA, reps-1))
+        return(res)
+    },
+    class = "Output"
+)
