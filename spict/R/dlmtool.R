@@ -1,14 +1,17 @@
-#' @name spict_catchPercentile
+#' @name spict_percentiles
 #' @title SPiCT assessment with specified percentiles from the predicted catch distribution
+#'   and/or the distribution of Fmsy
 #' 
 #' @details SPiCT assessment is done using catch and relative biomass index observations. 
 #' Stock status estimates are used to set the TAC for the next year, equal to the specified
-#' percentile of the distribution of predicted catches.
+#' percentile of the distribution of predicted catches and/or the distribution of
+#' the Fmsy reference level
 #'
 #' @param x A position in a data-limited mehods data object
 #' @param DLM_data A data-limited methods data object (see DLMtool)
 #' @param reps The number of stochastic samples of the TAC recommendation
-#' @param percentile The percentile of the catch distribution to be used for setting TAC
+#' @param percentileC The percentile of the catch distribution to be used for setting TAC
+#' @param percentileFmsy The percentile of the distribution of Fmsy
 #' @param cap Logical; If true TAC is multiplied with 1 or the ratio of current biomass
 #'   over Blim (0.5*Bmsy) if this ratio is smaller than 1. Default is FALSE.
 #'
@@ -40,14 +43,15 @@
 #' OM.example@nyears <- 25
 #' OM.example@proyears <- 5
 #'
-#' MP.vec <- c("spict_catchPercentile")
+#' MP.vec <- c("spict_percentiles")
 #'
 #' MSE.example <- runMSE(OM.example, MPs = MP.vec,
 #'                       interval = 1, reps = 1, timelimit = 150, CheckMPs = FALSE)
 #' }
 #'
-spict_catchPercentile <- structure(
-    function(x, Data, reps = 1, percentile = 0.5, cap = FALSE){
+
+spict_percentiles <- structure(
+    function(x, Data, reps = 1, percentileC = 0.50, percentileFmsy=NA, cap=FALSE){
         dependencies <- "Data@Year, Data@Cat, Data@Ind"
         time <- Data@Year
         Catch <- Data@Cat[x,]
@@ -59,32 +63,41 @@ spict_catchPercentile <- structure(
                     do.sd.report=TRUE,
                     getReportCovariance = FALSE)
         rep <- try(spict::fit.spict(inp))
-        if(is(rep, "try-error") | rep$opt$convergence != 0) {
-            TAC <- rep(NA, 1)
+        if(is(rep, "try-error") || rep$opt$convergence != 0) {
+            TAC <- rep(NA, reps)
         } else {
-            predcatch <- try(spict::pred.catch(rep, get.sd = TRUE, exp = FALSE, fmsyfac = 1))
-            if(is(predcatch, "try-error")) {
-                TAC <- rep(NA, 1)
+            if(!is.na(percentileFmsy) & !is.null(percentileFmsy)){
+                idx <- rep$inp$indpred[1]
+                logFFmsy <- spict::get.par("logFFmsy", rep)[idx,]
+                fi <- 1-percentileFmsy
+                fm <- exp( qnorm( fi, logFFmsy[2], logFFmsy[4] ) )
+                fm5 <- exp( qnorm( 0.5, logFFmsy[2], logFFmsy[4] ) )
+                red <- fm5 / fm
             } else {
-                TAC <- exp(qnorm(percentile, predcatch[2], predcatch[4]))
+                red <- 1
+            }
+                predcatch <- try(spict::pred.catch(rep, get.sd = TRUE, exp = FALSE, fmsyfac = red))
+            if(is(predcatch, "try-error")) {
+                TAC <- rep(NA, reps)
+            } else {
+                TACi <- exp(qnorm(percentileC, predcatch[2], predcatch[4]))
                 if(cap){
-                    ## cap
-                    bio <- spict::get.par("logB", rep, exp = TRUE)
-                    bioLast <- bio[nrow(bio),]
-                    Bmsy <- spict::get.par("logBmsy", rep, exp = TRUE)
-                    Blim <- 0.5 * Bmsy
-                    cap <- min(1, bioLast[2]/Blim[2])
+                    idx <- rep$inp$indpred[1]                    
+                    blast <- spict::get.par("logB", rep, exp = TRUE)[idx,2]
+                    bmsy <- spict::get.par("logBmsy", rep, exp = TRUE)[2]
+                    blim <- 0.5 * bmsy
+                    capi <- min(1, blast/blim)
                 } else {
-                    cap <- 1
+                    capi <- 1
                 }
-                ## correct TAC
-                TAC <- TAC * cap
+                TACi <- TACi * capi
+                TAC <- c(TACi, rep(TACi, reps-1))                
             }
         }
         rm(rep); gc()
-        tacTemp <- DLMtool:::TACfilter(TAC)
-        res <- c(tacTemp, rep(NA, reps-1))
+        res <- DLMtool:::TACfilter(TAC)
         return(res)
     },
     class = "Output"
 )
+
