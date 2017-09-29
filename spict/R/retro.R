@@ -53,6 +53,12 @@ retro <- function(rep, nretroyear=5){
         inpall[[i]]$obsC <- inp1$obsC[indsC]
         inpall[[i]]$timeC <- inp1$timeC[indsC]
         inpall[[i]]$stdevfacC<- inp1$stdevfacC[indsC]
+
+        indsE <- which(inp1$timeE <= inp1$timeE[inp1$nobsE]-i)
+        inpall[[i]]$obsE<- inp1$obsE[indsE]
+        inpall[[i]]$timeE <- inp1$timeE[indsE]
+        inpall[[i]]$stdevfacE<- inp1$stdevfacE[indsE]
+
         
         inpall[[i]]$obsI <- list()
         inpall[[i]]$timeI <- list()
