@@ -1194,10 +1194,10 @@ check.inp <- function(inp){
         forcefixpars <- c('logphi', 'logu', 'logsdu', 'loglambda', 'SARvec','logitSARphi','logSdSAR',forcefixpars)
     } else {
         if (inp$seasontype == 1){ # Use spline
-            forcefixpars <- c('logu', 'logsdu', 'loglambda', forcefixpars)
+            forcefixpars <- c('logu', 'logsdu', 'loglambda','SARvec','logitSARphi','logSdSAR', forcefixpars)
         }
         if (inp$seasontype == 2){ # Use coupled SDEs
-            forcefixpars <- c('logphi', forcefixpars)
+            forcefixpars <- c('logphi','SARvec','logitSARphi','logSdSAR', forcefixpars)
         }
         if(inp$seasontype == 3){ # Use spline + AR
             forcefixpars <- c('logu', 'logsdu', 'loglambda', forcefixpars)

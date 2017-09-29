@@ -636,7 +636,7 @@ Type objective_function<Type>::operator() ()
 
   using namespace density;
   ARk_t<Type> nldens(SARphivec);
-  ans += SCALE(nldens, sdSAR)(vector<Type>(SARvec));
+  if(seasontype==3.0) ans += SCALE(nldens, sdSAR)(vector<Type>(SARvec));
 
   //vector<Type> logFs = logF
   vector<Type> logS(ns);
