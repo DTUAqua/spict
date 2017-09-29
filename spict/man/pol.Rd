@@ -21,4 +21,3 @@ rep <- fit.spict(inp=pol$hake)
 rep <- fit.spict(inp=pol$lobster)
 }
 \keyword{datasets}
-

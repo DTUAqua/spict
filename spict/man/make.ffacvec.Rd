@@ -14,4 +14,3 @@ make.ffacvec(inp, ffac)
 \value{
 Input list containing ffacvec
 }
-

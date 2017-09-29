@@ -24,4 +24,3 @@ summary(rep)
 plot(rep)
 }
 }
-

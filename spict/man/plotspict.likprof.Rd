@@ -19,4 +19,3 @@ Nothing but shows a plot.
 \details{
 TBA
 }
-

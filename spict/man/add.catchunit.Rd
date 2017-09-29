@@ -14,4 +14,3 @@ add.catchunit(lab, cu)
 \value{
 Label with added catch unit
 }
-

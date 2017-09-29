@@ -15,4 +15,3 @@ Inverse logp1.
 \details{
 If a = log(b-1), then the inverse transform is b = 1 + exp(a). Useful for values with lower bound at 1.
 }
-

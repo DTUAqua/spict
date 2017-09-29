@@ -16,4 +16,3 @@ res.diagn(resid, id, name = "")
 \value{
 List containing residual statistics in 'diagn', shapiro output in 'shapiro', and bias output in 'bias'.
 }
-

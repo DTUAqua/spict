@@ -41,4 +41,3 @@ inp$meyermillar$priors <- priors
 res <- fit.meyermillar(inp)
 summary(res$jags)
 }
-

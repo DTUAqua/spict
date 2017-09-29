@@ -12,4 +12,3 @@ validation.data.frame(ss)
 \value{
 A data frame containing the formatted validation results.
 }
-

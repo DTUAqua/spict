@@ -16,4 +16,3 @@ plotspict.priors(rep, do.plot = 4, stamp = get.version())
 \value{
 Nothing
 }
-

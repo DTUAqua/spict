@@ -54,4 +54,3 @@ inp$ini <- rep0$pl
 set.seed(1234)
 validate.spict(inp, nsim=10, invec=c(30, 60), backup='validate.RData')
 }
-

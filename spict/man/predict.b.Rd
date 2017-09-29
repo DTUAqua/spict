@@ -28,4 +28,3 @@
 \value{
 Predicted biomass at the end of dt.
 }
-

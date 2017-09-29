@@ -14,4 +14,3 @@ make.datin(inp, dbg = 0)
 \value{
 List to be used as data input to TMB::MakeADFun.
 }
-

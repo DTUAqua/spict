@@ -16,4 +16,3 @@ latex.figure(figfile, reportfile, caption = "")
 \value{
 Nothing.
 }
-

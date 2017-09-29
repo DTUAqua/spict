@@ -12,4 +12,3 @@ season.cols(modin)
 \value{
 Vector containing season colors.
 }
-

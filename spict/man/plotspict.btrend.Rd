@@ -12,4 +12,3 @@ plotspict.btrend(rep)
 \value{
 Nothing.
 }
-

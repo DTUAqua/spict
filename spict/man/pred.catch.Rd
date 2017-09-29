@@ -20,4 +20,3 @@ pred.catch(repin, fmsyfac = 1, get.sd = FALSE, exp = FALSE, dbg = 0)
 \value{
 A vector containing predicted catch (possibly with uncertainty).
 }
-

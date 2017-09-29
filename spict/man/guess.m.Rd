@@ -17,4 +17,3 @@ The guess on MSY.
 \details{
 Equations 9.1.7 and 9.1.8 on page 284 of FAO's tropical assessment book are used to guess MSY.
 }
-

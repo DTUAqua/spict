@@ -12,4 +12,3 @@ get.osar.pvals(rep)
 \value{
 Vector of p-values of length equal to the number of data series.
 }
-

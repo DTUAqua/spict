@@ -16,4 +16,3 @@ annual(intime, vec, type = "mean")
 \value{
 A list containing the annual means and a corresponding time vector.
 }
-

@@ -9,4 +9,3 @@ get.colnms()
 \value{
 Vector containing column names of data frames.
 }
-
