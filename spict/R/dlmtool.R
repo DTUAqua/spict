@@ -64,7 +64,7 @@
 #'
 #'
 
-spict2DLMtool <- function(percentileC = 0.5, percentileFmsy = NA, cap = FALSE){
+spict2DLMtool <- function(percentileC = 0.5, percentileFmsy = NA, cap = TRUE){
 
     maxl <- max(length(percentileC),length(percentileFmsy),length(cap))
 
@@ -110,8 +110,8 @@ spict2DLMtool <- function(percentileC = 0.5, percentileFmsy = NA, cap = FALSE){
                         idx <- rep$inp$indpred[1]                    
                         blast <- spict::get.par("logB", rep, exp = TRUE)[idx,2]
                         bmsy <- spict::get.par("logBmsy", rep, exp = TRUE)[2]
-                        blim <- 0.5 * bmsy
-                        capi <- min(1, blast/blim)
+                        btrigger <- 0.5 * bmsy
+                        capi <- min(1, blast/btrigger)
                     } else {
                         capi <- 1
                     }
