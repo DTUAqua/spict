@@ -15,4 +15,3 @@ Vector containing the parameter estimates.
 \details{
 TBA
 }
-

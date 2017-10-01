@@ -24,4 +24,3 @@ data(pol)
 sim <- (pol$albacore)
 write.aspic(sim)
 }
-

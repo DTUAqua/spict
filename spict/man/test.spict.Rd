@@ -18,4 +18,3 @@ Loads a data set, fits the model, calculates one-step-ahead residuals, plots the
 \examples{
 rep <- test.spict()
 }
-

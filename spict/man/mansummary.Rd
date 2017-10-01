@@ -21,4 +21,3 @@ mansummary(repin, ypred = 1, include.EBinf = FALSE, include.unc = TRUE,
 \value{
 Data frame containing management summary.
 }
-

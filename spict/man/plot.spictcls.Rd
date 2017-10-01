@@ -40,4 +40,3 @@ data(pol)
 rep <- fit.spict(pol$albacore)
 plot(rep)
 }
-

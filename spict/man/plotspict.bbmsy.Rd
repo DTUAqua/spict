@@ -38,4 +38,3 @@ data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.bbmsy(rep)
 }
-

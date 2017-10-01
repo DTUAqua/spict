@@ -12,4 +12,3 @@ get.AIC(rep)
 \value{
 AIC
 }
-

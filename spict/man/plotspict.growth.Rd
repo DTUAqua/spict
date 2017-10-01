@@ -31,4 +31,3 @@ Nothing.
 \details{
 Plots estimated time-varying growth
 }
-

@@ -36,4 +36,3 @@ rep <- fit.spict(inp)
 rep <- likprof.spict(rep)
 plotspict.likprof(rep, logpar=TRUE)
 }
-

@@ -24,4 +24,3 @@ rep <- fit.spict(inp)
 rep <- retro(rep, nretroyear=6)
 plotspict.retro(rep)
 }
-

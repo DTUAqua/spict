@@ -22,4 +22,3 @@ prop.F(fac, inpin, repin, maninds, corF = FALSE, dbg = 0)
 \value{
 List containing results of management calculations.
 }
-

@@ -22,4 +22,3 @@ data(pol)
 rep <- fit.spict(pol$albacore)
 summary(rep)
 }
-

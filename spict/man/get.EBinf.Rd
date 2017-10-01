@@ -15,4 +15,3 @@ E(Binf).
 \details{
 If a seasonal pattern in F is imposed the annual average F is used for calculating the expectation.
 }
-

@@ -28,4 +28,3 @@ Nothing.
 \details{
 This function probably requires that you are running linux and that you have latex functions installed (pdflatex).
 }
-

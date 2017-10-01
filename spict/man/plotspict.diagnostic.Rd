@@ -29,4 +29,3 @@ rep <- fit.spict(pol$albacore)
 rep <- calc.osa.resid(rep)
 plotspict.diagnostic(rep)
 }
-

@@ -74,4 +74,3 @@ Bmsy <- get.par('logBmsy', rep, exp=TRUE)
 summary(rep)
 plot(rep)
 }
-

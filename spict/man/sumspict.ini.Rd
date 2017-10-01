@@ -14,4 +14,3 @@ sumspict.ini(rep, numdigits)
 \value{
 list containing diagnostics information.
 }
-

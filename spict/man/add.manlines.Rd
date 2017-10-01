@@ -19,4 +19,3 @@ add.manlines(rep, par, par2 = NULL, index.shift = 0, plot.legend = TRUE,
 \value{
 Nothing
 }
-

@@ -8,17 +8,16 @@
 \examples{
 rep <- test.spict()
 }
-\author{
-Martin W. Pedersen \email{mawp@dtu.dk}
-}
 \references{
 \url{https://github.com/mawp/spict/}
 }
 \seealso{
 \code{\link{test.spict}}
 }
+\author{
+Martin W. Pedersen \email{mawp@dtu.dk}
+}
 \keyword{assessment}
 \keyword{fisheries,}
 \keyword{model,}
 \keyword{production}
-
