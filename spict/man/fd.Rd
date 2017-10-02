@@ -14,4 +14,3 @@ fd(d, dec = 2)
 \value{
 Correctly formatted date.
 }
-

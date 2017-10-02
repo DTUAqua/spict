@@ -18,4 +18,3 @@ check.ini(input, ntrials = 10, verbose = TRUE, numdigits = 2)
 \value{
 List containing results of sensitivity check and associated initial values.
 }
-

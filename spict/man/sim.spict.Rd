@@ -55,4 +55,3 @@ par(mfrow=c(2, 1))
 plot(sim2$obsC, typ='l')
 plot(sim2$obsI[[1]], typ='l')
 }
-

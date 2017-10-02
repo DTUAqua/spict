@@ -14,4 +14,3 @@ plotspict.ci(inp, stamp = get.version())
 \value{
 Nothing
 }
-

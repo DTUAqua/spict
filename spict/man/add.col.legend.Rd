@@ -9,4 +9,3 @@ add.col.legend()
 \value{
 Nothing.
 }
-

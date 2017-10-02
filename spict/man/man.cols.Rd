@@ -9,4 +9,3 @@ man.cols()
 \value{
 Color vector
 }
-

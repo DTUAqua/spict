@@ -24,4 +24,3 @@ data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.tc(rep)
 }
-

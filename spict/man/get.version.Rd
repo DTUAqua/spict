@@ -12,4 +12,3 @@ get.version(pkg = "spict")
 \value{
 Package version
 }
-

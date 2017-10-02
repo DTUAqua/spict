@@ -43,4 +43,3 @@ Best <- get.par('logB', rep, exp=TRUE)
 ## Extract the estimated caryting capacity
 K <- get.par('logK', rep, exp=TRUE)
 }
-

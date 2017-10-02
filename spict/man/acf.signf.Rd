@@ -19,4 +19,3 @@ Vector of TRUE and FALSE indicating whether significant lags were present. If re
 \details{
 This corresponds to plotting the ACF using acf() and checking whether any lags has an acf value above the CI limit.
 }
-

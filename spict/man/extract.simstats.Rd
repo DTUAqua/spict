@@ -28,4 +28,3 @@ sim <- sim.spict(repin)
 rep <- fit.spict(sim)
 extract.simstats(rep)
 }
-

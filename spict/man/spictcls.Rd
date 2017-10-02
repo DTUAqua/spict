@@ -8,4 +8,3 @@
 \description{
 An S4 class to represent output from a SPiCT fit.
 }
-

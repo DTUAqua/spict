@@ -14,4 +14,3 @@ get.msyvec(inp, msy)
 \value{
 A list containing reference point estimates with upper and lower CI bounds.
 }
-

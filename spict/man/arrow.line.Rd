@@ -32,4 +32,3 @@ Nothing, but an arrow line is added to the current plot.
 \details{
 Add to an existing plot a continuous line with arrow heads showing the direction between each data point
 }
-
