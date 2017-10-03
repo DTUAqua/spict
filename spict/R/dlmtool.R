@@ -16,12 +16,13 @@
 #' One or several arguments of the function can be provided as vectors to generate several
 #' HCRs at once (several vectors have to have same length).
 #'
-#' @param percentileC The percentile of the catch distribution to be used for setting TAC. Default
+#' @param fractileC The fractile of the catch distribution to be used for setting TAC. Default
 #'   is median (0.5).
-#' @param percentileFmsy The percentile of the distribution of Fmsy. Default is NA.
-#' @param cap Logical; If true TAC is multiplied with 1 or the ratio of current biomass
-#'   over Blim (0.5*Bmsy) if this ratio is smaller than 1. Default is FALSE.
-#'
+#' @param fractileFFmsy The fractile of the distribution of F/Fmsy. Default is 0.5 (median).
+#' @param fractileBBmsy The fractile of the distribution of B/Bmsy. Default is 0.5 (median).
+#' @param uncertaintyCap Logical; If true TAC is bound between two values set in lower and upper. Default: FALSE.
+#' @param lower lower bound of the uncertainty cap. Default is 0.8, used if uncertaintyCap = TRUE.
+#' @param upper upper bound of the uncertainty cap. Default is 1.2, used if uncertaintyCap = TRUE.
 #' @return A function which can estimate TAC recommendations based on SPiCT assessment,
 #'   taking assessment uncertainty into account.
 #' 
@@ -55,7 +56,7 @@
 #' OMex@proyears <- 3
 #' 
 #' ## Get SPiCT HCR
-#' MPname <- spict2DLMtool(percentileC=0.3)
+#' MPname <- spict2DLMtool(fractileC=0.3)
 #'
 #' ## run MSE
 #' MSEex <- runMSE(OMex, MPs = MPname,
@@ -63,20 +64,38 @@
 #' }
 #'
 #'
+spict2DLMtool <- function(fractileC = 0.5,
+                          fractileFFmsy = 0.5,
+                          fractileBBmsy = 0.5,
+                          uncertaintyCap = FALSE,
+                          lower = 0.8,
+                          upper = 1.2){
 
-spict2DLMtool <- function(percentileC = 0.5, percentileFmsy = NA, cap = TRUE){
+    ## allowing for multiple generation of MPs
+    argList <- list(fractileC, fractileFFmsy, fractileBBmsy,
+                    uncertaintyCap, lower, upper)
+    argLengths <- sapply(argList, length)
+    maxi <- max(argLengths)
+    maxl  <- which(argLengths == maxi)
+    if(maxi>1){
+        if(max(argLengths[(1:6)[-maxl]]) > 1) stop("Specified arguments have different lengths, they should have the same length or length = 1.")
+    }
+    argListCor <- argList
+    argListCor[(1:6)[-maxl]] <- lapply(argList[(1:6)[-maxl]], function(x) rep(unlist(x), maxi))
+    uncertaintyCapPrint <- argListCor[[4]]
+    uncertaintyCapPrint[which(uncertaintyCapPrint == TRUE)] <- "T"
+    uncertaintyCapPrint[which(uncertaintyCapPrint == FALSE)] <- "F"                        
 
-    maxl <- max(length(percentileC),length(percentileFmsy),length(cap))
 
-    ## error messages if lengths are different and not 1
-    if(length(percentileC) != maxl) percentileC <- rep(percentileC, maxl)
-    if(length(percentileFmsy) != maxl) percentileFmsy <- rep(percentileFmsy, maxl)
-    if(length(cap) != maxl) cap <- rep(cap, maxl)
-
-    X  <- expression(paste0(
+    ## MP as function
+    template  <- expression(paste0(
         'structure(function(x, Data, reps = 1,
-          percentileC = ',xI,',
-          percentileFmsy=',yI,', cap=',zI,'){
+          fractileC = ',a,',
+          fractileFFmsy=',b,',
+          fractileBBmsy=',c,',
+          uncertaintyCap=',d,',
+          lower=',e,',
+          upper=',f,'){
             dependencies <- "Data@Year, Data@Cat, Data@Ind"
             time <- Data@Year
             Catch <- Data@Cat[x,]
@@ -91,55 +110,58 @@ spict2DLMtool <- function(percentileC = 0.5, percentileFmsy = NA, cap = TRUE){
             if(is(rep, "try-error") || rep$opt$convergence != 0) {
                 TAC <- rep(NA, reps)
             } else {
-                if(!is.na(percentileFmsy) & !is.null(percentileFmsy)){
-                    idx <- rep$inp$indpred[1]
-                    logFFmsy <- spict::get.par("logFFmsy", rep)[idx,]
-                    fi <- 1-percentileFmsy
-                    fm <- exp( qnorm( fi, logFFmsy[2], logFFmsy[4] ) )
-                    fm5 <- exp( qnorm( 0.5, logFFmsy[2], logFFmsy[4] ) )
-                    red <- fm5 / fm
-                } else {
-                    red <- 1
-                }
-                    predcatch <- try(spict::pred.catch(rep, get.sd = TRUE, exp = FALSE, fmsyfac = red))
+                
+                ## Reduction based on uncertainty in Fmsy. Default = median
+                idx <- rep$inp$indpred[1]
+                logFFmsy <- spict::get.par("logFFmsy", rep)[idx,]
+                fi <- 1-fractileFFmsy
+                fm <- exp( qnorm( fi, logFFmsy[2], logFFmsy[4] ) )
+                fm5 <- exp( qnorm( 0.5, logFFmsy[2], logFFmsy[4] ) )
+                red <- fm5 / fm
+                predcatch <- try(spict::pred.catch(rep, get.sd = TRUE, exp = FALSE, fmsyfac = red))
                 if(is(predcatch, "try-error")) {
                     TAC <- rep(NA, reps)
                 } else {
-                    TACi <- exp(qnorm(percentileC, predcatch[2], predcatch[4]))
-                    if(cap){
-                        idx <- rep$inp$indpred[1]                    
-                        blast <- spict::get.par("logB", rep, exp = TRUE)[idx,2]
-                        bmsy <- spict::get.par("logBmsy", rep, exp = TRUE)[2]
-                        btrigger <- 0.5 * bmsy
-                        capi <- min(1, blast/btrigger)
-                    } else {
-                        capi <- 1
-                    }
-                    TACi <- TACi * capi
+                    TACi <- exp(qnorm(fractileC, predcatch[2], predcatch[4]))
+
+                    ## Reduction based on B/Bmsy. Default = median
+                    idx <- rep$inp$indpred[1]
+                    logBBmsy <- spict::get.par("logBBmsy", rep, exp = TRUE)[idx,]
+                    predBBtrigger <- 2 * exp(qnorm(fractileBBmsy, logBBmsy[2], logBBmsy[4]))
+                    TACi <- TACi * min(1, predBBtrigger)
+
+                    ## hack to guarantee compatibility with other MPs (DLMtool takes median, thus rep no effect)
                     TAC <- rep(TACi, reps)
+
+                    ## Uncertainty cap
+                    if(uncertaintyCap){
+                       TAC[TAC < lower] <- lower
+                       TAC[TAC > upper] <- upper
+                    }
                 }
             }
-            rm(rep); gc()
             res <- DLMtool:::TACfilter(TAC)
             return(res)
         },
-        class="Output")'))    
+        class="Output")'))
 
-    wrapper <- function (...) {eval(parse(text=paste(...,collapse=" ")))}
-    nami <- rep(NA,maxl)
-    for(I in 1:maxl){
-        ##X <- structure(X, class = "Output")
-        XI <- eval(X, list(xI=percentileC[I], yI=percentileFmsy[I], zI=cap[I]))
-        XI <- parse(text=XI)
-        XI <- wrapper(XI)
-        nami[I] <- paste0("spict_percentile_C",percentileC[I],"_Fmsy",
-                       percentileFmsy[I],"_Cap",cap[I])
-        assign(value=XI,x=nami[I],envir=globalenv())
-        rm(XI)
+        
+    nami <- rep(NA,maxi)
+    for(I in 1:maxi){
+
+        ## create MPs as functions
+        subList <- lapply(argListCor, "[[", I)
+        names(subList) <- letters[1:6]
+        templati <- eval(parse(text=paste(parse(text = eval(template, subList)),collapse=" ")))
+
+         ## save names of MPs
+        nami[I] <- paste0("spict_C",argListCor[[1]][I],"_FFmsy",
+                       argListCor[[2]][I],"_BBmsy",argListCor[[3]][I],"_uC",uncertaintyCapPrint[I])
+        assign(value=templati, x=nami[I], envir=globalenv())
     }
-    rm(X);gc()
+
+    ## allow for assigning names
     invisible(nami)
 }
-
 
 
