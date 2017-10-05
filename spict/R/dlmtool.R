@@ -118,6 +118,11 @@ spict2DLMtool <- function(fractileC = 0.5,
                 fm <- exp( qnorm( fi, logFFmsy[2], logFFmsy[4] ) )
                 fm5 <- exp( qnorm( 0.5, logFFmsy[2], logFFmsy[4] ) )
                 red <- fm5 / fm
+                ## Uncertainty cap
+                if(uncertaintyCap){
+                   red[red < lower] <- lower
+                   red[red > upper] <- upper
+                }
                 predcatch <- try(spict::pred.catch(rep, get.sd = TRUE, exp = FALSE, fmsyfac = red))
                 if(is(predcatch, "try-error")) {
                     TAC <- rep(NA, reps)
@@ -132,12 +137,6 @@ spict2DLMtool <- function(fractileC = 0.5,
 
                     ## hack to guarantee compatibility with other MPs (DLMtool takes median, thus rep no effect)
                     TAC <- rep(TACi, reps)
-
-                    ## Uncertainty cap
-                    if(uncertaintyCap){
-                       TAC[TAC < lower] <- lower
-                       TAC[TAC > upper] <- upper
-                    }
                 }
             }
             res <- DLMtool:::TACfilter(TAC)
