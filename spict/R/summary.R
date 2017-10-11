@@ -90,16 +90,22 @@ summary.spictcls <- function(object, ...){
         # Matrix priors
         matpriors <- rep$inp$matrixpriors
         nmmatpriors <- names(matpriors)
-        if (length(nmmatpriors) > 0){
-            for (nm in nmmatpriors){
-                for (i in nrow(matpriors[[nm]])){
-                    if (matpriors[[nm]][i, 3] == 1){
-                        priors[[nm]] <- matpriors[[nm]][i, ]
-                    }
-                }
-            }
-        }
+        ## if (length(nmmatpriors) > 0){
+        ##     for (nm in nmmatpriors){
+        ##         for (i in nrow(matpriors[[nm]])){
+        ##             if (matpriors[[nm]][i, 3] == 1){
+        ##                 priors[[nm]] <- matpriors[[nm]][i, ]
+        ##             }
+        ##         }
+        ##     }
+        ## }
+
         priorsmat <- do.call(rbind, priors)
+        priorsmat <- priorsmat[ !rownames(priorsmat) %in% nmmatpriors,,drop=FALSE]
+        priorsmat <- rbind( priorsmat, do.call(rbind,matpriors))
+        storage.mode(priorsmat)<-"double"
+        priorsmat <- priorsmat[ priorsmat[,3] == 1 , , drop=FALSE]
+        
         npriors <- dim(priorsmat)[1]
         usepriors <- rownames(priorsmat)
         str <- character(npriors)
