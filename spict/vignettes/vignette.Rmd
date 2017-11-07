@@ -334,6 +334,7 @@ By default `retro` creates 5 scenarios with catch and index time series which ar
 The estimation can be done using more than one biomass index, for example when scientific surveys are performed more than once every year or when there are both commercial and survey CPUE time-series available. The following example emulates a situation where a long but noisy first quarter index series and a shorter and less noisy second quarter index series are available with different catchabilities
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
+set.seed(123)
 inp <- list(timeC=pol$albacore$timeC, obsC=pol$albacore$obsC)
 inp$timeI <- list(pol$albacore$timeI, pol$albacore$timeI[10:23]+0.25)
 inp$obsI <- list()
@@ -610,6 +611,7 @@ It is clear from the plots that the prior influences the results significantly. 
 It is possible to set a prior for on some or all noise terms of multiple biomass indices
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
+set.seed(123)
 inp <- list(timeC=pol$albacore$timeC, obsC=pol$albacore$obsC)
 inp$timeI <- list(pol$albacore$timeI, pol$albacore$timeI[10:23]+0.25)
 inp$obsI <- list()
