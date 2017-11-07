@@ -604,6 +604,24 @@ This imposes a Gaussian prior on `logB` with mean $\log(80)$, standard deviation
 
 It is clear from the plots that the prior influences the results significantly. Furthermore, it is not only the biomass in the year 1980 that is affected, but the information propagates forward and backward because all estimates are correlated. In reality such an informative prior is rarely available, however it may be possible to derive information about the absolute biomass from acoustic survey and swept area estimates. It is, however, critical that the standard deviation used reflects the quality of the information.
 
+
+### Setting priors on the standard deviation of multiple indices
+
+It is possible to set a prior for on some or all noise terms of multiple biomass indices
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
+inp <- list(timeC=pol$albacore$timeC, obsC=pol$albacore$obsC)
+inp$timeI <- list(pol$albacore$timeI, pol$albacore$timeI[10:23]+0.25)
+inp$obsI <- list()
+inp$obsI[[1]] <- pol$albacore$obsI * exp(rnorm(23, sd=0.1)) # Index 1
+inp$obsI[[2]] <- 10*pol$albacore$obsI[10:23] # Index 2
+inp$priors$logsdi <- list(c(1, 1, 0),          # No prior for index 1
+                          c(log(0.1), 0.2, 1)) # Set a prior on index 2
+res <- fit.spict(inp)
+sumspict.priors(res)
+```
+
+
 ### Fixing parameters using priors
 
 Model parameters can be fixed using `phases` as described previously. This technique can, however, only be used to fix model parameters and therefore not derived quantities such as `logalpha`, `logr` (which is derived from `logK`, `logm` and `logn`). Fixing a parameter can be regarded as imposing an highly informative prior to the parameter
