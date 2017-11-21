@@ -1,7 +1,7 @@
 ---
 title: "SPiCT"
-author: "Martin W. Pedersen"
-date: '`20-01-2017`'
+author: "Martin W. Pedersen, Alexandros Kokkalis, Casper W. Berg"
+date: '`07-11-2017`'
 output: 
   rmarkdown::html_vignette: 
     number_sections: yes
@@ -14,7 +14,7 @@ vignette: >
 ---
 
 ```{r, echo = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = 'center', cache=FALSE)
+knitr::opts_chunk$set(collapse = TRUE, comment = "  ", fig.align = 'center', cache=FALSE)
 ```
 
 # Basic functionality 
@@ -24,20 +24,22 @@ This vignette explains basic and more advanced functions of the `spict` package.
 ```{r, eval=FALSE}
 devtools::install_github("mawp/spict/spict")
 ```
-installs the stable version of `spict` and 
-```{r, eval=FALSE}
-devtools::install_github("mawp/spict/spict", ref = "dev")
-```
-installs the current development version that has new features, but it is not fully tested yet. When loading the package you are notified which version of the package you have installed:
+installs the stable version of `spict`. When loading the package the user is greeted and the the installed version is shown:
 
 ```{r}
 library(spict)
 ```
-The printed version follows the format ver\@SHA, where ver is the manually defined version number and SHA refers to a unique commit on [github](https://github.com/mawp/spict). The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/mawp/spict/tree/", packageDescription("spict")$GithubSHA1)`). 
+The printed version follows the format ver\@SHA, where _ver_ is the manually defined version number and _SHA_ refers to a unique github commit on [github](https://github.com/mawp/spict). The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/mawp/spict/tree/", packageDescription("spict")$GithubSHA1)`). 
+
+A specific verision of `spict` can be installed using the first few digits of the SHA:
+
+```
+devtools::install_github("mawp/spict/spict", ref = "`r substr(packageDescription("spict")$GithubSHA1, 1, 8)`")
+```
 
 ## Loading built-in example data 
 
-The package contains the catch and index data analysed in @polacheck1993. This data can be loaded by typing
+The package contains the catch and index data analysed in @polacheck1993 that can be loaded using
 
 ```{r}
 data(pol) 
@@ -332,6 +334,7 @@ By default `retro` creates 5 scenarios with catch and index time series which ar
 The estimation can be done using more than one biomass index, for example when scientific surveys are performed more than once every year or when there are both commercial and survey CPUE time-series available. The following example emulates a situation where a long but noisy first quarter index series and a shorter and less noisy second quarter index series are available with different catchabilities
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
+set.seed(123)
 inp <- list(timeC=pol$albacore$timeC, obsC=pol$albacore$obsC)
 inp$timeI <- list(pol$albacore$timeI, pol$albacore$timeI[10:23]+0.25)
 inp$obsI <- list()
@@ -601,6 +604,25 @@ plotspict.biomass(fit.spict(inp), qlegend=FALSE, ylim=c(0, 500))
 This imposes a Gaussian prior on `logB` with mean $\log(80)$, standard deviation 0.1 (very informative), the third entry in the vector indicates that the prior is used, the fourth entry indicates the year to which the prior should be applied, here 1980.
 
 It is clear from the plots that the prior influences the results significantly. Furthermore, it is not only the biomass in the year 1980 that is affected, but the information propagates forward and backward because all estimates are correlated. In reality such an informative prior is rarely available, however it may be possible to derive information about the absolute biomass from acoustic survey and swept area estimates. It is, however, critical that the standard deviation used reflects the quality of the information.
+
+
+### Setting priors on the standard deviation of multiple indices
+
+It is possible to set a prior for on some or all noise terms of multiple biomass indices
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
+set.seed(123)
+inp <- list(timeC=pol$albacore$timeC, obsC=pol$albacore$obsC)
+inp$timeI <- list(pol$albacore$timeI, pol$albacore$timeI[10:23]+0.25)
+inp$obsI <- list()
+inp$obsI[[1]] <- pol$albacore$obsI * exp(rnorm(23, sd=0.1)) # Index 1
+inp$obsI[[2]] <- 10*pol$albacore$obsI[10:23] # Index 2
+inp$priors$logsdi <- list(c(1, 1, 0),          # No prior for index 1
+                          c(log(0.1), 0.2, 1)) # Set a prior on index 2
+res <- fit.spict(inp)
+sumspict.priors(res)
+```
+
 
 ### Fixing parameters using priors
 

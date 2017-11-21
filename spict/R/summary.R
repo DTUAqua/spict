@@ -443,7 +443,7 @@ sumspict.fixedpars <- function(rep, ndigits=8){
         nms <- nms[-match(c('logitpp', 'logp1robfac'), nms)]
     }
     # Are seasonal spline not used? if yes remove
-    if(rep$inp$seasontype == 2){
+    if(! rep$inp$seasontype %in% c(1, 3)){
         nms <- nms[-match('logphi', nms)]
     }
     # Are seasonal AR + spline used? if not remove
