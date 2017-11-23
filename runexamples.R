@@ -26,6 +26,6 @@ fn <- normalizePath(opts$r)
 withr::with_libpaths(new = opts$l, {
   library(spict)
   get.slim.md(opts$r, opts$o, opts$f)
-})
+},action="prefix")
 
 

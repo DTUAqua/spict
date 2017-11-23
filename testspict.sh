@@ -33,22 +33,22 @@ printmsg () {
 
 
 printmsg "Installing spict from github, reference:  $ref"
-echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_cran('ellipse', quiet = TRUE, repo = 'http://cran.rstudio.com')})" | R --slave
-echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_github('mawp/spict/spict', ref = '$ref', quiet = TRUE)})" | R --slave
+echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_cran('ellipse', quiet = FALSE, repo = 'http://cran.rstudio.com')}, action=\"prefix\")" | R --slave
+echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_github('mawp/spict/spict', ref = '$ref', quiet = FALSE)}, action=\"prefix\")" | R --slave
 
 
 printmsg "Run vignette examples"
 
-../runexamples.R -r $vignfn -o $tmpdir -l $tmpdir -f old.md
+./runexamples.R -r $vignfn -o $tmpdir -l $tmpdir -f old.md
 
 
 printmsg "Install local spict version"
 
-echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_local('spict', quiet = TRUE)})" | R --slave
+echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_local('spict', quiet = TRUE)}, action=\"prefix\")" | R --slave
 
 printmsg "Run vignette examples"
 
-../runexamples.R -r $vignfn -o $tmpdir -l $tmpdir -f new.md
+./runexamples.R -r $vignfn -o $tmpdir -l $tmpdir -f new.md
 
 
 
@@ -70,6 +70,7 @@ if [ $newhash == $oldhash ] ; then
   echo "The two versions of spict are producing the same results."
 else 
   printf "${RED}There are differences in the two versions of spict."
+  diff $tmpdir/old.md $tmpdir/new.md
   exit 1
 fi
 
