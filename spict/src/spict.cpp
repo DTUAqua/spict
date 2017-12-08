@@ -113,16 +113,16 @@ Type objective_function<Type>::operator() ()
   DATA_MATRIX(splinemat);      // Design matrix for the seasonal spline
   DATA_MATRIX(splinematfine);  // Design matrix for the seasonal spline on a fine time scale to get spline uncertainty
   DATA_SCALAR(omega);          // Period time of seasonal SDEs (2*pi = 1 year period)
-  DATA_SCALAR(seasontype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
-  DATA_SCALAR(efforttype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
+  DATA_INTEGER(seasontype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
+  DATA_INTEGER(efforttype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
   DATA_INTEGER(timevaryinggrowth); //  Flag indicating whether REs are used for growth
   DATA_INTEGER(logmcovflag);   // Flag indicating whether covariate information is available
   DATA_VECTOR(ffacvec);        // Management factor each year multiply the predicted F with ffac
   DATA_VECTOR(fconvec);        // Management factor each year add this constant to the predicted F
   DATA_VECTOR(indpred);        // A vector indicating when the management factor should be applied
-  DATA_SCALAR(robflagc);       // If 1 use robust observation error for catches
-  DATA_SCALAR(robflagi);       // If 1 use robust observation error for index
-  DATA_SCALAR(robflage);       // If 1 use robust observation error for effort
+  DATA_INTEGER(robflagc);       // If 1 use robust observation error for catches
+  DATA_INTEGER(robflagi);       // If 1 use robust observation error for index
+  DATA_INTEGER(robflage);       // If 1 use robust observation error for effort
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
   DATA_INTEGER(stabilise);     // If 1 stabilise optimisation using uninformative priors
   //DATA_SCALAR(effortflag);     // If effortflag == 1 use effort data, else use index data
@@ -636,7 +636,7 @@ Type objective_function<Type>::operator() ()
 
   using namespace density;
   ARk_t<Type> nldens(SARphivec);
-  if(seasontype==3.0) ans += SCALE(nldens, sdSAR)(vector<Type>(SARvec));
+  if(seasontype==3) ans += SCALE(nldens, sdSAR)(vector<Type>(SARvec));
 
   //vector<Type> logFs = logF
   vector<Type> logS(ns);
@@ -649,10 +649,10 @@ Type objective_function<Type>::operator() ()
     for(int i=1; i<ns; i++){
       Type Fpredtmp = 0.0;
       iisdf = CppAD::Integer(isdf(i)) - 1;
-      if (efforttype == 1.0){
+      if (efforttype == 1){
 	Fpredtmp = predictF1(logF(i-1), dt(i), sdf2(iisdf), delta, logeta);
       }
-      if (efforttype == 2.0){
+      if (efforttype == 2){
 	Fpredtmp = predictF2(logF(i-1), dt(i), sdf2(iisdf), delta, logeta);
       }
       Type logFpred = log( ffacvec(i) * Fpredtmp + fconvec(i) );
@@ -667,7 +667,7 @@ Type objective_function<Type>::operator() ()
     // Seasonal component
     if(dbg>0){ std::cout << "-- seasontype: " << seasontype << std::endl; }
     for(int i=1; i<ns; i++) logS(i) = 0.0; // Initialise
-    if(seasontype == 1.0 || seasontype == 3.0 ){
+    if(seasontype == 1 || seasontype == 3 ){
       // Spline
       int ind2, ind3;
       for(int i=0; i<ns; i++){
@@ -676,7 +676,7 @@ Type objective_function<Type>::operator() ()
 	//logFs(i) += seasonspline(ind2);
 	logS(i) += seasonspline(ind2);
 
-	if(seasontype == 3.0) logS(i) += SARvec(ind3-1); 
+	if(seasontype == 3) logS(i) += SARvec(ind3-1); 
 	// DEBUGGING
 	if(dbg>1){
 	  //std::cout << "-- i: " << i << " -   logF(i): " << logF(i) << " logFs(i): " << logFs(i) << " ind2: " << ind2 << " seasonspline(ind2): " << seasonspline(ind2) << std::endl;
@@ -684,7 +684,7 @@ Type objective_function<Type>::operator() ()
 	}
       }
     }
-    if(seasontype == 2.0){
+    if(seasontype == 2){
       // Coupled SDEs
       for(int j=0; j<nsdu; j++){
 	Type per = j+1.0;
@@ -842,7 +842,7 @@ Type objective_function<Type>::operator() ()
       //int j = CppAD::Integer(nc(i)-1); <-- NOT USED?
       //ind = CppAD::Integer(ic(i)-1) + j; // minus 1 because R starts at 1 and c++ at 0 <- NOT USED?
       inds = CppAD::Integer(isc(i)-1);
-      if(robflagc==1.0){
+      if(robflagc==1){
 	likval = log(pp*dnorm(logCpred(i), logobsC(i), stdevfacc(i)*sdc, 0) + (1.0-pp)*dnorm(logCpred(i), logobsC(i), robfac*stdevfacc(i)*sdc, 0));
       } else {
 	likval = dnorm(logCpred(i), logobsC(i), stdevfacc(i)*sdc, 1);
@@ -862,7 +862,7 @@ Type objective_function<Type>::operator() ()
     }
     for(int i=0; i<nobsE; i++){
       logEpred(i) = logFcumpred(i) - logqf; // E = 1/q * integral{F_t dt}
-      if(robflage==1.0){
+      if(robflage==1){
 	likval = log(pp*dnorm(logEpred(i), logobsE(i), stdevface(i)*sde, 0) + (1.0-pp)*dnorm(logEpred(i), logobsE(i), robfac*stdevface(i)*sde, 0));
       } else {
 	likval = dnorm(logEpred(i), logobsE(i), stdevface(i)*sde, 1);
@@ -889,7 +889,7 @@ Type objective_function<Type>::operator() ()
     indsdi = CppAD::Integer(isdi(i)-1);
     inds = CppAD::Integer(isi(i)-1);
     logIpred(i) = logq(indq) + log(B(ind));
-    if(robflagi==1.0){
+    if(robflagi==1){
       likval = log(pp*dnorm(logobsI(i), logIpred(i), stdevfaci(i)*sdi(indsdi), 0) + (1.0-pp)*dnorm(logobsI(i), logIpred(i), robfac*stdevfaci(i)*sdi(indsdi), 0));
     } else {
       likval = dnorm(logobsI(i), logIpred(i), stdevfaci(i)*sdi(indsdi), 1);
