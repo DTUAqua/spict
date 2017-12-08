@@ -13,9 +13,9 @@ An R-package for fittng surplus production models in continuous-time to fisherie
 
 ## Help files
 
-A vignette for the package is available [`here`](https://github.com/mawp/spict/blob/master/spict/vignettes/vignette.pdf), and serves as an introduction to the package and its functionality. The vignette also contains description of the more advanced features of the package.
+A vignette for the package is available [`here`](https://github.com/mawp/spict/raw/master/spict/vignettes/vignette.pdf), and serves as an introduction to the package and its functionality. The vignette also contains description of the more advanced features of the package.
 
-The package also contains reasonable documentation in the form of help texts associated with each function (some may not be fully up-to-date). These can be accessed in the usual R manner by writing e.g. ```?check.inp```. A pdf compiling help texts for all functions can be downloaded [`here`](http://mwpedersen.dk/spicthelp.pdf). A good place to start (in addition to reading the vignette) is to read ```?check.inp``` and ```?fit.spict```.
+The package also contains reasonable documentation in the form of help texts associated with each function (some may not be fully up-to-date). These can be accessed in the usual R manner by writing e.g. ```?check.inp```. A good place to start (in addition to reading the vignette) is to read ```?check.inp``` and ```?fit.spict```.
 
 ## Citation
 
@@ -32,7 +32,6 @@ To install spict from GitHub use
 ```
 library(devtools)
 install_github("mawp/spict/spict")            # master branch
-install_github("mawp/spict/spict", ref="dev") # development branch
 ```
 
 Windows
