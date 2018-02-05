@@ -15,8 +15,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#' @name likprof.spict
-#' @title Create profile likelihood
+#' Create profile likelihood
+#' 
 #' @details The "likprof" list must containg the following keys:
 #' \itemize{
 #'   \item{"pars"}{ A character vector of length equal 1 or 2 containing the name(s) of the parameters to calculate the profile likelihood for.}
@@ -30,6 +30,7 @@
 #' @param verbose Print progress to screen.
 #' @return The output is the input with the likelihood profile information added to the likprof key of either inp or rep$inp.
 #' @examples
+#' \dontrun{
 #' data(pol)
 #' inp <- pol$albacore
 #' inp$likprof <- list()
@@ -39,6 +40,7 @@
 #' rep <- fit.spict(inp)
 #' rep <- likprof.spict(rep)
 #' plotspict.likprof(rep, logpar=TRUE)
+#' }
 #' @export
 likprof.spict <- function(input, verbose=FALSE){
     if ('par.fixed' %in% names(input)){
@@ -130,41 +132,40 @@ likprof.spict <- function(input, verbose=FALSE){
         }
         return(lv)
     }
-    multi.do.grid <- function(i, ngrid, progfile){
-        lv <- do.grid(i)
-        ## Send progress update
-        if (class(progfile)[1]=='fifo'){
-            writeBin(1/ngrid, progfile)
-        }
-        return(lv)
-    }
+    # multi.do.grid <- function(i, ngrid, progfile){
+    #     lv <- do.grid(i)
+    #     ## Send progress update
+    #     if (class(progfile)[1]=='fifo'){
+    #         writeBin(1/ngrid, progfile)
+    #     }
+    #     return(lv)
+    # }
     if (verbose){
-        cat('Profiling pars:', paste(likprof$pars, collapse=' and '), 'with', ngrid, 'trials.\n')
+      cat('Profiling pars:', paste(likprof$pars, collapse=' and '), 'with', ngrid, 'trials.\n')
     }
-    if (Sys.info()['sysname']!='Linux'){
-    #if (class(partry)=='try-error'){
-    #if (TRUE){
-        likvals <- lapply(1:ngrid, single.do.grid, ngrid)
+    if (Sys.info()['sysname'] != 'Linux' | ! requireNamespace("parallel")){
+      likvals <- lapply(1:ngrid, single.do.grid, ngrid)
     } else {
-        require(parallel)
-        ## Open fifo progress file
-        progfile <- fifo(tempfile(), open="w+b", blocking=T)
-        #if (inherits(fork(), "masterProcess")) {
-        if (inherits(parallel:::mcfork(), "masterProcess")) {
-            ## Child
-            progress <- 0.0
-            while (progress < 1 && !isIncomplete(progfile)) {
-                msg <- readBin(progfile, "double")
-                progress <- progress + as.numeric(msg)
-                if (verbose){
-                    cat(sprintf("Multicore profiling: %.2f%%\r", progress * 100))
-                }
-            } 
-            #exit()
-        }
-        likvals <- parallel::mclapply(1:ngrid, multi.do.grid, ngrid, progfile, mc.cores=4)
-        ## Close progress file
-        close(progfile)
+      # ## Open fifo progress file
+      # progfile <- fifo(tempfile(), open="w+b", blocking=T)
+      # #if (inherits(fork(), "masterProcess")) {
+      # if (inherits(parallel:::mcfork(), "masterProcess")) {
+      #     ## Child
+      #     progress <- 0.0
+      #     while (progress < 1 && !isIncomplete(progfile)) {
+      #         msg <- readBin(progfile, "double")
+      #         progress <- progress + as.numeric(msg)
+      #         if (verbose){
+      #             cat(sprintf("Multicore profiling: %.2f%%\r", progress * 100))
+      #         }
+      #     } 
+      #     #exit()
+      # }
+      #likvals <- parallel::mclapply(1:ngrid, do.grid, ngrid, progfile, mc.cores = ncores)
+      ncores <- parallel::detectCores()
+      likvals <- parallel::mclapply(1:ngrid, do.grid, mc.cores = ncores)
+      # ## Close progress file
+      # close(progfile)
     }
     if (np==1){
         likprof$likvals <- unlist(likvals)

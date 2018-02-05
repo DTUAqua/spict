@@ -15,9 +15,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#' @name calc.influence
-#' @title Calculates influence statistics of observations.
-#' @details TBA
+#' Calculates influence statistics of observations.
+#' 
 #' @param rep A valid result from fit.spict().
 #' @return A list equal to the input with the added key "infl" containing influence statistics.
 #' @export
@@ -47,7 +46,7 @@ calc.influence <- function(rep){
     }
     nser <- inp$nindex+1
     nobs <- inp$nobsC + sum(inp$nobsI)
-    pararr <- array(0, dim=c(np, nobs, 4))
+    pararr <- array(0, dim=c(np, nobs, np))
     ddetcov <- rep(0, nobs)
     names(ddetcov) <- rwnms
     dosarpvals <- matrix(0, nobs, length(osarpvals))
@@ -56,13 +55,13 @@ calc.influence <- function(rep){
     colnames(dosarpvals) <- sernames
     cat('Calculating influence statistics for', nobs, 'observations:\n')
     inflfun <- function(c, inp, parnams){
-        #cat(c, '.. ')
         inp2 <- inp
         inp2$osar.trace <- FALSE
         if (c <= inp$nobsC){
             # Loop over catches
             inp2$obsC <- inp$obsC[-c]
             inp2$timeC <- inp$timeC[-c]
+            inp2$stdevfacC <- inp2$stdevfacC[-c]
             inp2$dtc <- inp$dtc[-c]
         } else {
             # Loop over indices
@@ -72,9 +71,11 @@ calc.influence <- function(rep){
             if (class(inp$obsI)=='numeric'){
                 inp2$obsI <- inp$obsI[-i]
                 inp2$timeI <- inp$timeI[-i]
+                inp2$stdevfacI <- inp2$stdevfacI[-i]
             } else {
                 inp2$obsI[[j]] <- inp$obsI[[j]][-i]
                 inp2$timeI[[j]] <- inp$timeI[[j]][-i]
+                inp2$stdevfacI[[j]] <- inp2$stdevfacI[[j]][-i]
             }
         }
         rep2 <- fit.spict(inp2)
@@ -91,7 +92,6 @@ calc.influence <- function(rep){
     }
     # Calculate influence
     if (Sys.info()['sysname']!='Linux'){
-    #if (class(partry)=='try-error'){
         single.inflfun <- function(c, inp, parnams, nobs){
             res <- inflfun(c, inp, parnams)
             ## Send progress update
@@ -101,29 +101,30 @@ calc.influence <- function(rep){
 
         res <- lapply(1:nobs, single.inflfun, inp, parnams, nobs)
     } else {
-        #require(parallel)
-        multi.inflfun <- function(c, inp, parnams, nobs, progfile){
-            res <- inflfun(c, inp, parnams)
-            ## Send progress update
-            if (class(progfile)[1]=='fifo') writeBin(1/nobs, progfile)
-            return(res)
-        }
-        ## Open fifo progress file
-        progfile <- fifo(tempfile(), open="w+b", blocking=T)
-        #if (inherits(fork(), "masterProcess")) {
-        if (inherits(parallel:::mcfork(), "masterProcess")) {
-            ## Child
-            progress <- 0.0
-            while (progress < 1 && !isIncomplete(progfile)) {
-                msg <- readBin(progfile, "double")
-                progress <- progress + as.numeric(msg)
-                cat(sprintf("Progress (multicore): %.2f%%\r", progress * 100))
-            } 
-            #exit()
-        }
-        res <- parallel::mclapply(1:nobs, multi.inflfun, inp, parnams, nobs, progfile, mc.cores=4)
+        # multi.inflfun <- function(c, inp, parnams, nobs, progfile){
+        #     res <- inflfun(c, inp, parnams)
+        #     ## Send progress update
+        #     if (class(progfile)[1]=='fifo') writeBin(1/nobs, progfile)
+        #     return(res)
+        # }
+        # ## Open fifo progress file
+        # progfile <- fifo(tempfile(), open="w+b", blocking=T)
+        # #if (inherits(fork(), "masterProcess")) {
+        # if (inherits(parallel:::mcfork(), "masterProcess")) {
+        #     ## Child
+        #     progress <- 0.0
+        #     while (progress < 1 && !isIncomplete(progfile)) {
+        #         msg <- readBin(progfile, "double")
+        #         progress <- progress + as.numeric(msg)
+        #         cat(sprintf("Progress (multicore): %.2f%%\r", progress * 100))
+        #     } 
+        #     #exit()
+        # }
+        # res <- parallel::mclapply(1:nobs, multi.inflfun, inp, parnams, nobs, progfile, mc.cores=4)
         ## Close progress file
-        close(progfile)
+        #close(progfile)
+      ncores <- parallel::detectCores()
+      res <- parallel::mclapply(1:nobs, inflfun, inp = inp, parnams = parnams, mc.cores = ncores)
     }
     cat('\n')
     # Gather results
