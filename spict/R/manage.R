@@ -147,17 +147,17 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
 }
 
 
-#' @name take.c
-#' @title Calculate management when taking a constant catch (proxy for setting a TAC).
+#' Calculate management when taking a constant catch (proxy for setting a TAC).
+#' 
 #' @param catch Take this catch 'dtpredc' ahead from manstart time 
 #' @param inpin Input list.
 #' @param repin Results list.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
-#' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3) 
+#' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3)
+#' @param catchList list with numeric vectors timeC and obsC with the starting times and catches
 #' @return List containing results of management calculations.
 #' @export
 take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
-    
     inpt <- inpin
     if(is.null(catchList)){
         tmpTime <- repin$inp$timeCpred  
@@ -169,10 +169,11 @@ take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
     } else {
         inpt$timeC <- c( inpt$timeC, catchList$timeC )
         inpt$obsC <- c( inpt$obsC, catchList$obsC )
-        if(is.null(catchList$stdevfacC))
-            inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(catchList$timeC)) )  else
-            inpt$stdevfacC <- c(inpt$stdevfacC, catchList$stdevfacC)
-        
+        if(is.null(catchList$stdevfacC)) {
+          inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(catchList$timeC)) )
+        } else {
+          inpt$stdevfacC <- c(inpt$stdevfacC, catchList$stdevfacC)
+        }
         inpt$dtc <- c(inpt$dtc, catchList$dtc )
     }
 

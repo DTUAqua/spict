@@ -1,7 +1,7 @@
 ---
 title: "SPiCT"
 author: "Martin W. Pedersen, Alexandros Kokkalis, Casper W. Berg"
-date: '`07-11-2017`'
+date: "`r Sys.Date()`"
 output: 
   rmarkdown::html_vignette: 
     number_sections: yes
@@ -9,8 +9,8 @@ output:
 bibliography: bibliography.bib  
 vignette: >
   %\VignetteIndexEntry{SPiCT}
-  %\VignetteEngine{knitr::rmarkdown} 
-  \usepackage[utf8]{inputenc}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, echo = FALSE}
@@ -20,7 +20,13 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "  ", fig.align = 'center', cac
 # Basic functionality 
 
 ## Getting started
-This vignette explains basic and more advanced functions of the `spict` package. The package is installed from gihtub using the `devtools` package:
+This vignette explains basic and more advanced functions of the `spict` package. The package is installed from CRAN using 
+
+```{r, eval=FALSE}
+install.packages("spict")
+```
+
+A stable development version can be istalled from gihtub using the `devtools` (or `ghit`) package:
 ```{r, eval=FALSE}
 devtools::install_github("mawp/spict/spict")
 ```
