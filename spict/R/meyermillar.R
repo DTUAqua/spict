@@ -127,15 +127,15 @@ fit.meyermillar <- function(mminp){
 }
 
 
-#' @name plotmm.priors
-#' @title Plot priors of Meyer & Millar model
+#' Plot priors of Meyer & Millar model
+#' 
 #' @param nm Name of prior
 #' @param priorsin List of priors, typically inp$meyermillar$priors.
 #' @param add If TRUE add to current plot.
 #' @param ... Additional arguments to plot.
 #' @return Nothing.
 #' @export
-plot.priors <- function(nm, priorsin, add=TRUE, ...){
+plotmm.priors <- function(nm, priorsin, add=TRUE, ...){
     if (nm == 'K'){
         mu <- priorsin$K[1]
         sd <- 1/sqrt(priorsin$K[2])

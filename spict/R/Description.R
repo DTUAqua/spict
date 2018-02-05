@@ -26,4 +26,9 @@
 #' @seealso \code{\link{test.spict}}
 #' @examples
 #' rep <- test.spict()
+#' @importFrom grDevices col2rgb colorRamp dev.cur dev.new dev.off pdf rgb
+#' @importFrom graphics abline arrows axis box contour grid legend lines matplot mtext par plot points polygon rect strheight strwidth text title
+#' @importFrom methods is
+#'@importFrom stats Box.test acf cov2cor dgamma dlnorm dnorm lm na.omit na.pass nlminb optim pchisq pnorm predict qchisq qnorm qqline qqnorm rnorm runif shapiro.test smooth.spline t.test update
+#' @importFrom utils capture.output data head packageVersion read.table tail
 NULL

@@ -68,8 +68,9 @@ shaperate2meanvar <- function(shape, rate){
 #' @param pkg Name of package.
 #' @return Package version
 #' @export
+#' @importFrom utils packageDescription
 get.version <- function(pkg='spict'){
-  pd <- packageDescription(pkg)
+  pd <- utils::packageDescription(pkg)
   v <- paste0(pd$Package, "_v", pd$Version)
   if (is.null(pd$GithubRef)){
       return(v)
@@ -112,9 +113,7 @@ NULL
 #' rep <- test.spict()
 #' @export
 test.spict <- function(dataset='albacore'){
-    # Load data
-    data(pol)
-    inp <- pol[[dataset]]
+    inp <- spict::pol[[dataset]]
     if (dataset=='albacore'){
         inp$ffac <- 0.8
         nopredcyears <- 3 # Number of years to predict catch
