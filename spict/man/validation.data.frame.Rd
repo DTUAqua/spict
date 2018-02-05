@@ -12,3 +12,6 @@ validation.data.frame(ss)
 \value{
 A data frame containing the formatted validation results.
 }
+\description{
+Collect results from the output of running validate.spict.
+}

@@ -15,17 +15,20 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#' @name spict
+#' Fits a continuous-time surplus production model to data
+#' 
 #' @aliases spict
+#' @name spict
 #' @docType package
-#' @title Fits a continuous-time surplus production model to data
 #' @author Martin W. Pedersen \email{mawp@@dtu.dk}
 #' @references
 #' \url{https://github.com/mawp/spict/}
 #' @keywords production model, fisheries, assessment
 #' @seealso \code{\link{test.spict}}
 #' @examples
+#' \dontrun{
 #' rep <- test.spict()
+#' }
 #' @importFrom grDevices col2rgb colorRamp dev.cur dev.new dev.off pdf rgb
 #' @importFrom graphics abline arrows axis box contour grid legend lines matplot mtext par plot points polygon rect strheight strwidth text title
 #' @importFrom methods is

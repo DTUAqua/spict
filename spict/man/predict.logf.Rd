@@ -2,7 +2,7 @@
 % Please edit documentation in R/sim.R
 \name{predict.logf}
 \alias{predict.logf}
-\title{Helper function for sim.spict().}
+\title{Helper function for sim.spict()}
 \usage{
 \method{predict}{logf}(logF0, dt, sdf, efforttype)
 }
@@ -17,4 +17,7 @@
 }
 \value{
 Predicted F at the end of dt.
+}
+\description{
+Helper function for sim.spict()
 }

@@ -30,11 +30,13 @@ plotspict.bbmsy(rep, logax = FALSE, main = "Relative biomass",
 \value{
 Nothing.
 }
-\details{
-Plots estimated B/Bmsy.
+\description{
+Plot estimated B/Bmsy.
 }
 \examples{
+\dontrun{
 data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.bbmsy(rep)
+}
 }

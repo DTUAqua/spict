@@ -32,3 +32,6 @@
 \value{
 Nothing.
 }
+\description{
+Plot model points colored depending on the quarter to which they belong.
+}

@@ -16,3 +16,6 @@ latex.figure(figfile, reportfile, caption = "")
 \value{
 Nothing.
 }
+\description{
+Generate latex code for including a figure.
+}

@@ -34,11 +34,13 @@ plotspict.f(rep, logax = FALSE, main = "Absolute fishing mortality",
 \value{
 Nothing.
 }
-\details{
+\description{
 Plots estimated fishing mortality with Fmsy and associated confidence interval.
 }
 \examples{
+\dontrun{
 data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.f(rep)
+}
 }

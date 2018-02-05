@@ -15,7 +15,17 @@ add.manlines(rep, par, par2 = NULL, index.shift = 0, plot.legend = TRUE,
 \item{par2}{If a second parameter should be used as explanatory variable instead of time.}
 
 \item{index.shift}{Shift initial time point by this index.}
+
+\item{plot.legend}{logical, if TRUE (default) adds legend to the plot}
+
+\item{...}{Additional arguments passed to \code{\link{lines}}}
 }
 \value{
 Nothing
+}
+\description{
+Add lines to plot indicating result of management scenarios.
+}
+\seealso{
+\code{\link{lines}}
 }

@@ -15,9 +15,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#' @name read.aspic
-#' @title Reads ASPIC input file.
-#' @details Reads an input file following the ASPIC 7 format described in the ASPIC manual (found here http://www.mhprager.com/aspic.html).
+#' Reads ASPIC input file.
+#' 
+#' Reads an input file following the ASPIC 7 format described in the ASPIC manual (found here http://www.mhprager.com/aspic.html).
 #' @param filename Path of the ASPIC input file.
 #' @return A list of input variables that can be used as input to fit.spict().
 #' @examples
@@ -123,9 +123,8 @@ read.aspic <- function(filename){
 }
 
 
-#' @name write.aspic
-#' @title Takes a SPiCT input list and writes it as an Aspic input file.
-#' @details TBA
+#' Takes a SPiCT input list and writes it as an Aspic input file.
+#' 
 #' @param input List of input variables or the output of a simulation using sim.spict().
 #' @param filename Name of the file to write.
 #' @param verbose If true write information to screen.
@@ -224,9 +223,8 @@ write.aspic <- function(input, filename='spictout.a7inp', verbose=FALSE){
 }
 
 
-#' @name read.aspic.res
-#' @title Reads the parameter estimates of an Aspic result file.
-#' @details TBA
+#' Reads the parameter estimates of an Aspic result file.
+#' 
 #' @param filename Name of the Aspic result file to read
 #' @return Vector containing the parameter estimates.
 #' @export
@@ -273,9 +271,9 @@ read.aspic.res <- function(filename){
 
 
 
-#' @name fit.aspic
-#' @title Fits aspic to the data contained in the input file
-#' @details Only works on Linux. This furthermore requires that wine is installed and that aspic7 is installed and available to the PATH.
+#' Fits aspic to the data contained in the input file
+#' 
+#' @note This function works only in linux and requires that wine and aspic7 are installed and available to the PATH.
 #' @param input A spict input list containing observations.
 #' @param do.boot Do bootstrap to get uncertainties of estimates?
 #' @param nboot Number of bootstrap runs (only used if do.boot=TRUE). Prager suggests in the ASPIC manual p. 13 to use nboot > 1000 if ciperc > 80.

@@ -34,11 +34,13 @@ plotspict.fb(rep, logax = FALSE, plot.legend = TRUE, man.legend = TRUE,
 \value{
 Nothing.
 }
-\details{
+\description{
 Plots estimated fishing mortality as a function of biomass together with reference points and the prediction for next year given a constant F. The equilibrium biomass for F fixed to the current value is also plotted.
 }
 \examples{
+\dontrun{
 data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.fb(rep)
+}
 }

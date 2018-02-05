@@ -12,6 +12,9 @@ fit.meyermillar(mminp)
 \value{
 List containing results
 }
+\description{
+Fit the model of Meyer & Millar (1999)
+}
 \details{
 Same input structure as for fit.spict(). Fitting the model of Meyer & Millar requires the packages rjags and coda. It furthermore requires that priors are specified for K, r, q, sigma2 (process error variance) and tau2 (observation error variance). Following Meyer & Millar (1999) the priors are:
 \itemize{

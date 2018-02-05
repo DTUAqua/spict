@@ -12,9 +12,14 @@ test.spict(dataset = "albacore")
 \value{
 A result report as given by fit.spict().
 }
+\description{
+Example of a spict analysis.
+}
 \details{
 Loads a data set, fits the model, calculates one-step-ahead residuals, plots the results.
 }
 \examples{
+\dontrun{
 rep <- test.spict()
+}
 }

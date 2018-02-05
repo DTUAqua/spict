@@ -25,6 +25,9 @@ fit.aspic(input, do.boot = FALSE, nboot = NULL, ciperc = NULL,
 \value{
 List containing aspic results.
 }
-\details{
-Only works on Linux. This furthermore requires that wine is installed and that aspic7 is installed and available to the PATH.
+\description{
+Fits aspic to the data contained in the input file
+}
+\note{
+This function works only in linux and requires that wine and aspic7 are installed and available to the PATH.
 }

@@ -21,11 +21,7 @@
 }
 
 .onAttach <- function(lib, pkg) {
-    #ver <- utils::packageVersion('spict')
     ver <- get.version('spict')
     packageStartupMessage(paste0('Welcome to ', ver))
-  ## if(suppressPackageStartupMessages(require(DLMtool, quietly = TRUE, warn.conflicts = FALSE))) {
-  ##   environment(SPiCT_Feq08Fmsy) <- asNamespace("DLMtool")
-  ## }
 }
 

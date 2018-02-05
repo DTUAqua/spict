@@ -5,8 +5,13 @@
 \alias{spict}
 \alias{spict-package}
 \title{Fits a continuous-time surplus production model to data}
+\description{
+Fits a continuous-time surplus production model to data
+}
 \examples{
+\dontrun{
 rep <- test.spict()
+}
 }
 \references{
 \url{https://github.com/mawp/spict/}
@@ -18,6 +23,6 @@ rep <- test.spict()
 Martin W. Pedersen \email{mawp@dtu.dk}
 }
 \keyword{assessment}
-\keyword{fisheries,}
-\keyword{model,}
+\keyword{fisheries}
+\keyword{model}
 \keyword{production}

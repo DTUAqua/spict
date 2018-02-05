@@ -14,9 +14,10 @@ sim.spict(input, nobs = 100)
 \value{
 A list containing the simulated data.
 }
+\description{
+Simulates data using either manually specified parameters values or parameters estimated by fit.spict()
+}
 \details{
-Simulates data using either manually specified parameters values or parameters estimated by fit.spict().
-
 Manual specification:
 To specify parameters manually use the inp$ini format similar to when specifying initial values for running fit.spict(). Observations can be simulated at specific times using inp$timeC and inp$timeI. If these are not specified then the length of inp$obsC or inp$obsI is used to determine the number of observations of catches and indices respectively. If none of these are specified then nobs observations of catch and index will be simulated evenly distributed in time.
 
@@ -24,6 +25,7 @@ Estimated parameters:
 Simply take the output from a fit.spict() run and use as input to sim.spict().
 }
 \examples{
+\dontrun{
 data(pol)
 repin <- fit.spict(pol$albacore)
 # Simulate a specific number of observations
@@ -54,4 +56,5 @@ sim2 <- sim.spict(inp)
 par(mfrow=c(2, 1))
 plot(sim2$obsC, typ='l')
 plot(sim2$obsI[[1]], typ='l')
+}
 }

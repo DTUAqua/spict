@@ -18,13 +18,15 @@ extract.simstats(rep, inp = NULL, exp = NULL, parnames = NULL)
 \value{
 A list containing the relevant statistics.
 }
-\details{
-TBA
+\description{
+Extracts relevant statistics from the estimation of a simulated data set.
 }
 \examples{
+\dontrun{
 data(pol)
 repin <- fit.spict(pol$albacore)
 sim <- sim.spict(repin)
 rep <- fit.spict(sim)
 extract.simstats(rep)
+}
 }

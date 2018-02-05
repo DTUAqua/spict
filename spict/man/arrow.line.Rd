@@ -29,6 +29,6 @@ arrow.line(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"),
 \value{
 Nothing, but an arrow line is added to the current plot.
 }
-\details{
-Add to an existing plot a continuous line with arrow heads showing the direction between each data point
+\description{
+Add to an existing plot a continuous line with arrow heads showing the direction between each data point.
 }

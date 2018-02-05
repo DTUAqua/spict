@@ -34,11 +34,13 @@ plotspict.biomass(rep, logax = FALSE, main = "Absolute biomass",
 \value{
 Nothing.
 }
-\details{
+\description{
 Plots estimated biomass, Bmsy with confidence limits.
 }
 \examples{
+\dontrun{
 data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.biomass(rep)
+}
 }

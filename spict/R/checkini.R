@@ -15,8 +15,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#' @name check.ini
-#' @title Check sensitivity of fit to initial parameter values
+#' Check sensitivity of fit to initial parameter values
+#' 
 #' @param input Either an inp list passing check.inp(), or a rep list where rep is the output of running fit.spict().
 #' @param ntrials The number of trials with different starting values to run.
 #' @param verbose If true write information to screen.

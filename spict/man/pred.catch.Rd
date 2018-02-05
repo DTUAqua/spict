@@ -7,6 +7,8 @@
 pred.catch(repin, fmsyfac = 1, get.sd = FALSE, exp = FALSE, dbg = 0)
 }
 \arguments{
+\item{repin}{Result list as output from fit.spict().}
+
 \item{fmsyfac}{Projection are made using F = fmsyfac * Fmsy.}
 
 \item{get.sd}{Get uncertainty of the predicted catch.}
@@ -14,9 +16,10 @@ pred.catch(repin, fmsyfac = 1, get.sd = FALSE, exp = FALSE, dbg = 0)
 \item{exp}{If TRUE report exp of log predicted catch.}
 
 \item{dbg}{Debug flag, dbg=1 some output, dbg=2 more ourput.}
-
-\item{rep}{Result list as output from fit.spict().}
 }
 \value{
 A vector containing predicted catch (possibly with uncertainty).
+}
+\description{
+Predict the catch of the prediction interval specified in inp
 }

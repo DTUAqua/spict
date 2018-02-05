@@ -23,9 +23,14 @@ plotspict.diagnostic(rep, lag.max = 4, qlegend = TRUE, plot.data = TRUE,
 \value{
 Nothing.
 }
+\description{
+Plot model diagnostic (data, residuals, and more)
+}
 \examples{
+\dontrun{
 data(pol)
 rep <- fit.spict(pol$albacore)
 rep <- calc.osa.resid(rep)
 plotspict.diagnostic(rep)
+}
 }

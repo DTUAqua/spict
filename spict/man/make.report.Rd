@@ -5,16 +5,19 @@
 \title{Creates a pdf file containing the summary output and result plots}
 \usage{
 make.report(rep, reporttitle = "", reportfile = "report.tex",
-  summaryoutfile = "summaryout.txt", keep.figurefiles = FALSE,
-  keep.txtfiles = FALSE, keep.texfiles = FALSE)
+  summaryoutfile = "summaryout.txt", outdir = ".",
+  keep.figurefiles = FALSE, keep.txtfiles = FALSE, keep.texfiles = FALSE)
 }
 \arguments{
 \item{rep}{A valid result from fit.spict with OSA residuals.}
 
 \item{reporttitle}{This character string will be printed as the first line of the report.}
 
-\item{reportfile}{A \link{connection}, or a character string naming the file ('.tex' file) to print
-to. If not a connection, \code{make.report} prints to the working directory (default).}
+\item{reportfile}{character, filename (ending in '.tex') of the report LaTeX file.}
+
+\item{summaryoutfile}{character, filename of the summary output file.}
+
+\item{outdir}{character, directory where all output files are going to be saved.}
 
 \item{keep.figurefiles}{If TRUE generated figure files will not be cleaned up.}
 
@@ -25,6 +28,6 @@ to. If not a connection, \code{make.report} prints to the working directory (def
 \value{
 Nothing.
 }
-\details{
-This function probably requires that you are running linux and that you have latex functions installed (pdflatex).
+\description{
+This function probably works probably only in linux with a LaTeX distribution installed (pdflatex).
 }

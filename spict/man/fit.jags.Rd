@@ -23,3 +23,6 @@ fit.jags(inp, fn, n.iter = 10000, n.chains = 1, burnin = round(n.iter/2),
 \value{
 The raw output of rjags::coda.samples.
 }
+\description{
+Fit the Meyer & Millar model using rjags
+}

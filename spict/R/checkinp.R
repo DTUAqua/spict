@@ -15,8 +15,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#' @name check.inp
-#' @title Check list of input variables
+#' Check list of input variables
+#' 
 #' @details Fills in defalut values if missing.
 #'
 #' Required inputs:
@@ -842,7 +842,7 @@ check.inp <- function(inp){
         #    inp$ini$logr <- log(-r)
         #}
     }
-    if(length(inp$ini$logm)!=inp$noms) inp$ini$logm <- rep(inp$ini$logm,noms)
+    if(length(inp$ini$logm)!=inp$noms) inp$ini$logm <- rep(inp$ini$logm,inp$noms)
     
     if ('logr' %in% names(inp$ini)){
         nr <- length(inp$ini$logr)
@@ -1299,12 +1299,11 @@ check.inp <- function(inp){
 }
 
 
-#' @name list.possible.priors
-#' @title List parameters to which priors can be added
+#' List parameters to which priors can be added
+#' 
 #' @return Prints parameters to which priors can be added.
 #' @export
 list.possible.priors <- function(){
-    data(pol)
-    inp <- check.inp(pol$albacore)
+    inp <- check.inp(spict::pol$albacore)
     print(names(inp$priors))
 }

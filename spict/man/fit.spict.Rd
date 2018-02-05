@@ -14,9 +14,10 @@ fit.spict(inp, dbg = 0)
 \value{
 A result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
 }
-\details{
+\description{
 Fits the model using the TMB package and returns a result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
-
+}
+\details{
 Model parameters using the formulation of Fletcher (1978):
 \itemize{
   \item{"logn"}{ Parameter determining the shape of the production curve as in the generalised form of Pella & Tomlinson (1969).}
@@ -68,9 +69,11 @@ Model assumptions
 }
 }
 \examples{
+\dontrun{
 data(pol)
 rep <- fit.spict(pol$albacore)
 Bmsy <- get.par('logBmsy', rep, exp=TRUE)
 summary(rep)
 plot(rep)
+}
 }

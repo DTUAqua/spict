@@ -5,7 +5,7 @@
 \title{Get function to estimate TAC for the DLMtool package}
 \usage{
 spict2DLMtool(fractileC = 0.5, fractileFFmsy = 0.5, fractileBBmsy = 0.5,
-  uncertaintyCap = FALSE, lower = 0.8, upper = 1.2)
+  uncertaintyCap = FALSE, lower = 0.8, upper = 1.2, env = globalenv())
 }
 \arguments{
 \item{fractileC}{The fractile of the catch distribution to be used for setting TAC. Default
@@ -20,12 +20,14 @@ is median (0.5).}
 \item{lower}{lower bound of the uncertainty cap. Default is 0.8, used if uncertaintyCap = TRUE.}
 
 \item{upper}{upper bound of the uncertainty cap. Default is 1.2, used if uncertaintyCap = TRUE.}
+
+\item{env}{environment where the harvest control rule function(s) are assigned to.}
 }
 \value{
 A function which can estimate TAC recommendations based on SPiCT assessment,
   taking assessment uncertainty into account.
 }
-\details{
+\description{
 This function creates harvest control rules (HCRs) which can be incorporated into a
 management strategy evaluation framework (DLMtool package). HCRs are saved with a
 generic name to the global environment and name of HCR is returned if results of the

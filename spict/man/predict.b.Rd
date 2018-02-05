@@ -2,7 +2,7 @@
 % Please edit documentation in R/sim.R
 \name{predict.b}
 \alias{predict.b}
-\title{Helper function for sim.spict().}
+\title{Helper function for sim.spict()}
 \usage{
 \method{predict}{b}(B0, F0, gamma, m, K, n, dt, sdb, btype)
 }
@@ -27,4 +27,7 @@
 }
 \value{
 Predicted biomass at the end of dt.
+}
+\description{
+Helper function for sim.spict()
 }

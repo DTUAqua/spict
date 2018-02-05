@@ -15,11 +15,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#' @name fit.spict
-#' @title Fit a continuous-time surplus production model to data.
-#' @details Fits the model using the TMB package and returns a result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
-#'
-#' Model parameters using the formulation of Fletcher (1978):
+#' Fit a continuous-time surplus production model to data.
+#' @description Fits the model using the TMB package and returns a result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
+#' @details Model parameters using the formulation of Fletcher (1978):
 #' \itemize{
 #'   \item{"logn"}{ Parameter determining the shape of the production curve as in the generalised form of Pella & Tomlinson (1969).}
 #'   \item{"logm"}{ Log of maximum sustainable yield.}
@@ -73,11 +71,13 @@
 #' @return A result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
 #' @export
 #' @examples
+#' \dontrun{
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' Bmsy <- get.par('logBmsy', rep, exp=TRUE)
 #' summary(rep)
 #' plot(rep)
+#' }
 #' @import TMB
 fit.spict <- function(inp, dbg=0){
     rep <- NULL
@@ -218,8 +218,8 @@ calc.prager.stats <- function(rep){
     return(rep)
 }
 
-#' @name make.datin
-#' @title Create data list used as input to TMB::MakeADFun.
+#' Create data list used as input to TMB::MakeADFun.
+#' 
 #' @param inp List of input variables as output by check.inp.
 #' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. 
 #' @return List to be used as data input to TMB::MakeADFun.
@@ -306,8 +306,8 @@ make.datin <- function(inp, dbg=0){
 }
 
 
-#' @name make.obj
-#' @title Create TMB obj using TMB::MakeADFun and squelch screen printing.
+#' Create TMB obj using TMB::MakeADFun and squelch screen printing.
+#' 
 #' @param datin Data list.
 #' @param pl Parameter list.
 #' @param inp List of input variables as output by check.inp.
@@ -318,7 +318,7 @@ make.datin <- function(inp, dbg=0){
 make.obj <- function(datin, pl, inp, phase=1){
     obj <- TMB::MakeADFun(data=datin, parameters=pl, random=inp$RE, DLL=inp$scriptname,
                           hessian=TRUE, map=inp$map[[phase]])
-    TMB:::config(trace.optimize=0, DLL=inp$scriptname)
+    TMB::config(trace.optimize=0, DLL=inp$scriptname)
     verbose <- FALSE
     obj$env$tracemgc <- verbose
     obj$env$inner.control$trace <- verbose

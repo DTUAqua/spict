@@ -2,10 +2,9 @@
 % Please edit documentation in R/meyermillar.R
 \name{plotmm.priors}
 \alias{plotmm.priors}
-\alias{plot.priors}
 \title{Plot priors of Meyer & Millar model}
 \usage{
-\method{plot}{priors}(nm, priorsin, add = TRUE, ...)
+plotmm.priors(nm, priorsin, add = TRUE, ...)
 }
 \arguments{
 \item{nm}{Name of prior}
@@ -18,4 +17,7 @@
 }
 \value{
 Nothing.
+}
+\description{
+Plot priors of Meyer & Millar model
 }

@@ -14,6 +14,9 @@ likprof.spict(input, verbose = FALSE)
 \value{
 The output is the input with the likelihood profile information added to the likprof key of either inp or rep$inp.
 }
+\description{
+Create profile likelihood
+}
 \details{
 The "likprof" list must containg the following keys:
 \itemize{
@@ -26,6 +29,7 @@ Optional:
 }
 }
 \examples{
+\dontrun{
 data(pol)
 inp <- pol$albacore
 inp$likprof <- list()
@@ -35,4 +39,5 @@ inp$likprof$nogridpoints <- 15
 rep <- fit.spict(inp)
 rep <- likprof.spict(rep)
 plotspict.likprof(rep, logpar=TRUE)
+}
 }

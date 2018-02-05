@@ -2,7 +2,7 @@
 % Please edit documentation in R/manage.R
 \name{prop.F}
 \alias{prop.F}
-\title{Calculate management for changing F by a given factor.}
+\title{Calculate management for changing F by a given factor}
 \usage{
 prop.F(fac, inpin, repin, maninds, corF = FALSE, dbg = 0)
 }
@@ -21,4 +21,7 @@ prop.F(fac, inpin, repin, maninds, corF = FALSE, dbg = 0)
 }
 \value{
 List containing results of management calculations.
+}
+\description{
+Calculate management for changing F by a given factor
 }

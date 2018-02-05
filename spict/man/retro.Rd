@@ -14,13 +14,15 @@ retro(rep, nretroyear = 5)
 \value{
 A rep list with the added key retro containing the results of the retrospective analysis. Use plotspict.retro() to plot these results.
 }
-\details{
+\description{
 A retrospective analysis consists of estimating the model with later data points removed sequentially one year at a time.
 }
 \examples{
+\dontrun{
 data(pol)
 inp <- pol$albacore
 rep <- fit.spict(inp)
 rep <- retro(rep, nretroyear=6)
 plotspict.retro(rep)
+}
 }
