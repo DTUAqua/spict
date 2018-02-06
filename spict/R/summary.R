@@ -22,9 +22,11 @@
 #' @param ... additional arguments affecting the summary produced.
 #' @return Nothing. Prints a summary to the screen.
 #' @examples
+#' \dontrun{
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' summary(rep)
+#' }
 #' @export
 summary.spictcls <- function(object, ...){
     #object <- x

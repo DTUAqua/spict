@@ -1541,9 +1541,11 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
 #' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @examples
+#' \dontrun{
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.production(rep)
+#' }
 #' @export
 plotspict.production <- function(rep, n.plotyears=40, main='Production curve', stamp=get.version()){
     if (!'sderr' %in% names(rep)){
@@ -1634,9 +1636,11 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve', s
 #' @param stamp Stamp plot with this character string.
 #' @return Nothing.
 #' @examples
+#' \dontrun{
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.tc(rep)
+#' }
 #' @export
 plotspict.tc <- function(rep, main='Time to Bmsy', stamp=get.version()){
     if (!'sderr' %in% names(rep) & rep$opt$convergence == 0){

@@ -23,7 +23,7 @@
 #' @author Martin W. Pedersen \email{mawp@@dtu.dk}
 #' @references
 #' \url{https://github.com/mawp/spict/}
-#' @keywords production model, fisheries, assessment
+#' @keywords production model fisheries assessment
 #' @seealso \code{\link{test.spict}}
 #' @examples
 #' \dontrun{

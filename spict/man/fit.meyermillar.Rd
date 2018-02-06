@@ -27,6 +27,7 @@ Same input structure as for fit.spict(). Fitting the model of Meyer & Millar req
 See example for how to specify priors.
 }
 \examples{
+\dontrun{
 priors <- list()
 priors$K <- c(5.042905, 3.76)
 priors$r <- c(-1.38, 3.845)
@@ -43,4 +44,5 @@ inp$meyermillar$n.chains <- 1
 inp$meyermillar$priors <- priors
 res <- fit.meyermillar(inp)
 summary(res$jags)
+}
 }
