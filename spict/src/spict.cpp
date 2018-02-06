@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// 14.10.2014
 #define TMB_LIB_INIT R_init_mypkg
 #include <TMB.hpp>
 
