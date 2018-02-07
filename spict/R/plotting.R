@@ -2101,58 +2101,59 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 #' @return Nothing
 #' @export
 plotspict.retro <- function(rep, stamp=get.version()){
-    opar <- par(mfrow=c(2, 2), mar=c(5, 4.2, 2, 2))
-    on.exit(par(opar))
-    nretroyear <- length(rep$retro)
+    base <- rep[- which(names(rep) == "retro")]
+    nruns <- length(rep$retro) + 1
+    rep$retro[[nruns]] <- base
     bs <- list()
-    for (i in 1:nretroyear){
+    for (i in 1:nruns){
         bs[[i]] <- get.par('logB', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
     }
     bbs <- list()
-    for (i in 1:nretroyear){
+    for (i in 1:nruns){
         bbs[[i]] <- get.par('logBBmsy', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
     }
     fs <- list()
-    for (i in 1:nretroyear){
+    for (i in 1:nruns){
         fs[[i]] <- get.par('logFnotS', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
     }
     ffs <- list()
-    for (i in 1:nretroyear){
+    for (i in 1:nruns){
         ffs[[i]] <- get.par('logFFmsynotS', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
     }
     time <- list()
-    for (i in 1:nretroyear){
+    for (i in 1:nruns){
         time[[i]] <- rep$retro[[i]]$inp$time[rep$retro[[i]]$inp$indest]
     }
     sel <- function(x) x[,2]
     ## Do plots
-    par(mfrow=c(2, 2))
-    plot(time[[1]], sel(bs[[1]]), typ='l', ylim=range(sapply(bs, sel)), xlab='Time',
+    opar <- par(mfrow=c(2, 2), mar=c(5, 4.2, 2, 2))
+    on.exit(par(opar))
+    plot(time[[nruns]], sel(bs[[nruns]]), type ='l', ylim=range(sapply(bs, sel)), xlab='Time',
          ylab = expression(B[t]), lwd=1.5)
-    polygon(c(time[[1]], rev(time[[1]])), c(bs[[1]][,1], rev(bs[[1]][,3])), col = "#00000022", border = NA)
-    for (i in 2:nretroyear){
-        lines(time[[i]], sel(bs[[i]]), col=i, lwd=1.5)
+    polygon(c(time[[nruns]], rev(time[[nruns]])), c(bs[[nruns]][,1], rev(bs[[nruns]][,3])), col = "#00000022", border = NA)
+    for (i in seq(nruns - 1)){
+        lines(time[[i]], sel(bs[[i]]), col=i + 1, lwd=1.5)
     }
     box(lwd=1.5)
-    plot(time[[1]], sel(fs[[1]]), typ='l', ylim=range(sapply(fs, sel)), xlab='Time',
+    plot(time[[nruns]], sel(fs[[nruns]]), typ='l', ylim=range(sapply(fs, sel)), xlab='Time',
          ylab = expression(F[t]), lwd=1.5)
-    polygon(c(time[[1]], rev(time[[1]])), c(fs[[1]][,1], rev(fs[[1]][,3])), col = "#00000022", border = NA)
-    for (i in 2:nretroyear){
-        lines(time[[i]], sel(fs[[i]]), col=i, lwd=1.5)
+    polygon(c(time[[nruns]], rev(time[[nruns]])), c(fs[[nruns]][,1], rev(fs[[nruns]][,3])), col = "#00000022", border = NA)
+    for (i in seq(nruns - 1)){
+        lines(time[[i]], sel(fs[[i]]), col=i + 1, lwd=1.5)
     }
     box(lwd=1.5)
-    plot(time[[1]], sel(bbs[[1]]), typ='l', ylim=range(sapply(bbs, sel)), xlab='Time',
+    plot(time[[nruns]], sel(bbs[[nruns]]), typ='l', ylim=range(sapply(bbs, sel)), xlab='Time',
          ylab = expression(B[t]/B[MSY]), lwd=1.5)
-    polygon(c(time[[1]], rev(time[[1]])), c(bbs[[1]][,1], rev(bbs[[1]][,3])), col = "#00000022", border = NA)
-    for (i in 2:nretroyear){
-        lines(time[[i]], sel(bbs[[i]]), col=i, lwd=1.5)
+    polygon(c(time[[nruns]], rev(time[[nruns]])), c(bbs[[nruns]][,1], rev(bbs[[nruns]][,3])), col = "#00000022", border = NA)
+    for (i in seq(nruns - 1)){
+        lines(time[[i]], sel(bbs[[i]]), col=i + 1, lwd=1.5)
     }
     box(lwd=1.5)
-    plot(time[[1]], sel(ffs[[1]]), typ='l', ylim=range(sapply(ffs, sel)), xlab='Time',
+    plot(time[[nruns]], sel(ffs[[nruns]]), typ='l', ylim=range(sapply(ffs, sel)), xlab='Time',
          ylab = expression(F[t]/F[MSY]), lwd=1.5)
-    polygon(c(time[[1]], rev(time[[1]])), c(ffs[[1]][,1], rev(ffs[[1]][,3])), col = "#00000022", border = NA)
-    for (i in 2:nretroyear){
-        lines(time[[i]], sel(ffs[[i]]), col=i, lwd=1.5)
+    polygon(c(time[[nruns]], rev(time[[nruns]])), c(ffs[[nruns]][,1], rev(ffs[[nruns]][,3])), col = "#00000022", border = NA)
+    for (i in seq(nruns - 1)){
+        lines(time[[i]], sel(ffs[[i]]), col=i + 1, lwd=1.5)
     }
     box(lwd=1.5)
     txt.stamp(stamp, do.flag=TRUE)
