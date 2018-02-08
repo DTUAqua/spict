@@ -10,7 +10,7 @@ License: GPL (>=3)
 Copyright: Martin Waever Pedersen <mawp@dtu.dk>
 Depends:
     R (>= 3.0),
-    TMB
+    TMB (>= 1.7.1)
 LinkingTo: TMB, RcppEigen
 Suggests:
     ellipse,
