@@ -345,7 +345,8 @@ sumspict.parest(res)
 plotspict.biomass(res)
 ```
 
-The model estimates seperate observation noises and finds that the first index (`sdi1`) is more noisy than the second (`sdi2`). It is furthermore estimated that the catchabilities are different by a factor 10 (`q1` versus `q2`). The biomass plot shows both indices, with circles indicating the first index and squares indicating the second index (the two series can also be distringuished by their colours).
+The model estimates seperate observation noises and finds that the first index (`sdi1`) is more noisy than the second (`sdi2`). It is furthermore estimated that the catchabilities are different by a factor 10 (`q1` versus `q2`). The biomass plot shows both indices, with circles indicating the first index and squares indicating the second index (the two series can also be distinguished by their colours). It is possible to force the model to assume that two or more index time-series have the same level of observation noise (CV). For example, to assume that `sdi1` equals `sdi2` one must add
+`inp$mapsdi <- c(1,1)` before calling `fit.spict(inp)`. The length of `mapsdi` should equal the number of indices. In case of 3 index series one could for example use `inp$mapsdi <- c(1, 1, 2)` to have series 1 and 2 share sdi and have a separate sdi for series 3. 
 
 ## Using effort data instead of commercial CPUE
 

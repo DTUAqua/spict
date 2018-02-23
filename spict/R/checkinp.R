@@ -17,7 +17,7 @@
 
 #' @name check.inp
 #' @title Check list of input variables
-#' @details Fills in defalut values if missing.
+#' @details Fills in default values if missing.
 #'
 #' Required inputs:
 #' 

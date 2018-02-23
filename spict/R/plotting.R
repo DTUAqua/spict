@@ -306,7 +306,8 @@ plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TR
         lines(x, obs, col='lightgray')
     }
     if (typ=='p'){
-        points(x, obs, col=1, pch=20+pch, bg=cols)
+        pchs <- rep_len(1:5,pch)
+        points(x, obs, col=1, pch=20+pchs[pch], bg=cols)
     }
     if (typ=='l'){
         qs <- unique(mods)
@@ -782,7 +783,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
         inp <- rep$inp
         if (inp$nindex %in% 1:2) mfrow <- c(2, 2)
         if (inp$nindex %in% 3:4) mfrow <- c(3, 2)
-        if (inp$nindex %in% 5:7) mfrow <- c(3, 3)
+        if (inp$nindex >=5) mfrow <- c(3, 3)
     }
     # Determine number of plots
     if ('osar' %in% names(rep)){
