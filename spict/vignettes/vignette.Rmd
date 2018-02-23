@@ -1,7 +1,7 @@
 ---
 title: "SPiCT"
 author: "Martin W. Pedersen, Alexandros Kokkalis, Casper W. Berg"
-date: '`07-11-2017`'
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
   rmarkdown::html_vignette: 
     number_sections: yes
