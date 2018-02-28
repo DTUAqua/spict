@@ -732,6 +732,11 @@ Type objective_function<Type>::operator() ()
   
   // Stationary F distribution 
   ans -= dnorm(logF(0), logeta, sdf(0)/sqrt(Type(2.0)*delta), 1);
+  // Stationary B distribution
+  Type nm1 = n - Type(1);
+  Type EB0 = K*pow(Type(1)-nm1/n*exp(logeta)/exp(logFmsy[0]),Type(1)/(nm1))*(Type(1)-n/2.0/(Type(1)-(Type(1)-n*exp(logFmsy[0]) + nm1*exp(logeta)))*sdb*sdb);
+
+  ans -= dnorm(logB(0),log(EB0),Type(3),1);
 
   // GROWTH RATE (modelled as time-varying m)
   if (timevaryinggrowth == 1){

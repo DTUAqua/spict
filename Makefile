@@ -36,3 +36,7 @@ quick-install: $(PACKAGE)/src/spict.so
 
 $(PACKAGE)/src/spict.so: $(PACKAGE)/src/spict.cpp
 	cd $(PACKAGE)/src; echo "library(TMB); compile('spict.cpp','-O0 -g')" | $(R) --slave
+
+slow-install: 
+	cd $(PACKAGE)/src; echo "library(TMB); compile('spict.cpp')" | $(R) --slave
+	$(R) CMD INSTALL $(PACKAGE)
