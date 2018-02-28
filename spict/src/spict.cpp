@@ -729,7 +729,9 @@ Type objective_function<Type>::operator() ()
   }
   vector<Type> F = exp(logS + logF); // This is the fishing mortality used to calculate catch
   vector<Type> logFs = log(F);
-
+  
+  // Stationary F distribution 
+  ans -= dnorm(logF(0), logeta, sdf(0)/sqrt(Type(2.0)*delta), 1);
 
   // GROWTH RATE (modelled as time-varying m)
   if (timevaryinggrowth == 1){
