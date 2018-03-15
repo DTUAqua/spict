@@ -135,7 +135,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorm);         // Prior vector for m, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priormu);        // Prior vector for mu, [log(mean), stdev in log, useflag]
-  DATA_VECTOR(priorq);         // Prior vector for q, [log(mean), stdev in log, useflag]
+  DATA_MATRIX(priorq);         // Prior vector for q, [log(mean), stdev in log, useflag]
   DATA_VECTOR(prioriqgamma);   // Prior vector for q, inverse gamma distribution, [shape, rate, useflag]
   DATA_VECTOR(priorqf);        // Prior vector for qf, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorbkfrac);    // Prior vector for B0/K, [log(mean), stdev in log, useflag]
@@ -552,8 +552,10 @@ Type objective_function<Type>::operator() ()
   if((priormu(2) == 1) & (nm == 1)){
     ans-= dnorm(mu, priormu(0), priormu(1), 1); // Prior for mu
   }
-  if((priorq(2) == 1) & (nq == 1)){
-    ans-= dnorm(logq(0), priorq(0), priorq(1), 1); // Prior for logq - log-normal
+  for(int i=0; i<nq; i++){ 
+    if(priorq(i,2) == 1){
+      ans-= dnorm(logq(i), priorq(i,0), priorq(i, 1), 1); // Prior for logq - log-normal
+      }
   }
   if(priorqf(2) == 1){
     ans-= dnorm(logqf, priorqf(0), priorqf(1), 1); // Prior for logqf

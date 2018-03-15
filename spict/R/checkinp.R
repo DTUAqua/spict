@@ -1092,7 +1092,7 @@ check.inp <- function(inp){
                         'logsdi', 'isdi2gamma', 'logsde', 'isde2gamma', 'logsdc',
                         'isdc2gamma', 'logsdm', 'logpsi', 'mu')
     repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
-    matrixpriors <- c('logsdi')
+    matrixpriors <- c('logsdi','logq')
     npossiblepriors <- length(possiblepriors)
     if (!"priors" %in% names(inp)){
         inp$priors <- list()
