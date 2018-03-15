@@ -273,6 +273,7 @@ make.datin <- function(inp, dbg=0){
                   stochmsy=ifelse(inp$msytype=='s', 1, 0),
                   stabilise=inp$stabilise,
                   MSYregime=inp$MSYregime,
+                  useARF=inp$useARF,
                   priorn=inp$priors$logn,
                   priorr=inp$priors$logr,
                   priorK=inp$priors$logK,

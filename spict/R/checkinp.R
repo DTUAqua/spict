@@ -326,7 +326,7 @@ check.inp <- function(inp){
     inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
     
     # -- MODEL OPTIONS --
-    if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB', 'logmre','SARvec')
+    if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB', 'logmre','SARvec','logFspinup','logBspinup')
     if (!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
     # Index related
     if (!"onealpha" %in% names(inp)){
@@ -1007,6 +1007,19 @@ check.inp <- function(inp){
     #    inp$ini$logmre <- check.mat(inp$ini$logmre, c(inp$nstocks, inp$ns), 'inp$ini$logmre')
     #}
     inp$ini$SARvec <- rep(0, max(inp$seasonindex2))
+
+    ## Stationary distribution "spin-up"
+    nspinup <- 0
+    if(!inp$effortmodel=="RW"){
+        if(is.null(inp$useARF) || inp$useARF==1){
+            nspinup <- 30/inp$dteuler;
+            inp$useARF <- 1
+        }
+    } else inp$useARF <- 0
+    
+    inp$ini$logFspinup <- rep(0, nspinup)
+    inp$ini$logBspinup <- rep(0, nspinup)
+    
     
     # Reorder parameter list
     inp$parlist <- list(logm=inp$ini$logm,
@@ -1035,7 +1048,9 @@ check.inp <- function(inp){
                         logmre=inp$ini$logmre,
                         SARvec=inp$ini$SARvec,
                         logitSARphi=inp$ini$logitSARphi,
-                        logSdSAR=inp$ini$logSdSAR)
+                        logSdSAR=inp$ini$logSdSAR,
+                        logFspinup=inp$ini$logFspinup,
+                        logBspinup=inp$ini$logBspinup)
 
 
     # -- PRIORS --

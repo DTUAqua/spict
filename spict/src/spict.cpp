@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// 14.10.2014
 #include <TMB.hpp>
 
 /* Predict biomass */
@@ -127,6 +126,7 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(stabilise);     // If 1 stabilise optimisation using uninformative priors
   //DATA_SCALAR(effortflag);     // If effortflag == 1 use effort data, else use index data
   DATA_FACTOR(MSYregime);      // factor mapping each time step to an m-regime
+  DATA_INTEGER(useARF);        // 0 = diffusion F process, 1 = mean reverting process (OU) 
 
   // Priors
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
@@ -190,6 +190,9 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(SARvec);    // Autoregressive deviations to seasonal spline
   PARAMETER(logitSARphi);      // AR coefficient for seasonal spline dev
   PARAMETER(logSdSAR);         // Standard deviation seasonal spline deviations  
+  PARAMETER_VECTOR(logFspinup);// as logF, but for a "spin up" period before data starts to obtain the stationary distribution of initial logF and logB (when such exist)
+  PARAMETER_VECTOR(logBspinup);// as above but for log B
+  
 
   //std::cout << "expmosc: " << expmosc(lambda, omega, 0.1) << std::endl;
    if(dbg > 0){
@@ -730,13 +733,43 @@ Type objective_function<Type>::operator() ()
   vector<Type> F = exp(logS + logF); // This is the fishing mortality used to calculate catch
   vector<Type> logFs = log(F);
   
-  // Stationary F distribution 
-  ans -= dnorm(logF(0), logeta, sdf(0)/sqrt(Type(2.0)*delta), 1);
-  // Stationary B distribution
-  Type nm1 = n - Type(1);
-  Type EB0 = K*pow(Type(1)-nm1/n*exp(logeta)/exp(logFmsy[0]),Type(1)/(nm1))*(Type(1)-n/2.0/(Type(1)-(Type(1)-n*exp(logFmsy[0]) + nm1*exp(logeta)))*sdb*sdb);
+  if(useARF==1){
+    int nspinup = logFspinup.size();
+    // Stationary F distribution 
+    ans -= dnorm(logFspinup(0), logeta, sdf(0)/sqrt(Type(2.0)*delta), 1);
+    // Stationary B distribution
+    Type nm1 = n - Type(1);
+    Type EB0 = K*pow(Type(1)-nm1/n*exp(logeta)/exp(logFmsy[0]),Type(1)/(nm1));
+      //K*pow(Type(1)-nm1/n*exp(logeta)/exp(logFmsy[0]),Type(1)/(nm1))*(Type(1)-n/2.0/(Type(1)-(Type(1)-n*exp(logFmsy[0]) + nm1*exp(logeta)))*sdb*sdb);
+    ans -= dnorm(logBspinup(0),log(EB0),Type(1),1);
+    
+    for(int i=1; i<nspinup; i++){
+      // F part
+      Type Fpredtmp = 0.0;
+      if (efforttype == 1){
+	Fpredtmp = predictF1(logFspinup(i-1), dt(0), sdf2(0), delta, logeta);
+      }
+      if (efforttype == 2){
+	Fpredtmp = predictF2(logFspinup(i-1), dt(0), sdf2(0), delta, logeta);
+      }
+      Type logFpred = log( Fpredtmp );
+      ans-= dnorm(logFspinup(i), logFpred, sqrt(dt(0))*sdf(0), 1);
+      
+      // B part
+      Type logBpredtmp;
+      logBpredtmp = predictlogB(exp(logBspinup(i-1)), exp(logFspinup(i-1)), gamma, mvec(0), K, dt(0), n, sdb2);
+      ans-= dnorm(logBspinup(i), logBpredtmp, sqrt(dt(0))*sdb, 1);
+    }
+    Type F0pred = predictF1(logFspinup(nspinup-1), dt(0), sdf2(0), delta, logeta);
+    Type logB0pred = predictlogB(exp(logBspinup(nspinup-1)), exp(logFspinup(nspinup-1)), gamma, mvec(0), K, dt(0), n, sdb2);
+    ans-= dnorm(log(F0pred),logF(0), sqrt(dt(0))*sdf(0), 1);
+    ans-= dnorm(logB(0),logB0pred, sqrt(dt(0))*sdb, 1);
+     
+  } else if(useARF==2){
+    // Stationary F distribution 
+    ans -= dnorm(logF(0), logeta, sdf(0)/sqrt(Type(2.0)*delta), 1);
+  }
 
-  ans -= dnorm(logB(0),log(EB0),Type(3),1);
 
   // GROWTH RATE (modelled as time-varying m)
   if (timevaryinggrowth == 1){
