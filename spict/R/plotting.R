@@ -304,7 +304,8 @@ plot.col <- function(time, obs, obsx=NULL, pch=1, add=FALSE, typ='p', do.line=TR
         lines(x, obs, col='lightgray')
     }
     if (typ=='p'){
-        points(x, obs, col=1, pch=20+pch, bg=cols)
+        pchs <- rep_len(1:5,pch)
+        points(x, obs, col=1, pch=20+pchs[pch], bg=cols)
     }
     if (typ=='l'){
         qs <- unique(mods)
@@ -786,7 +787,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
         inp <- rep$inp
         if (inp$nindex %in% 1:2) mfrow <- c(2, 2)
         if (inp$nindex %in% 3:4) mfrow <- c(3, 2)
-        if (inp$nindex %in% 5:7) mfrow <- c(3, 3)
+        if (inp$nindex >=5) mfrow <- c(3, 3)
     }
     # Determine number of plots
     if ('osar' %in% names(rep)){
@@ -2111,62 +2112,54 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 #' @param stamp Stamp plot with this character string.
 #' @return Nothing
 #' @export
-plotspict.retro <- function(rep, stamp=get.version()){
-    opar <- par(mfrow=c(2, 2), mar=c(5, 4.2, 2, 2))
-    on.exit(par(opar))
-    nretroyear <- length(rep$retro)
-    bs <- list()
-    for (i in 1:nretroyear){
-        bs[[i]] <- get.par('logB', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
-    }
-    bbs <- list()
-    for (i in 1:nretroyear){
-        bbs[[i]] <- get.par('logBBmsy', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
-    }
-    fs <- list()
-    for (i in 1:nretroyear){
-        fs[[i]] <- get.par('logFnotS', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
-    }
-    ffs <- list()
-    for (i in 1:nretroyear){
-        ffs[[i]] <- get.par('logFFmsynotS', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
-    }
-    time <- list()
-    for (i in 1:nretroyear){
-        time[[i]] <- rep$retro[[i]]$inp$time[rep$retro[[i]]$inp$indest]
-    }
-    sel <- function(x) x[,2]
-    ## Do plots
-    par(mfrow=c(2, 2))
-    plot(time[[1]], sel(bs[[1]]), typ='l', ylim=range(sapply(bs, sel)), xlab='Time',
-         ylab = expression(B[t]), lwd=1.5)
-    polygon(c(time[[1]], rev(time[[1]])), c(bs[[1]][,1], rev(bs[[1]][,3])), col = "#00000022", border = NA)
-    for (i in 2:nretroyear){
-        lines(time[[i]], sel(bs[[i]]), col=i, lwd=1.5)
-    }
-    box(lwd=1.5)
-    plot(time[[1]], sel(fs[[1]]), typ='l', ylim=range(sapply(fs, sel)), xlab='Time',
-         ylab = expression(F[t]), lwd=1.5)
-    polygon(c(time[[1]], rev(time[[1]])), c(fs[[1]][,1], rev(fs[[1]][,3])), col = "#00000022", border = NA)
-    for (i in 2:nretroyear){
-        lines(time[[i]], sel(fs[[i]]), col=i, lwd=1.5)
-    }
-    box(lwd=1.5)
-    plot(time[[1]], sel(bbs[[1]]), typ='l', ylim=range(sapply(bbs, sel)), xlab='Time',
-         ylab = expression(B[t]/B[MSY]), lwd=1.5)
-    polygon(c(time[[1]], rev(time[[1]])), c(bbs[[1]][,1], rev(bbs[[1]][,3])), col = "#00000022", border = NA)
-    for (i in 2:nretroyear){
-        lines(time[[i]], sel(bbs[[i]]), col=i, lwd=1.5)
-    }
-    box(lwd=1.5)
-    plot(time[[1]], sel(ffs[[1]]), typ='l', ylim=range(sapply(ffs, sel)), xlab='Time',
-         ylab = expression(F[t]/F[MSY]), lwd=1.5)
-    polygon(c(time[[1]], rev(time[[1]])), c(ffs[[1]][,1], rev(ffs[[1]][,3])), col = "#00000022", border = NA)
-    for (i in 2:nretroyear){
-        lines(time[[i]], sel(ffs[[i]]), col=i, lwd=1.5)
-    }
-    box(lwd=1.5)
-    txt.stamp(stamp, do.flag=TRUE)
+plotspict.retro <- function(rep, stamp=get.version()) {
+  opar <- par(mfrow=c(2, 2), mar=c(5, 4.2, 2, 2))
+  on.exit(par(opar))
+  if (! is(rep, "spictcls")) stop("This function only works with spictcls objects")
+  if (! "retro" %in% names(rep)) stop("Please run the retrospective analysis first using the `retro` function.")
+  baserun <- rep[- which(names(rep) == "retro")]
+  rep$retro <- append(structure(list(baserun), class = "spictcls"), rep$retro)
+  nruns <- length(rep$retro)
+  bs <- bbs <- fs <- ffs <- time <- list()
+    for (i in 1:nruns){
+      bs[[i]] <- get.par('logB', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
+      bbs[[i]] <- get.par('logBBmsy', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
+      fs[[i]] <- get.par('logFnotS', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
+      ffs[[i]] <- get.par('logFFmsynotS', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
+      time[[i]] <- rep$retro[[i]]$inp$time[rep$retro[[i]]$inp$indest]
+  }
+  sel <- function(x) x[,2]
+  ## Do plots
+  cols <-  c("#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999")
+  plot(time[[1]], sel(bs[[1]]), type ='n', ylim=range(sapply(bs, sel)), xlab='Time',
+       ylab = expression(B[t]), lwd=1.5)
+  polygon(c(time[[1]], rev(time[[1]])), c(bs[[1]][,1], rev(bs[[1]][,3])), col = "lightgrey", border = NA)
+  for (i in seq(nruns)){
+    lines(time[[i]], sel(bs[[i]]), col=cols[i], lwd=2)
+  }
+  box(lwd=1.5)
+  plot(time[[1]], sel(fs[[1]]), typ='n', ylim=range(sapply(fs, sel)), xlab='Time',
+       ylab = expression(F[t]), lwd=1.5)
+  polygon(c(time[[1]], rev(time[[1]])), c(fs[[1]][,1], rev(fs[[1]][,3])), col = "lightgrey", border = NA)
+  for (i in seq(nruns)){
+    lines(time[[i]], sel(fs[[i]]), col=cols[i], lwd=2)
+  }
+  box(lwd=1.5)
+  plot(time[[1]], sel(bbs[[1]]), typ='n', ylim=range(sapply(bbs, sel)), xlab='Time',
+       ylab = expression(B[t]/B[MSY]), lwd=1.5)
+  polygon(c(time[[1]], rev(time[[1]])), c(bbs[[1]][,1], rev(bbs[[1]][,3])), col = "lightgrey", border = NA)
+  for (i in seq(nruns)){
+    lines(time[[i]], sel(bbs[[i]]), col=cols[i], lwd=2)
+  }
+  box(lwd=1.5)
+  plot(time[[1]], sel(ffs[[1]]), typ='n', ylim=range(sapply(ffs, sel)), xlab='Time',
+       ylab = expression(F[t]/F[MSY]), lwd=1.5)
+  polygon(c(time[[1]], rev(time[[1]])), c(ffs[[1]][,1], rev(ffs[[1]][,3])), col = "lightgray", border = NA)
+  for (i in seq(nruns)){
+    lines(time[[i]], sel(ffs[[i]]), col=cols[i], lwd=2)
+  }
+  box(lwd=1.5)
+  txt.stamp(stamp, do.flag=TRUE)
 }
 
 
