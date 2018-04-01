@@ -1,5 +1,5 @@
 PACKAGE=spict
-VERSION=1.1
+VERSION=1.3
 TARBALL=${PACKAGE}_${VERSION}.tar.gz
 ZIPFILE=${PACKAGE}_${VERSION}.zip
 R=R
@@ -36,3 +36,6 @@ quick-install: $(PACKAGE)/src/spict.so
 
 $(PACKAGE)/src/spict.so: $(PACKAGE)/src/spict.cpp
 	cd $(PACKAGE)/src; echo "library(TMB); compile('spict.cpp','-O0 -g')" | $(R) --slave
+
+vignette:  $(PACKAGE)/vignettes/SPiCT.Rmd
+	R -e "rmarkdown::render('spict/vignettes/SPiCT.Rmd', rmarkdown::pdf_document())"
