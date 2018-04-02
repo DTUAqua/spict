@@ -71,11 +71,12 @@ shaperate2meanvar <- function(shape, rate){
 get.version <- function(pkg='spict'){
   pd <- utils::packageDescription(pkg)
   v <- paste0(pd$Package, "_v", pd$Version)
-  if (is.null(pd$GithubRef)){
-      return(v)
-  } else {
-      paste0(v , "@", pd$GithubSHA1)
+  if (! is.null(pd$GithubRef)){
+    v <- paste0(v , "_", pd$RemoteType, "@", pd$RemoteUsername, "/", pd$RemoteRepo, " (", pd$GithubSHA1,")")
+  } else if ( ! is.null(pd$Repository)) {
+    v <- paste0(v , "@", pd$Repository)
   }
+  v
 }
 
 
