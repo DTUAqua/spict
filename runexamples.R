@@ -5,7 +5,7 @@ require(docopt, quietly = TRUE)
 
 Options:
   -l Library path
-  -r Rmdfile [default: spict/vignettes/vignette.Rmd]
+  -r Rmdfile [default: spict/vignettes/SPiCT.Rmd]
   -o Output directory
   -f outfilename
 

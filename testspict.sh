@@ -4,7 +4,7 @@ tmpdir=$(mktemp -d)
 RED='\033[31m'
 
 ref="master"
-vignfn="spict/vignettes/vignette.Rmd"
+vignfn="spict/vignettes/SPiCT.Rmd"
 
 while getopts ":r:v:" opt; do
   case $opt in

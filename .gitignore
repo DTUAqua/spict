@@ -25,3 +25,4 @@ vignette_*
 spict/inst/doc
 .Rbuildignore
 *_files
+*.Rcheck
