@@ -1,8 +1,6 @@
-#' @name spict2DLMtool
-#' @title Get function to estimate TAC for the DLMtool package
-#'
+#' Get function to estimate TAC for the DLMtool package
 #' 
-#' @details This function creates harvest control rules (HCRs) which can be incorporated into a
+#' This function creates harvest control rules (HCRs) which can be incorporated into a
 #' management strategy evaluation framework (DLMtool package). HCRs are saved with a
 #' generic name to the global environment and name of HCR is returned if results of the
 #' functin are assigned to an object. HCR runs a SPiCT assessment using catch and
@@ -23,6 +21,7 @@
 #' @param uncertaintyCap Logical; If true TAC is bound between two values set in lower and upper. Default: FALSE.
 #' @param lower lower bound of the uncertainty cap. Default is 0.8, used if uncertaintyCap = TRUE.
 #' @param upper upper bound of the uncertainty cap. Default is 1.2, used if uncertaintyCap = TRUE.
+#' @param env environment where the harvest control rule function(s) are assigned to.
 #' @return A function which can estimate TAC recommendations based on SPiCT assessment,
 #'   taking assessment uncertainty into account.
 #' 
@@ -30,46 +29,42 @@
 #'
 #' @examples
 #' \dontrun{
-#' library(DLMtool)
-#' 
 #' ## Put together an operating model from the available DLM toolkit examples
 #' StockEx <- Herring
 #' FleetEx <- Generic_IncE
 #' ObsEx <- Precise_Unbiased
-#' 
 #' ## Remove changes in life history parameters
 #' StockEx@Mgrad <- c(0,0)
 #' StockEx@Kgrad <- c(0,0)
 #' StockEx@Linfgrad <- c(0,0)
 #' StockEx@Prob_staying <- c(1,1)
-#' 
 #' ## Set the depletion level 
 #' StockEx@D <- c(0.3, 0.4)
-#'
 #' ## create Operation Model
 #' OMex <- new("OM", Stock = StockEx, Fleet = FleetEx, 
-#'                   Obs = ObsEx)
-#' 
+#'                 Obs = ObsEx)
 #' ## Set simulation options
 #' OMex@nsim <- 10
 #' OMex@nyears <- 25
-#' OMex@proyears <- 3
-#' 
+#' OMex@proyears <- 5
 #' ## Get SPiCT HCR
 #' MPname <- spict2DLMtool(fractileC=0.3)
-#'
 #' ## run MSE
-#' MSEex <- runMSE(OMex, MPs = MPname,
-#'             interval = 1, reps = 1, timelimit = 150, CheckMPs = FALSE)
+#' MSEex <- runMSE(OMex,
+#'                 MPs = MPname,
+#'                 timelimit = 150,
+#'                 CheckMPs = FALSE)
+#' ## example plot of results
+#' Pplot2(MSEex, traj="quant", quants=c(0.2, 0.8))
 #' }
-#'
 #'
 spict2DLMtool <- function(fractileC = 0.5,
                           fractileFFmsy = 0.5,
                           fractileBBmsy = 0.5,
                           uncertaintyCap = FALSE,
                           lower = 0.8,
-                          upper = 1.2){
+                          upper = 1.2,
+                          env = globalenv()){
 
     ## allowing for multiple generation of MPs
     argList <- list(fractileC, fractileFFmsy, fractileBBmsy,
@@ -139,10 +134,12 @@ spict2DLMtool <- function(fractileC = 0.5,
                     TAC <- rep(TACi, reps)
                 }
             }
-            res <- DLMtool:::TACfilter(TAC)
-            return(res)
+            res <- TACfilter(TAC)
+            Rec <- new("Rec")
+            Rec@TAC <- res
+            return(Rec)
         },
-        class="Output")'))
+        class="MP")'))
 
         
     nami <- rep(NA,maxi)
@@ -156,7 +153,7 @@ spict2DLMtool <- function(fractileC = 0.5,
          ## save names of MPs
         nami[I] <- paste0("spict_C",argListCor[[1]][I],"_FFmsy",
                        argListCor[[2]][I],"_BBmsy",argListCor[[3]][I],"_uC",uncertaintyCapPrint[I])
-        assign(value=templati, x=nami[I], envir=globalenv())
+        assign(value=templati, x=nami[I], envir=env)
     }
 
     ## allow for assigning names
