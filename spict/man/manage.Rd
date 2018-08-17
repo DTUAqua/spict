@@ -4,7 +4,8 @@
 \alias{manage}
 \title{Calculate predictions under different management scenarios}
 \usage{
-manage(repin, scenarios = "all", manstart = NULL, dbg = 0)
+manage(repin, scenarios = "all", manstart = NULL, dbg = 0, catch = NULL,
+  catchList = NULL)
 }
 \arguments{
 \item{repin}{Result list from fit.spict().}
@@ -35,4 +36,3 @@ rep <- fit.spict(pol$albacore)
 repman <- manage(rep)
 mansummary(repman) # To print projections
 }
-

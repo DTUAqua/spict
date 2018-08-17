@@ -9,4 +9,3 @@ get.order()
 \value{
 Vector containing indices of printed quantities.
 }
-

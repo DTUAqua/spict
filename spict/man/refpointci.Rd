@@ -18,4 +18,3 @@ refpointci(t, ll, ul, cicol = "ivory2")
 \value{
 Spline design matrix.
 }
-

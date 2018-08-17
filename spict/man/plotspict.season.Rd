@@ -17,4 +17,3 @@ Nothing.
 \details{
 If seasonal data are available the seasonal cycle in the fishing mortality can be estimated. This function plots this mean F cycle.
 }
-

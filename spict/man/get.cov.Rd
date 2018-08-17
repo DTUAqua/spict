@@ -18,4 +18,3 @@ get.cov(rep, parname1, parname2, cor = FALSE)
 \value{
 Covariance matrix of specified parameters.
 }
-

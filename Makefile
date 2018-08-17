@@ -1,13 +1,13 @@
 PACKAGE=spict
-VERSION=1.1
+VERSION=1.2.3
 TARBALL=${PACKAGE}_${VERSION}.tar.gz
 ZIPFILE=${PACKAGE}_${VERSION}.zip
+R=R
 
 all:
 	make doc-update
 	make install
 	make pdf
-	make test
 
 doc-update:
 	echo "roxygen2::roxygenize('spict/', roclets=c('rd', 'collate', 'namespace'))" | R --slave
@@ -30,6 +30,12 @@ pdf:
 check:
 	R CMD check $(PACKAGE)
 
-test:
-	echo 'source("../work/production_model/spict/testing/src/maketest.R")' | R --vanilla
 
+quick-install: $(PACKAGE)/src/spict.so
+	$(R) CMD INSTALL $(PACKAGE)
+
+$(PACKAGE)/src/spict.so: $(PACKAGE)/src/spict.cpp
+	cd $(PACKAGE)/src; echo "library(TMB); compile('spict.cpp','-O0 -g')" | $(R) --slave
+
+vignette:  $(PACKAGE)/vignettes/vignette.Rmd
+	R -e "rmarkdown::render('spict/vignettes/vignette.Rmd', rmarkdown::pdf_document())"

@@ -102,4 +102,3 @@ Example: Inverse gamma prior on sdb^2:
 data(pol)
 (inp <- check.inp(pol$albacore))
 }
-

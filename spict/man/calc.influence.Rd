@@ -15,4 +15,3 @@ A list equal to the input with the added key "infl" containing influence statist
 \details{
 TBA
 }
-

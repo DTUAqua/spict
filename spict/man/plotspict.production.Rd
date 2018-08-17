@@ -27,4 +27,3 @@ data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.production(rep)
 }
-

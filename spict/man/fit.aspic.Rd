@@ -28,4 +28,3 @@ List containing aspic results.
 \details{
 Only works on Linux. This furthermore requires that wine is installed and that aspic7 is installed and available to the PATH.
 }
-

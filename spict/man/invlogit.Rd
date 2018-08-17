@@ -12,4 +12,3 @@ invlogit(a)
 \value{
 Inverse logit.
 }
-

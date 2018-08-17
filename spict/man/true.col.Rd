@@ -9,4 +9,3 @@ true.col()
 \value{
 Color vector
 }
-

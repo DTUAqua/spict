@@ -14,4 +14,3 @@ plotspict.retro(rep, stamp = get.version())
 \value{
 Nothing
 }
-

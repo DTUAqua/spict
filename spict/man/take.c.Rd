@@ -4,18 +4,19 @@
 \alias{take.c}
 \title{Calculate management when taking a constant catch (proxy for setting a TAC).}
 \usage{
-take.c(catchfac, inpin, repin, dbg = 0)
+take.c(catch, inpin, repin, dbg = 0, sdfac = 0.001, catchList = NULL)
 }
 \arguments{
-\item{catchfac}{Take the catch corresponding to the catch at manstart time catchfac.}
+\item{catch}{Take this catch 'dtpredc' ahead from manstart time}
 
 \item{inpin}{Input list.}
 
 \item{repin}{Results list.}
 
-\item{dbg}{Debug flag, dbg=1 some output, dbg=2 more ourput.}
+\item{dbg}{Debug flag, dbg=1 some output, dbg=2 more output.}
+
+\item{sdfac}{Take catch with this 'stdevfacC' (default = 1e-3)}
 }
 \value{
 List containing results of management calculations.
 }
-

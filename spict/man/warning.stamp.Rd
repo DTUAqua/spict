@@ -9,4 +9,3 @@ warning.stamp()
 \value{
 Nothing
 }
-

@@ -14,4 +14,3 @@ meanvar2shaperate(mean, var)
 \value{
 Vector containing shape and rate parameters.
 }
-
