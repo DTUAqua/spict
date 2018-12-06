@@ -823,6 +823,8 @@ check.inp <- function(inp){
     } else if(length(inp$MSYregime)<length(inp$time)) { # manage changes number of time steps!
         inp$MSYregime<-c( inp$MSYregime, rep( tail(inp$MSYregime,1), length(inp$time)-length(inp$MSYregime)) )
     }
+    if(inp$timevaryinggrowth && nlevels(inp$MSYregime)>1)
+        stop("'timevaryinggrowth' and multiple MSYregimes cannot be used at the same time")
     inp$noms<-nlevels(inp$MSYregime)
     inp$ir<-as.numeric(inp$MSYregime)
 
@@ -1090,7 +1092,7 @@ check.inp <- function(inp){
                         'iqgamma', 'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy',
                         'logFFmsy', 'logsdb', 'isdb2gamma', 'logsdf', 'isdf2gamma',
                         'logsdi', 'isdi2gamma', 'logsde', 'isde2gamma', 'logsdc',
-                        'isdc2gamma', 'logsdm', 'logpsi', 'mu')
+                        'isdc2gamma', 'logsdm', 'logpsi', 'mu', 'BmsyB0')
     repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
     matrixpriors <- c('logsdi','logq')
     npossiblepriors <- length(possiblepriors)

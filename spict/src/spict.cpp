@@ -157,7 +157,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(priorF);         // Prior vector for F, [log(mean), stdev in log, useflag, year, if]
   DATA_VECTOR(priorBBmsy);     // Prior vector for B/Bmsy, [log(mean), stdev in log, useflag, year, ib]
   DATA_VECTOR(priorFFmsy);     // Prior vector for F/Fmsy, [log(mean), stdev in log, useflag, year, if]
-
+  DATA_VECTOR(priorBmsyB0)     // Prior vector for Bmsy/B_0, [mean, stdev, useflag]
   // Options
   DATA_SCALAR(simple);         // If simple=1 then use simple model (catch assumed known, no F process)
   DATA_SCALAR(dbg);            // Debug flag, if == 1 then print stuff.
@@ -439,7 +439,7 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<ns; i++){ 
     logrre(i) = log(mvec(i)/K * pow(n,(n/(n-1.0))));
   }
-
+  Type BmsyB0 = pow(Type(1)/n,Type(1)/(n-Type(1)) );
   Type likval;
 
   if(dbg > 0){
@@ -611,6 +611,13 @@ Type objective_function<Type>::operator() ()
   if(priorFFmsy(2) == 1){
     ind = CppAD::Integer(priorFFmsy(4)-1);
     ans-= dnorm(logF(ind) - logFmsyvec(ind), priorFFmsy(0), priorFFmsy(1), 1); // Prior for logFFmsy
+  }
+  if(priorFFmsy(2) == 1){
+    ind = CppAD::Integer(priorFFmsy(4)-1);
+    ans-= dnorm(logF(ind) - logFmsyvec(ind), priorFFmsy(0), priorFFmsy(1), 1); // Prior for logFFmsy
+  }
+  if(priorBmsyB0(2) == 1){
+    ans -= dnorm( BmsyB0, priorBmsyB0(0),priorBmsyB0(1), 1); // prior for Bmsy/B0
   }
 
   /*
@@ -1075,6 +1082,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT(isdi2);
   ADREPORT(logalpha);
   ADREPORT(logbeta);
+  ADREPORT(BmsyB0);
   if(reportall){ 
     // These reports are derived from the random effects and are therefore vectors. TMB calculates the covariance of all sdreports leading to a very large covariance matrix which may cause memory problems.
     // B
