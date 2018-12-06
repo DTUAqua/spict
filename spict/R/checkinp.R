@@ -823,6 +823,8 @@ check.inp <- function(inp){
     } else if(length(inp$MSYregime)<length(inp$time)) { # manage changes number of time steps!
         inp$MSYregime<-c( inp$MSYregime, rep( tail(inp$MSYregime,1), length(inp$time)-length(inp$MSYregime)) )
     }
+    if(inp$timevaryinggrowth && nlevels(inp$MSYregime)>1)
+        stop("'timevaryinggrowth' and multiple MSYregimes cannot be used at the same time")
     inp$noms<-nlevels(inp$MSYregime)
     inp$ir<-as.numeric(inp$MSYregime)
 
