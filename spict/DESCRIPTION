@@ -25,4 +25,4 @@ LazyData: true
 VignetteBuilder: knitr
 GithubRepo: spict
 GithubRef: mergePA 
-GithubSHA1: 21159fb841f8f7650b624a71a9eff7fc36022fa3 
+GithubSHA1: 8f25ea081a6e89205ede1116a0d8043ed135c3e3 
