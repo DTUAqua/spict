@@ -13,7 +13,7 @@ check.inp(inp)
 An updated list of input variables checked for consistency and with defaults added.
 }
 \details{
-Fills in defalut values if missing.
+Fills in default values if missing.
 
 Required inputs:
 

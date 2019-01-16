@@ -1,19 +1,19 @@
 /*
-    Stochastic surplus Production model in Continuous-Time (SPiCT)
-    Copyright (C) 2015-2016  Martin W. Pedersen, mawp@dtu.dk, wpsgodd@gmail.com
+  Stochastic surplus Production model in Continuous-Time (SPiCT)
+  Copyright (C) 2015-2016  Martin W. Pedersen, mawp@dtu.dk, wpsgodd@gmail.com
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 // 14.10.2014
@@ -110,7 +110,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(seasonindex);    // A vector of length ns giving the number stepped within the current year
   DATA_INTEGER(nseasons);      // Number of seasons pr year
   DATA_VECTOR(seasonindex2)    // A vector of length ns mapping states to seasonal AR component (for seasontype=3)
-  DATA_MATRIX(splinemat);      // Design matrix for the seasonal spline
+    DATA_MATRIX(splinemat);      // Design matrix for the seasonal spline
   DATA_MATRIX(splinematfine);  // Design matrix for the seasonal spline on a fine time scale to get spline uncertainty
   DATA_SCALAR(omega);          // Period time of seasonal SDEs (2*pi = 1 year period)
   DATA_INTEGER(seasontype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
@@ -127,6 +127,7 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(stabilise);     // If 1 stabilise optimisation using uninformative priors
   //DATA_SCALAR(effortflag);     // If effortflag == 1 use effort data, else use index data
   DATA_FACTOR(MSYregime);      // factor mapping each time step to an m-regime
+  DATA_INTEGER(MSEmode);       // If 1 only relative states are ADreported (increases speed, relevant for fitting within MSE)
 
   // Priors
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
@@ -157,7 +158,8 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(priorF);         // Prior vector for F, [log(mean), stdev in log, useflag, year, if]
   DATA_VECTOR(priorBBmsy);     // Prior vector for B/Bmsy, [log(mean), stdev in log, useflag, year, ib]
   DATA_VECTOR(priorFFmsy);     // Prior vector for F/Fmsy, [log(mean), stdev in log, useflag, year, if]
-  DATA_VECTOR(priorBmsyB0)     // Prior vector for Bmsy/B_0, [mean, stdev, useflag]
+  DATA_VECTOR(priorBmsyB0);     // Prior vector for Bmsy/B_0, [mean, stdev, useflag]
+
   // Options
   DATA_SCALAR(simple);         // If simple=1 then use simple model (catch assumed known, no F process)
   DATA_SCALAR(dbg);            // Debug flag, if == 1 then print stuff.
@@ -192,9 +194,9 @@ Type objective_function<Type>::operator() ()
   PARAMETER(logSdSAR);         // Standard deviation seasonal spline deviations  
 
   //std::cout << "expmosc: " << expmosc(lambda, omega, 0.1) << std::endl;
-   if(dbg > 0){
-     std::cout << "==== DATA read, now calculating derived quantities ====" << std::endl;
-   }
+  if(dbg > 0){
+    std::cout << "==== DATA read, now calculating derived quantities ====" << std::endl;
+  }
 
   int ind = 0;
   // Distribute sorted observations into logobsC and logobsI vectors
@@ -555,7 +557,7 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<nq; i++){ 
     if(priorq(i,2) == 1){
       ans-= dnorm(logq(i), priorq(i,0), priorq(i, 1), 1); // Prior for logq - log-normal
-      }
+    }
   }
   if(priorqf(2) == 1){
     ans-= dnorm(logqf, priorqf(0), priorqf(1), 1); // Prior for logqf
@@ -621,19 +623,19 @@ Type objective_function<Type>::operator() ()
   }
 
   /*
-  dt[i] is the length of the time interval between t_i and t_i+1
-  B[t] is biomass at the beginning of the time interval starting at time t
-  Binf[t] is equilibrium biomass with the parameters given at the beginning of the time interval starting at time t
-  I[t] is an index of biomass (e.g. CPUE) at the beginning of the time interval starting at time t
-  P[t] is the accumulated biomass production over the interval starting at time t
-  F[t] is the constant fishing mortality during the interval starting at time t
-  rvec[t] is the constant intrinsic growth rate during the interval starting at time t
-  C[t] is the catch removed during the interval starting at time t.
-  ffacvec[t] is the factor to multiply F[t-1] when calculating F[t] such that management is imposed at time t.
+    dt[i] is the length of the time interval between t_i and t_i+1
+    B[t] is biomass at the beginning of the time interval starting at time t
+    Binf[t] is equilibrium biomass with the parameters given at the beginning of the time interval starting at time t
+    I[t] is an index of biomass (e.g. CPUE) at the beginning of the time interval starting at time t
+    P[t] is the accumulated biomass production over the interval starting at time t
+    F[t] is the constant fishing mortality during the interval starting at time t
+    rvec[t] is the constant intrinsic growth rate during the interval starting at time t
+    C[t] is the catch removed during the interval starting at time t.
+    ffacvec[t] is the factor to multiply F[t-1] when calculating F[t] such that management is imposed at time t.
   */
 
   /*
-  --- PROCESS EQUATIONS ---
+    --- PROCESS EQUATIONS ---
   */
 
   // FISHING MORTALITY
@@ -912,7 +914,7 @@ Type objective_function<Type>::operator() ()
 
 
   /*
-  --- ONE-STEP-AHEAD PREDICTIONS ---
+    --- ONE-STEP-AHEAD PREDICTIONS ---
   */
 
   if(dbg > 0){
@@ -979,6 +981,9 @@ Type objective_function<Type>::operator() ()
   Type logBlK = logBl - logK;
   Type logFl = logFs(indlastobs-1);
   Type logFlFmsy = logFl - logFmsyvec(indlastobs-1);
+  Type logBlBtrigger = (Type(1.0)/Type(0.5)) * logBlBmsy;
+  Type logBlBlim = (Type(1.0)/Type(0.3)) * logBlBmsy; 
+  
 
   if(dbg > 0){
     std::cout << "--- DEBUG: Calculate relative levels of biomass and fishing mortality --- ans: " << ans << std::endl;
@@ -1014,75 +1019,88 @@ Type objective_function<Type>::operator() ()
   Type logBmsyPluslogFmsy = logBmsy(logBmsy.size()-1) + logFmsy(logFmsy.size()-1);
   
   // ADREPORTS
-  ADREPORT(Bmsy);  
-  ADREPORT(Bmsyd);
-  ADREPORT(Bmsys);
-  ADREPORT(Bmsy2);
-  ADREPORT(logBmsy);
-  ADREPORT(logBmsyd);
-  ADREPORT(logBmsys);
-  ADREPORT(logBp);
-  ADREPORT(logBpBmsy);
-  ADREPORT(logBpK);
-  ADREPORT(logBl);
-  ADREPORT(logBlBmsy);
-  ADREPORT(logBlK);
-  ADREPORT(Fmsy);
-  ADREPORT(Fmsyd);
-  ADREPORT(Fmsys);
-  ADREPORT(logFmsy);
-  ADREPORT(logFmsyd);
-  ADREPORT(logFmsys);
-  ADREPORT(logFp);
-  ADREPORT(logFpFmsy);
-  ADREPORT(logFl);
-  ADREPORT(logFlFmsy);
-  ADREPORT(MSY);
-  ADREPORT(MSYd);
-  ADREPORT(MSYs);
-  ADREPORT(logMSY);
-  ADREPORT(logMSYd);
-  ADREPORT(logMSYs);
-  ADREPORT(Emsy);
-  ADREPORT(Emsy2);
-  ADREPORT(logEmsy);
-  ADREPORT(logEmsy2);
-  ADREPORT(logbkfrac);
-  ADREPORT(seasonsplinefine);
-  // PREDICTIONS
-  ADREPORT(Cp);
-  ADREPORT(logIp);
-  ADREPORT(logCp);
-  ADREPORT(logEp);
-  // PARAMETERS
-  ADREPORT(r);
-  ADREPORT(logr);
-  ADREPORT(rc);
-  ADREPORT(logrc);
-  //ADREPORT(rp);
-  //ADREPORT(logrp);
-  ADREPORT(rold);
-  ADREPORT(logrold);
-  ADREPORT(K);
-  ADREPORT(q);
-  //ADREPORT(logq);
-  ADREPORT(logq2);
-  ADREPORT(p);
-  ADREPORT(gamma);
-  ADREPORT(m);
-  ADREPORT(sdf);
-  ADREPORT(sdc);
-  ADREPORT(sde);
-  ADREPORT(sdb);
-  ADREPORT(sdi);
-  ADREPORT(isdf2);
-  ADREPORT(isdc2);
-  ADREPORT(isde2);
-  ADREPORT(isdb2);
-  ADREPORT(isdi2);
-  ADREPORT(logalpha);
-  ADREPORT(logbeta);
-  ADREPORT(BmsyB0);
+  if(MSEmode == 1){
+    ADREPORT(logBpBmsy);
+    ADREPORT(logFpFmsy);
+    ADREPORT(logBlBmsy);
+    ADREPORT(logBlBtrigger);
+    ADREPORT(logBlBlim);
+    ADREPORT(logFlFmsy);    
+    ADREPORT(logCp);
+    ADREPORT(logFl);
+    ADREPORT(logFmsy);
+  }else{
+    ADREPORT(Bmsy);  
+    ADREPORT(Bmsyd);
+    ADREPORT(Bmsys);
+    ADREPORT(Bmsy2);
+    ADREPORT(logBmsy);
+    ADREPORT(logBmsyd);
+    ADREPORT(logBmsys);
+    ADREPORT(logBp);
+    ADREPORT(logBpBmsy);
+    ADREPORT(logBpK);
+    ADREPORT(logBl);
+    ADREPORT(logBlBmsy);
+    ADREPORT(logBlK);
+    ADREPORT(Fmsy);
+    ADREPORT(Fmsyd);
+    ADREPORT(Fmsys);
+    ADREPORT(logFmsy);
+    ADREPORT(logFmsyd);
+    ADREPORT(logFmsys);
+    ADREPORT(logFp);
+    ADREPORT(logFpFmsy);
+    ADREPORT(logFl);
+    ADREPORT(logFlFmsy);
+    ADREPORT(MSY);
+    ADREPORT(MSYd);
+    ADREPORT(MSYs);
+    ADREPORT(logMSY);
+    ADREPORT(logMSYd);
+    ADREPORT(logMSYs);
+    ADREPORT(Emsy);
+    ADREPORT(Emsy2);
+    ADREPORT(logEmsy);
+    ADREPORT(logEmsy2);
+    ADREPORT(logbkfrac);
+    ADREPORT(seasonsplinefine);
+    // PREDICTIONS
+    ADREPORT(Cp);
+    ADREPORT(logIp);
+    ADREPORT(logCp);
+    ADREPORT(logEp);
+    // PARAMETERS
+    ADREPORT(r);
+    ADREPORT(logr);
+    ADREPORT(rc);
+    ADREPORT(logrc);
+    //ADREPORT(rp);
+    //ADREPORT(logrp);
+    ADREPORT(rold);
+    ADREPORT(logrold);
+    ADREPORT(K);
+    ADREPORT(q);
+    //ADREPORT(logq);
+    ADREPORT(logq2);
+    ADREPORT(p);
+    ADREPORT(gamma);
+    ADREPORT(m);
+    ADREPORT(sdf);
+    ADREPORT(sdc);
+    ADREPORT(sde);
+    ADREPORT(sdb);
+    ADREPORT(sdi);
+    ADREPORT(isdf2);
+    ADREPORT(isdc2);
+    ADREPORT(isde2);
+    ADREPORT(isdb2);
+    ADREPORT(isdi2);
+    ADREPORT(logalpha);
+    ADREPORT(logbeta);
+    ADREPORT(BmsyB0);
+  }
+
   if(reportall){ 
     // These reports are derived from the random effects and are therefore vectors. TMB calculates the covariance of all sdreports leading to a very large covariance matrix which may cause memory problems.
     // B

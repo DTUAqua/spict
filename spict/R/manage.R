@@ -339,15 +339,19 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
 
 
 #' @name pred.catch
-#' @title Predict the catch of the prediction interval specified in inp
+#' @title Predict the catch of the prediction interval specified in
+#'     inp
 #' @param rep Result list as output from fit.spict().
 #' @param fmsyfac Projection are made using F = fmsyfac * Fmsy.
+#' @param MSEmode logical; if TRUE (default) only rel predicted states
+#'     and catches are ADreported
 #' @param get.sd Get uncertainty of the predicted catch.
 #' @param exp If TRUE report exp of log predicted catch.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
-#' @return A vector containing predicted catch (possibly with uncertainty).
+#' @return A vector containing predicted catch (possibly with
+#'     uncertainty).
 #' @export
-pred.catch <- function(repin, fmsyfac=1, get.sd=FALSE, exp=FALSE, dbg=0){
+pred.catch <- function(repin, fmsyfac=1, MSEmode = TRUE, get.sd=FALSE, exp=FALSE, dbg=0){    
     inpin <- list()
     inpin$dteuler <- repin$inp$dteuler
     inpin$timeC <- repin$inp$timeC
@@ -366,6 +370,7 @@ pred.catch <- function(repin, fmsyfac=1, get.sd=FALSE, exp=FALSE, dbg=0){
     inpt <- make.ffacvec(inpt, fac)
     # Make object
     datint <- make.datin(inpt, dbg=dbg)
+    datint$MSEmode <- MSEmode 
     plt <- repin$obj$env$parList(repin$opt$par)
     objt <- make.obj(datint, plt, inpt, phase=1)
     objt$fn(repin$opt$par)
@@ -380,4 +385,148 @@ pred.catch <- function(repin, fmsyfac=1, get.sd=FALSE, exp=FALSE, dbg=0){
         names(Cp) <- names(get.par('logK', repin)) # Just to get the names
     }
     return(Cp)
+}
+
+
+#' @name get.TAC
+#' @title Estimate Total Allowable Catch (TAC)
+#' @param repin Result list as output from fit.spict().
+#' @param reps The number of stochastic samples of the TAC
+#'     recommendation (not used for this HCR).
+#' @param fractileC The fractile of the catch distribution to be used
+#'     for setting the TAC. Default is median (0.5).
+#' @param fractileFFmsy The fractile of the distribution of
+#'     F/Fmsy. Default is 0.5 (median).
+#' @param fractileBBmsy The fractile of the distribution of
+#'     B/Bmsy. Default is 0.5 (median).
+#' @param pa Logical; indicating if the precautionary approach should
+#'     be applied (reduce F if P(B<Blim) < prob). Default is FALSE.
+#' @param prob Probability for the precautionary approach (see
+#'     argument 'pa', default is 0.95).
+#' @param bbmsyfrac Fraction of B/Bmsy for precautionary approach
+#' @param stabilityClause Logical; If true F multiplication factor is
+#'     bound between two values set in lower and upper. Default:
+#'     FALSE.
+#' @param lower Lower bound of the stability clause. Default is 0.8,
+#'     used if uncertaintyCap = TRUE.
+#' @param upper Upper bound of the stability clause. Default is 1.2,
+#'     used if uncertaintyCap = TRUE.
+#' @param amtint Assessment interval. Default is 1, which indicates
+#'     annual assessments.
+#' @param npriorSD Standard deviation of logn prior (Default: 2). If
+#'     NA, the logn prior is removed
+#' @param getFit Logical; if TRUE the fitted results list with
+#'     adjusted fsihing mortality value is returned. Default is FALSE.
+#' @return A list with estimated TAC based on harvest control rule
+#'     settings or the fitted rep list with adjusted fishing mortality
+#'     values if getFit = TRUE and a logical value indicating if the
+#'     stability clause was hit or not (if in use).
+#' @export
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' get.TAC(rep)
+get.TAC  <- function(repin, reps = 1,
+                     fractileC = 0.5,
+                     fractileFFmsy=0.5,
+                     fractileBBmsy=0.5,
+                     pa=0,
+                     prob=0.95,
+                     bbmsyfrac=0.3,       
+                     stabilityClause=FALSE,
+                     lower=0.8,
+                     upper=1.2,
+                     amtint = 1,
+                     npriorSD = 2,
+                     getFit = FALSE){
+    ## create inp list (note: put in function)
+    inp <- list()    
+    inp$dteuler <- repin$inp$dteuler
+    inp$timeC <- repin$inp$timeC
+    inp$obsC <- repin$inp$obsC
+    inp$timeI <- repin$inp$timeI
+    inp$obsI <- repin$inp$obsI
+    inp$timepredc <- repin$inp$timepredc
+    inp$timepredi <- inp$timepredc + amtint
+    inp$do.sd.report <- TRUE
+    inp$getReportCovariance <- FALSE
+    inp$MSEmode <- TRUE
+    ## check inp
+    inp <- check.inp(inp)
+    ## stronger prior
+    if(!is.null(npriorSD) && is.finite(npriorSD)){
+        inp$priors$logn <- c(log(2),npriorSD,1)
+    }else{
+        inp$priors$logn <- c(0,0,0)
+    }
+    ## fit spict
+    rep <- try(spict::fit.spict(inp),silent=TRUE)
+    ## stop if not converged
+    if(is.null(rep) || is(rep, "try-error") || rep$opt$convergence != 0 ||
+       any(is.infinite(rep$sd))) return(list(TAC=rep(NA, reps),hitSC=FALSE))
+    ## get quantities
+    logFpFmsy <- get.par("logFpFmsy", rep)
+    logBpBmsy <- get.par("logBpBmsy",rep)
+    Fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
+    Flast <- get.par('logFl', rep, exp=TRUE)[2]
+    ## second non-convergence stop
+    if(any(is.null(c(logFpFmsy[2],logBpBmsy[2],Flast,Fmsy))) ||
+       !all(is.finite(c(logFpFmsy[2],logBpBmsy[2],Flast,Fmsy))))
+        return(list(TAC=rep(NA, reps),hitSC=FALSE))
+    ## F multiplication factor based on uncertainty in F/Fmsy. Default = median        
+    fi <- 1-fractileFFmsy
+    fm <- exp(qnorm(fi, logFpFmsy[2], logFpFmsy[4]))
+    fm5 <- exp(qnorm(0.5, logFpFmsy[2], logFpFmsy[4]))
+    ## F multiplication factor based on uncertainty in B/Bmsy. Default = median
+    bi <- 2 * exp(qnorm(fractileBBmsy, logBpBmsy[2], logBpBmsy[4]))
+    fmult <- fm5 / fm * min(1, bi)         
+    fabs <- (fmult + 1e-6) * Fmsy / Flast
+    ## precautionary approach
+    if(pa == 1){
+        repPA <- rep
+        inpPA <- make.ffacvec(repPA$inp, fabs)
+        repPA$obj$env$data$ffacvec <- inpPA$ffacvec
+        repPA$obj$env$data$MSEmode <- 1
+        repPA$obj$retape()
+        repPA$obj$fn(rep$opt$par)
+        sdr <- try(sdreport(repPA$obj),silent=TRUE)
+        ## stop if not converged
+        if(is.null(sdr) || is(sdr, "try-error")) return(list(TAC=rep(NA, reps),hitSC=FALSE))
+        ## get quantities
+        logBpBmsyPA <- get.par("logBpBmsy",sdr)
+        ll <- qnorm(1-prob,logBpBmsyPA[2],logBpBmsyPA[4])
+        bbmsyQ5 <- exp(ll)
+        ## stop if not finite
+        if(is.null(bbmsyQ5) || !is.finite(bbmsyQ5)) return(list(TAC=rep(NA, reps),hitSC=FALSE))
+        ## check if precautionary
+        if((bbmsyQ5 - bbmsyfrac) < -1e-3){
+            tmp <- try(spict:::get.PAffac(rep, bbmsyfrac=bbmsyfrac, prob=prob))
+            if(is.null(tmp) ||
+               is(tmp, "try-error") || !is.finite(tmp)) return(list(TAC=rep(NA, reps),hitSC=FALSE))
+            ## debugging:
+            ## if(tmp > fabs) print(paste0("ffacpa",round(tmp,2)," > ffacmsy",round(fabs,2)))
+            fabs <- tmp
+            fmult <- fabs * Flast / Fmsy
+        }
+    }
+    if(is.null(fmult) || !is.finite(fmult)) return(list(TAC=rep(NA, reps),hitSC=FALSE))
+    ## Stability clause
+    if(stabilityClause){
+        fmult <- spict:::stabilityClause(fmult, lower, upper)
+        if(any(fmult < lower) || any(fmult > upper)) hitSC <- TRUE else hitSC <- FALSE
+    }else hitSC <- FALSE
+    fabs <- fmult * Fmsy / Flast            
+    ## predict catch with fabs
+    if(is.null(fabs) || !is.finite(fabs)) return(list(TAC=rep(NA, reps),hitSC=FALSE))    
+    TACi <- spict:::get.TACi(rep, fabs, fractileC)
+    ## hack for DLMtool
+    TAC <- rep(TACi, reps)
+    ## get fitted object
+    if(getFit){
+        inpt <- make.ffacvec(rep$inp, fabs)
+        inpt$MSEmode <- FALSE
+        fit <- try(fit.spict(inpt),silent=TRUE)
+        if(!is(fit,"try-error")) return(fit)
+    }
+    return(list(TAC=TAC, hitSC=hitSC))
 }

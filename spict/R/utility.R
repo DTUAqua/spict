@@ -536,3 +536,336 @@ get.cov <- function(rep, parname1, parname2, cor=FALSE){
         return(rep$cov[inds, inds])
     }
 }
+
+
+#' @name probdev
+#' @title Get probability to be above certain biomass threshold for
+#'     set fishing mortality
+#' @param ffac Fishing mortality factor
+#' @param repin Result list as output from fit.spict().
+#' @param bbmsyfrac Fraction of B/Bmsy which is defined as threshold
+#'     (Blim = 0.3 Bmsy, Btrigger = 0.5 Bmsy)
+#' @param prob Probability of being above threshold (bbmsyfrac)
+#' @param getFrac logical; return
+#' @param verbose logical; print realised probability, set fishing
+#'     mortality factor and deviation
+#' @return Returns deviation between targeted and realised probability
+#'     of being above certain biomass threshold under set fishing
+#'     mortality
+probdev<-function(ffac, repin, bbmsyfrac=0.3, prob=0.95, getFrac=FALSE, verbose=FALSE){
+    ## get F factor
+    inpt <- make.ffacvec(repin$inp, ffac)
+    repin$obj$env$data$ffacvec <- inpt$ffacvec
+    repin$obj$env$data$MSEmode <- 1
+    repin$obj$retape()
+    repin$obj$fn(repin$opt$par)
+    sdr <- sdreport(repin$obj)
+    last.state <- get.par("logBpBmsy",sdr)
+    ll <- qnorm(1-prob,last.state[,2],last.state[,4])
+    dev <- (exp(ll) - bbmsyfrac)^2
+    if(verbose)  cat("exp(ll): ",exp(ll),"ffac: ",ffac, " dev: ",dev,"\n")
+    if(getFrac) dev <- exp(ll)
+    dev
+}
+
+
+
+#' @name get.PAffac
+#' @title Get the fishing mortality corresponding to set probability
+#'     of being above certain biomass threshold
+#' @param repin Result list as output from fit.spict().
+#' @param bbmsyfrac Fraction of B/Bmsy which is defined as threshold
+#'     (Blim = 0.3 Bmsy, Btrigger = 0.5 Bmsy; default is 0.3)
+#' @param prob Probability to be above threshold (bbmsyfrac; default
+#'     is 0.95)
+#' @return Optimised Fishing mortality for P(Bp<Blim)
+#' @export
+get.PAffac<-function(repin,bbmsyfrac=0.3,prob=0.95){
+    ## see if is possible even with zero F  
+    dev0 <- probdev(ffac=1e-6,repin=repin,getFrac=TRUE, prob=prob,
+                    bbmsyfrac=bbmsyfrac, verbose=FALSE)
+    if(!is.finite(dev0) || (dev0 - bbmsyfrac) < -1e-3){
+        ## cat("Not possible even with zero F\n")
+        return(1e-6)
+    }
+    offac <- optimize(probdev,c(1e-6,10),tol=1e-2, repin=repin,
+                      bbmsyfrac=bbmsyfrac,prob=prob,verbose=FALSE)
+    offac$minimum
+}
+
+
+#' @name stabilityClause
+#' @title Apply stability clause to fishing mortality or fishing
+#'     mortality multiplier
+#' @param ffac Fishing mortality factor, multiplier or fishing
+#'     mortality to apply stability clause to
+#' @param lo lower boundary for stability clause (default 0.8)
+#' @param up upper boundary for stability clause (default 1.2)
+#' @return Fishing mortality factor after stability clause was applied
+stabilityClause <- function(ffac, lo=0.8, up=1.2){
+    ffac[ffac < lo] <- lo
+    ffac[ffac > up] <- up
+    return(ffac)
+}    
+
+
+#' @name get.TACi
+#' @title Estimate TAC for set fishing mortality factor
+#' @param repin Result list as output from fit.spict().
+#' @param ffac Fishing mortality factor
+#' @param fractileC The fractile of the catch distribution to be used
+#'     for setting the TAC. Default is median (0.5).
+#' @return Estimate TAC
+get.TACi <- function(repin, ffac, fractileC=0.5){
+    inpx <- make.ffacvec(repin$inp, ffac)
+    repin$obj$env$data$ffacvec <- inpx$ffacvec
+    repin$obj$env$data$MSEmode <- 1
+    repin$obj$retape()
+    repin$obj$fn(repin$opt$par)
+    if(fractileC == 0.5){
+        TACi <- repin$obj$report(repin$obj$env$last.par.best)$Cp
+    }else{
+        sdr <- try(sdreport(repin$obj),silent=TRUE)
+        if(is(sdr, "try-error")) return(NA)
+        logCp <- get.par('logCp', sdr)
+        TACi <- exp(qnorm(fractileC, logCp[2], logCp[4]))                    
+    }
+    return(TACi)
+}    
+
+
+
+#' @name get.MP
+#' @title Get the management procedure (harvest control rule, advice
+#'     rule)
+#' @details This function creates harvest control rules (HCRs) which
+#'     can be incorporated into a management strategy evaluation
+#'     framework (DLMtool package). HCRs are saved with a generic name
+#'     to the global environment and the names of the HCRs are
+#'     returned if results of the function are assigned to an
+#'     object. HCR runs a SPiCT assessment using catch and relative
+#'     biomass index observations. Stock status estimates are used to
+#'     set the TAC for the next year. TAC can be based on the
+#'     distribution of predicted catches (percentileC) and/or the
+#'     distribution of the Fmsy reference level (percentileFmsy).
+#'     Additionally, a cap can be applied to account for low biomass
+#'     levels (below Bmsy).  Arguments of returned function are 'x' -
+#'     the position in a data-limited mehods data object, 'Data' - the
+#'     data-limited methods data object (see DLMtool), and 'reps' -
+#'     the number of stochastic samples of the TAC recommendation (not
+#'     used for this HCR).  One or several arguments of the function
+#'     can be provided as vectors to generate several HCRs at once
+#'     (several vectors have to have same length).
+#'
+#' @param fractileC The fractile of the catch distribution to be used
+#'     for setting the TAC. Default is median (0.5).
+#' @param fractileFFmsy The fractile of the distribution of
+#'     F/Fmsy. Default is 0.5 (median).
+#' @param fractileBBmsy The fractile of the distribution of
+#'     B/Bmsy. Default is 0.5 (median).
+#' @param pa Logical; indicating if the precautionary approach should
+#'     be applied (reduce F if P(B<Blim) < prob). Default is FALSE.
+#' @param prob Probability for the precautionary approach (see
+#'     argument 'pa', default is 0.95).
+#' @param bbmsyfrac Fraction of B/Bmsy which is defined as threshold
+#'     (Blim = 0.3 Bmsy, Btrigger = 0.5 Bmsy; default is 0.3)
+#' @param stabilityClause Logical; If true TAC is bound between two
+#'     values set in lower and upper. Default: FALSE.
+#' @param lower lower bound of the stability clause. Default is 0.8,
+#'     used if stabilityClause = TRUE.
+#' @param upper upper bound of the stability clause. Default is 1.2,
+#'     used if stabilityClause = TRUE.
+#' @param amtint Assessment interval. Default is 1, which indicates
+#'     annual assessments.
+#' @param npriorSD standard deviation of logn prior (Default: 2). If
+#'     NA, the logn prior is removed
+#' @param nhist number of historic years to use for assessment
+#'     (default = NA, which means to use all available years)
+#' @param env environment where the harvest control rule function(s)
+#'     are assigned to.
+#' @param package Indicating the package for which to create the MP
+#'     for (so far only 'dlmtool' implemented, default).
+#' @return A function which can estimate TAC recommendations based on
+#'     SPiCT assessment, taking assessment uncertainty into account.
+#' 
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' ## Put together an operating model from the available DLM toolkit examples
+#' StockEx <- Herring
+#' FleetEx <- Generic_IncE
+#' ObsEx <- Precise_Unbiased
+#' ## Remove changes in life history parameters
+#' StockEx@Mgrad <- c(0,0)
+#' StockEx@Kgrad <- c(0,0)
+#' StockEx@Linfgrad <- c(0,0)
+#' StockEx@Size_area_1 <- c(0.5,0.5)
+#' StockEx@Frac_area_1 <- c(0.5,0.5)
+#' StockEx@Prob_staying <- c(0.5,0.5)
+#' ## Set the depletion level 
+#' StockEx@D <- c(0.3, 0.4)
+#' ## create Operation Model
+#' OMex <- new("OM", Stock = StockEx, Fleet = FleetEx, 
+#'                 Obs = ObsEx)
+#' ## Set simulation options
+#' OMex@nsim <- 10
+#' OMex@nyears <- 25
+#' OMex@proyears <- 5
+#' ## Get SPiCT HCRs
+#' MPname <- c(get.MP(dteuler = 1),
+#'             get.MP(pa=TRUE, dteuler=1))
+#' ## run MSE
+#' MSEex <- runMSE(OMex,
+#'                 MPs = MPname,
+#'                 timelimit = 150,
+#'                 CheckMPs = FALSE)
+#' ## example plot of results
+#' Pplot2(MSEex, traj="quant", quants=c(0.2, 0.8))
+#' }
+#'
+get.MP <- function(fractileC = 0.5,
+                   fractileFFmsy = 0.5,
+                   fractileBBmsy = 0.5,                   
+                   pa = FALSE,
+                   prob = 0.95,
+                   bbmsyfrac=0.3,
+                   stabilityClause = FALSE,
+                   lower = 0.8,
+                   upper = 1.2,
+                   amtint = 1,
+                   dteuler = 1/16,
+                   npriorSD = 2,
+                   nhist = NA,
+                   env = globalenv(),
+                   package="dlmtool"){
+
+    ## allowing for multiple generation of MPs
+    argList <- list(fractileC, fractileFFmsy, pa, prob, fractileBBmsy,
+                    stabilityClause, lower, upper, dteuler, npriorSD)
+    argLengths <- sapply(argList, length)
+    maxi <- max(argLengths)
+    maxl  <- which(argLengths == maxi)
+    if(maxi>1){
+        if(max(argLengths[(1:10)[-maxl]]) > 1)
+            stop("Specified arguments have different lengths, they should have the same length or length = 1.")
+    }
+    argListCor <- argList
+    argListCor[(1:10)[-maxl]] <- lapply(argList[(1:10)[-maxl]], function(x) rep(unlist(x), maxi))
+    template  <- expression(paste0(
+        'structure(function(x, Data, reps = 1,
+          fractileC = ',a,',
+          fractileFFmsy=',b,',
+          pa=',c,',
+          prob=',d,',
+          fractileBBmsy=',e,',
+          stabilityClause=',f,',
+          lower=',g,',
+          upper=',h,',
+          nhist=',nhist,'){
+            dependencies <- "Data@Year, Data@Cat, Data@Ind"
+            ## limit data to use for assessment (with argument nhist)
+            LH <- Data@LHYear   ## last historical year
+            if(is.na(nhist)) nhist <- LH else nhist <- nhist     ## number of historical data years to use
+            curr.yr <- length(Data@Year)
+            fst.yr <- max(LH-nhist+1, 1)
+            yr.ind <-  fst.yr:curr.yr
+            n.yr <- length(yr.ind)
+            time <- yr.ind
+            Catch <- Data@Cat[x,yr.ind]
+            Index <- Data@Ind[x,yr.ind]
+            ## compile inp list
+            inp <- list(timeC=time, obsC=Catch, 
+                        timeI=time, obsI=Index,
+                        dteuler = ',i,',
+                        do.sd.report=TRUE,
+                        getReportCovariance = FALSE)
+            rep <- list()
+            rep$inp <- check.inp(inp)
+            TAC <- try(spict:::get.TAC(repin=rep, reps=1, fractileC=fractileC,
+                                   fractileFFmsy=fractileFFmsy,
+                                   fractileBBmsy=fractileBBmsy, pa=pa, prob=prob,
+                                   bbmsyfrac=',bbmsyfrac,', stabilityClause=stabilityClause,
+                                   lower=lower, upper=upper, amtint=',amtint,',
+                                   npriorSD=',j,', getFit=FALSE), silent=TRUE)
+            if(is.null(TAC) || is.null(TAC$TAC) || is(TAC, "try-error") || is.logical(TAC) ||
+               !is.numeric(TAC$TAC) || (TAC$TAC < 0) || is.na(TAC$TAC)) taci <- NA else taci <- TAC$TAC
+            Rec <- new("Rec")
+            Rec@TAC <- as.numeric(taci)
+            if(is.null(Data@Misc[[x]])) hitSCold <- NULL else hitSCold <- Data@Misc[[x]]$hitSC
+            if(is.null(TAC) || is.null(TAC$hitSC) || is(TAC, "try-error") ||
+               is.logical(TAC) || !is.logical(TAC$hitSC) || is.na(TAC$hitSC))
+                   hitsci <- NA else hitsci <- TAC$hitSC
+            hitSC <- c(hitSCold, hitsci)
+            Rec@Misc <- list(hitSC = hitSC)
+            return(Rec)
+        },
+        class="MP")'))    
+    
+    nami <- rep(NA,maxi)
+    for(I in 1:maxi){
+
+        ## create MPs as functions
+        subList <- lapply(argListCor, "[[", I)
+        names(subList) <- letters[1:10]
+        templati <- eval(parse(text=paste(parse(text = eval(template, subList)),collapse=" ")))
+
+        ## save names of MPs
+        if(argListCor[[1]][I] == 0.5){
+            c1 <- ""
+        }else{
+            c1 <- paste0("_C",argListCor[[1]][I])
+        }
+        if(argListCor[[2]][I] == 0.5){
+            c2 <- ""
+        }else{
+            c2 <- paste0("_FFmsy",argListCor[[2]][I])
+        }
+        if(argListCor[[3]][I] == FALSE){
+            c3 <- ""
+        }else{
+            c3 <- paste0("_pa")
+        }
+        if(argListCor[[4]][I] == 0.95){
+            c4 <- ""
+        }else{
+            c4 <- paste0("_P",argListCor[[4]][I])            
+        }
+        if(argListCor[[5]][I] == 0.5){
+            c5 <- ""
+        }else{
+            c5 <- paste0("_BBmsy",argListCor[[5]][I])            
+        }
+        if(argListCor[[6]][I] == FALSE){
+            c6 <- ""
+        }else{
+            c6 <- paste0("_uC")            
+        }
+        if(argListCor[[7]][I] == 0.8){
+            c7 <- ""
+        }else{
+            c7 <- paste0("_lo",argListCor[[7]][I])            
+        }
+        if(argListCor[[8]][I] == 1.2){
+            c8 <- ""
+        }else{
+            c8 <- paste0("_up",argListCor[[8]][I])            
+        }
+        if(argListCor[[9]][I] == 1){
+            c9 <- ""
+        }else{
+            c9 <- paste0("_dt",round(argListCor[[9]][I],2))            
+        }
+        if(argListCor[[10]][I] == 2 && !is.na(argListCor[[10]][I])){
+            c10 <- ""
+        }else{
+            c10 <- paste0("_nSD",argListCor[[10]][I])            
+        }                
+        ## put everythin together
+        nami[I] <- paste0("spict",c1,c2,c3,c4,c5,c6,c7,c8,c9,c10)
+        assign(value=templati, x=nami[I], envir=env)
+    }
+
+    ## allow for assigning names
+    invisible(nami)        
+}

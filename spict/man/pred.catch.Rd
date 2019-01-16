@@ -2,12 +2,17 @@
 % Please edit documentation in R/manage.R
 \name{pred.catch}
 \alias{pred.catch}
-\title{Predict the catch of the prediction interval specified in inp}
+\title{Predict the catch of the prediction interval specified in
+    inp}
 \usage{
-pred.catch(repin, fmsyfac = 1, get.sd = FALSE, exp = FALSE, dbg = 0)
+pred.catch(repin, fmsyfac = 1, MSEmode = TRUE, get.sd = FALSE,
+  exp = FALSE, dbg = 0)
 }
 \arguments{
 \item{fmsyfac}{Projection are made using F = fmsyfac * Fmsy.}
+
+\item{MSEmode}{logical; if TRUE (default) only rel predicted states
+and catches are ADreported}
 
 \item{get.sd}{Get uncertainty of the predicted catch.}
 
@@ -18,5 +23,6 @@ pred.catch(repin, fmsyfac = 1, get.sd = FALSE, exp = FALSE, dbg = 0)
 \item{rep}{Result list as output from fit.spict().}
 }
 \value{
-A vector containing predicted catch (possibly with uncertainty).
+A vector containing predicted catch (possibly with
+    uncertainty).
 }
