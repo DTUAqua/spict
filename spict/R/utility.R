@@ -675,10 +675,8 @@ get.TACi <- function(repin, ffac, fractileC=0.5){
 #'     used if stabilityClause = TRUE.
 #' @param upper upper bound of the stability clause. Default is 1.2,
 #'     used if stabilityClause = TRUE.
-#' @param amtint Assessment interval. Default is 1, which indicates
-#'     annual assessments.
-#' @param npriorSD standard deviation of logn prior (Default: 2). If
-#'     NA, the logn prior is removed
+#' @param npriorSD standard deviation of logn prior. By default (NA)
+#'     default prior is used
 #' @param nhist number of historic years to use for assessment
 #'     (default = NA, which means to use all available years)
 #' @param env environment where the harvest control rule function(s)
@@ -733,9 +731,8 @@ get.MP <- function(fractileC = 0.5,
                    stabilityClause = FALSE,
                    lower = 0.8,
                    upper = 1.2,
-                   amtint = 1,
                    dteuler = 1/16,
-                   npriorSD = 2,
+                   npriorSD = NA,
                    nhist = NA,
                    env = globalenv(),
                    package="dlmtool"){
@@ -781,13 +778,22 @@ get.MP <- function(fractileC = 0.5,
                         do.sd.report=TRUE,
                         getReportCovariance = FALSE)
             rep <- list()
-            rep$inp <- check.inp(inp)
+            inp$getReportCovariance <- FALSE
+            inp$MSEmode <- TRUE
+            inp <- check.inp(inp)
+            ## tighter prior on logn
+            if(!is.na(',j,') && is.finite(',j,')){
+                inp$priors$logn <- c(log(2),',j,',1)
+            }
+            ## fit spict
+            rep <- try(spict::fit.spict(inp),silent=TRUE)
+            ## get TAC
             TAC <- try(spict:::get.TAC(repin=rep, reps=1, fractileC=fractileC,
                                    fractileFFmsy=fractileFFmsy,
                                    fractileBBmsy=fractileBBmsy, pa=pa, prob=prob,
                                    bbmsyfrac=',bbmsyfrac,', stabilityClause=stabilityClause,
-                                   lower=lower, upper=upper, amtint=',amtint,',
-                                   npriorSD=',j,', getFit=FALSE), silent=TRUE)
+                                   lower=lower, upper=upper,
+                                   getFit=FALSE), silent=TRUE)
             if(is.null(TAC) || is.null(TAC$TAC) || is(TAC, "try-error") || is.logical(TAC) ||
                !is.numeric(TAC$TAC) || (TAC$TAC < 0) || is.na(TAC$TAC)) taci <- NA else taci <- TAC$TAC
             Rec <- new("Rec")
@@ -856,7 +862,7 @@ get.MP <- function(fractileC = 0.5,
         }else{
             c9 <- paste0("_dt",round(argListCor[[9]][I],2))            
         }
-        if(argListCor[[10]][I] == 2 && !is.na(argListCor[[10]][I])){
+        if(is.null(argListCor[[10]][I]) || is.na(argListCor[[10]][I])){
             c10 <- ""
         }else{
             c10 <- paste0("_nSD",argListCor[[10]][I])            

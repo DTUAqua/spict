@@ -411,10 +411,6 @@ pred.catch <- function(repin, fmsyfac=1, MSEmode = TRUE, get.sd=FALSE, exp=FALSE
 #'     used if uncertaintyCap = TRUE.
 #' @param upper Upper bound of the stability clause. Default is 1.2,
 #'     used if uncertaintyCap = TRUE.
-#' @param amtint Assessment interval. Default is 1, which indicates
-#'     annual assessments.
-#' @param npriorSD Standard deviation of logn prior (Default: 2). If
-#'     NA, the logn prior is removed
 #' @param getFit Logical; if TRUE the fitted results list with
 #'     adjusted fsihing mortality value is returned. Default is FALSE.
 #' @return A list with estimated TAC based on harvest control rule
@@ -436,39 +432,15 @@ get.TAC  <- function(repin, reps = 1,
                      stabilityClause=FALSE,
                      lower=0.8,
                      upper=1.2,
-                     amtint = 1,
-                     npriorSD = 2,
                      getFit = FALSE){
-    ## create inp list (note: put in function)
-    inp <- list()    
-    inp$dteuler <- repin$inp$dteuler
-    inp$timeC <- repin$inp$timeC
-    inp$obsC <- repin$inp$obsC
-    inp$timeI <- repin$inp$timeI
-    inp$obsI <- repin$inp$obsI
-    inp$timepredc <- repin$inp$timepredc
-    inp$timepredi <- inp$timepredc + amtint
-    inp$do.sd.report <- TRUE
-    inp$getReportCovariance <- FALSE
-    inp$MSEmode <- TRUE
-    ## check inp
-    inp <- check.inp(inp)
-    ## stronger prior
-    if(!is.null(npriorSD) && is.finite(npriorSD)){
-        inp$priors$logn <- c(log(2),npriorSD,1)
-    }else{
-        inp$priors$logn <- c(0,0,0)
-    }
-    ## fit spict
-    rep <- try(spict::fit.spict(inp),silent=TRUE)
-    ## stop if not converged
-    if(is.null(rep) || is(rep, "try-error") || rep$opt$convergence != 0 ||
-       any(is.infinite(rep$sd))) return(list(TAC=rep(NA, reps),hitSC=FALSE))
+    ## stop if repin not converged
+    if(is.null(repin) || is(repin, "try-error") || repin$opt$convergence != 0 ||
+       any(is.infinite(repin$sd))) return(list(TAC=rep(NA, reps),hitSC=FALSE))            
     ## get quantities
-    logFpFmsy <- get.par("logFpFmsy", rep)
-    logBpBmsy <- get.par("logBpBmsy",rep)
-    Fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
-    Flast <- get.par('logFl', rep, exp=TRUE)[2]
+    logFpFmsy <- get.par("logFpFmsy", repin)
+    logBpBmsy <- get.par("logBpBmsy",repin)
+    Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
+    Flast <- get.par('logFnotS', repin, exp=TRUE)[repin$inp$indpred[1],2]
     ## second non-convergence stop
     if(any(is.null(c(logFpFmsy[2],logBpBmsy[2],Flast,Fmsy))) ||
        !all(is.finite(c(logFpFmsy[2],logBpBmsy[2],Flast,Fmsy))))
@@ -483,12 +455,12 @@ get.TAC  <- function(repin, reps = 1,
     fabs <- (fmult + 1e-6) * Fmsy / Flast
     ## precautionary approach
     if(pa == 1){
-        repPA <- rep
+        repPA <- repin
         inpPA <- make.ffacvec(repPA$inp, fabs)
         repPA$obj$env$data$ffacvec <- inpPA$ffacvec
         repPA$obj$env$data$MSEmode <- 1
         repPA$obj$retape()
-        repPA$obj$fn(rep$opt$par)
+        repPA$obj$fn(repin$opt$par)
         sdr <- try(sdreport(repPA$obj),silent=TRUE)
         ## stop if not converged
         if(is.null(sdr) || is(sdr, "try-error")) return(list(TAC=rep(NA, reps),hitSC=FALSE))
@@ -500,7 +472,7 @@ get.TAC  <- function(repin, reps = 1,
         if(is.null(bbmsyQ5) || !is.finite(bbmsyQ5)) return(list(TAC=rep(NA, reps),hitSC=FALSE))
         ## check if precautionary
         if((bbmsyQ5 - bbmsyfrac) < -1e-3){
-            tmp <- try(spict:::get.PAffac(rep, bbmsyfrac=bbmsyfrac, prob=prob))
+            tmp <- try(spict:::get.PAffac(repin, bbmsyfrac=bbmsyfrac, prob=prob))
             if(is.null(tmp) ||
                is(tmp, "try-error") || !is.finite(tmp)) return(list(TAC=rep(NA, reps),hitSC=FALSE))
             ## debugging:
@@ -518,12 +490,12 @@ get.TAC  <- function(repin, reps = 1,
     fabs <- fmult * Fmsy / Flast            
     ## predict catch with fabs
     if(is.null(fabs) || !is.finite(fabs)) return(list(TAC=rep(NA, reps),hitSC=FALSE))    
-    TACi <- spict:::get.TACi(rep, fabs, fractileC)
+    TACi <- spict:::get.TACi(repin, fabs, fractileC)
     ## hack for DLMtool
     TAC <- rep(TACi, reps)
     ## get fitted object
     if(getFit){
-        inpt <- make.ffacvec(rep$inp, fabs)
+        inpt <- make.ffacvec(repin$inp, fabs)
         inpt$MSEmode <- FALSE
         fit <- try(fit.spict(inpt),silent=TRUE)
         if(!is(fit,"try-error")) return(fit)

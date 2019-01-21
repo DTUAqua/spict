@@ -7,8 +7,8 @@
 \usage{
 get.MP(fractileC = 0.5, fractileFFmsy = 0.5, fractileBBmsy = 0.5,
   pa = FALSE, prob = 0.95, bbmsyfrac = 0.3, stabilityClause = FALSE,
-  lower = 0.8, upper = 1.2, amtint = 1, dteuler = 1/16, npriorSD = 2,
-  nhist = NA, env = globalenv(), package = "dlmtool")
+  lower = 0.8, upper = 1.2, dteuler = 1/16, npriorSD = NA, nhist = NA,
+  env = globalenv(), package = "dlmtool")
 }
 \arguments{
 \item{fractileC}{The fractile of the catch distribution to be used
@@ -38,11 +38,8 @@ used if stabilityClause = TRUE.}
 \item{upper}{upper bound of the stability clause. Default is 1.2,
 used if stabilityClause = TRUE.}
 
-\item{amtint}{Assessment interval. Default is 1, which indicates
-annual assessments.}
-
-\item{npriorSD}{standard deviation of logn prior (Default: 2). If
-NA, the logn prior is removed}
+\item{npriorSD}{standard deviation of logn prior. By default (NA)
+default prior is used}
 
 \item{nhist}{number of historic years to use for assessment
 (default = NA, which means to use all available years)}

@@ -6,8 +6,7 @@
 \usage{
 get.TAC(repin, reps = 1, fractileC = 0.5, fractileFFmsy = 0.5,
   fractileBBmsy = 0.5, pa = 0, prob = 0.95, bbmsyfrac = 0.3,
-  stabilityClause = FALSE, lower = 0.8, upper = 1.2, amtint = 1,
-  npriorSD = 2, getFit = FALSE)
+  stabilityClause = FALSE, lower = 0.8, upper = 1.2, getFit = FALSE)
 }
 \arguments{
 \item{repin}{Result list as output from fit.spict().}
@@ -41,12 +40,6 @@ used if uncertaintyCap = TRUE.}
 
 \item{upper}{Upper bound of the stability clause. Default is 1.2,
 used if uncertaintyCap = TRUE.}
-
-\item{amtint}{Assessment interval. Default is 1, which indicates
-annual assessments.}
-
-\item{npriorSD}{Standard deviation of logn prior (Default: 2). If
-NA, the logn prior is removed}
 
 \item{getFit}{Logical; if TRUE the fitted results list with
 adjusted fsihing mortality value is returned. Default is FALSE.}

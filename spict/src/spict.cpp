@@ -981,8 +981,6 @@ Type objective_function<Type>::operator() ()
   Type logBlK = logBl - logK;
   Type logFl = logFs(indlastobs-1);
   Type logFlFmsy = logFl - logFmsyvec(indlastobs-1);
-  Type logBlBtrigger = (Type(1.0)/Type(0.5)) * logBlBmsy;
-  Type logBlBlim = (Type(1.0)/Type(0.3)) * logBlBmsy; 
   
 
   if(dbg > 0){
@@ -1015,19 +1013,23 @@ Type objective_function<Type>::operator() ()
     logFFmsynotS(i) = logFnotS(i) - logFmsyvec(i); 
   }
 
+  // Btrigger and Blim
+  vector<Type> logBBtrigger = (Type(1.0)/Type(0.5)) * logBBmsy;
+  vector<Type> logBBlim = (Type(1.0)/Type(0.3)) * logBBmsy; 
+  
+
   // Report the sum of reference points -- can be used to calculate their covariance without using ADreport with covariance.
   Type logBmsyPluslogFmsy = logBmsy(logBmsy.size()-1) + logFmsy(logFmsy.size()-1);
   
   // ADREPORTS
   if(MSEmode == 1){
+    ADREPORT(logFnotS);
+    ADREPORT(logFFmsynotS);        
+    ADREPORT(logBBtrigger);
+    ADREPORT(logBBlim);    
     ADREPORT(logBpBmsy);
     ADREPORT(logFpFmsy);
-    ADREPORT(logBlBmsy);
-    ADREPORT(logBlBtrigger);
-    ADREPORT(logBlBlim);
-    ADREPORT(logFlFmsy);    
     ADREPORT(logCp);
-    ADREPORT(logFl);
     ADREPORT(logFmsy);
   }else{
     ADREPORT(Bmsy);  
@@ -1122,6 +1124,8 @@ Type objective_function<Type>::operator() ()
     }
     ADREPORT(logFnotS);
     ADREPORT(logFFmsynotS);
+    ADREPORT(logBBtrigger);
+    ADREPORT(logBBlim);        
   }
   ADREPORT( logBmsyPluslogFmsy ) ;
   
