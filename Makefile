@@ -1,8 +1,14 @@
 PACKAGE=spict
-VERSION=1.2.3
+VERSION=1.2.4
 TARBALL=${PACKAGE}_${VERSION}.tar.gz
 ZIPFILE=${PACKAGE}_${VERSION}.zip
 R=R
+SUBDIRS := $(wildcard testmore/*/.)
+
+ifeq (testonemore,$(firstword $(MAKECMDGOALS)))
+  ARG := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  $(eval $(ARG):;@:)
+endif
 
 all:
 	make doc-update
@@ -15,7 +21,7 @@ doc-update:
 
 build-package:
 	echo 'source("make.description.R")' | R --vanilla
-	R CMD build --resave-data=no $(PACKAGE)
+	R CMD build --no-build-vignettes --resave-data=no $(PACKAGE)
 
 install:
 	make build-package
@@ -39,3 +45,19 @@ $(PACKAGE)/src/spict.so: $(PACKAGE)/src/spict.cpp
 
 vignette:  $(PACKAGE)/vignettes/vignette.Rmd
 	R -e "rmarkdown::render('spict/vignettes/vignette.Rmd', rmarkdown::pdf_document())"
+
+.PHONY: testmoreseq testonemore testmore $(SUBDIRS)
+
+testmore:
+	$(MAKE) -j $(NPROCS) testmoreseq
+
+testmoreseq: $(SUBDIRS)
+
+testonemore:
+	@$(MAKE) testmore/$(ARG)/.
+
+$(SUBDIRS):
+	@cp testmore/Makefile $@
+	@$(MAKE) -i -s -C $@
+	@rm -f $@/Makefile
+
