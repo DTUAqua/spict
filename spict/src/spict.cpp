@@ -121,7 +121,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(fconvec);        // Management factor each year add this constant to the predicted F
   DATA_VECTOR(indpred);        // A vector indicating when the management factor should be applied
   DATA_INTEGER(robflagc);       // If 1 use robust observation error for catches
-  DATA_VECTOR(robflagi);        // If 1 use robust observation error for index
+  DATA_IVECTOR(robflagi);       // If 1 use robust observation error for index
   DATA_INTEGER(robflage);       // If 1 use robust observation error for effort
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
   DATA_INTEGER(stabilise);     // If 1 stabilise optimisation using uninformative priors
