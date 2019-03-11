@@ -121,7 +121,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(fconvec);        // Management factor each year add this constant to the predicted F
   DATA_VECTOR(indpred);        // A vector indicating when the management factor should be applied
   DATA_INTEGER(robflagc);       // If 1 use robust observation error for catches
-  DATA_INTEGER(robflagi);       // If 1 use robust observation error for index
+  DATA_VECTOR(robflagi);        // If 1 use robust observation error for index
   DATA_INTEGER(robflage);       // If 1 use robust observation error for effort
   DATA_INTEGER(stochmsy);      // Use stochastic msy?
   DATA_INTEGER(stabilise);     // If 1 stabilise optimisation using uninformative priors
@@ -898,7 +898,7 @@ Type objective_function<Type>::operator() ()
     indsdi = CppAD::Integer(isdi(i)-1);
     inds = CppAD::Integer(isi(i)-1);
     logIpred(i) = logq(indq) + log(B(ind));
-    if(robflagi==1){
+    if(robflagi(indsdi)==1){
       likval = log(pp*dnorm(logobsI(i), logIpred(i), stdevfaci(i)*sdi(indsdi), 0) + (1.0-pp)*dnorm(logobsI(i), logIpred(i), robfac*stdevfaci(i)*sdi(indsdi), 0));
     } else {
       likval = dnorm(logobsI(i), logIpred(i), stdevfaci(i)*sdi(indsdi), 1);

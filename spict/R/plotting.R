@@ -2300,12 +2300,14 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
                 if (nrow(par) > 1){
                     nmpl <- paste0(nmpl, rr)
                 }
-                mu <- ifelse(is.na(par[rr, 4]), priorvec[1], par[rr, 2])
-                sd <- ifelse(is.na(par[rr, 4]), priorvec[2], par[rr, 4])
+                prvec <- priorvec
+                if(is.list(priorvec)) prvec <- priorvec[[rr]]
+                mu <- ifelse(is.na(par[rr, 4]), prvec[1], par[rr, 2])
+                sd <- ifelse(is.na(par[rr, 4]), prvec[2], par[rr, 4])
                 xmin <- mu - 3*sd
                 xmax <- mu + 3*sd
                 x <- seq(xmin, xmax, length=200)
-                priorvals <- dnorm(x, priorvec[1], priorvec[2])
+                priorvals <- dnorm(x, prvec[1], prvec[2])
                 if (is.na(par[rr, 4])){
                     posteriorvals <- NULL
                 } else {
