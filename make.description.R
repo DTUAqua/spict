@@ -34,6 +34,6 @@ branch <- system('git rev-parse --abbrev-ref HEAD', intern=TRUE)
 cat(paste('GithubRepo: spict\n'), file=fn, append=TRUE)
 cat(paste('GithubRef:', branch, '\n'), file=fn, append=TRUE)
 cat(paste('GithubSHA1:', sha, '\n'), file=fn, append=TRUE)
-
+cat('RoxygenNote: 6.0.1\n', file=fn, append=TRUE)
 
 #save('sha', file='spict/data/sha.rda')

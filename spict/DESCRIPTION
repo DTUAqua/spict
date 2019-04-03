@@ -25,4 +25,5 @@ LazyData: true
 VignetteBuilder: knitr
 GithubRepo: spict
 GithubRef: msyadvicerule 
-GithubSHA1: bc5f8ccd45562fe37823e08d53dab5c2a71109d8 
+GithubSHA1: f446da52e1609f94b060392972666b7c3e4ae46d 
+RoxygenNote: 6.0.1

@@ -4,22 +4,30 @@
 \alias{spict2DLMtool}
 \title{Get function to estimate TAC for the DLMtool package}
 \usage{
-spict2DLMtool(percentileC = 0.5, percentileFmsy = NA, cap = TRUE)
+spict2DLMtool(fractileC = 0.5, fractileFFmsy = 0.5, fractileBBmsy = 0.5,
+  uncertaintyCap = FALSE, lower = 0.8, upper = 1.2, env = globalenv())
 }
 \arguments{
-\item{percentileC}{The percentile of the catch distribution to be used for setting TAC. Default
+\item{fractileC}{The fractile of the catch distribution to be used for setting TAC. Default
 is median (0.5).}
 
-\item{percentileFmsy}{The percentile of the distribution of Fmsy. Default is NA.}
+\item{fractileFFmsy}{The fractile of the distribution of F/Fmsy. Default is 0.5 (median).}
 
-\item{cap}{Logical; If true TAC is multiplied with 1 or the ratio of current biomass
-over Blim (0.5*Bmsy) if this ratio is smaller than 1. Default is FALSE.}
+\item{fractileBBmsy}{The fractile of the distribution of B/Bmsy. Default is 0.5 (median).}
+
+\item{uncertaintyCap}{Logical; If true TAC is bound between two values set in lower and upper. Default: FALSE.}
+
+\item{lower}{lower bound of the uncertainty cap. Default is 0.8, used if uncertaintyCap = TRUE.}
+
+\item{upper}{upper bound of the uncertainty cap. Default is 1.2, used if uncertaintyCap = TRUE.}
+
+\item{env}{environment where the harvest control rule function(s) are assigned to.}
 }
 \value{
 A function which can estimate TAC recommendations based on SPiCT assessment,
   taking assessment uncertainty into account.
 }
-\details{
+\description{
 This function creates harvest control rules (HCRs) which can be incorporated into a
 management strategy evaluation framework (DLMtool package). HCRs are saved with a
 generic name to the global environment and name of HCR is returned if results of the
@@ -36,38 +44,33 @@ HCRs at once (several vectors have to have same length).
 }
 \examples{
 \dontrun{
-library(DLMtool)
-
 ## Put together an operating model from the available DLM toolkit examples
 StockEx <- Herring
 FleetEx <- Generic_IncE
 ObsEx <- Precise_Unbiased
-
 ## Remove changes in life history parameters
 StockEx@Mgrad <- c(0,0)
 StockEx@Kgrad <- c(0,0)
 StockEx@Linfgrad <- c(0,0)
 StockEx@Prob_staying <- c(1,1)
-
 ## Set the depletion level 
 StockEx@D <- c(0.3, 0.4)
-
 ## create Operation Model
 OMex <- new("OM", Stock = StockEx, Fleet = FleetEx, 
-                  Obs = ObsEx)
-
+                Obs = ObsEx)
 ## Set simulation options
 OMex@nsim <- 10
 OMex@nyears <- 25
-OMex@proyears <- 3
-
+OMex@proyears <- 5
 ## Get SPiCT HCR
-MPname <- spict2DLMtool(percentileC=0.3)
-
+MPname <- spict2DLMtool(fractileC=0.3)
 ## run MSE
-MSEex <- runMSE(OMex, MPs = MPname,
-            interval = 1, reps = 1, timelimit = 150, CheckMPs = FALSE)
+MSEex <- runMSE(OMex,
+                MPs = MPname,
+                timelimit = 150,
+                CheckMPs = FALSE)
+## example plot of results
+Pplot2(MSEex, traj="quant", quants=c(0.2, 0.8))
 }
-
 
 }
