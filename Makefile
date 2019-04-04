@@ -1,9 +1,8 @@
 PACKAGE=spict
-VERSION=1.2.6
-TARBALL=${PACKAGE}_${VERSION}.tar.gz
-ZIPFILE=${PACKAGE}_${VERSION}.zip
 R=R
+VERSION=`grep "Version" spict/DESCRIPTION | grep -oi '[0-9.]*'`
 SUBDIRS := $(wildcard testmore/*/.)
+TARBALL=${PACKAGE}_${VERSION}.tar.gz
 
 ifeq (testonemore,$(firstword $(MAKECMDGOALS)))
   ARG := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))

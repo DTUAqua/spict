@@ -1,0 +1,12 @@
+spict v1.2.7 (Release date: 2019-04-03)
+============
+
+New features:
+
+* Added new management scenario: ICES MSY advice rule
+* Added NEWS file
+
+Minor changes:
+
+* Updated documentation for check.inp and spict2DLMtool
+* Makefile now takes the version number from DESCRIPTION file
