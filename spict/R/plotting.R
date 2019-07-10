@@ -563,6 +563,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
 #' @param lineat Draw horizontal line at this y-value.
 #' @param xlab Label of x-axis.
 #' @param stamp Stamp plot with this character string.
+#' @param add Logical, if TRUE adds lines to an existing plot.
 #' @return Nothing.
 #' @examples
 #' \dontrun{
@@ -573,7 +574,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
 #' @export
 plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL,
                             plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time',
-                            stamp=get.version()){
+                            stamp=get.version(), add = FALSE) {
     if (!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
@@ -605,14 +606,16 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
                 }
                 ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
             }
-            plot(inp$time, BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]),
-                 ylim=ylim, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log,
-                 main=main)
+            if (! add) {
+              plot(inp$time, BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]),
+                   ylim=ylim, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log,
+                   main=main)
+            }
             cicol2 <- rgb(0, 0, 1, 0.1)
             polygon(c(inp$time[BBfininds], rev(inp$time[BBfininds])),
                     c(BB[BBfininds, 1], rev(BB[BBfininds, 3])), col=cicol2, border=cicol2)
             abline(v=inp$time[inp$indlastobs], col='gray')
-            if (plot.obs){
+            if (plot.obs & ! add){
                 for (i in nindexseq){
                     plot.col(inp$timeI[[i]], obsI[[i]], pch=i, do.line=FALSE, cex=0.6,
                              add=TRUE, add.legend=FALSE)
@@ -639,7 +642,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
             if ('true' %in% names(inp)){
                 lines(inp$true$time, inp$true$B/inp$true$Bmsy, col=true.col()) # Plot true
             }
-            lines(inp$time[inp$indest], BB[inp$indest,2], col='blue', lwd=1.5)
+            lines(inp$time[inp$indest], BB[inp$indest,2], col='blue', lwd=1.5, lty = if(add) 2 else 1)
             lines(inp$time[inp$indpred], BB[inp$indpred,2], col='blue', lty=3)
             cicol3 <- rgb(0, 0, 1, 0.2)
             lines(inp$time[inp$indest], BB[inp$indest,1], col=cicol3, lty=1, lwd=1)
@@ -1071,6 +1074,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
 #' @param lineat Draw horizontal line at this y-value.
 #' @param xlab Label of x-axis.
 #' @param stamp Stamp plot with this character string.
+#' @param add Logical, if TRUE adds lines to an existing plot.
 #' @return Nothing.
 #' @examples
 #' \dontrun{
@@ -1081,7 +1085,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
 #' @export
 plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality', ylim=NULL,
                             plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time',
-                            stamp=get.version()){
+                            stamp=get.version(), add = FALSE){
     if (!'sderr' %in% names(rep)){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
@@ -1120,11 +1124,12 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             # Ensure that lineat is included in ylim
             ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat)) 
         }
-
-        plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]),
-             xlab=xlab, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log)
+        if (! add) {
+          plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]),
+               xlab=xlab, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log)  
+        }
         cicol2 <- rgb(0, 0, 1, 0.1)
-        if (!flag){
+        if (!flag & !add){
             polygon(c(timef[fininds], rev(timef[fininds])), c(clf[fininds], rev(cuf[fininds])),
                     col=cicol2, border=cicol2)
         }
@@ -1132,7 +1137,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             lines(inp$time, FFs[, 2], col=rgb(0, 0, 1, 0.4))
         }
         abline(v=inp$time[inp$indlastobs], col='gray')
-        if (plot.obs){
+        if (plot.obs & ! add){
             Fmsyvec <- get.par('logFmsyvec', rep, exp=TRUE)
             ie <- cut(inp$timeE, inp$time, right=FALSE, labels=FALSE)
             if (rep$inp$timevaryinggrowth | rep$inp$logmcovflag){
@@ -1147,7 +1152,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             lines(inp$true$time, inp$true$Fs/inp$true$Fmsy, col=true.col()) # Plot true
         }
         maincol <- 'blue'
-        lines(time, F, col=maincol, lwd=1.5)
+        lines(time, F, col=maincol, lwd=1.5, lty = if(add) 2 else 1)
         lines(timep, Fp, col=maincol, lty=3)
         if (!flag) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
         if (!flag) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
