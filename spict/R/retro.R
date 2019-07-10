@@ -31,53 +31,36 @@
 #' }
 #' @export
 retro <- function(rep, nretroyear=5){
-    verflag <- as.numeric(gsub('[.]', '', as.character(packageVersion('TMB')))) >= 171
+    verflag <- as.numeric(gsub("[.]", "", as.character(packageVersion("TMB")))) >= 171
     inp1 <- rep$inp
     inpall <- list()
-    for (i in 1:nretroyear){
-        inpall[[i]] <- list()
-        
-        inpall[[i]]$seasontype <- inp1$seasontype
-        inpall[[i]]$msytype <- inp1$msytype
-        inpall[[i]]$nseasons <- inp1$nseasons
-        inpall[[i]]$dteuler <- inp1$dteuler
-        inpall[[i]]$ini <- inp1$ini
-        inpall[[i]]$priors <- inp1$priors
-        inpall[[i]]$phases <- inp1$phases
-        if(verflag) {
-          inpall[[i]]$getReportCovariance <- inp1$getReportCovariance
-        }
-        inpall[[i]]$getJointPrecision <- inp1$getJointPrecision
-        inpall[[i]]$bias.correct <- inp1$bias.correct
-        inpall[[i]]$bias.correct.control <- inp1$bias.correct.control
-        
-        indsC <- which(inp1$timeC <= inp1$timeC[inp1$nobsC]-i)
+    for (i in 1:nretroyear) {
+        inpall[[i]] <- inp1
+        indsC <- which(inp1$timeC <= inp1$timeC[inp1$nobsC] - i)
         inpall[[i]]$obsC <- inp1$obsC[indsC]
         inpall[[i]]$timeC <- inp1$timeC[indsC]
-        inpall[[i]]$stdevfacC<- inp1$stdevfacC[indsC]
-
-        indsE <- which(inp1$timeE <= inp1$timeE[inp1$nobsE]-i)
-        inpall[[i]]$obsE<- inp1$obsE[indsE]
+        inpall[[i]]$stdevfacC <- inp1$stdevfacC[indsC]
+        inpall[[i]]$dtc <- inp1$dtc[indsC]
+        indsE <- which(inp1$timeE <= inp1$timeE[inp1$nobsE] - i)
+        inpall[[i]]$obsE <- inp1$obsE[indsE]
         inpall[[i]]$timeE <- inp1$timeE[indsE]
-        inpall[[i]]$stdevfacE<- inp1$stdevfacE[indsE]
-
-        
+        inpall[[i]]$stdevfacE <- inp1$stdevfacE[indsE]
         inpall[[i]]$obsI <- list()
         inpall[[i]]$timeI <- list()
-        for (j in 1:inp1$nindex){
-            indsI <- which(inp1$timeI[[j]] <= inp1$timeI[[j]][inp1$nobsI[j]]-i)
+        for (j in 1:inp1$nindex) {
+            indsI <- which(inp1$timeI[[j]] <= inp1$timeI[[j]][inp1$nobsI[j]] - i)
             inpall[[i]]$obsI[[j]] <- inp1$obsI[[j]][indsI]
             inpall[[i]]$timeI[[j]] <- inp1$timeI[[j]][indsI]
             inpall[[i]]$stdevfacI[[j]] <- inp1$stdevfacI[[j]][indsI]
         }
-        inpall[[i]]<-suppressWarnings(check.inp(inpall[[i]]))
-        inpall[[i]]$MSYregime <- head(inp1$MSYregime,length(inpall[[i]]$time))
+        inpall[[i]] <- check.inp(inpall[[i]])
     }
     asd <- try(parallel::mclapply(inpall, fit.spict))
-    if (class(asd) == 'try-error'){
+    if (class(asd) == "try-error") {
         rep$retro <- lapply(inpall, fit.spict)
-    } else {
-        rep$retro <- asd        
+    }
+    else {
+        rep$retro <- asd
     }
     return(rep)
 }

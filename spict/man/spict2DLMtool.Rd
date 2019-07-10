@@ -67,14 +67,16 @@ OMex <- new("OM", Stock = StockEx, Fleet = FleetEx,
 ## Set simulation options
 OMex@nsim <- 10
 OMex@nyears <- 25
-OMex@proyears <- 3
-
+OMex@proyears <- 5
 ## Get SPiCT HCR
 MPname <- spict2DLMtool(fractileC=0.3)
-
 ## run MSE
-MSEex <- runMSE(OMex, MPs = MPname,
-            interval = 1, reps = 1, timelimit = 150, CheckMPs = FALSE)
+MSEex <- runMSE(OMex,
+                MPs = MPname,
+                timelimit = 150,
+                CheckMPs = FALSE)
+## example plot of results
+Pplot2(MSEex, traj="quant", quants=c(0.2, 0.8))
 }
 
 

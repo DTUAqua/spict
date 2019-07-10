@@ -4,7 +4,7 @@ cat('Package: spict
 Type: Package
 Title: Stochastic Surplus Production Model in Continuous-Time (SPiCT)
 Version: 1.3
-Date: ', date, '
+Date:', date, '
 Maintainer: Alexandros Kokkalis <alko@aqua.dtu.dk>
 Authors@R: c(person(c("Martin", "W."), "Pedersen", email = "wpsgodd@gmail.com", role = "aut"),
              person(c("Casper", "W."), "Berg", email = "cbe@aqua.dtu.dk", role = "aut"),
@@ -27,6 +27,7 @@ Imports:
     utils
 LinkingTo: TMB, RcppEigen
 Suggests:
+    ellipse,
     parallel,
     mgcv,
     rjags,

@@ -1,8 +1,13 @@
 PACKAGE=spict
-VERSION=1.3
-TARBALL=${PACKAGE}_${VERSION}.tar.gz
-ZIPFILE=${PACKAGE}_${VERSION}.zip
 R=R
+VERSION=`grep "Version" spict/DESCRIPTION | grep -oi '[0-9.]*'`
+SUBDIRS := $(wildcard testmore/*/.)
+TARBALL=${PACKAGE}_${VERSION}.tar.gz
+
+ifeq (testonemore,$(firstword $(MAKECMDGOALS)))
+  ARG := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  $(eval $(ARG):;@:)
+endif
 
 all:
 	make doc-update
@@ -15,7 +20,7 @@ doc-update:
 
 build-package:
 	echo 'source("make.description.R")' | R --vanilla
-	R CMD build --resave-data=no $(PACKAGE)
+	R CMD build --no-build-vignettes --resave-data=no $(PACKAGE)
 
 install:
 	make build-package
@@ -37,5 +42,21 @@ quick-install: $(PACKAGE)/src/spict.so
 $(PACKAGE)/src/spict.so: $(PACKAGE)/src/spict.cpp
 	cd $(PACKAGE)/src; echo "library(TMB); compile('spict.cpp','-O0 -g')" | $(R) --slave
 
-vignette:  $(PACKAGE)/vignettes/SPiCT.Rmd
-	R -e "rmarkdown::render('spict/vignettes/SPiCT.Rmd', rmarkdown::pdf_document())"
+vignette:  $(PACKAGE)/vignettes/vignette.Rmd
+	R -e "rmarkdown::render('spict/vignettes/vignette.Rmd', rmarkdown::pdf_document())"
+
+.PHONY: testmoreseq testonemore testmore $(SUBDIRS)
+
+testmore:
+	$(MAKE) -j $(NPROCS) testmoreseq
+
+testmoreseq: $(SUBDIRS)
+
+testonemore:
+	@$(MAKE) testmore/$(ARG)/.
+
+$(SUBDIRS):
+	@cp testmore/Makefile $@
+	@$(MAKE) -i -s -C $@
+	@rm -f $@/Makefile
+

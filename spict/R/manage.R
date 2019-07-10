@@ -16,8 +16,9 @@
 
 
 
-#' Calculate predictions under different management scenarios
-#' 
+#' @name manage
+#' @title Calculate predictions under different management scenarios
+#' @references{ICES. 2017. Report of the Workshop on the Development of the ICES approach to providing MSY advice for category 3 and 4 stocks (WKMSYCat34), 6–10 March 2017, Copenhagen, Denmark. ICES CM 2017/ ACOM:47. 53 pp.}
 #' @details Scenarios that are currently implemented include:
 #' \itemize{
 #'   \item{"1"}{ Keep the catch of the current year (i.e. the last observed catch).}
@@ -26,6 +27,11 @@
 #'   \item{"4"}{ No fishing, reduce to 1\% of current F.}
 #'   \item{"5"}{ Reduce F by X\%. Default X = 25.}
 #'   \item{"6"}{ Increase F by X\%. Default X = 25.}
+#'   \item{"7"}{ Use ICES MSY advice rule.}
+#'
+#' Scenario 7 implements the ICES MSY advice rule for stocks that are assessed using spict (ICES 2017). MSY B_{trigger} is set equal to B_{MSY} / 2. Then fishing mortality in the short forecast is calculated as:
+#'
+#' F(y+1) =  F(y) * min{ 1, median[B(y+1) / MSY B_{trigger}] } / median[F(y)/F_{MSY}]  
 #' }
 #' @param repin Result list from fit.spict().
 #' @param scenarios Vector of integers specifying which scenarios to run. Default: 'all'.
@@ -44,7 +50,7 @@
 #' }
 manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, catchList=NULL){
     if (scenarios == 'all'){
-        scenarios <- 1:6
+        scenarios <- 1:7
     }
     if (is.null(manstart)){
         manstart <- repin$inp$manstart
@@ -95,6 +101,18 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, cat
             fac6 <- 1.25
             repman[[6]] <- prop.F(fac6, inpin, repin, maninds, dbg=dbg)
         }
+        if (7 %in% scenarios){
+          ## F is equal to Fmsy if B>MSYBtrigger. F is reduced linearly to zero if B<MSYBtrigger
+          Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
+          Bmsy <- get.par('logBmsy', repin, exp=TRUE)[2]
+          MSYBtrig <- Bmsy / 2
+          Flast <- get.par('logFp', repin, exp=TRUE)[2]
+          Blast <- get.par('logBp', repin, exp=TRUE)[2]
+          Bcorrection <- min(1, Blast / MSYBtrig)
+          fac7 <- Bcorrection * (Fmsy / Flast)
+          repman[[7]] <- prop.F(fac7, inpin, repin, maninds, dbg=dbg)
+
+        }
         repin$man <- repman
         # Create an baseline F trajectory with constant F and store
         repin$manbase <- prop.F(fac=1, inpin, repin, maninds, dbg=dbg)
@@ -105,8 +123,8 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, cat
 }
 
 
-#' Calculate management for changing F by a given factor
-#' 
+#' @name prop.F
+#' @title Calculate management for changing F by a given factor.
 #' @param fac Factor to multiply current F with.
 #' @param inpin Input list.
 #' @param repin Results list.
@@ -153,11 +171,12 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
 #' @param inpin Input list.
 #' @param repin Results list.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
-#' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3)
+#' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3) 
 #' @param catchList list with numeric vectors timeC and obsC with the starting times and catches
 #' @return List containing results of management calculations.
 #' @export
 take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
+    
     inpt <- inpin
     if(is.null(catchList)){
         tmpTime <- repin$inp$timeCpred  
@@ -172,7 +191,7 @@ take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
         if(is.null(catchList$stdevfacC)) {
           inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(catchList$timeC)) )
         } else {
-          inpt$stdevfacC <- c(inpt$stdevfacC, catchList$stdevfacC)
+            inpt$stdevfacC <- c(inpt$stdevfacC, catchList$stdevfacC)
         }
         inpt$dtc <- c(inpt$dtc, catchList$dtc )
     }
@@ -293,7 +312,7 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
             # Set row names
             scenarios <- attr(repman, "scenarios")
             rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy',
-                    '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%')[scenarios]
+                    '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%', '7. MSY advice rule')[scenarios]
             
             rownames(df) <- rn
             rownames(dfrel) <- rn

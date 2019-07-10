@@ -1,6 +1,8 @@
-#' Get function to estimate TAC for the DLMtool package
+#' @name spict2DLMtool
+#' @title Get function to estimate TAC for the DLMtool package
 #'
-#' This function creates harvest control rules (HCRs) which can be incorporated into a
+#' 
+#' @details This function creates harvest control rules (HCRs) which can be incorporated into a
 #' management strategy evaluation framework (DLMtool package). HCRs are saved with a
 #' generic name to the global environment and name of HCR is returned if results of the
 #' functin are assigned to an object. HCR runs a SPiCT assessment using catch and
@@ -52,14 +54,17 @@
 #' ## Set simulation options
 #' OMex@nsim <- 10
 #' OMex@nyears <- 25
-#' OMex@proyears <- 3
-#' 
+#' OMex@proyears <- 5
 #' ## Get SPiCT HCR
 #' MPname <- spict2DLMtool(fractileC=0.3)
 #'
 #' ## run MSE
-#' MSEex <- runMSE(OMex, MPs = MPname,
-#'             interval = 1, reps = 1, timelimit = 150, CheckMPs = FALSE)
+#' MSEex <- runMSE(OMex,
+#'                 MPs = MPname,
+#'                 timelimit = 150,
+#'                 CheckMPs = FALSE)
+#' ## example plot of results
+#' Pplot2(MSEex, traj="quant", quants=c(0.2, 0.8))
 #' }
 #'
 #'
@@ -139,10 +144,12 @@ spict2DLMtool <- function(fractileC = 0.5,
                     TAC <- rep(TACi, reps)
                 }
             }
-            res <- DLMtool:::TACfilter(TAC)
-            return(res)
+            res <- TACfilter(TAC)
+            Rec <- new("Rec")
+            Rec@TAC <- res
+            return(Rec)
         },
-        class="Output")'))
+        class="MP")'))
 
         
     nami <- rep(NA,maxi)
