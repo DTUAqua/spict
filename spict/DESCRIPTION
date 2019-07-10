@@ -2,7 +2,7 @@ Package: spict
 Type: Package
 Title: Stochastic Surplus Production Model in Continuous-Time (SPiCT)
 Version: 1.3
-Date:  2018-04-03 
+Date: 2018-04-03 
 Maintainer: Alexandros Kokkalis <alko@aqua.dtu.dk>
 Authors@R: c(person(c("Martin", "W."), "Pedersen", email = "wpsgodd@gmail.com", role = "aut"),
              person(c("Casper", "W."), "Berg", email = "cbe@aqua.dtu.dk", role = "aut"),
@@ -35,5 +35,6 @@ Suggests:
     DLMtool
 LazyData: true
 VignetteBuilder: knitr
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 BugReports: https://github.com/mawp/spict/issues
+Encoding: UTF-8

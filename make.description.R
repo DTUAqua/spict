@@ -37,8 +37,9 @@ Suggests:
     DLMtool
 LazyData: true
 VignetteBuilder: knitr
-RoxygenNote: 6.0.1
-BugReports: https://github.com/mawp/spict/issues\n', 
+RoxygenNote: 6.1.1
+BugReports: https://github.com/mawp/spict/issues
+Encoding: UTF-8\n', 
     file=fn)
 
 # # Add Git hub stuff
