@@ -4,8 +4,9 @@
 \alias{spict2DLMtool}
 \title{Get function to estimate TAC for the DLMtool package}
 \usage{
-spict2DLMtool(fractileC = 0.5, fractileFFmsy = 0.5, fractileBBmsy = 0.5,
-  uncertaintyCap = FALSE, lower = 0.8, upper = 1.2, env = globalenv())
+spict2DLMtool(fractileC = 0.5, fractileFFmsy = 0.5,
+  fractileBBmsy = 0.5, uncertaintyCap = FALSE, lower = 0.8,
+  upper = 1.2, env = globalenv())
 }
 \arguments{
 \item{fractileC}{The fractile of the catch distribution to be used for setting TAC. Default
@@ -28,6 +29,9 @@ A function which can estimate TAC recommendations based on SPiCT assessment,
   taking assessment uncertainty into account.
 }
 \description{
+Get function to estimate TAC for the DLMtool package
+}
+\details{
 This function creates harvest control rules (HCRs) which can be incorporated into a
 management strategy evaluation framework (DLMtool package). HCRs are saved with a
 generic name to the global environment and name of HCR is returned if results of the
@@ -70,6 +74,7 @@ OMex@nyears <- 25
 OMex@proyears <- 5
 ## Get SPiCT HCR
 MPname <- spict2DLMtool(fractileC=0.3)
+
 ## run MSE
 MSEex <- runMSE(OMex,
                 MPs = MPname,

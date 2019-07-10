@@ -123,8 +123,8 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, cat
 }
 
 
-#' @name prop.F
-#' @title Calculate management for changing F by a given factor.
+#' Calculate management for changing F by a given factor.
+#' 
 #' @param fac Factor to multiply current F with.
 #' @param inpin Input list.
 #' @param repin Results list.
@@ -163,7 +163,6 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
     }
     return(repmant)
 }
-
 
 #' Calculate management when taking a constant catch (proxy for setting a TAC).
 #' 

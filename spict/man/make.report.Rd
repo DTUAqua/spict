@@ -6,7 +6,8 @@
 \usage{
 make.report(rep, reporttitle = "", reportfile = "report.tex",
   summaryoutfile = "summaryout.txt", outdir = ".",
-  keep.figurefiles = FALSE, keep.txtfiles = FALSE, keep.texfiles = FALSE)
+  keep.figurefiles = FALSE, keep.txtfiles = FALSE,
+  keep.texfiles = FALSE)
 }
 \arguments{
 \item{rep}{A valid result from fit.spict with OSA residuals.}

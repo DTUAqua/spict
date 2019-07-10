@@ -16,7 +16,7 @@ An updated list of input variables checked for consistency and with defaults add
 Check list of input variables
 }
 \details{
-Fills in default values if missing.
+Fills in defalut values if missing.
 
 Required inputs:
 
