@@ -16,12 +16,14 @@ plotspict.osar(rep, collapse.I = TRUE, qlegend = TRUE)
 \value{
 Nothing.
 }
-\details{
+\description{
 Plots observed versus predicted catches.
 }
 \examples{
+\dontrun{
 data(pol)
 rep <- fit.spict(pol$albacore)
 rep <- calc.osa.resid(rep)
 plotspict.osar(rep)
+}
 }

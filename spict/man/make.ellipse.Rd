@@ -14,6 +14,6 @@ make.ellipse(inds, rep)
 \value{
 A matrix with two columns containing the x and y coordinates of the ellipsis.
 }
-\details{
+\description{
 Calculates the confidence ellipsis of two reported model parameters. This is particularly useful as a detailed view of the uncertainty of two correlated parameters.
 }

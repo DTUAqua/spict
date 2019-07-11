@@ -14,3 +14,6 @@ make.ffacvec(inp, ffac)
 \value{
 Input list containing ffacvec
 }
+\description{
+Make ffac vector
+}

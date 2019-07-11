@@ -16,6 +16,6 @@ acf.signf(resid, lag.max = 4, return.p = FALSE)
 \value{
 Vector of TRUE and FALSE indicating whether significant lags were present. If return.p is TRUE then p-values are returned instead.
 }
-\details{
+\description{
 This corresponds to plotting the ACF using acf() and checking whether any lags has an acf value above the CI limit.
 }

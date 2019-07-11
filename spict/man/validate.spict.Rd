@@ -5,8 +5,9 @@
 \title{Simulate data and reestimate parameters}
 \usage{
 validate.spict(inp, nsim = 50, invec = c(15, 60, 240), estinp = NULL,
-  backup = NULL, df.out = FALSE, summ.ex.file = NULL, type = "nobs",
-  parnames = NULL, exp = NULL, mc.cores = 8, model = "spict")
+  backup = NULL, df.out = FALSE, summ.ex.file = NULL,
+  type = "nobs", parnames = NULL, exp = NULL, mc.cores = 8,
+  model = "spict")
 }
 \arguments{
 \item{inp}{An inp list with an ini key (see ?check.inp). If you want to use estimated parameters for the simulation create the inp$ini from the pl key of a result of fit.spict().}
@@ -41,16 +42,19 @@ A list containing the results of the validation with the following keys:
  \item{"*msyciw"}{ Width of the 95\% confidence interval of the estimate of Bmsy/Fmsy.}
 }
 }
-\details{
+\description{
 Given input parameters simulate a number of data sets. Then estimate the parameters from the simulated data and compare with the true values. Specifically, the one-step-ahead residuals are checked for autocorrelation and the confidence intervals of the estimated Fmsy and Bmsy are checked for consistency.
-
+}
+\note{
 WARNING: One should simulate at least 50 data sets and preferably more than 100 to obtain reliable results. This will take some time (potentially hours).
 }
 \examples{
+\dontrun{
 data(pol)
 rep0 <- fit.spict(pol$albacore)
 inp <- list()
 inp$ini <- rep0$pl
 set.seed(1234)
 validate.spict(inp, nsim=10, invec=c(30, 60), backup='validate.RData')
+}
 }

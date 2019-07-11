@@ -16,7 +16,12 @@ take.c(catch, inpin, repin, dbg = 0, sdfac = 0.001, catchList = NULL)
 \item{dbg}{Debug flag, dbg=1 some output, dbg=2 more output.}
 
 \item{sdfac}{Take catch with this 'stdevfacC' (default = 1e-3)}
+
+\item{catchList}{list with numeric vectors timeC and obsC with the starting times and catches}
 }
 \value{
 List containing results of management calculations.
+}
+\description{
+Calculate management when taking a constant catch (proxy for setting a TAC).
 }

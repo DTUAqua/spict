@@ -19,11 +19,13 @@ plotspict.production(rep, n.plotyears = 40, main = "Production curve",
 \value{
 Nothing.
 }
-\details{
+\description{
 Plots the theoretical production curve (production as a function of biomass) as calculated from the estimated model parameters. Overlaid is the estimated production/biomass trajectory.
 }
 \examples{
+\dontrun{
 data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.production(rep)
+}
 }

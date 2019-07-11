@@ -28,6 +28,6 @@ plotspict.growth(rep, logax = FALSE, main = "Time-varying growth",
 \value{
 Nothing.
 }
-\details{
-Plots estimated time-varying growth
+\description{
+Plot estimated time-varying growth
 }

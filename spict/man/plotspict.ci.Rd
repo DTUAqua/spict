@@ -14,3 +14,6 @@ plotspict.ci(inp, stamp = get.version())
 \value{
 Nothing
 }
+\description{
+Plot catch and index data.
+}

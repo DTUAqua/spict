@@ -16,3 +16,6 @@ make.splinemat(nseasons, order, dtfine = 1/100)
 \value{
 Spline design matrix.
 }
+\description{
+Make a spline design matrix
+}

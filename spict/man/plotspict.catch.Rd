@@ -27,11 +27,13 @@ plotspict.catch(rep, main = "Catch", ylim = NULL, qlegend = TRUE,
 \value{
 Nothing.
 }
-\details{
+\description{
 Plots observed catch and predictions using the current F and Fmsy. The plot also contains the equilibrium catch if the current F is maintained.
 }
 \examples{
+\dontrun{
 data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.catch(rep)
+}
 }

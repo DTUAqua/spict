@@ -2,12 +2,12 @@
 % Please edit documentation in R/plotting.R
 \name{txt.stamp}
 \alias{txt.stamp}
-\title{Add spict version to plot}
+\title{Add a charater string in the bottom right corner of a plot}
 \usage{
 txt.stamp(string = get.version(), cex = 0.5, do.flag = NULL)
 }
 \arguments{
-\item{string}{Character string to stamp.}
+\item{string}{Character string to stamp. If it is an empty string, NULL, or NA the function does nothing}
 
 \item{cex}{Stamp cex.}
 
@@ -15,4 +15,7 @@ txt.stamp(string = get.version(), cex = 0.5, do.flag = NULL)
 }
 \value{
 Nothing
+}
+\description{
+Add a charater string in the bottom right corner of a plot
 }

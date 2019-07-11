@@ -11,13 +11,15 @@ Polacheck et al. (1993), Canadian Journal of Fisheries and Aquatic Science, vol 
 \usage{
 data(pol)
 }
-\details{
+\description{
 Fisheries data for south Atlantic albacore, northern Namibian hake, and New Zealand rock lobster.
 }
 \examples{
+\dontrun{
 data(pol)
 rep <- fit.spict(inp=pol$albacore)
 rep <- fit.spict(inp=pol$hake)
 rep <- fit.spict(inp=pol$lobster)
+}
 }
 \keyword{datasets}

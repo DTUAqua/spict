@@ -12,6 +12,6 @@ calc.influence(rep)
 \value{
 A list equal to the input with the added key "infl" containing influence statistics.
 }
-\details{
-TBA
+\description{
+Calculates influence statistics of observations.
 }

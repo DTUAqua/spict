@@ -4,8 +4,9 @@
 \alias{spict2DLMtool}
 \title{Get function to estimate TAC for the DLMtool package}
 \usage{
-spict2DLMtool(fractileC = 0.5, fractileFFmsy = 0.5, fractileBBmsy = 0.5,
-  uncertaintyCap = FALSE, lower = 0.8, upper = 1.2, env = globalenv())
+spict2DLMtool(fractileC = 0.5, fractileFFmsy = 0.5,
+  fractileBBmsy = 0.5, uncertaintyCap = FALSE, lower = 0.8,
+  upper = 1.2, env = globalenv())
 }
 \arguments{
 \item{fractileC}{The fractile of the catch distribution to be used for setting TAC. Default
@@ -28,6 +29,9 @@ A function which can estimate TAC recommendations based on SPiCT assessment,
   taking assessment uncertainty into account.
 }
 \description{
+Get function to estimate TAC for the DLMtool package
+}
+\details{
 This function creates harvest control rules (HCRs) which can be incorporated into a
 management strategy evaluation framework (DLMtool package). HCRs are saved with a
 generic name to the global environment and name of HCR is returned if results of the
@@ -44,26 +48,33 @@ HCRs at once (several vectors have to have same length).
 }
 \examples{
 \dontrun{
+library(DLMtool)
+
 ## Put together an operating model from the available DLM toolkit examples
 StockEx <- Herring
 FleetEx <- Generic_IncE
 ObsEx <- Precise_Unbiased
+
 ## Remove changes in life history parameters
 StockEx@Mgrad <- c(0,0)
 StockEx@Kgrad <- c(0,0)
 StockEx@Linfgrad <- c(0,0)
 StockEx@Prob_staying <- c(1,1)
+
 ## Set the depletion level 
 StockEx@D <- c(0.3, 0.4)
+
 ## create Operation Model
 OMex <- new("OM", Stock = StockEx, Fleet = FleetEx, 
-                Obs = ObsEx)
+                  Obs = ObsEx)
+
 ## Set simulation options
 OMex@nsim <- 10
 OMex@nyears <- 25
 OMex@proyears <- 5
 ## Get SPiCT HCR
 MPname <- spict2DLMtool(fractileC=0.3)
+
 ## run MSE
 MSEex <- runMSE(OMex,
                 MPs = MPname,
@@ -72,5 +83,6 @@ MSEex <- runMSE(OMex,
 ## example plot of results
 Pplot2(MSEex, traj="quant", quants=c(0.2, 0.8))
 }
+
 
 }

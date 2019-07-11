@@ -20,6 +20,9 @@ calc.EBinf(K, n, Fl, Fmsy, sdb2)
 \value{
 E(Binf).
 }
+\description{
+Calculate E(Binfinity), i.e. the fished equilibrium.
+}
 \details{
 If a seasonal pattern in F is imposed the annual average F is used for calculating the expectation. Max() is used to avoid negative values.
 }

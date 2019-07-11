@@ -14,3 +14,6 @@
 \value{
 Nothing.
 }
+\description{
+Output a summary of a fit.spict() run.
+}

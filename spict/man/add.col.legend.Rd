@@ -9,3 +9,6 @@ add.col.legend()
 \value{
 Nothing.
 }
+\description{
+Add a legend explaining colors of points (vertical orientation)
+}

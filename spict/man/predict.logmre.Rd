@@ -2,7 +2,7 @@
 % Please edit documentation in R/sim.R
 \name{predict.logmre}
 \alias{predict.logmre}
-\title{Helper function for sim.spict().}
+\title{Helper function for sim.spict()}
 \usage{
 \method{predict}{logmre}(logmre0, dt, sdm, psi, logm)
 }
@@ -19,4 +19,7 @@
 }
 \value{
 Predicted mre at the end of dt.
+}
+\description{
+Helper function for sim.spict()
 }

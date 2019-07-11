@@ -16,3 +16,6 @@ annual(intime, vec, type = "mean")
 \value{
 A list containing the annual means and a corresponding time vector.
 }
+\description{
+Convert from quarterly (or other sub-annual) data to annual means, sums or a custom function.
+}

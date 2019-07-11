@@ -4,8 +4,8 @@
 \alias{manage}
 \title{Calculate predictions under different management scenarios}
 \usage{
-manage(repin, scenarios = "all", manstart = NULL, dbg = 0, catch = NULL,
-  catchList = NULL)
+manage(repin, scenarios = "all", manstart = NULL, dbg = 0,
+  catch = NULL, catchList = NULL)
 }
 \arguments{
 \item{repin}{Result list from fit.spict().}
@@ -15,9 +15,16 @@ manage(repin, scenarios = "all", manstart = NULL, dbg = 0, catch = NULL,
 \item{manstart}{Year that management should be initiated.}
 
 \item{dbg}{Debug flag, dbg=1 some output, dbg=2 more ourput.}
+
+\item{catch}{numeric, take that catch in scenario 1, Ignored if catchList is specified.}
+
+\item{catchList}{list with timeC and obsC numeric vectors giving the starting times and catches to take in scenario 1.}
 }
 \value{
 List containing results of management calculations.
+}
+\description{
+Calculate predictions under different management scenarios
 }
 \details{
 Scenarios that are currently implemented include:
@@ -36,10 +43,12 @@ F(y+1) =  F(y) * min{ 1, median[B(y+1) / MSY B_{trigger}] } / median[F(y)/F_{MSY
 }
 }
 \examples{
+\dontrun{
 data(pol)
 rep <- fit.spict(pol$albacore)
 repman <- manage(rep)
 mansummary(repman) # To print projections
+}
 }
 \references{
 {ICES. 2017. Report of the Workshop on the Development of the ICES approach to providing MSY advice for category 3 and 4 stocks (WKMSYCat34), 6–10 March 2017, Copenhagen, Denmark. ICES CM 2017/ ACOM:47. 53 pp.}
