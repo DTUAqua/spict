@@ -27,7 +27,6 @@ Imports:
     utils
 LinkingTo: TMB, RcppEigen
 Suggests:
-    ellipse,
     parallel,
     mgcv,
     rjags,
