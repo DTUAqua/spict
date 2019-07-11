@@ -15,8 +15,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#' @name predict.b
-#' @title Helper function for sim.spict().
+#' Helper function for sim.spict()
+#' 
 #' @param B0 Initial biomass.
 #' @param F0 Fishing mortality.
 #' @param gamma gamma parameter in Fletcher's Pella-Tomlinson formulation.
@@ -39,8 +39,8 @@ predict.b <- function(B0, F0, gamma, m, K, n, dt, sdb, btype){
 }
 
 
-#' @name predict.logf
-#' @title Helper function for sim.spict().
+#' Helper function for sim.spict()
+#' 
 #' @param logF0 Fishing mortality.
 #' @param dt Time step.
 #' @param sdf Standard deviation of F process.
@@ -57,8 +57,8 @@ predict.logf <- function(logF0, dt, sdf, efforttype){
 }
 
 
-#' @name predict.logmre
-#' @title Helper function for sim.spict().
+#' Helper function for sim.spict()
+#' 
 #' @param logmre0 Initial value
 #' @param dt Time step.
 #' @param sdm Standard deviation of mre process.
@@ -71,11 +71,11 @@ predict.logmre <- function(logmre0, dt, sdm, psi, logm){
 }
 
 
-#' @name sim.spict
-#' @title Simulate data from Pella-Tomlinson model
-#' @details Simulates data using either manually specified parameters values or parameters estimated by fit.spict().
+#' Simulate data from Pella-Tomlinson model
+#' 
+#' Simulates data using either manually specified parameters values or parameters estimated by fit.spict()
 #'
-#' Manual specification:
+#' @details Manual specification:
 #' To specify parameters manually use the inp$ini format similar to when specifying initial values for running fit.spict(). Observations can be simulated at specific times using inp$timeC and inp$timeI. If these are not specified then the length of inp$obsC or inp$obsI is used to determine the number of observations of catches and indices respectively. If none of these are specified then nobs observations of catch and index will be simulated evenly distributed in time.
 #'
 #' Estimated parameters:
@@ -85,6 +85,7 @@ predict.logmre <- function(logmre0, dt, sdm, psi, logm){
 #' @param nobs Optional specification of the number of simulated observations.
 #' @return A list containing the simulated data.
 #' @examples
+#' \dontrun{
 #' data(pol)
 #' repin <- fit.spict(pol$albacore)
 #' # Simulate a specific number of observations
@@ -115,6 +116,7 @@ predict.logmre <- function(logmre0, dt, sdm, psi, logm){
 #' par(mfrow=c(2, 1))
 #' plot(sim2$obsC, typ='l')
 #' plot(sim2$obsI[[1]], typ='l')
+#' }
 #' @export
 sim.spict <- function(input, nobs=100){
     # Check if input is a inp (initial values) or rep (results).
@@ -543,11 +545,11 @@ sim.spict <- function(input, nobs=100){
 }
 
 
-#' @name validate.spict
-#' @title Simulate data and reestimate parameters
-#' @details Given input parameters simulate a number of data sets. Then estimate the parameters from the simulated data and compare with the true values. Specifically, the one-step-ahead residuals are checked for autocorrelation and the confidence intervals of the estimated Fmsy and Bmsy are checked for consistency.
+#' Simulate data and reestimate parameters
 #'
-#' WARNING: One should simulate at least 50 data sets and preferably more than 100 to obtain reliable results. This will take some time (potentially hours).
+#' Given input parameters simulate a number of data sets. Then estimate the parameters from the simulated data and compare with the true values. Specifically, the one-step-ahead residuals are checked for autocorrelation and the confidence intervals of the estimated Fmsy and Bmsy are checked for consistency.
+#'
+#' @note WARNING: One should simulate at least 50 data sets and preferably more than 100 to obtain reliable results. This will take some time (potentially hours).
 #' @param inp An inp list with an ini key (see ?check.inp). If you want to use estimated parameters for the simulation create the inp$ini from the pl key of a result of fit.spict().
 #' @param nsim Number of simulated data sets in each batch.
 #' @param invec Vector containing the number of simulated observations of each data set in each batch.
@@ -567,12 +569,14 @@ sim.spict <- function(input, nobs=100){
 #'  \item{"*msyciw"}{ Width of the 95\% confidence interval of the estimate of Bmsy/Fmsy.}
 #' }
 #' @examples
+#' \dontrun{
 #' data(pol)
 #' rep0 <- fit.spict(pol$albacore)
 #' inp <- list()
 #' inp$ini <- rep0$pl
 #' set.seed(1234)
 #' validate.spict(inp, nsim=10, invec=c(30, 60), backup='validate.RData')
+#' }
 #' @export
 validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, backup=NULL,
                            df.out=FALSE, summ.ex.file=NULL, type='nobs', parnames=NULL, exp=NULL,
@@ -771,20 +775,21 @@ validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, back
 }
 
 
-#' @name extract.simstats
-#' @title Extracts relevant statistics from the estimation of a simulated data set.
-#' @details TBA
+#' Extracts relevant statistics from the estimation of a simulated data set.
+#' 
 #' @param rep A result report as generated by running fit.spict.
 #' @param inp The input list used as input to the validation.spict function.
 #' @param exp Should exp be taken of parameters?
 #' @param parnames Vector of parameter names to extract stats for.
 #' @return A list containing the relevant statistics.
 #' @examples
+#' \dontrun{
 #' data(pol)
 #' repin <- fit.spict(pol$albacore)
 #' sim <- sim.spict(repin)
 #' rep <- fit.spict(sim)
 #' extract.simstats(rep)
+#' }
 #' @export
 extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
     if ('true' %in% names(rep$inp)){
@@ -877,8 +882,7 @@ extract.simstats <- function(rep, inp=NULL, exp=NULL, parnames=NULL){
 }
 
 
-#' @name validation.data.frame
-#' @title Collect results from the output of running validate.spict.
+#' Collect results from the output of running validate.spict.
 #' @param ss Output from validation.spict.
 #' @return A data frame containing the formatted validation results.
 #' @export

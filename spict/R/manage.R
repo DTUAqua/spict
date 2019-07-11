@@ -37,13 +37,17 @@
 #' @param scenarios Vector of integers specifying which scenarios to run. Default: 'all'.
 #' @param manstart Year that management should be initiated.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
+#' @param catch numeric, take that catch in scenario 1, Ignored if catchList is specified.
+#' @param catchList list with timeC and obsC numeric vectors giving the starting times and catches to take in scenario 1.
 #' @return List containing results of management calculations.
 #' @export
 #' @examples
+#' \dontrun{
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' repman <- manage(rep)
 #' mansummary(repman) # To print projections
+#' }
 manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, catchList=NULL){
     if (scenarios == 'all'){
         scenarios <- 1:7
@@ -119,8 +123,8 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, cat
 }
 
 
-#' @name prop.F
-#' @title Calculate management for changing F by a given factor.
+#' Calculate management for changing F by a given factor.
+#' 
 #' @param fac Factor to multiply current F with.
 #' @param inpin Input list.
 #' @param repin Results list.
@@ -160,14 +164,14 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
     return(repmant)
 }
 
-
-#' @name take.c
-#' @title Calculate management when taking a constant catch (proxy for setting a TAC).
+#' Calculate management when taking a constant catch (proxy for setting a TAC).
+#' 
 #' @param catch Take this catch 'dtpredc' ahead from manstart time 
 #' @param inpin Input list.
 #' @param repin Results list.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
 #' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3) 
+#' @param catchList list with numeric vectors timeC and obsC with the starting times and catches
 #' @return List containing results of management calculations.
 #' @export
 take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
@@ -183,10 +187,11 @@ take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
     } else {
         inpt$timeC <- c( inpt$timeC, catchList$timeC )
         inpt$obsC <- c( inpt$obsC, catchList$obsC )
-        if(is.null(catchList$stdevfacC))
-            inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(catchList$timeC)) )  else
+        if(is.null(catchList$stdevfacC)) {
+          inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(catchList$timeC)) )
+        } else {
             inpt$stdevfacC <- c(inpt$stdevfacC, catchList$stdevfacC)
-        
+        }
         inpt$dtc <- c(inpt$dtc, catchList$dtc )
     }
 
@@ -209,8 +214,8 @@ take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
 }
 
 
-#' @name mansummary
-#' @title Print management summary.
+#' Print management summary.
+#' 
 #' @param repin Result list as output from manage().
 #' @param ypred Show results for ypred years from manstart.
 #' @param include.EBinf Include EBinf/Bmsy in the output.
@@ -356,9 +361,9 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
 }
 
 
-#' @name pred.catch
-#' @title Predict the catch of the prediction interval specified in inp
-#' @param rep Result list as output from fit.spict().
+#' Predict the catch of the prediction interval specified in inp
+#' 
+#' @param repin Result list as output from fit.spict().
 #' @param fmsyfac Projection are made using F = fmsyfac * Fmsy.
 #' @param get.sd Get uncertainty of the predicted catch.
 #' @param exp If TRUE report exp of log predicted catch.

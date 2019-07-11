@@ -15,18 +15,20 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#' @name retro
-#' @title Conduct retrospective analysis 
-#' @details A retrospective analysis consists of estimating the model with later data points removed sequentially one year at a time.
+#' Conduct retrospective analysis 
+#' 
+#' A retrospective analysis consists of estimating the model with later data points removed sequentially one year at a time.
 #' @param rep A valid result from fit.spict.
 #' @param nretroyear Number of years of data to remove (this is also the total number of model runs).
 #' @return A rep list with the added key retro containing the results of the retrospective analysis. Use plotspict.retro() to plot these results.
 #' @examples
+#' \dontrun{
 #' data(pol)
 #' inp <- pol$albacore
 #' rep <- fit.spict(inp)
 #' rep <- retro(rep, nretroyear=6)
 #' plotspict.retro(rep)
+#' }
 #' @export
 retro <- function(rep, nretroyear=5){
     verflag <- as.numeric(gsub("[.]", "", as.character(packageVersion("TMB")))) >= 171
