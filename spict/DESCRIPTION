@@ -1,16 +1,28 @@
 Package: spict
 Type: Package
-Title: Stochastic suplus Production model in Continuous-Time (SPiCT)
-Version: 1.2.7
-Date: 2019-04-03 
-Author: Martin Waever Pedersen
-Maintainer: Martin Waever Pedersen <mawp@dtu.dk>
+Title: Stochastic Surplus Production Model in Continuous-Time (SPiCT)
+Version: 1.3
+Date: 2019-07-10 
+Maintainer: Alexandros Kokkalis <alko@aqua.dtu.dk>
+Authors@R: c(person(c("Martin", "W."), "Pedersen", email = "wpsgodd@gmail.com", role = "aut"),
+             person(c("Casper", "W."), "Berg", email = "cbe@aqua.dtu.dk", role = "aut"),
+             person("Tobias", "Mildenberger", email = "tobm@aqua.dtu.dk", role = "ctb"),
+             person("Alexandros", "Kokkalis", email = "alko@aqua.dtu.dk", role = c("ctb", "cre")))
+Author: Martin W. Pedersen [aut], 
+    Casper W. Berg [aut],
+    Tobias Mildenberger [ctb],
+    Alexandros Kokkalis [ctb, cre]
 Description: Fits a surplus production model to fisheries catch and biomass index data.
 License: GPL (>=3)
-Copyright: Martin Waever Pedersen <mawp@dtu.dk>
+Copyright: Martin Waever Pedersen
 Depends:
     R (>= 3.0),
     TMB
+Imports:
+    graphics,
+    methods,
+    stats,
+    utils
 LinkingTo: TMB, RcppEigen
 Suggests:
     ellipse,
@@ -23,7 +35,6 @@ Suggests:
     DLMtool
 LazyData: true
 VignetteBuilder: knitr
-GithubRepo: spict
-GithubRef: msyadvicerule 
-GithubSHA1: f446da52e1609f94b060392972666b7c3e4ae46d 
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
+BugReports: https://github.com/mawp/spict/issues
+Encoding: UTF-8
