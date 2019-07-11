@@ -24,3 +24,5 @@ prv_report.log
 vignette_*
 spict/inst/doc
 .Rbuildignore
+*_files
+*.Rcheck
