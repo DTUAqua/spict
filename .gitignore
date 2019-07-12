@@ -26,3 +26,6 @@ spict/inst/doc
 .Rbuildignore
 *_files
 *.Rcheck
+
+
+symbols.rds

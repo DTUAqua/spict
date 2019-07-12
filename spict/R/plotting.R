@@ -1657,7 +1657,6 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve', s
 #' @export
 plotspict.tc <- function(rep, main='Time to Bmsy', stamp=get.version()){
     if (!'sderr' %in% names(rep) & rep$opt$convergence == 0){
-        inp <- rep$inp
         B0cur <- get.par('logBl', rep, exp=TRUE)[2]
         Kest <- get.par('logK', rep, exp=TRUE)
         m <- get.par('logm', rep, exp=TRUE)

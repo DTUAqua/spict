@@ -685,10 +685,10 @@ Type objective_function<Type>::operator() ()
 	//logFs(i) += seasonspline(ind2);
 	logS(i) += seasonspline(ind2);
 
-	if(seasontype == 3) logS(i) += SARvec(ind3-1); 
-	// DEBUGGING
+	if(seasontype == 3) logS(i) += SARvec(ind3-1);
+	
 	if(dbg>1){
-          Rcout << "-- i: " << i << " -   logF(i): " << logF(i) << " logFs(i): " << logFs(i) << " ind2: " << ind2 << " seasonspline(ind2): " << seasonspline(ind2) << std::endl;
+          // Rcout << "-- i: " << i << " -   logF(i): " << logF(i) << " logFs(i): " << logFs(i) << " ind2: " << ind2 << " seasonspline(ind2): " << seasonspline(ind2) << std::endl;
 	  Rcout << "-- i: " << i << " -   logF(i): " << logF(i) << " logS(i): " << logS(i) << " ind2: " << ind2 << " seasonspline(ind2): " << seasonspline(ind2) << std::endl;
 	}
       }
@@ -890,7 +890,7 @@ Type objective_function<Type>::operator() ()
       }
       inds = CppAD::Integer(ise(i)-1);
       ans-= keep(inds) * likval;
-      // DEBUGGING
+      
       if(dbg>1){
         Rcout << "-- i: " << i << " -   logobsE(i): " << logobsE(i) << " -   stdevface(i): " << stdevface(i) << "  sde: " << sde << "  likval: " << likval << "  ans:" << ans << std::endl;
       }
