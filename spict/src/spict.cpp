@@ -24,7 +24,13 @@ template<class Type>
 Type predictlogB(const Type &B0, const Type &F, const Type &gamma, const Type &m, const Type &K, const Type &dt, const Type &n, const Type &sdb2)
 {
   // Euler discretised Lamperti transformed Pella-Tomlinson surplus production model in Fletcher (1978) form.
-  return log(B0) + (gamma*m/K - gamma*m/K*pow(B0/K, n-1.0) - F - 0.5*sdb2)*dt;
+  Type res = log(B0) + (gamma*m/K - gamma*m/K*pow(B0/K, n-1.0) - F - 0.5*sdb2)*dt;
+  // Explicit solution given in Fletcher (1978)
+  Type Bstar = pow((gamma * m) / (gamma * m - F * K), 1 / (1-n)) * K; // Bstar should be positive
+  Type C = pow(B0, 1-n) - pow(Bstar, 1-n);
+  Type altres = log(pow(pow(Bstar, 1-n) + C * exp((gamma * m / K - F) * (1-n) * dt), 1/(1-n)));
+  Rcout << "Euler: " << res << ", Explicit: " << altres << ", sdb2: " << sdb2 << std::endl;
+  return res;
 }
 
 /* Predict m */
@@ -787,6 +793,9 @@ Type objective_function<Type>::operator() ()
       // Use naive approach
       Type Bpredtmp = exp(predictlogB(B(i), Ftmp, gamma, mvec(i), K, dt(i), n, sdb2) + 0.5*sdb2*dt(i)) - exp(logobsC(i));
       if(Bpredtmp < 0) Bpredtmp = 1e-8; // Ugly ugly ugly hack to avoid taking log of negative
+      if(dbg > 0) {
+	Rcout << "Bpredtmp: " << Bpredtmp << std::endl;
+      }
       logBpred(i+1) = log(Bpredtmp);
       logFs(i) = logobsC(i) - logB(i); // Calculate fishing mortality
     }
