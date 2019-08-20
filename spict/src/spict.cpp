@@ -25,12 +25,17 @@ Type predictlogB(const Type &B0, const Type &F, const Type &gamma, const Type &m
 {
   // Euler discretised Lamperti transformed Pella-Tomlinson surplus production model in Fletcher (1978) form.
   Type res = log(B0) + (gamma*m/K - gamma*m/K*pow(B0/K, n-1.0) - F - 0.5*sdb2)*dt;
+  return res;
+}
+
+template<class Type>
+Type predictlogB_expl(const Type &B0, const Type &F, const Type &gamma, const Type &m, const Type &K, const Type &dt, const Type &n, const Type &sdb2)
+{
   // Explicit solution given in Fletcher (1978)
   Type Bstar = pow((gamma * m) / (gamma * m - F * K), 1 / (1-n)) * K; // Bstar should be positive
   Type C = pow(B0, 1-n) - pow(Bstar, 1-n);
-  Type altres = log(pow(pow(Bstar, 1-n) + C * exp((gamma * m / K - F) * (1-n) * dt), 1/(1-n)));
-  Rcout << "Euler: " << res << ", Explicit: " << altres << ", sdb2: " << sdb2 << std::endl;
-  return res;
+  Type altres = pow(pow(Bstar, 1-n) + C * exp((gamma * m / K - F) * (1-n) * dt), 1/(1-n));
+  return log(altres);
 }
 
 /* Predict m */
@@ -167,6 +172,7 @@ Type objective_function<Type>::operator() ()
   // Options
   DATA_SCALAR(simple);         // If simple=1 then use simple model (catch assumed known, no F process)
   DATA_SCALAR(dbg);            // Debug flag, if == 1 then print stuff.
+  DATA_INTEGER(use_explicit);  // Use explicit solution instead of Euler
 
   // PARAMETERS
   PARAMETER_VECTOR(logm);      // m following the Fletcher formulation (see Prager 2002)
@@ -787,14 +793,20 @@ Type objective_function<Type>::operator() ()
   for(int i=0; i<(ns-1); i++){
     // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
     if(simple==0){
-      logBpred(i+1) = predictlogB(B(i), F(i), gamma, mvec(i), K, dt(i), n, sdb2);
+      logBpred(i+1) =           predictlogB(B(i), F(i), gamma, mvec(i), K, dt(i), n, sdb2);
+      Type logBpred_expl = predictlogB_expl(B(i), F(i), gamma, mvec(i), K, dt(i), n, sdb2);
+      if(dbg > 0) 
+        Rcout << "Euler: " << logBpred(i+1) << ", Explicit: " << logBpred_expl << ", sdb2: " << sdb2 << std::endl;
+      if(use_explicit == 1) {
+        logBpred(i+1) = logBpred_expl;
+      }
     } else {
       Type Ftmp = 0.0;
       // Use naive approach
       Type Bpredtmp = exp(predictlogB(B(i), Ftmp, gamma, mvec(i), K, dt(i), n, sdb2) + 0.5*sdb2*dt(i)) - exp(logobsC(i));
       if(Bpredtmp < 0) Bpredtmp = 1e-8; // Ugly ugly ugly hack to avoid taking log of negative
       if(dbg > 0) {
-	Rcout << "Bpredtmp: " << Bpredtmp << std::endl;
+        Rcout << "Bpredtmp: " << Bpredtmp << std::endl;
       }
       logBpred(i+1) = log(Bpredtmp);
       logFs(i) = logobsC(i) - logB(i); // Calculate fishing mortality

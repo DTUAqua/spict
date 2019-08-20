@@ -438,6 +438,8 @@ check.inp <- function(inp){
         inp$timepredc <- max(inp$timeC)
         inp$timepredi <- max(unlist(inp$timeI))
     }
+    ## Use explicit solution instead of Euler
+    if (!"use_explicit" %in% names(inp)) inp$use_explicit <- 0
     # Biomass related
     if (!"btype" %in% names(inp)) inp$btype <- 'lamperti'
     # MSY type options
