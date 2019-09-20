@@ -536,3 +536,35 @@ get.cov <- function(rep, parname1, parname2, cor=FALSE){
         return(rep$cov[inds, inds])
     }
 }
+
+
+
+#' @name get.prod.regimes
+#' @title Calculate AIC for spict models with different productivity
+#'     regime shifts
+#' @param inp An input list containing data.
+#' @param years Optional; vector with years for the estimation of the
+#'     regime shift. By default (NULL) all years of the input data are
+#'     used.
+#' @return data frame with years and AIC
+#' @export
+get.prod.regimes <- function(inp, years = NULL){
+    inpin <- check.inp(inp)
+
+    ## set years
+    yearspot <- min(floor(inp$time)):inp$manstart
+    years <- yearspot[yearspot %in% as.numeric(as.character(years))]
+    if(is.null(years) || length(years) == 0) years <- yearspot
+    aiclist <- list()
+
+    ## loop over all years
+    for(yr in years){
+        inp <- inpin
+        inp$MSYregime <- factor(ifelse(inp$time < yr, 1, 2))
+        inp <- check.inp(inp)
+        fit <- try(fit.spict(inp), silent=TRUE)
+        aiclist[[length(aiclist)+1]] <- ifelse(!inherits(fit,"try-error"), get.AIC(fit), NA)
+    }
+    res <- cbind(Year = years, AIC = unlist(aiclist))
+    return(res)
+}
