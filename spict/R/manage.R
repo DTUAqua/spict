@@ -18,25 +18,30 @@
 
 #' @name manage
 #' @title Calculate predictions under different management scenarios
-#' @references{ICES. 2017. Report of the Workshop on the Development of the ICES approach to providing MSY advice for category 3 and 4 stocks (WKMSYCat34), 6–10 March 2017, Copenhagen, Denmark. ICES CM 2017/ ACOM:47. 53 pp.}
+#' @references{ICES. 2017. Report of the Workshop on the Development
+#'     of the ICES approach to providing MSY advice for category 3 and
+#'     4 stocks (WKMSYCat34), 6-10 March 2017, Copenhagen,
+#'     Denmark. ICES CM 2017/ ACOM:47. 53 pp.}
 #' @details Scenarios that are currently implemented include:
-#' \itemize{
-#'   \item{"1"}{ Keep the catch of the current year (i.e. the last observed catch).}
-#'   \item{"2"}{ Keep the F of the current year.}
-#'   \item{"3"}{ Fish at Fmsy i.e. F=Fmsy.}
-#'   \item{"4"}{ No fishing, reduce to 1\% of current F.}
-#'   \item{"5"}{ Reduce F by X\%. Default X = 25.}
-#'   \item{"6"}{ Increase F by X\%. Default X = 25.}
-#'   \item{"7"}{ Use ICES MSY advice rule.}
+#'     \itemize{ \item{"1"}{ Keep the catch of the current year
+#'     (i.e. the last observed catch).}  \item{"2"}{ Keep the F of the
+#'     current year.}  \item{"3"}{ Fish at Fmsy i.e. F=Fmsy.}
+#'     \item{"4"}{ No fishing, reduce to 1\% of current F.}
+#'     \item{"5"}{ Reduce F by X\%. Default X = 25.}  \item{"6"}{
+#'     Increase F by X\%. Default X = 25.}  \item{"7"}{ Use ICES MSY
+#'     advice rule.}
 #'
-#' Scenario 7 implements the ICES MSY advice rule for stocks that are assessed using spict (ICES 2017). MSY B_{trigger} is set equal to B_{MSY} / 2. Then fishing mortality in the short forecast is calculated as:
+#' Scenario 7 implements the ICES MSY advice rule for stocks that are
+#' assessed using spict (ICES 2017). MSY B_{trigger} is set equal to
+#' B_{MSY} / 2. Then fishing mortality in the short forecast is
+#' calculated as:
 #'
 #' F(y+1) =  F(y) * min{ 1, median[B(y+1) / MSY B_{trigger}] } / median[F(y)/F_{MSY}]  
 #' }
 #' @param repin Result list from fit.spict().
 #' @param scenarios Vector of integers specifying which scenarios to run. Default: 'all'.
 #' @param manstart Year that management should be initiated.
-#' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
+#' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
 #' @return List containing results of management calculations.
 #' @export
 #' @examples

@@ -12,6 +12,9 @@ invlogp1(a)
 \value{
 Inverse logp1.
 }
+\description{
+Inverse log "plus one" transform
+}
 \details{
 If a = log(b-1), then the inverse transform is b = 1 + exp(a). Useful for values with lower bound at 1.
 }

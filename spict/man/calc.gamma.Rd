@@ -9,3 +9,6 @@ calc.gamma(n)
 \arguments{
 \item{n}{Exponent of the Pella-Tomlinson surplus production equation.}
 }
+\description{
+Calculate gamma from n
+}

@@ -12,3 +12,6 @@ plotspict.btrend(rep)
 \value{
 Nothing.
 }
+\description{
+Plot the expected biomass trend
+}

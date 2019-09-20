@@ -14,6 +14,9 @@ plotspict.inflsum(rep, stamp = get.version())
 \value{
 Nothing.
 }
+\description{
+Plots summary of influence statistics of observations.
+}
 \details{
 TBA
 }

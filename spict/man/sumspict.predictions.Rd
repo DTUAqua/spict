@@ -14,3 +14,6 @@ sumspict.predictions(rep, ndigits = 8)
 \value{
 data.frame containing predictions.
 }
+\description{
+Predictions of a fit.spict() run.
+}

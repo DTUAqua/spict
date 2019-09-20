@@ -5,6 +5,9 @@
 \alias{spict}
 \alias{spict-package}
 \title{Fits a continuous-time surplus production model to data}
+\description{
+Fits a continuous-time surplus production model to data
+}
 \examples{
 rep <- test.spict()
 }

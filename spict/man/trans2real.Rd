@@ -16,3 +16,6 @@ trans2real(vals, nms, chgnms = TRUE)
 \value{
 Parameter values in the natural domain.
 }
+\description{
+Get real parameter values from transformed ones.
+}

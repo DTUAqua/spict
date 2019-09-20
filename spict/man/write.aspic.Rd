@@ -16,6 +16,9 @@ write.aspic(input, filename = "spictout.a7inp", verbose = FALSE)
 \value{
 Noting.
 }
+\description{
+Takes a SPiCT input list and writes it as an Aspic input file.
+}
 \details{
 TBA
 }

@@ -12,6 +12,9 @@ read.aspic.res(filename)
 \value{
 Vector containing the parameter estimates.
 }
+\description{
+Reads the parameter estimates of an Aspic result file.
+}
 \details{
 TBA
 }

@@ -12,6 +12,9 @@ check.inp(inp)
 \value{
 An updated list of input variables checked for consistency and with defaults added.
 }
+\description{
+Check list of input variables
+}
 \details{
 Fills in default values if missing.
 

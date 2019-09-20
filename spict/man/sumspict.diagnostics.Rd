@@ -14,3 +14,6 @@ sumspict.diagnostics(rep, ndigits = 8)
 \value{
 data.frame containing diagnostics information.
 }
+\description{
+Diagnostics table
+}

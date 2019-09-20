@@ -14,3 +14,6 @@ plotspict.retro(rep, stamp = get.version())
 \value{
 Nothing
 }
+\description{
+Plot results of retrospective analysis
+}

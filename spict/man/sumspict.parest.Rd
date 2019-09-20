@@ -14,3 +14,6 @@ sumspict.parest(rep, ndigits = 8)
 \value{
 data.frame containing parameter estimates.
 }
+\description{
+Parameter estimates of a fit.spict() run.
+}

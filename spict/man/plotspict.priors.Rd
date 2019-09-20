@@ -16,3 +16,6 @@ plotspict.priors(rep, do.plot = 4, stamp = get.version())
 \value{
 Nothing
 }
+\description{
+Plot priors and posterior distribution.
+}

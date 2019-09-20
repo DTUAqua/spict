@@ -1,3 +1,21 @@
+spict v1.2.8 (Release date: 2019-09-22)
+============
+
+New features:
+
+* get.prod.regimes() function for the calculation of AIC for spict
+  models with different regime shift breaks
+* 
+
+Minor changes:
+
+
+Bug fixes:
+
+*
+
+
+
 spict v1.2.7 (Release date: 2019-04-03)
 ============
 
