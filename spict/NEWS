@@ -16,7 +16,10 @@ Minor changes:
 
 Bug fixes:
 
-*
+* Print effort observations if included in inp when using
+  check.inp. Print survey indices only if included in inp.
+
+* 
 
 
 

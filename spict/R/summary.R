@@ -410,10 +410,17 @@ print.spictcls <- function(x, ...){
         cat('Catch observations:\n')
         print(x$timeC)
         print(x$obsC)
+    }
+    if('timeI' %in% names(x) && length(x$timeI) > 0){
         cat('Index observations:\n')
         print(x$timeI)
         print(x$obsI)
     }
+    if('timeE' %in% names(x) && length(x$timeE) > 0){
+        cat('Effort observations:\n')
+        print(x$timeE)
+        print(x$obsE)
+    }    
     if('par.fixed' %in% names(x)) summary(x)
 }
 
