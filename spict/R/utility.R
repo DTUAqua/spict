@@ -731,3 +731,67 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
 
     return(inpout)
 }
+
+
+#' @name remove.priors
+#' @title Removes priors from an input list
+#' @param inp An input list containing data.
+#' @param priors Priors to remove. By default ('all') all priors are removed.
+#' @author T.K. Mildenberger <t.k.mildenberger@gmail.com>
+#' @return Inp list without priors.
+#' @export
+remove.priors <- function(inp, priors = "all"){
+    inpin <- check.inp(inp)
+    inpout <- inpin
+
+    ## deactive priors in inp (set 3rd value to zero)
+    set.zero <- function(prior){
+        if(class(prior[[1]]) == "list"){
+            for(i in 1:length(prior[[1]])){
+                prior[[1]][[i]][3] <- 0
+            }                    
+        }else{
+            prior[[1]][3] <- 0
+        }
+        return(prior)
+    }
+
+    ## get active priors
+    active.prior <- function(prior){
+        res <- numeric()
+        if(class(prior[[1]]) == "list"){
+            for(i in 1:length(prior[[1]])){
+                res[i] <- prior[[1]][[i]][3]
+            }                    
+        }else{
+            res <- prior[[1]][3]
+        }
+        return(res)
+    }
+
+    ## all possible priors
+    possiblepriors <- names(inpout$priors)
+    ## all activated priors
+    aplist <- list()
+    for(pname in possiblepriors){
+        tmp <- active.prior(inpin$priors[pname])
+        tmp <- ifelse(any(tmp > 0), 1, 0) ## accounts for prior lists (e.g. logq)
+        aplist[[length(aplist)+1]] <- tmp
+    }
+    activatedpriors <- possiblepriors[as.logical(unlist(aplist))]
+
+    ## remove all or specified ones
+    deactpriors <- if(priors == "all") possiblepriors else priors    
+
+    ## warning for misspecified priors
+    deactpriors <- deactpriors[as.character(deactpriors) %in% possiblepriors]
+    if(length(deactpriors) == 0)
+        stop(paste0("Specified prior(s) are not part of the model; active prior(s) in 'inp': ",
+                    paste0(activatedpriors, collapse = "; ")))
+
+    for(pname in deactpriors){
+        inpout$priors[pname] <- set.zero(inpout$priors[pname])
+    }
+
+    return(inpout)
+}
