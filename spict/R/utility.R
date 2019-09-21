@@ -657,7 +657,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
             stop('Effort data must overlap temporally with index or catches')
         }
     }
-    if ("eulertype" %in% names(inp)){
+    if ("eulertype" %in% names(inpout)){
         if (inpout$eulertype == 'hard'){
             # Hard Euler discretisation
             if (inpout$start.in.first.data.point){
@@ -698,7 +698,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
     inpout$ir <- NULL
     inpout$ini$logr <- NULL
 
-    if("true" %in% names(inp)){
+    if("true" %in% names(inpout)){
         inpout$true$logu <- inpout$true$logu[,(inpin$time %in% inpout$time)]
         inpout$true$logmre <- inpout$true$logmre[inpin$time %in% inpout$time]
         inpout$true$SARvec <- inpout$true$SARvec[inpin$time %in% inpout$time]
