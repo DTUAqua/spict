@@ -795,3 +795,48 @@ remove.priors <- function(inp, priors = "all"){
 
     return(inpout)
 }
+
+
+#' @name calc.bmsyk
+#' @title Calculates the Bmsy/K ratio
+#' @param rep Result of fit.spict().
+#' @author T.K. Mildenberger <t.k.mildenberger@gmail.com>
+#' @return Bmsy/K 
+#' @export
+calc.bmsyk <- function(rep){
+    if(class(rep) != "spictcls" ||
+       !"par.fixed" %in% names(rep)) stop("Please provide an object fitted with 'fit.spict'.")    
+    bmsy <- get.par("logBmsy", rep, exp=TRUE)[,2]
+    k <- get.par("logK", rep, exp=TRUE)[,2]
+    return(bmsy/k)
+}
+
+
+#' @name calc.om
+#' @title Calculates the order of magnitude for the relative reference
+#'     levels B/Bmsy and F/Fmsy
+#' @param rep Result of fit.spict().
+#' @details The lower, upper values and the CI range are based on the
+#'     95% confidence interval (CI).
+#' @author T.K. Mildenberger <t.k.mildenberger@gmail.com>
+#' @return Matrix containing the order of magnitude for B/Bmsy and
+#'     F/Fmsy.
+#' @export
+calc.om <- function(rep){
+    if(class(rep) != "spictcls" ||
+       !"par.fixed" %in% names(rep)) stop("Please provide an object fitted with 'fit.spict'.")
+    blbmsy <- get.par("logBlBmsy", rep, exp=TRUE)
+    flfmsy <- get.par("logFlFmsy", rep, exp=TRUE)
+    ## 95% CI range
+    bdiff <- blbmsy[,3] - blbmsy[,1]
+    fdiff <- flfmsy[,3] - flfmsy[,1]
+    ## order of magnitude
+    omagnib <- abs(floor(log10(blbmsy[,3])) - floor(log10(blbmsy[,1])))    
+    omagnif <- abs(floor(log10(flfmsy[,3])) - floor(log10(flfmsy[,1])))
+
+    res <- round(cbind(rbind(blbmsy[,1:3],flfmsy[,1:3]),c(bdiff,fdiff),c(omagnib,omagnif)),2)
+    colnames(res) <- c("lower","est","upper",
+                       "CI range","order magnitude")
+    rownames(res) <- c("B/Bmsy","F/Fmsy")
+    return(res)
+}
