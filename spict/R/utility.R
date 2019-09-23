@@ -703,18 +703,21 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
         inpout$true$logmre <- inpout$true$logmre[inpin$time %in% inpout$time]
         inpout$true$SARvec <- inpout$true$SARvec[inpin$time %in% inpout$time]
         inpout$true$time <- inpout$true$time[inpin$time %in% inpout$time]
-        inds <- get.inds(inpin$true$timeC,mintime,maxtime)                
+        inds <- get.inds(inpin$timeC,mintime,maxtime)                
         inpout$true$C <- inpout$true$C[inds]
-        inds <- get.inds(inpin$true$timeI[[i]],mintime,maxtime)    
-        inpout$true$e.c <- inpout$true$e.c[inds]        
-        inds <- get.inds(inpin$true$timeE,mintime,maxtime)                        
-        inpout$true$E <- inpout$true$E[inds]
-        inpout$true$e.e <- inpout$true$e.e[inds]
-        for(i in 1:length(inpout$true$I)){
-            inds <- get.inds(inpin$true$timeI[[i]],mintime,maxtime)                                    
-            inpout$true$I[[i]] <- inpout$true$I[[i]][inds]
-            inpout$true$e.i[[i]] <- inpout$true$e.i[[i]][inds]
-            inpout$true$errI[[i]] <- inpout$true$errI[[i]][inds]
+        inpout$true$e.c <- inpout$true$e.c[inds]
+        if(length(inpin$true$E) > 0){
+            inds <- get.inds(inpin$timeE,mintime,maxtime)                        
+            inpout$true$E <- inpout$true$E[inds]
+            inpout$true$e.e <- inpout$true$e.e[inds]            
+        }
+        if(length(inpin$true$I) > 0){        
+            for(i in 1:length(inpout$true$I)){
+                inds <- get.inds(inpin$timeI[[i]],mintime,maxtime)                                    
+                inpout$true$I[[i]] <- inpout$true$I[[i]][inds]
+                inpout$true$e.i[[i]] <- inpout$true$e.i[[i]][inds]
+                inpout$true$errI[[i]] <- inpout$true$errI[[i]][inds]
+            }
         }
         inpout$true$B <- inpout$true$B[inpin$time %in% inpout$time]
         inpout$true$F <- inpout$true$F[inpin$time %in% inpout$time]
@@ -781,7 +784,7 @@ remove.priors <- function(inp, priors = "all"){
     activatedpriors <- possiblepriors[as.logical(unlist(aplist))]
 
     ## remove all or specified ones
-    deactpriors <- if(priors == "all") possiblepriors else priors    
+    deactpriors <- if(priors[1] == "all") possiblepriors else priors    
 
     ## warning for misspecified priors
     deactpriors <- deactpriors[as.character(deactpriors) %in% possiblepriors]
