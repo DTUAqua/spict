@@ -4,14 +4,19 @@
 \alias{txt.stamp}
 \title{Add spict version to plot}
 \usage{
-txt.stamp(string = get.version(), cex = 0.5, do.flag = NULL)
+txt.stamp(string = get.version(), cex = 0.5, do.flag = NULL,
+  new.flag = TRUE)
 }
 \arguments{
 \item{string}{Character string to stamp.}
 
 \item{cex}{Stamp cex.}
 
-\item{do.flag}{If NULL stamp will be added if not in a multi plot, i.e. mean(par()$mfrow) > 1}
+\item{do.flag}{If NULL stamp will be added if not in a multi plot,
+i.e. mean(par()$mfrow) > 1.}
+
+\item{new.flag}{Flag to plot the stamp in the current (if TRUE,
+default) or new plotting window (if FALSE).}
 }
 \value{
 Nothing

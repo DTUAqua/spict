@@ -1,25 +1,38 @@
-spict v1.2.8 (Release date: 2019-09-22)
+spict v1.2.8 (Release date: 2019-09-23)
 ============
 
 New features:
 
 * get.prod.regimes() - Function for the calculation of AIC for spict
-  models with different regime shift breaks.
-
+  models with different break points for the productivity regimes.
 * shorten.inp() - Function that allows to shorten the input data to
   any specified time interval.
-
+* remove.priors() - Function to remove all or any specified prior(s)
+  from the input list.
+* calc.bmsyk() - Function to calculate the B_{MSY}/K ratio which
+  allows to evaluate if the spict assessment approaches the limits of
+  a meaningful production curve.
+* calc.om() - Function to estimate the order of magnitude of the 95\%
+  confidence intervals of estimated reference levels. Large order of
+  magnitudes (> 1 order of magnitude) can indicate insufficient input
+  data or violation of model assumptions.
+* change.euler() - Function that allows to change the time step of the
+  Euler time discretisation of the input list.
+* check.euler() - Function to evaluate the sensitivity of assessment
+  results (in particular of estimated reference levels) to the Euler
+  time step.
 
 Minor changes:
 
-
+* The stamp (and associated plotting window) is created before the
+  main plot in all plotting functions. This allows to make any
+  additions (lines, points, annotations, etc) to any spict plot
+  (except multiplots).
 
 Bug fixes:
 
 * Print effort observations if included in inp when using
   check.inp. Print survey indices only if included in inp.
-
-* 
 
 
 
