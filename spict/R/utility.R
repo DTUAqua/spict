@@ -840,3 +840,179 @@ calc.om <- function(rep){
     rownames(res) <- c("B/Bmsy","F/Fmsy")
     return(res)
 }
+
+
+#' @name sim.eq
+#' @title Simulate equilibrium population dynamics based on a spict
+#'     assessment
+#' @param rep Result of fit.spict().
+#' @param logF Fishing mortality in log scale.
+#' @param nobs Number of years to simulate (default: 100)
+#' @param opt Flag to return average catch over last 5 years (if set
+#'     to 1, default), or to return catch and biomass (if set to 2).
+#' @author T.K. Mildenberger <t.k.mildenberger@gmail.com>
+#' @return If opt == 1 function returns average catch over last 5
+#'     years of the simulation period, if opt == 2 function returns
+#'     catch and biomass over whole simulation period.
+sim.eq <- function(rep, logF, nobs = 100, opt = 1){
+    repin <- rep
+    inpin <- repin$inp
+    inpin$ini <- repin$pl
+    ## specific F
+    inpin$ini$logF0 <- logF
+    ## no noise
+    inpin$ini$logsdb <- log(1e-6)
+    inpin$ini$logsdf <- log(1e-6)
+    inpin$ini$logsdc <- log(1e-6)
+    inpin$ini$logsde <- log(1e-6)
+    if(length(inpin$ini$logsdi) > 1){
+        for(i in 1:length(inpin$ini$logsdi)){
+            inpin$ini$logsdi[[i]] <- log(1e-6)  
+        }
+    }else{
+        inpin$ini$logsdi <- log(1e-6)
+    }
+    ## fixed length creates error
+    inpin$ini$logF <- NULL
+    inpin$ini$logB <- NULL
+    inpin$ini$logu <- NULL
+    inpin$ini$logmre <- NULL
+    inpin$ini$SARvec <- NULL        
+    inpin$MSYregime <- NULL
+    ## sim and predict catches
+    inpin <- check.inp(inpin)        
+    sim <- sim.spict(inpin, nobs = nobs)
+    predcatch <- sim$true$C
+    ## account for quaterly catches
+    predcatchYearly <- aggregate(list(catch=predcatch), by=list(idx=floor(sim$timeC)), sum)
+    np <- length(predcatchYearly$catch)
+    if(opt == 1) return(mean(predcatchYearly$catch[(np-5):np]))
+    if(opt == 2) return(list(C = sim$true$C, B = sim$true$B))
+}
+
+
+#' @name change.euler
+#' @title Change the Euler time step in the input list
+#' @param inp An input list containing data.
+#' @param dteuler Euler time step to update the input list with
+#'     (default 1/16).
+#' @details The Euler time step (dteuler) affects the length of most
+#'     time related vectors of the input list. This function allows
+#'     the rescaling of all time related vectors of the input list
+#'     based on the specified dteuler.
+#' @author T.K. Mildenberger <t.k.mildenberger@gmail.com>
+#' @return Input list with updated dteuler.
+#' @export
+change.euler <- function(inp, dteuler = 1/16){
+    inpin <- check.inp(inp)
+    inpout <- inpin
+    inpout$dteuler <- dteuler
+    inpout$MSYregime <- NULL        
+    inpout$time <- NULL
+    inpout$dt <- NULL
+    inpout$ns <- NULL
+    inpout$timerange <- NULL
+    inpout$indlastobs <- NULL
+    inpout$indest <- NULL
+    inpout$indpred <- NULL
+    inpout$indCpred <- NULL
+    inpout$ffacvec <- NULL
+    inpout$fconvec <- NULL
+    inpout$splinemat <- NULL
+    inpout$seasonindex <- NULL
+    inpout$seasons <- NULL
+    inpout$seasonindex2 <- NULL
+    inpout$ic <- NULL
+    inpout$nc <- NULL
+    inpout$ie <- NULL
+    inpout$ne <- NULL
+    inpout$ii <- NULL
+    inpout$obsIin <- NULL
+    inpout$stdevfacIin <- NULL
+    inpout$iin <- NULL
+    inpout$iqin <- NULL
+    inpout$isdiin <- NULL
+    inpout$dtpredcinds <- NULL
+    inpout$dtpredcnsteps <- NULL
+    inpout$dtprediind <- NULL
+    inpout$dtpredeinds <- NULL
+    inpout$dtpredensteps <- NULL
+    inpout$obssrt <- NULL
+    inpout$timeobssrt <- NULL
+    inpout$obsidsrt <- NULL
+    inpout$isc <- NULL
+    inpout$isi <- NULL
+    inpout$ise <- NULL
+    inpout$osar.conditional <- NULL
+    inpout$osar.subset <- NULL
+    inpout$logmcovariatein <- NULL
+    inpout$ini$logr <- NULL  ## 2 for multiple MSYregimes
+    inpout$ini$logm <- NULL        
+    inpout$ini$logF <- NULL
+    inpout$ini$logu <- NULL
+    inpout$ini$logB <- NULL
+    inpout$ini$logmre <- NULL
+    inpout$ini$SARvec <- NULL
+    inpout$ie <- NULL
+    inpout$ir <- NULL
+    inpout$isdf <- NULL
+    inpout$map <- NULL
+    inpout$nphases <- NULL
+    if(inpin$noms > 1) warning("The MSYregimes are overwritten! Please reset 'inp$MSYregime'.")
+    inpout <- check.inp(inpout)
+    return(inpout)
+}
+
+
+#' @name check.euler
+#' @title Check the sensitivity of estimated reference levels to the
+#'     Euler time discretization
+#' @param rep Result of fit.spict().
+#' @param dteuler Euler time step to check against (default 1/64).
+#' @param nobs Number of years to simulate (default: 100)
+#' @param Frange Fishing mortality range to optimise over (2
+#'     values). If NULL (default) the range goes from 0.01 to 6.
+#' @details The difference between the reference levels is calculated
+#'     by estimating the relative difference ((curr - alt) / alt).
+#' @author T.K. Mildenberger <t.k.mildenberger@gmail.com>
+#' @return Matrix with reference levels with current dteuler ('curr'),
+#'     specified dteuler based on iterative estimation ('alt'), and
+#'     the relative difference between them ('diff').
+#' @export
+check.euler <- function(rep, dteuler = 1/64, nobs = 100, Frange = NULL){
+    repin <- rep
+    ## check
+    if(class(repin) != "spictcls" ||
+       !"par.fixed" %in% names(repin)) stop("Please provide an object fitted with 'fit.spict'.")    
+    ## current dteuler
+    dteulerin <- repin$inp$dteuler
+    ## use new dteuler
+    inpalt <- change.euler(repin$inp, dteuler = dteuler)
+    repalt <- fit.spict(inpalt)
+    ## Fvec
+    if(is.null(Frange) || length(Frange) != 2){
+        Frange <- c(0.01,6)
+    }
+    ## iterations
+    opt <- optimise(sim.eq, log(Frange), rep=repalt,
+                    nobs=nobs, opt=1, tol = 1e-6,
+                    maximum = TRUE)
+    ## reference levels
+    msy <- as.numeric(get.par("MSY", repin)[,2]) 
+    fmsy <- as.numeric(get.par("logFmsy", repin, exp=TRUE)[,2]) 
+    bmsy <- as.numeric(get.par("logBmsy", repin, exp=TRUE)[,2]) 
+    ## reference levels with specified dteuler
+    msyiter <- opt$objective ## max(res, na.rm = TRUE)
+    fmsyiter <- exp(opt$maximum) ## fs[which.max(res)]
+    tmp <- sim.eq(repalt, log(fmsyiter), nobs, opt=2) ## msyiter / fmsyiter
+    bmsyiter <- mean(tmp$B[(length(tmp$B)-50):length(tmp$B)])
+    ## difference in reference levels
+    msydiff <- (msy - msyiter)/ msyiter
+    fmsydiff <- (fmsy - fmsyiter)/ fmsyiter
+    bmsydiff <- (bmsy - bmsyiter)/ bmsyiter
+    ## combine
+    res <- cbind(c(bmsy, fmsy, msy), c(bmsyiter, fmsyiter, msyiter), c(bmsydiff,fmsydiff,msydiff))
+    rownames(res) <- c("Bmsy","Fmsy","MSY")
+    colnames(res) <- c(paste0("curr"),paste0("alt"),"diff")
+    return(res)
+}
