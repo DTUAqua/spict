@@ -25,5 +25,5 @@ LazyData: true
 VignetteBuilder: knitr
 GithubRepo: spict
 GithubRef: newFuncs 
-GithubSHA1: ae3050c67484c62ad1ca6f74715a3944f12719cb 
-RoxygenNote: 6.1.1
+GithubSHA1: ee03b44f52df9e0774a36e858c6fe123daf95f7e 
+RoxygenNote: 6.0.1
