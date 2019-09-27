@@ -6,6 +6,10 @@ output:
   rmarkdown::html_vignette: 
     number_sections: false
     toc: false
+  pdf_document:
+    number_sections: false
+    toc: false  
+    keep_tex: false
 bibliography: bibliography.bib
 vignette: >
   %\VignetteIndexEntry{spict_guidelines}
