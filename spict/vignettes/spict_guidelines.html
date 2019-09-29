@@ -217,7 +217,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 <h1 class="title toc-ignore">Guidelines for the use of the stochastic production model in continuous time (SPiCT)</h1>
 <h4 class="author">T.K. Mildenberger, A. Kokkalis, C.W. Berg</h4>
-<h4 class="date">27 September, 2019</h4>
+<h4 class="date">30 September, 2019</h4>
 
 
 
@@ -238,7 +238,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 </tr>
 </tbody>
 </table>
-<p>This document provides specific guidelines for the use of the stochastic production model in continuous time (SPiCT; Pedersen and Berg, 2017). The following is divided into three parts, containing: (i) the main assumptions and data requirements of SPiCT, (ii) a checklist for the acceptance of a SPiCT assessment, and (iii) other helpful tips.</p>
+<p>This document provides specific guidelines for the use of the stochastic production model in continuous time (SPiCT; <span class="citation">Pedersen and Berg (2017)</span>). The following is divided into three parts, containing: (i) the main assumptions and data requirements of SPiCT, (ii) a checklist for the acceptance of a SPiCT assessment, and (iii) other helpful tips.</p>
 <p>Most of the following guidelines and tips are accompanied by sample code that assumes</p>
 <ul>
 <li>input data is contained in a list called ‘<code>inp</code>’,</li>
@@ -257,7 +257,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 </div>
 <div id="checklist-for-the-acceptance-of-a-spict-assessment" class="section level2">
 <h2>Checklist for the acceptance of a SPiCT assessment</h2>
-<p>ICES category 3 stocks can be managed using the official advice rule based on SPiCT (3.1.1 and 3.1.2 in ICES, 2018), which requires an accepted SPiCT assessment.</p>
+<p>ICES category 3 stocks can be managed using the official advice rule based on SPiCT (3.1.1 and 3.1.2 in <span class="citation">ICES (2017)</span>), which requires an accepted SPiCT assessment.</p>
 <ol style="list-style-type: decimal">
 <li><p>The assessment <strong>converged</strong> (<code>fit$opt$convergence</code> equals 0).</p></li>
 <li><p>All <strong>variance parameters</strong> of the model parameters are <strong>finite</strong> (<code>all(is.finite(fit$sd)</code>) should be <code>TRUE</code>).</p></li>
@@ -275,7 +275,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <li><p>Increase <strong>iterations of optimisation</strong> Special error code (8) exceeded max.iter.. <code>inp$optimiser.control = list(iter.max = 1e4, eval.max = 1e4)</code></p></li>
 <li><p>If the catch time series is longer than the survey(s), <strong>shortening the catch time series</strong> to cover only the period where there is an available biomass index may help model convergence. <code>inp = shorten.inp(inp, 2005, 2018)</code></p></li>
 <li><p><strong>Adjust</strong> the parameter determining the <strong>shape of the production curve</strong> ‘<code>logn</code>’ or impose a prior (be aware that this modification might cause smaller confidence bands).</p></li>
-<li><p>A prior for n based on a meta analysis, e.g. for all species pooled based on Thorson et al. (2011): <code>inp$priors$logn &lt;- c(log(log(1.478), 0.6, 1)</code></p>
+<li><p>A prior for n based on a meta analysis, e.g. for all species pooled based on <span class="citation">Thorson et al. (2012)</span>: <code>inp$priors$logn &lt;- c(log(log(1.478), 0.6, 1)</code></p>
 <ul>
 <li><p>Tighter Schaefer prior for n (or any other prior e.g. from meta studies): <code>inp$priors$logn &lt;- c(log(2), 0.5, 1)</code></p></li>
 <li><p>Fixing n to resemble the Schaefer production model (or the meta study, alternatively): <code>inp$ini$logn &lt;- log(2); inp$phases$logn &lt;-   -1</code></p></li>
@@ -287,6 +287,20 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 </ul></li>
 <li><p>If information on the level of uncertainty in the biomass index and/or the uncertainty of the catch is available prior distribution could be used for the observation error term of the indices (‘<code>logsdi</code>’) and catches (‘logsdc’), respectively. This requires to remove the priors for the ratios of process to observation errors (‘<code>logalpha</code>’) and (‘<code>logbeta</code>’), respectively.</p></li>
 </ul>
+</div>
+<div id="references" class="section level2 unnumbered">
+<h2>References</h2>
+<div id="refs" class="references">
+<div id="ref-msycat34">
+<p>ICES. 2017. “Report of the Workshop on the Development of the ICES approach to providing MSY advice for category 3 and 4 stocks (WKMSYCat34), 6–10 March 2017, Copenhagen, Denmark.” <em>ICES CM 2017/ACOM:47</em>, 53 pp.</p>
+</div>
+<div id="ref-spict">
+<p>Pedersen, Martin W., and Casper W. Berg. 2017. “A stochastic surplus production model in continuous time.” <em>Fish and Fisheries</em> 18 (2): 226–43. <a href="https://doi.org/10.1111/faf.12174">https://doi.org/10.1111/faf.12174</a>.</p>
+</div>
+<div id="ref-thorson2012">
+<p>Thorson, James T., Jason M. Cope, Trevor A. Branch, and Olaf P. Jensen. 2012. “Spawning Biomass Reference Points for Exploited Marine Fishes, Incorporating Taxonomic and Body Size Information.” <em>Canadian Journal of Fisheries and Aquatic Sciences</em> 69 (9): 1556–68. <a href="https://doi.org/10.1139/f2012-077">https://doi.org/10.1139/f2012-077</a>.</p>
+</div>
+</div>
 </div>
 
 

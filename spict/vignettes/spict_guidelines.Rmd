@@ -31,8 +31,7 @@ report problems at ([link](https://github.com/mawp/spict/issues/new)).
 |  v 1.0           | v 1.2.8       | Initial version (2019-09-23) |
 
 This document provides specific guidelines for the use of the
-stochastic production model in continuous time (SPiCT; Pedersen and
-Berg, 2017). The following is divided into three parts, containing:
+stochastic production model in continuous time (SPiCT; @spict). The following is divided into three parts, containing:
 (i) the main assumptions and data requirements of SPiCT, (ii) a
 checklist for the acceptance of a SPiCT assessment, and (iii) other
 helpful tips.
@@ -92,7 +91,7 @@ enough.
 ## Checklist for the acceptance of a SPiCT assessment
 
 ICES category 3 stocks can be managed using the official advice rule
-based on SPiCT (3.1.1 and 3.1.2 in ICES, 2018), which requires an
+based on SPiCT (3.1.1 and 3.1.2 in @msycat34), which requires an
 accepted SPiCT assessment.
 
 1. The assessment **converged** (`fit$opt$convergence` equals 0).
@@ -152,7 +151,7 @@ curve** '`logn`' or impose a prior (be aware that this modification
 might cause smaller confidence bands).
 
 * A prior for n based on a meta analysis, e.g. for all species
-pooled based on Thorson et al. (2011): `inp$priors$logn <-
+pooled based on @thorson2012: `inp$priors$logn <-
 c(log(log(1.478), 0.6, 1)` 
 
     - Tighter Schaefer prior for n (or any other prior e.g. from meta
@@ -183,3 +182,5 @@ could be used for the observation error term of the indices ('`logsdi`')
 and catches (‘logsdc’), respectively. This requires to remove the
 priors for the ratios of process to observation errors ('`logalpha`')
 and ('`logbeta`'), respectively.
+
+## References
