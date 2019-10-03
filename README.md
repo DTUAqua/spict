@@ -13,13 +13,15 @@ An R-package for fittng surplus production models in continuous-time to fisherie
 
 ## Help files
 
-A vignette for the package is available [`here`](https://github.com/mawp/spict/raw/master/spict/vignettes/vignette.pdf), and serves as an introduction to the package and its functionality. The vignette also contains description of the more advanced features of the package.
+A vignette for the package is available [`here`](https://github.com/DTUAqua/spict/raw/master/spict/vignettes/vignette.pdf), and serves as an introduction to the package and its functionality. The vignette also contains description of the more advanced features of the package.
+
+A document with technical guidelines for using SPiCT is available [here](https://github.com/DTUAqua/spict/raw/master/spict/vignettes/spict_guidelines.pdf). This is a living document that has a list of things to check before accepting an assessment and some options to deal with more dificult data sets.
 
 The package also contains reasonable documentation in the form of help texts associated with each function (some may not be fully up-to-date). These can be accessed in the usual R manner by writing e.g. ```?check.inp```. A good place to start (in addition to reading the vignette) is to read ```?check.inp``` and ```?fit.spict```.
 
 ## Citation
 
-The underlying model used in the package is described in a published [`paper`](http://onlinelibrary.wiley.com/doi/10.1111/faf.12174/full). This paper is included in the package in the [`inst`](https://github.com/mawp/spict/tree/master/spict/inst) folder. To get citation information write `citation(spict)` in the command line.
+The underlying model used in the package is described in a published [`paper`](http://onlinelibrary.wiley.com/doi/10.1111/faf.12174/full). This paper is included in the package in the [`inst`](https://github.com/DTUAqua/spict/tree/master/spict/inst) folder. To get citation information write `citation(spict)` in the command line.
 
 ## Package requirements
 
@@ -30,8 +32,8 @@ The package requires [`TMB`](http://www.tmb-project.org) to be installed. TMB is
 To install spict from GitHub use
 
 ```
-library(devtools)
-install_github("mawp/spict/spict")            # master branch
+library(remotes)
+install_github("DTUAqua/spict/spict")            # master branch
 ```
 
 Windows
