@@ -404,13 +404,14 @@ pred.catch <- function(repin, fmsyfac=1, get.sd=FALSE, exp=FALSE, dbg=0){
 #' @param rep Result list from fit.spict().
 #' @param fractileList List defining the fractiles of the 3 distributions of
 #'     "catch", "bbmsy", and "ffmsy" (see details for more information). By
-#'     default median is used for all 3 quantities.
+#'     default (0.5) median is used for all 3 quantities.
 #' @param breakpoint_bbmsy Breakpoint in terms of \eqn{B/B_{MSY}} for the
 #'     hockey-stick HCR (see details for more information). By default (0) no
 #'     breakpoint is assumed.
-#' @param paList List defining an optional precautionary buffer by the fraction
-#'     of "bbmsy" (default = 0, i.e. deactivating the PA buffer) and "prob" the
-#'     risk aversion probability (default = 0.95).
+#' @param paList List defining an optional precautionary buffer by means of a
+#'     biomass reference level relative to \eqn{B/B_{MSY}} ("bbmsy"; default =
+#'     0, i.e. deactivating the PA buffer) and the risk aversion probability
+#'     ("prob"; default = 0.95). For more information see details.
 #' @param catch_pred Catch during assessment year (corresponding to argument
 #'     \code{catch} in \code{\link{take.c}}), e.g. last year's TAC (default:
 #'     \code{NULL}; see details for more information).
@@ -419,29 +420,24 @@ pred.catch <- function(repin, fmsyfac=1, get.sd=FALSE, exp=FALSE, dbg=0){
 #'     \code{\link{take.c}}).
 #' @param getFit Logical; if \code{TRUE} the function returns the fitted
 #'     'spictcls' object with respective HCR (\code{FALSE} by default).
-#'
 #' @details The combination of the arguments in the "fractileList",
-#'     "breakpoint_bbmsy", and "paList" allow a number of different harvest
-#'     control rules (HCRs):
-#' \itemize{
-#'
-#' \item{Fishing at F_{MSY} (or any fractile of it in terms of \eqn{F/F_{MSY}}
-#' or catch) if \code{breakpoint_bbmsy == 0} and \code{paList$bbmsy == 0}.}
-#'
-#' \item{MSY hockey-stick rule: Fishing at F_{MSY} above a certain fraction of
-#'     B_{MSY} (\code{breakpoint_bbmsy}) and below the fraction of B_{MSY}
-#'     fishing is reduced to 0 linearly as suggested in ICES (2017) if
-#'     \code{breakpoint_bbmsy != 0} and \code{paList$bbmsy = 0}.}
-#'
+#'     "breakpoint_bbmsy", and "paList" allow defining a number of different
+#'     harvest control rules (HCRs):
+#'\itemize{
+#' \item{Fishing at F_{MSY}: if \code{breakpoint_bbmsy == 0} and
+#'     \code{paList$bbmsy == 0}.}
+#' \item{MSY hockey-stick rule: Fishing at F_{MSY} above a certain biomass reference
+#'     level (here defined as a fraction of B_{MSY} with \code{breakpoint_bbmsy}).
+#'     Below the reference level, fishing is reduced linearly to 0 as suggested in
+#'     ICES (2017).}
 #' \item{MSY (hockey-stick) rule with additional precautionary buffer: As long
 #'     as the probability of the predicted biomass relative to a reference
-#'     biomass (e.g. 0.3 B_{MSY}, defined by \code{paList$bbmsy}) is smaller or
+#'     biomass level (e.g. 0.3 B_{MSY}, defined by \code{paList$bbmsy}) is smaller or
 #'     equal to a specified risk aversion probability (e.g. 95%, defined by
-#'     \code{paList$prob}), fishing at F_{MSY} or according to hockey-stick rule
-#'     (if \code{breakpoint !=0 }) otherwise reduce fishing effort to meet
+#'     \code{paList$prob}), fishing at F_{MSY} or following the hockey-stick rule
+#'     (if \code{breakpoint != 0}), otherwise reduce fishing mortality to meet
 #'     specified risk aversion probability (\code{paList$prob}) as introduced in
 #'     ICES (2018).}
-#'
 #' \item{By ICES (2019) recommended MSY hockey-stick rule with 35th percentiles:
 #'     Fishing at 35th percentile of F_{MSY} above the 35th percentile of 0.5
 #'     \eqn{B/B_{MSY}} (\code{breakpoint_bbmsy = 0.5}) and 35th percentile of
@@ -452,27 +448,22 @@ pred.catch <- function(repin, fmsyfac=1, get.sd=FALSE, exp=FALSE, dbg=0){
 #'     list(bbmsy = 0, prob = 0.95)}.}}
 #'
 #' More information about the function arguments controlling the HCRs. The
-#' arguments of the "fractileList" are: \itemize{
-#'
+#' arguments of the "fractileList" are:
+#' \itemize{
 #' \item{catch - Fractile of the predicted catch distribution. Default: 0.5.}
-#'
 #' \item{bbmsy - Fractile of the \eqn{B/B_{MSY}} distribution. Default: 0.5.}
-#'
 #' \item{ffmsy - Fractile of the \eqn{F/F_{MSY}} distribution. Default: 0.5.}}
-#'
 #' The argument "breakpoint_bbmsy" allows to define the MSY hockey-stick rule,
 #' which reduces fishing linearly if the biomass is below specified reference
 #' level as specified here relative to B_{MSY}. Theoretically, any value below 1
 #' is meaningful, but ICES (2017 to 2019) recommend 50% of B_{MSY}
 #' (\code{breakpoint_bbmsy = 0.5}). The argument list "paList" includes:
 #' \itemize{
-#'
 #' \item{bbmsy - Reference level for the evaluation of the predicted biomass
-#'   defined as fraction of \eqn{B/B_{MSY}}. By default \code{paList$bbmsy == 0}
+#'   defined as fraction of \eqn{B/B_{MSY}}. By default (\code{paList$bbmsy == 0})
 #'   the PA buffer is not used. Theoretically, any value smaller than 1 is
-#'   meaningful, but an ICES recommended value would be 30% \code{paList$bbmsy
-#'   = 0.3} (ICES, 2018).}
-#'
+#'   meaningful, but an ICES recommended value would be 30% \code{paList$bbmsy = 0.3}
+#' (ICES, 2018).}
 #' \item{prob - Risk aversion probability of the predicted biomass relative to
 #'   specified reference level (\code{paList$bbmsy}) for all rules with PA
 #'   buffer (\code{paList$bbmsy != 0}). Default: 0.95 as recommended by ICES
@@ -534,12 +525,12 @@ get.TAC <- function(rep,
 
     ## Default lists (if user mis-specifies list or changes single element only)
     ## fractile list
-    if(is.list(fractileList)) stop("Please provide 'fractileList' with the arguments: 'catch', 'bbmsy', and 'ffmsy'!")
+    if(!is.list(fractileList)) stop("Please provide 'fractileList' with the arguments: 'catch', 'bbmsy', and 'ffmsy'!")
     default_fractileList = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5)
     fList <- default_fractileList[which(!names(default_fractileList) %in% names(fractileList))]
     fList <- c(fList,fractileList)
     ## PA list
-    if(is.list(paList)) stop("Please provide 'paList' with the arguments: 'bbmsy' and 'prob'!")
+    if(!is.list(paList)) stop("Please provide 'paList' with the arguments: 'bbmsy' and 'prob'!")
     default_paList = list(bbmsy = 0, prob = 0.95)
     pList <- default_paList[which(!names(default_paList) %in% names(paList))]
     pList <- c(pList,paList)
@@ -574,14 +565,14 @@ get.TAC <- function(rep,
     fmfmsy5 <- exp(qnorm(0.5, logFmFmsy[2], logFmFmsy[4]))
     fred <- fmfmsy5 / fmfmsyi
     ## BBmsy component (hockey stick HCR)
-    if(!is.na(breakpoint_bbmsy) && is.numeric(breakpoint_bbmsy) && breakpoint_bbmsy == 0){
+    if(!is.na(breakpoint_bbmsy) && is.numeric(breakpoint_bbmsy) && breakpoint_bbmsy != 0){
         bmbmsyi <- 1/breakpoint_bbmsy * exp(qnorm(fList$bbmsy, logBmBmsy[2], logBmBmsy[4]))
         fred <- fred * min(1, bmbmsyi)
     }
     ## F reduction factor
     ffac <- (fred + 1e-8) * fmsy / fmanstart
     ## PA component
-    if(!is.na(pList$bbmsy) && is.numeric(pList$bbmsy) && pList$bbmsy == 0){
+    if(!is.na(pList$bbmsy) && is.numeric(pList$bbmsy) && pList$bbmsy != 0){
         inppa <- make.ffacvec(inpin, ffac)
         reppa$obj$env$data$ffacvec <- inppa$ffacvec
         reppa$obj$env$data$reportmode <- 1
@@ -593,14 +584,15 @@ get.TAC <- function(rep,
         probi <- 1 - pList$prob
         bpbmsyiPA <- exp(qnorm(probi, logBpBmsyPA[2], logBpBmsyPA[4]))
         if((bpbmsyiPA - pList$bbmsy) < -1e-3){
-            ffac <- try(get.ffac(reppa, bfrac=pList$bbmsy, prob=pList$prob,
-                                 quant="logBpBmsy",
-                                 reportmode = 2), silent=TRUE)
+            ffac <- try(get.ffac(reppa, frac_relstate=pList$bbmsy,
+                                 problevel=pList$prob,
+                                 relstate="logBpBmsy",
+                                 reportmode = 1), silent=TRUE)
             if(is(ffac,"try-error")) stop("F multiplication factor could not be estimated with the PA.")
         }
     }
     ## Catch component
-    tac <- try(calc.tac(repin, ffac, fList$catch), silent=TRUE)
+    tac <- try(calc.tac(rep=repin, ffac=ffac, fracile_catch=fList$catch), silent=TRUE)
     if(is(tac,"try-error")) stop("TAC could not be estimated.")
 
     ## get fitted object

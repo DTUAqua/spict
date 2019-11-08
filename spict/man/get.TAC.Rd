@@ -4,49 +4,123 @@
 \alias{get.TAC}
 \title{Estimate the Total Allowable Catch (TAC)}
 \usage{
-get.TAC(rep, hcr = "MSY", args = NULL, curc = NULL, sdfac = 0.001,
-  getFit = FALSE)
+get.TAC(rep, fractileList = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5),
+  breakpoint_bbmsy = 0, paList = list(bbmsy = 0, prob = 0.95),
+  catch_pred = NULL, sdfac = 1, getFit = FALSE)
 }
 \arguments{
 \item{rep}{Result list from fit.spict().}
 
-\item{hcr}{SPiCT specific harvest control rule (HCR). Possible
-rules are: \code{"MSY"}, \code{"MSY-HS"}, or \code{"MSY-HS-PA"}
-(see details for more information).  below.}
+\item{fractileList}{List defining the fractiles of the 3 distributions of
+"catch", "bbmsy", and "ffmsy" (see details for more information). By
+default (0.5) median is used for all 3 quantities.}
 
-\item{args}{A list with specific arguments for the respective HCR
-(see details for possible arguments).}
+\item{breakpoint_bbmsy}{Breakpoint in terms of \eqn{B/B_{MSY}} for the
+hockey-stick HCR (see details for more information). By default (0) no
+breakpoint is assumed.}
 
-\item{curc}{Optional; catch during assessment year, e.g. last
-year's TAC (default: \code{NULL}; see details for more
-information).}
+\item{paList}{List defining an optional precautionary buffer by means of a
+biomass reference level relative to \eqn{B/B_{MSY}} ("bbmsy"; default =
+0, i.e. deactivating the PA buffer) and the risk aversion probability
+("prob"; default = 0.95). For more information see details.}
 
-\item{sdfac}{Factor for the multiplication of the standard
-deveiation of the catch during the assessment year
-(\code{stdevfacC}; default = 1e-3).}
+\item{catch_pred}{Catch during assessment year (corresponding to argument
+\code{catch} in \code{\link{take.c}}), e.g. last year's TAC (default:
+\code{NULL}; see details for more information).}
 
-\item{getFit}{Logical; if \code{TRUE} the function returns the
-fitted 'spictcls' object with respective HCR (\code{FALSE} by
-default).}
+\item{sdfac}{Factor for the multiplication of the standard deveiation of the
+catch during the assessment year (\code{stdevfacC}; default = 1; see
+\code{\link{take.c}}).}
+
+\item{getFit}{Logical; if \code{TRUE} the function returns the fitted
+'spictcls' object with respective HCR (\code{FALSE} by default).}
 }
 \value{
-A list with absolute and relative reference levels and
-    states and estimated TAC; if \code{getFit} is \code{TRUE} the
-    fitted object with the respective HCR is returned.
+A list with the TAC and management relevant quantities; if
+    \code{getFit} is \code{TRUE} the fitted object with the respective HCR is
+    returned.
 }
 \description{
 Estimate the Total Allowable Catch (TAC)
 }
+\details{
+The combination of the arguments in the "fractileList",
+    "breakpoint_bbmsy", and "paList" allow defining a number of different
+    harvest control rules (HCRs):
+\itemize{
+\item{Fishing at F_{MSY}: if \code{breakpoint_bbmsy == 0} and
+    \code{paList$bbmsy == 0}.}
+\item{MSY hockey-stick rule: Fishing at F_{MSY} above a certain biomass reference
+    level (here defined as a fraction of B_{MSY} with \code{breakpoint_bbmsy}).
+    Below the reference level, fishing is reduced linearly to 0 as suggested in
+    ICES (2017).}
+\item{MSY (hockey-stick) rule with additional precautionary buffer: As long
+    as the probability of the predicted biomass relative to a reference
+    biomass level (e.g. 0.3 B_{MSY}, defined by \code{paList$bbmsy}) is smaller or
+    equal to a specified risk aversion probability (e.g. 95%, defined by
+    \code{paList$prob}), fishing at F_{MSY} or following the hockey-stick rule
+    (if \code{breakpoint != 0}), otherwise reduce fishing mortality to meet
+    specified risk aversion probability (\code{paList$prob}) as introduced in
+    ICES (2018).}
+\item{By ICES (2019) recommended MSY hockey-stick rule with 35th percentiles:
+    Fishing at 35th percentile of F_{MSY} above the 35th percentile of 0.5
+    \eqn{B/B_{MSY}} (\code{breakpoint_bbmsy = 0.5}) and 35th percentile of
+    linearly reduced F_{MSY} below the 35th percentile of 0.5
+    \eqn{B/B_{MSY}}. TAC corresponds to 35th percentile of predicted catch.
+    Rule is applied with \code{fractileList = list(catch=0.35, bbmsy=0.35,
+    ffmsy=0.35)}, \code{breakpoint_bbmsy = 0.5}, and \code{paList =
+    list(bbmsy = 0, prob = 0.95)}.}}
+
+More information about the function arguments controlling the HCRs. The
+arguments of the "fractileList" are:
+\itemize{
+\item{catch - Fractile of the predicted catch distribution. Default: 0.5.}
+\item{bbmsy - Fractile of the \eqn{B/B_{MSY}} distribution. Default: 0.5.}
+\item{ffmsy - Fractile of the \eqn{F/F_{MSY}} distribution. Default: 0.5.}}
+The argument "breakpoint_bbmsy" allows to define the MSY hockey-stick rule,
+which reduces fishing linearly if the biomass is below specified reference
+level as specified here relative to B_{MSY}. Theoretically, any value below 1
+is meaningful, but ICES (2017 to 2019) recommend 50% of B_{MSY}
+(\code{breakpoint_bbmsy = 0.5}). The argument list "paList" includes:
+\itemize{
+\item{bbmsy - Reference level for the evaluation of the predicted biomass
+  defined as fraction of \eqn{B/B_{MSY}}. By default (\code{paList$bbmsy == 0})
+  the PA buffer is not used. Theoretically, any value smaller than 1 is
+  meaningful, but an ICES recommended value would be 30% \code{paList$bbmsy = 0.3}
+(ICES, 2018).}
+\item{prob - Risk aversion probability of the predicted biomass relative to
+  specified reference level (\code{paList$bbmsy}) for all rules with PA
+  buffer (\code{paList$bbmsy != 0}). Default: 0.95 as recommended by ICES
+  (2018).}}
+
+Dependent on the start of the management period (e.g. advice year), there
+might be a time lag between the last observation and the start of the
+management period. If this is the case, an assumption about the intermediate
+time period (e.g. assessment year) has to be made. Either the fishing
+mortality is extrapolated for the intermediate time period (\code{catch_pred
+= NULL}; default), or the argument \code{catch_pred} can be used to set the
+catch in that period. The argument \code{sdfac} allows to adjust the standard
+deviation of the catch in the intermediate time period.
+}
 \examples{
 rep <- fit.spict(pol$albacore)
+
+## Fishing at Fmsy
 get.TAC(rep)
+
+## MSY hockey-stick rule
+get.TAC(rep, breakpoint_bbmsy = 0.5)
+
+## ICES (2019) recommended HCR
+get.TAC(rep, fractileList = list(catch=0.35, bbmsy=0.35, ffmsy=0.35), breakpoint_bbmsy=0.5)
+
 }
 \references{
 ICES. 2017. Report of the Workshop on the Development of the ICES
 approach to providing MSY advice for category 3 and 4 stocks
 (WKMSYCat34), 6-10 March 2017, Copenhagen, Denmark. ICES CM 2017/
 ACOM:47. 53 pp.
- 
+
 ICES. 2018. Report of the Eighth Workshop on the Development of
 Quantitative Assessment Methodologies based on LIFE-history traits,
 exploitation characteristics, and other relevant parameters for

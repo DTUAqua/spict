@@ -2,39 +2,41 @@
 % Please edit documentation in R/utility.R
 \name{probdev}
 \alias{probdev}
-\title{Get probability to be above certain biomass threshold for
-    set fishing mortality}
+\title{Estimate deviation between targeted and realised probability of
+    overfishing}
 \usage{
-probdev(ffac, rep, bfrac = 0.3, prob = 0.95, quant = "logBpBmsynotS",
-  reportmode = 2, getFrac = FALSE, verbose = FALSE)
+probdev(ffac, rep, relstate = "logBpBmsy", frac_relstate = 1,
+  problevel = 0.95, reportmode = 1, getFrac = FALSE,
+  verbose = FALSE)
 }
 \arguments{
-\item{ffac}{Fishing mortality factor}
+\item{ffac}{Factor to multiply current F by}
 
 \item{rep}{Result list from fit.spict().}
 
-\item{bfrac}{Fraction of biomass relativ to biomass reference
-levels (dependent on \code{quant}), e.g.  fraction of B/Bmsy
-which is defined as threshold (Blim = 0.3 Bmsy, Btrigger = 0.5
-Bmsy) or fraction of Bp/Bl}
+\item{relstate}{Relative state for estimation of probability of overfishing
+(one of the relative states returned by \code{\link{fit.spict}}; default
+= "logBpBmsy").}
 
-\item{prob}{Probability of being above threshold}
+\item{frac_relstate}{Fraction of relative state (\code{relstate}; default =
+1)}
 
-\item{quant}{Quantity to use (options: "logBpBmsy", logBpBl")}
+\item{problevel}{Probability level of risk aversion (default = 0.95).}
 
-\item{reportmode}{Default 2}
+\item{reportmode}{Integer between 0 and 2 determining which objects will be
+adreported (default = 1).}
 
-\item{getFrac}{logical; return}
+\item{getFrac}{logical; return realised fraction of relative state (default =
+FALSE).}
 
-\item{verbose}{logical; print realised probability, set fishing
-mortality factor and deviation}
+\item{verbose}{logical; print realised fraction of relative state, fishing
+mortality factor, and deviation (default = FALSE).}
 }
 \value{
-Returns deviation between targeted and realised probability
-    of being above certain biomass threshold under set fishing
-    mortality
+Returns deviation between targeted and realised probability of being
+    above certain biomass threshold under set fishing mortality
 }
 \description{
-Get probability to be above certain biomass threshold for
-    set fishing mortality
+Estimate deviation between targeted and realised probability of
+    overfishing
 }

@@ -1026,9 +1026,6 @@ Type objective_function<Type>::operator() ()
   Type logFmnotS = logFnotS(mind);
   Type logFmFmsynotS = logFmnotS - logFmsyvec(mind);
 
-
-
-
   // Report the sum of reference points -- can be used to calculate their covariance without using ADreport with covariance.
   Type logBmsyPluslogFmsy = logBmsy(logBmsy.size()-1) + logFmsy(logFmsy.size()-1);
 

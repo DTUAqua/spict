@@ -2,31 +2,28 @@
 % Please edit documentation in R/utility.R
 \name{get.ffac}
 \alias{get.ffac}
-\title{Get the fishing mortality corresponding to set probability
-    of being above certain biomass threshold}
+\title{Estimate fishing mortality factor minimising risk of overfishing}
 \usage{
-get.ffac(rep, bfrac = 0.3, prob = 0.95, quant = "logBpBmsynotS",
-  reportmode = 2)
+get.ffac(rep, relstate = "logBpBmsy", frac_relstate = 1,
+  problevel = 0.95, reportmode = 1)
 }
 \arguments{
 \item{rep}{Result list from fit.spict().}
 
-\item{bfrac}{Fraction of biomass relativ to biomass reference
-levels (dependent on \code{quant}), e.g.  fraction of B/Bmsy
-which is defined as threshold (Blim = 0.3 Bmsy, Btrigger = 0.5
-Bmsy) or fraction of Bp/Bl}
+\item{relstate}{Relative state as returned by \code{\link{fit.spict}}
+(default = "logBpBmsy").}
 
-\item{prob}{Probability to be above threshold (bfrac; default
-is 0.95)}
+\item{frac_relstate}{Fraction of relative state (\code{relstate}; default =
+1)}
 
-\item{quant}{Quantity to use (options: "logBpBmsy", logBpBl")}
+\item{problevel}{Probability level of risk aversion (default = 0.95).}
 
-\item{reportmode}{default = 2}
+\item{reportmode}{Integer between 0 and 2 determining which objects will be
+adreported (default = 1).}
 }
 \value{
 Optimised Fishing mortality for P(Bp<Blim)
 }
 \description{
-Get the fishing mortality corresponding to set probability
-    of being above certain biomass threshold
+Estimate fishing mortality factor minimising risk of overfishing
 }

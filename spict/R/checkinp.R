@@ -84,8 +84,9 @@
 #'  \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc). Should be 1 to get annual predictions and 0.25 for quarterly predictions.}
 #'  \item{"inp$timepredc"}{ Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default: Time of last observation. Example: inp$timepredc <- 2020}
 #'  \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation. Example: inp$timepredi <- 2021}
-#' \item{"inp$manint"}{ Two floats representing the time interval of the management period. Default: Time of last observation and one year later. Example: inp$manint <- c(2020.25,2021.25)}
-#' \item{"inp$maneval"}{ Time at which to evaluate model states. Default: End of management period (inp$manint). Example: inp$maneval <- 2020.25}
+#' \item{"inp$maninterval"}{ Two floats representing the start and end of the management period. Default: Time of last observation and one year later. Example: inp$maninterval <- c(2020.25,2021.25)}
+#' \item{"inp$maneval"}{ Time at which to evaluate model states. Default: End of management period (inp$maninterval). Example: inp$maneval <- 2021.25}
+#' \item{"inp$manstart"}{ Deprecated: start of the management period. Updated argument \code{inp$maninterval}.  Default: First time of \code{inp$maninterval} if set, otherwise time of last observation. Example: inp$manstart <- 2021}
 #'  \item{"inp$do.sd.report"}{ Flag indicating whether SD report (uncertainty of derived quantities) should be calculated. For small values of inp$dteuler this may require a lot of memory. Default: TRUE.}
 #'  \item{"inp$reportall"}{ Flag indicating whether quantities derived from state vectors (e.g. B/Bmsy, F/Fmsy etc.) should be calculated by SD report. For small values of inp$dteuler (< 1/32) reporting all may have to be set to FALSE for sdreport to run. Additionally, if only reference points of parameter estimates are of interest one can set to FALSE to gain a speed-up. Default: TRUE.}
 #' \item{"inp$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
@@ -102,7 +103,7 @@
 #'  \item{"inp$stdevfacE"}{ Factors to multiply the observation error standard deviation of each individual effort observation. Can be used if some observations are more uncertain than others. A list with vectors of same length as observation vectors. Default: 1.}
 #'  \item{"inp$mapsdi"}{ Vector of length equal to the number of index series specifying which indices that should use the same sdi. For example: in case of 3 index series use inp$mapsdi <- c(1, 1, 2) to have series 1 and 2 share sdi and have a separate sdi for series 3. Default: 1:nindex, where nindex is number of index series.}
 #'  \item{"inp$seasontype"}{ If set to 1 use the spline-based representation of seasonality. If set to 2 use the oscillatory SDE system (this is more unstable and difficult to fit, but also more flexible).}
-#' \item{"inp$reportmode"}{ Integer between 0 and 5 determining which objects will be adreported. Default: 0 = all quantities are adreported. Example: inp$reportmode <- 1}
+#' \item{"inp$reportmode"}{ Integer between 0 and 2 determining which objects will be adreported. Default: 0 = all quantities are adreported. Example: inp$reportmode <- 1}
 #' }
 #' @param inp List of input variables, see details for required variables.
 #' @return An updated list of input variables checked for consistency and with defaults added.
@@ -455,10 +456,70 @@ check.inp <- function(inp){
         }
     }
 
+    # Euler time step
+    if (!"dteuler" %in% names(inp)){
+        inp$dteuler <- 1/16
+    }
+    if ("dteuler" %in% names(inp)){
+        if (inp$dteuler > 1){
+            inp$dteuler <- 1
+            cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
+        }
+    }
+    if (FALSE){
+        alloweddteuler <- 1/2^(6:0)
+        if (!inp$dteuler %in% alloweddteuler){ # Check if dteuler is among the alloweddteuler
+            ind <- cut(inp$dteuler, alloweddteuler, right=FALSE, labels=FALSE)
+            if (is.na(ind)){
+                if (inp$dteuler > max(alloweddteuler)){
+                    inp$dteuler <- max(alloweddteuler)
+                }
+                if (inp$dteuler < min(alloweddteuler)){
+                    inp$dteuler <- min(alloweddteuler)
+                }
+            } else {
+                inp$dteuler <- alloweddteuler[ind]
+            }
+            cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
+        }
+    }
+
     # - Prediction horizons -
     timeobsall <- sort(c(inp$timeC, inp$timeC + inp$dtc,
                          unlist(inp$timeI),
                          inp$timeE, inp$timeE + inp$dte))
+    # Time interval for management
+    if ("maninterval" %in% names(inp)){
+        if (min(inp$maninterval) < max(inp$timeC + inp$dtc)){
+            cat("Start of management interval (min(inp$maninterval))",
+                min(inp$maninterval),
+                "must be equal to or later than the end of the last catch observation interval:",
+                max(inp$timeC + inp$dtc), '!\n')
+        }
+        if (abs(diff(inp$maninterval)) < inp$dteuler){
+            cat("Management interval (abs(diff(inp$maninterval))", abs(diff(inp$maninterval)),
+                "must be larger than the Euler discretisation time step:",
+                inp$dteuler, '!\n') }
+        if ("timepredc" %in% names(inp)) cat("Both arguments 'inp$maninterval'",
+                                             inp$maninterval,
+                                             "and 'inp$timepredc'",
+                                             inp$timepredc,
+                                             "are specified. Only 'inp$maninterval'",
+                                             inp$maninterval, "will be used!\n")
+        inp$maninterval <- sort(inp$maninterval)
+        inp$timepredc <- min(inp$maninterval)
+        inp$dtpredc <- abs(diff(inp$maninterval))
+        inp$manstart <- min(inp$maninterval)
+    }
+    # Time point to evaluate model states for management
+    if ("maneval" %in% names(inp)){
+        if ("timepredi" %in% names(inp)) cat("Both arguments 'inp$maneval'",
+                                             inp$maneval, "and 'inp$timepredi'",
+                                             inp$timepredi,
+                                             "are specified. Only 'inp$maneval'",
+                                             inp$maneval, "will be used!\n")
+        inp$timepredi <- inp$maneval
+    }
     # Catch prediction time step (dtpredc)
     if (!"dtpredc" %in% names(inp)){
         if (length(inp$dtc)>0){
@@ -522,56 +583,8 @@ check.inp <- function(inp){
             stop('Effort data must overlap temporally with index or catches')
         }
     }
-    # Time interval for management
-    if (!"manint" %in% names(inp)){
-        inp$manint <- c(max(timeobsall), max(timeobsall) + 1)
-    }else{
-        if (min(inp$manint) < max(inp$timeC + inp$dtc)){
-            cat('min(inp$manint):', min(inp$manint),
-                ' must be equal to or later than the end of the last catch observation interval: ',
-                max(inp$timeC + inp$dtc), '!')
-        }
-        inp$manint <- sort(inp$manint)
-        inp$manint <- inp$time[match.times(inp$manint, inp$time)]
-        inp$timepredc <- min(inp$manint)
-        inp$dtpredc <- abs(diff(inp$manint))
-        inp$manstart <- min(inp$manint)
-    }
-    # Time point to evaluate model states for management
-    if (!"maneval" %in% names(inp)){
-        inp$maneval <- max(inp$manint)
-    }else{
-        inp$timepredi <- inp$maneval
-    }
 
     # Numerical Euler discretisation time used by SDE solver
-    # Euler time step
-    if (!"dteuler" %in% names(inp)){
-        inp$dteuler <- 1/16
-    }
-    if ("dteuler" %in% names(inp)){
-        if (inp$dteuler > 1){
-            inp$dteuler <- 1
-            cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
-        }
-    }
-    if (FALSE){
-        alloweddteuler <- 1/2^(6:0)
-        if (!inp$dteuler %in% alloweddteuler){ # Check if dteuler is among the alloweddteuler
-            ind <- cut(inp$dteuler, alloweddteuler, right=FALSE, labels=FALSE)
-            if (is.na(ind)){
-                if (inp$dteuler > max(alloweddteuler)){
-                    inp$dteuler <- max(alloweddteuler)
-                }
-                if (inp$dteuler < min(alloweddteuler)){
-                    inp$dteuler <- min(alloweddteuler)
-                }
-            } else {
-                inp$dteuler <- alloweddteuler[ind]
-            }
-            cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
-        }
-    }
     # Euler types:
     # hard: time discretisation is equidistant with step length = dteuler. Observations are assigned to intervals
     # soft: time discretisation is equidistant with step length = dteuler, but with time points of observations inserted such that they can be assigned accurately to a time point instead of an interval.
@@ -616,6 +629,12 @@ check.inp <- function(inp){
     inp$indpred <- which(inp$time >= inp$timerange[2])
     inp$indCpred <- which(inp$time >= max(inp$timeC + inp$dtc))
     # Management
+    if (!"maninterval" %in% names(inp)){
+        inp$maninterval <- c(inp$timepredc, inp$timepredc + inp$dtpredc)
+    }
+    if (!"maneval" %in% names(inp)){
+        inp$maneval <- inp$timepredi
+    }
     if (!"manstart" %in% names(inp)){
         inp$manstart <- ceiling(inp$time[inp$indpred[1]])
     }
@@ -1035,7 +1054,7 @@ check.inp <- function(inp){
     inp$ini$SARvec <- rep(0, max(inp$seasonindex2))
 
     ## reporting
-    if(!"reportmode" %in% names(inp)) inp$reportmode <- 1
+    if(!"reportmode" %in% names(inp)) inp$reportmode <- 0
 
 
     # Reorder parameter list

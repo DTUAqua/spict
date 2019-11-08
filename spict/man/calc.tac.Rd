@@ -2,24 +2,21 @@
 % Please edit documentation in R/utility.R
 \name{calc.tac}
 \alias{calc.tac}
-\title{Calculate TAC for set fishing mortality factor}
+\title{Calculate Total Allowable Catch (TAC)}
 \usage{
-calc.tac(rep, ffac, fracc = 0.5)
+calc.tac(rep, ffac, fractile_catch = 0.5)
 }
 \arguments{
 \item{rep}{Result list from fit.spict().}
 
-\item{ffac}{Fishing mortality factor}
+\item{ffac}{Factor to multiply current F by}
 
-\item{fracc}{The fractile of the catch distribution to be used
-for setting the TAC. Default is median (0.5).}
+\item{fractile_catch}{The fractile of the catch distribution to be used for
+setting the TAC. Default (0.5) corresponds to the median.}
 }
 \value{
-Estimated TAC given fishing mortality factor
+Total Allowable Catch (TAC)
 }
 \description{
-Calculate TAC for set fishing mortality factor
-}
-\author{
-T.K. Mildenberger <t.k.mildenberger@gmail.com>
+Calculate Total Allowable Catch (TAC)
 }
