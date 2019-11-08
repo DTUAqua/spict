@@ -26,4 +26,4 @@ VignetteBuilder: knitr
 GithubRepo: spict
 GithubRef: msyadvicerule 
 GithubSHA1: f446da52e1609f94b060392972666b7c3e4ae46d 
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1

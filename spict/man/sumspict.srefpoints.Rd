@@ -14,3 +14,6 @@ sumspict.srefpoints(rep, ndigits = 8)
 \value{
 data.frame containing stochastic reference points.
 }
+\description{
+Stochastic reference points of a fit.spict() run.
+}

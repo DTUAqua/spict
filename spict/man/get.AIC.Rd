@@ -12,3 +12,6 @@ get.AIC(rep)
 \value{
 AIC
 }
+\description{
+Calculate AIC from a rep list.
+}

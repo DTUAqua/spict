@@ -14,6 +14,9 @@ sim.spict(input, nobs = 100)
 \value{
 A list containing the simulated data.
 }
+\description{
+Simulate data from Pella-Tomlinson model
+}
 \details{
 Simulates data using either manually specified parameters values or parameters estimated by fit.spict().
 

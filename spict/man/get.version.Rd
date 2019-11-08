@@ -12,3 +12,6 @@ get.version(pkg = "spict")
 \value{
 Package version
 }
+\description{
+Get version of spict including git sha1 version if available.
+}

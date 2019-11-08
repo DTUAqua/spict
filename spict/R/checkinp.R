@@ -20,14 +20,14 @@
 #' @details Fills in default values if missing.
 #'
 #' Required inputs:
-#' 
+#'
 #' \itemize{
 #'  \item{"inp$obsC"}{ Vector of catch observations.}
 #'  \item{"inp$obsI and/or inp$obsE"}{ List containing vectors of index observations and/or a vector of effort information.}
 #' }
-#' 
+#'
 #' Optional inputs:
-#' 
+#'
 #' - Data
 #' \itemize{
 #'  \item{"inp$timeC"}{ Vector of catch times. Default: even time steps starting at 1.}
@@ -37,9 +37,9 @@
 #'  \item{"inp$dte"}{ Time interval for effort observations. For annual effort inp$dte=1, for quarterly effort inp$dte=0.25. Default: min(diff(inp$timeE)). }
 #'  \item{"inp$nseasons"}{ Number of within-year seasons in data. If inp$nseasons > 1 then a seasonal pattern is used in F. Valid values of inp$nseasons are 1, 2 or 4. Default: number of unique within-year time points present in data.}
 #' }
-#' 
+#'
 #' - Initial parameter values
-#' 
+#'
 #' \itemize{
 #'  \item{"inp$ini$logn"}{ Pella-Tomlinson exponent determining shape of production function. Default: log(2) corresponding to the Schaefer formulation.}
 #'  \item{"inp$ini$logm"}{ Initial value for logm (log maximum sustainable yield). Default: log(mean(catch)).}
@@ -55,15 +55,15 @@
 #' }
 #'
 #' - Initial values for unobserved states estimated as random effects
-#' 
+#'
 #' \itemize{
 #'   \item{"inp$ini$logF"}{ Log fishing mortality. Default: log(0.2*r), with r derived from m and K.}
 #'   \item{"inp$ini$logB"}{ Log biomass. Default: log(0.5*K).}
 #'   \item{"inp$ini$logU"}{ Log U, the state of the coupled SDE representation of seasonality. Default: log(1).}
 #' }
-#' 
+#'
 #' - Priors
-#' 
+#'
 #' Priors on model parameters are assumed generally assumed Gaussian and specified in a vector of length 2: c(log(mean), stdev in log domain, useflag [optional]). NOTE: if specifying a prior for a value in a temporal vector e.g. logB, then a fourth element is required specifying the year the prior should be applied.
 #' log(mean): log of the mean of the prior distribution.
 #' stdev in log: standard deviation of the prior distribution in log domain.
@@ -77,13 +77,15 @@
 #'  inp$priors$logB <- c(log(200), 0.2, 1, 1985) # This includes the optional useflag
 #' Example: Inverse gamma prior on sdb^2:
 #'  inp$priors$isdb2gamma <- meanvar2shaperate(1/exp(inp$ini$logsdb)^2, 150^2)
-#' 
+#'
 #' - Settings/Options/Preferences
-#' 
+#'
 #' \itemize{
 #'  \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc). Should be 1 to get annual predictions and 0.25 for quarterly predictions.}
-#'  \item{"inp$timepredc"}{ Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default: Time of last observation. Example: inp$timepredc <- 2012}
-#'  \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation. Example: inp$timepredi <- 2012}
+#'  \item{"inp$timepredc"}{ Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default: Time of last observation. Example: inp$timepredc <- 2020}
+#'  \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation. Example: inp$timepredi <- 2021}
+#' \item{"inp$manint"}{ Two floats representing the time interval of the management period. Default: Time of last observation and one year later. Example: inp$manint <- c(2020.25,2021.25)}
+#' \item{"inp$maneval"}{ Time at which to evaluate model states. Default: End of management period (inp$manint). Example: inp$maneval <- 2020.25}
 #'  \item{"inp$do.sd.report"}{ Flag indicating whether SD report (uncertainty of derived quantities) should be calculated. For small values of inp$dteuler this may require a lot of memory. Default: TRUE.}
 #'  \item{"inp$reportall"}{ Flag indicating whether quantities derived from state vectors (e.g. B/Bmsy, F/Fmsy etc.) should be calculated by SD report. For small values of inp$dteuler (< 1/32) reporting all may have to be set to FALSE for sdreport to run. Additionally, if only reference points of parameter estimates are of interest one can set to FALSE to gain a speed-up. Default: TRUE.}
 #' \item{"inp$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
@@ -100,6 +102,7 @@
 #'  \item{"inp$stdevfacE"}{ Factors to multiply the observation error standard deviation of each individual effort observation. Can be used if some observations are more uncertain than others. A list with vectors of same length as observation vectors. Default: 1.}
 #'  \item{"inp$mapsdi"}{ Vector of length equal to the number of index series specifying which indices that should use the same sdi. For example: in case of 3 index series use inp$mapsdi <- c(1, 1, 2) to have series 1 and 2 share sdi and have a separate sdi for series 3. Default: 1:nindex, where nindex is number of index series.}
 #'  \item{"inp$seasontype"}{ If set to 1 use the spline-based representation of seasonality. If set to 2 use the oscillatory SDE system (this is more unstable and difficult to fit, but also more flexible).}
+#' \item{"inp$reportmode"}{ Integer between 0 and 5 determining which objects will be adreported. Default: 0 = all quantities are adreported. Example: inp$reportmode <- 1}
 #' }
 #' @param inp List of input variables, see details for required variables.
 #' @return An updated list of input variables checked for consistency and with defaults added.
@@ -200,6 +203,9 @@ check.inp <- function(inp){
         }
         return(inp)
     }
+    match.times <- function(times, eulertimes){
+        return(apply(abs(outer(times, eulertimes, FUN='-')), 1, which.min))
+    }
 
     # -- DATA --
     # Check catch observations
@@ -234,11 +240,11 @@ check.inp <- function(inp){
     if (length(inp$dtc) != inp$nobsC){
         stop('Catch interval vector (inp$dtc) does not match catch observation vector (inp$obsC) in length')
     }
-    
+
     if (!any(c('obsI', 'obsE') %in% names(inp))){
         stop('No effort or index observations. Please include index observations as a vector in inp$obsI and effort observations in inp$obsE.')
     }
-    
+
     # Check index observations
     inp$obsI <- make.list(inp$obsI)
     inp$nindex <- length(inp$obsI)
@@ -324,7 +330,7 @@ check.inp <- function(inp){
              inp$nobsE, ') in length')
     }
     inp$nseries <- 1 + inp$nindex + as.numeric(inp$nobsE > 0)
-    
+
     # -- MODEL OPTIONS --
     if (!"RE" %in% names(inp)) inp$RE <- c('logF', 'logu', 'logB', 'logmre','SARvec')
     if (!"scriptname" %in% names(inp)) inp$scriptname <- 'spict'
@@ -389,7 +395,7 @@ check.inp <- function(inp){
     inp$robflage <- as.numeric(inp$robflage)
     # Time-varying growth option
     inp <- set.default(inp, 'timevaryinggrowth', FALSE)
-    # ASPIC options 
+    # ASPIC options
     if (!"aspic" %in% names(inp)) inp$aspic <- list()
     if (!"mode" %in% names(inp$aspic)) inp$aspic$mode <- 'FIT'
     if (!"verbosity" %in% names(inp$aspic)) inp$aspic$verbosity <- '102'
@@ -397,14 +403,14 @@ check.inp <- function(inp){
     if (!"ciperc" %in% names(inp$aspic)) inp$aspic$ciperc <- 95
     if (!"bootlimtime" %in% names(inp$aspic)) inp$aspic$bootlimtime <- 100 # Seconds
     # Meyer & Millar model options
-    if (!"meyermillar" %in% names(inp)) inp$meyermillar <- list()    
+    if (!"meyermillar" %in% names(inp)) inp$meyermillar <- list()
     if (!"n.iter" %in% names(inp$meyermillar)) inp$meyermillar$n.iter <- 225000
     if (!"n.chains" %in% names(inp$meyermillar)) inp$meyermillar$n.chains <- 2
     if (!"burnin" %in% names(inp$meyermillar)) inp$meyermillar$burnin <- 25000
     if (!"thin" %in% names(inp$meyermillar)) inp$meyermillar$thin <- 25
     if (!"cleanup" %in% names(inp$meyermillar)) inp$meyermillar$cleanup <- TRUE
     if (!"bugfn" %in% names(inp$meyermillar)) inp$meyermillar$bugfn <- 'sp.bug'
-    
+
     # Options for simple model
     if (!"simple" %in% names(inp)) inp$simple <- 0
     if (inp$simple == 1){ # Set parameters for the simple model (catch assumed known, no F process).
@@ -466,10 +472,10 @@ check.inp <- function(inp){
     if (!"timepredc" %in% names(inp)){
         inp$timepredc <- max(timeobsall)
     } else {
-        if (inp$timepredc < max(inp$timeC)){
+        if (inp$timepredc < max(inp$timeC + inp$dtc)){
             cat('inp$timepredc:', inp$timepredc,
-                ' must be equal to or later than last catch observation: ',
-                max(inp$timeC), '!')
+                ' must be equal to or later than the end of the last catch observation interval: ',
+                max(inp$timeC + inp$dtc), '!')
         }
     }
     # Time point to predict indices until
@@ -516,7 +522,28 @@ check.inp <- function(inp){
             stop('Effort data must overlap temporally with index or catches')
         }
     }
-    
+    # Time interval for management
+    if (!"manint" %in% names(inp)){
+        inp$manint <- c(max(timeobsall), max(timeobsall) + 1)
+    }else{
+        if (min(inp$manint) < max(inp$timeC + inp$dtc)){
+            cat('min(inp$manint):', min(inp$manint),
+                ' must be equal to or later than the end of the last catch observation interval: ',
+                max(inp$timeC + inp$dtc), '!')
+        }
+        inp$manint <- sort(inp$manint)
+        inp$manint <- inp$time[match.times(inp$manint, inp$time)]
+        inp$timepredc <- min(inp$manint)
+        inp$dtpredc <- abs(diff(inp$manint))
+        inp$manstart <- min(inp$manint)
+    }
+    # Time point to evaluate model states for management
+    if (!"maneval" %in% names(inp)){
+        inp$maneval <- max(inp$manint)
+    }else{
+        inp$timepredi <- inp$maneval
+    }
+
     # Numerical Euler discretisation time used by SDE solver
     # Euler time step
     if (!"dteuler" %in% names(inp)){
@@ -525,7 +552,7 @@ check.inp <- function(inp){
     if ("dteuler" %in% names(inp)){
         if (inp$dteuler > 1){
             inp$dteuler <- 1
-            cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')            
+            cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
         }
     }
     if (FALSE){
@@ -655,13 +682,13 @@ check.inp <- function(inp){
     #    dtcpred <- 1
     #}
     dtcpred <- inp$dtpredc
-    
+
     inp$timeCpred <- unique(c(inp$timeC, (seq(tail(inp$timeC,1), inp$timepredc, by=tail(inp$dtc,1))), inp$timepredc))
     inp$nobsCp <- length(inp$timeCpred)
     if( inp$nobsCp > inp$nobsC )  inp$dtcp <- c(inp$dtc, rep(tail(inp$dtc,1), inp$nobsCp-inp$nobsC-1),dtcpred) else inp$dtcp <- inp$dtc
-    
-    inp$ic <- cut(inp$timeCpred, inp$time, right=FALSE, labels=FALSE) 
-    
+
+    inp$ic <- cut(inp$timeCpred, inp$time, right=FALSE, labels=FALSE)
+
     # nc is number of states to integrate a catch observation over
     inp$nc <- rep(0, inp$nobsCp)
     for (i in 1:inp$nobsCp){
@@ -697,16 +724,13 @@ check.inp <- function(inp){
     }
     # ii is the indices of inp$time to which index observations correspond
     inp$ii <- list()
-    find.indices <- function(times, eulertimes){
-        return(apply(abs(outer(times, eulertimes, FUN='-')), 1, which.min))
-    }
     for (i in inp$nindexseq){
         # Find indices in inp$time to which observations correspond
         # cut finds indices based on intervals in inp$time
         #inp$ii[[i]] <- cut(inp$timeI[[i]], inp$time, right=FALSE, labels=FALSE)
         # This approach uses the index of inp$time with the smallest temporal difference
         # to the observations, this difference will typically be zero.
-        inp$ii[[i]] <- find.indices(inp$timeI[[i]], inp$time)
+        inp$ii[[i]] <- match.times(inp$timeI[[i]], inp$time)
     }
     # Translate index observations from a list to a vector
     inp$obsIin <- unlist(inp$obsI)
@@ -723,7 +747,7 @@ check.inp <- function(inp){
     inp$dtpredcinds <- which(inp$time >= inp$timepredc & inp$time < (inp$timepredc+inp$dtpredc))
     inp$dtpredcnsteps <- length(inp$dtpredcinds)
     #inp$dtprediind <- cut(inp$timepredi, inp$time, right=FALSE, labels=FALSE)
-    inp$dtprediind <- find.indices(inp$timepredi, inp$time)
+    inp$dtprediind <- match.times(inp$timepredi, inp$time)
     inp$dtpredeinds <- which(inp$time >= inp$timeprede & inp$time < (inp$timeprede+inp$dtprede))
     inp$dtpredensteps <- length(inp$dtpredeinds)
 
@@ -777,7 +801,7 @@ check.inp <- function(inp){
         if (length(nainds) > 0){
             inp$logmcovariate <- inp$logmcovariate[-nainds]
             inp$logmcovariatetime <- inp$logmcovariatetime[-nainds]
-        } 
+        }
         dat <- data.frame(x=inp$logmcovariatetime, y=inp$logmcovariate)
         smoocov <- smooth.spline(dat$x, dat$y, spar=inp$logmcovspar)
         covpred <- predict(smoocov, x=inp$time)
@@ -790,7 +814,7 @@ check.inp <- function(inp){
     #inp <- set.default(inp,'logmcovariate', rep(0, inp$nobsC))
     #inp <- set.default(inp, 'logmcovariatetime', 1:inp$nobsC)
     inp <- set.default(inp, 'logmcovariatein', rep(0, inp$ns))
-    
+
     # -- MODEL PARAMETERS --
     # Default values
     lognflag <- TRUE
@@ -830,7 +854,7 @@ check.inp <- function(inp){
 
     if (!'logitSARphi' %in% names(inp$ini)) inp$ini$logitSARphi <- 0
     if (!'logSdSAR' %in% names(inp$ini)) inp$ini$logSdSAR <- -2
-    
+
     if (!'logr' %in% names(inp$ini)){
         if (!'logm' %in% names(inp$ini) | length(inp$ini$logm)!=inp$noms){
             inp$ini$logm <- rep(unname(log(guess.m(inp))), inp$noms)
@@ -845,7 +869,7 @@ check.inp <- function(inp){
         #}
     }
     if(length(inp$ini$logm)!=inp$noms) inp$ini$logm <- rep(inp$ini$logm,noms)
-    
+
     if ('logr' %in% names(inp$ini)){
         nr <- length(inp$ini$logr)
         if (!'ir' %in% names(inp) | nr == 1){
@@ -915,7 +939,7 @@ check.inp <- function(inp){
     if (inp$nobsE > 0){
         logmaxE <- log(max(inp$obsE))
     } else {
-        logmaxE <- 0        
+        logmaxE <- 0
     }
     #logmaxE <- ifelse(length(inp$obsE)==0, 0, log(max(inp$obsE[[1]])))
     if (!'logqf' %in% names(inp$ini)) inp$ini$logqf <- inp$ini$logr - logmaxE
@@ -928,7 +952,7 @@ check.inp <- function(inp){
     } else {
         inp$nsdf <- 1
     }
-    
+
     if (!'logsdf' %in% names(inp$ini)){
         inp$ini$logsdf <- log(rep(0.2, inp$nsdf))
     }
@@ -1005,11 +1029,15 @@ check.inp <- function(inp){
     if (!"logmre" %in% names(inp$ini)){
         inp$ini$logmre <- rep(log(1), inp$ns)
     }
-    #if ("logmre" %in% names(inp$ini)){    
+    #if ("logmre" %in% names(inp$ini)){
     #    inp$ini$logmre <- check.mat(inp$ini$logmre, c(inp$nstocks, inp$ns), 'inp$ini$logmre')
     #}
     inp$ini$SARvec <- rep(0, max(inp$seasonindex2))
-    
+
+    ## reporting
+    if(!"reportmode" %in% names(inp)) inp$reportmode <- 1
+
+
     # Reorder parameter list
     inp$parlist <- list(logm=inp$ini$logm,
                         mu=inp$ini$mu,
@@ -1102,7 +1130,7 @@ check.inp <- function(inp){
 
     # Default prior uncertainties
     small <- 1e-3
-    wide <- 2 # Value suggested by Casper 
+    wide <- 2 # Value suggested by Casper
     lognsd <- wide
     logalphasd <- wide
     logbetasd <- wide
@@ -1188,7 +1216,7 @@ check.inp <- function(inp){
             inp$priorsuseflags[i] <- inp$priors[[i]][3]
         }
     }
-           
+
     # ------------------------------
     # Determine fixed parameters
     forcefixpars <- c() # Parameters that are forced to be fixed.
@@ -1250,7 +1278,7 @@ check.inp <- function(inp){
             inp$phases[[nm]] <- 1
         }
     }
-    
+
     nphasepars <- length(inp$phases)
     phasevec <- unlist(inp$phases)
     phases <- unique(unname(phasevec))
@@ -1292,7 +1320,7 @@ check.inp <- function(inp){
             inp$ranges[[nm]] <- outer(inp$ini[[nm]], logfacs, FUN='+')
         }
     }
-    
+
     # Set class
     if (!is.null(inp)){
         class(inp) <- "spictcls"

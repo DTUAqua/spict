@@ -12,6 +12,9 @@ check.inp(inp)
 \value{
 An updated list of input variables checked for consistency and with defaults added.
 }
+\description{
+Check list of input variables
+}
 \details{
 Fills in default values if missing.
 
@@ -78,8 +81,10 @@ Example: Inverse gamma prior on sdb^2:
 
 \itemize{
  \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc). Should be 1 to get annual predictions and 0.25 for quarterly predictions.}
- \item{"inp$timepredc"}{ Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default: Time of last observation. Example: inp$timepredc <- 2012}
- \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation. Example: inp$timepredi <- 2012}
+ \item{"inp$timepredc"}{ Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default: Time of last observation. Example: inp$timepredc <- 2020}
+ \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation. Example: inp$timepredi <- 2021}
+\item{"inp$manint"}{ Two floats representing the time interval of the management period. Default: Time of last observation and one year later. Example: inp$manint <- c(2020,2021)}
+\item{"inp$maneval"}{ Time at which to evaluate model states. Default: End of management period (inp$manint). Example: inp$maneval <- 2021}
  \item{"inp$do.sd.report"}{ Flag indicating whether SD report (uncertainty of derived quantities) should be calculated. For small values of inp$dteuler this may require a lot of memory. Default: TRUE.}
  \item{"inp$reportall"}{ Flag indicating whether quantities derived from state vectors (e.g. B/Bmsy, F/Fmsy etc.) should be calculated by SD report. For small values of inp$dteuler (< 1/32) reporting all may have to be set to FALSE for sdreport to run. Additionally, if only reference points of parameter estimates are of interest one can set to FALSE to gain a speed-up. Default: TRUE.}
 \item{"inp$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
@@ -96,6 +101,7 @@ Example: Inverse gamma prior on sdb^2:
  \item{"inp$stdevfacE"}{ Factors to multiply the observation error standard deviation of each individual effort observation. Can be used if some observations are more uncertain than others. A list with vectors of same length as observation vectors. Default: 1.}
  \item{"inp$mapsdi"}{ Vector of length equal to the number of index series specifying which indices that should use the same sdi. For example: in case of 3 index series use inp$mapsdi <- c(1, 1, 2) to have series 1 and 2 share sdi and have a separate sdi for series 3. Default: 1:nindex, where nindex is number of index series.}
  \item{"inp$seasontype"}{ If set to 1 use the spline-based representation of seasonality. If set to 2 use the oscillatory SDE system (this is more unstable and difficult to fit, but also more flexible).}
+\item{"inp$reportmode"}{ Integer between 0 and 5 determining which objects will be adreported. Default: 0 = all quantities are adreported. Example: inp$reportmode <- 1}
 }
 }
 \examples{

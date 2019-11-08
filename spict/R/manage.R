@@ -31,7 +31,7 @@
 #'
 #' Scenario 7 implements the ICES MSY advice rule for stocks that are assessed using spict (ICES 2017). MSY B_{trigger} is set equal to B_{MSY} / 2. Then fishing mortality in the short forecast is calculated as:
 #'
-#' F(y+1) =  F(y) * min{ 1, median[B(y+1) / MSY B_{trigger}] } / median[F(y)/F_{MSY}]  
+#' F(y+1) =  F(y) * min{ 1, median[B(y+1) / MSY B_{trigger}] } / median[F(y)/F_{MSY}]
 #' }
 #' @param repin Result list from fit.spict().
 #' @param scenarios Vector of integers specifying which scenarios to run. Default: 'all'.
@@ -63,12 +63,12 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, cat
         inpin$timepredi <- repin$inp$timepredi
         inpin$manstart <- repin$inp$manstart
         repman <- list() # Output list
-        attr(repman, "scenarios") <- scenarios 
+        attr(repman, "scenarios") <- scenarios
         if (1 %in% scenarios){
             # 1. Specify the catch, which will be taken each year in the prediction period
             lastyearidxs <- min( which( cumsum(rev(inpin$dtc))>=1 ) ) ## warning: this will not make sense with subannual/mixed data with missing values
             if(is.null(catch)) catch <- sum(tail(inpin$obsC, lastyearidxs))
-            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg, catchList=catchList)
+            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg, catchList=catchList, sdfac = 1)
         }
         if (2 %in% scenarios){
             # Keep current F
@@ -139,7 +139,7 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
     objt$fn(repin$opt$par)
     ## repmant <- sdreport(objt)
     verflag <- as.numeric(gsub('[.]', '', as.character(packageVersion('TMB')))) >= 171
-    if (verflag) { 
+    if (verflag) {
       repmant <- sdreport(objt,
                           getJointPrecision=repin$inp$getJointPrecision,
                           bias.correct=repin$inp$bias.correct,
@@ -163,22 +163,22 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
 
 #' @name take.c
 #' @title Calculate management when taking a constant catch (proxy for setting a TAC).
-#' @param catch Take this catch 'dtpredc' ahead from manstart time 
+#' @param catch Take this catch 'dtpredc' ahead from manstart time
 #' @param inpin Input list.
 #' @param repin Results list.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
-#' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3) 
+#' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3)
 #' @return List containing results of management calculations.
 #' @export
 take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
-    
+
     inpt <- inpin
     if(is.null(catchList)){
-        tmpTime <- repin$inp$timeCpred  
+        tmpTime <- repin$inp$timeCpred
         maninds <- which(tmpTime >= inpin$manstart)
         inpt$timeC <- c( inpt$timeC, tmpTime[maninds] )
         inpt$obsC <- c( inpt$obsC, rep(catch, length(maninds)) )
-        inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(maninds)) )  
+        inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(maninds)) )
         inpt$dtc <- c(inpt$dtc, rep(inpt$dtpredc, length(maninds)) )
     } else {
         inpt$timeC <- c( inpt$timeC, catchList$timeC )
@@ -186,11 +186,9 @@ take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
         if(is.null(catchList$stdevfacC))
             inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(catchList$timeC)) )  else
             inpt$stdevfacC <- c(inpt$stdevfacC, catchList$stdevfacC)
-        
-        inpt$dtc <- c(inpt$dtc, catchList$dtc )
+        inpt$dtc <- c(inpt$dtc, catchList$dtc)
     }
 
-    
     inpt <- check.inp(inpt)
     # Make TMB data and object
     plt <- repin$obj$env$parList(repin$opt$par)
@@ -307,7 +305,7 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
             scenarios <- attr(repman, "scenarios")
             rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy',
                     '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%', '7. MSY advice rule')[scenarios]
-            
+
             rownames(df) <- rn
             rownames(dfrel) <- rn
             rownames(dfabs) <- rn
@@ -398,4 +396,208 @@ pred.catch <- function(repin, fmsyfac=1, get.sd=FALSE, exp=FALSE, dbg=0){
         names(Cp) <- names(get.par('logK', repin)) # Just to get the names
     }
     return(Cp)
+}
+
+
+#' @name get.TAC
+#' @title Estimate the Total Allowable Catch (TAC)
+#' @param rep Result list from fit.spict().
+#' @param hcr SPiCT specific harvest control rule (HCR). Possible
+#'     rules are: \code{"MSY"}, \code{"MSY-HS"}, or \code{"MSY-HS-PA"}
+#'     (see details for more information).  below.
+#' @param args A list with specific arguments for the respective HCR
+#'     (see details for possible arguments).
+#' @param curc Optional; catch during assessment year, e.g. last
+#'     year's TAC (default: \code{NULL}; see details for more
+#'     information).
+#' @param sdfac Factor for the multiplication of the standard
+#'     deveiation of the catch during the assessment year
+#'     (\code{stdevfacC}; default = 1e-3).
+#' @param getFit Logical; if \code{TRUE} the function returns the
+#'     fitted 'spictcls' object with respective HCR (\code{FALSE} by
+#'     default).
+#'
+#' @details The possible harvest control rules (argument \code{hcr}) are:
+#' \itemize{
+#'   \item{MSY- MSY rule: Fishing at F_{MSY}.}
+#'   \item{MSY-HS - MSY Hockey-Stick rule: Above 0.5B_{MSY} fishing at F_{MSY}, below 0.5B_{MSY} fishing linearly reduced to 0 as suggested in ICES (2017).}
+#'    \item{MSY-ICES - MSY ICES rule: Same as the \code{MSY-HS} rule but using the 35th percentiles for predicted catch, \eqn{B/B_{MSY}}, and \eqn{F/F_{MSY}} following ICES (2019).}
+#'   \item{MSY-PA - MSY rule with additional precautionary buffer: As long as the probability of the predicted biomass relative to a reference biomass (e.g. 0.3B_{MSY}) is above a specified level (e.g. 5%), rule corresponds to \code{MSY}, otherwise reduce F to meet specified probability as introduced in ICES (2018).}
+#'   \item{MSY-HS-PA - MSY Hockey-stick rule with additional precautionary buffer: As long as the probability of the predicted biomass relative to a reference biomass (e.g. 0.3B_{MSY}) is above a specified level (e.g. 5%), rule corresponds to \code{MSY-HS}, otherwise reduce F to meet specified probability as introduced in ICES (2018).}
+#' }
+#'
+#' The possible arguments of the \code{args} list are:
+#' \itemize{
+#'   \item{fracc - Fractile of the predicted catch distribution. Default: 0.5.}
+#'   \item{fracf - Fractile of the \eqn{F/F_{MSY}} distribution. Default: 0.5.}
+#'   \item{fracb - Fractile of the \eqn{B/B_{MSY}} distribution. Default: 0.5.}
+#'   \item{bfrac - Reference level for the evaluation of the predicted biomass defined as fraction of \eqn{B/B_{MSY}}. Default: 0.3.}
+#'   \item{babs - Reference level for the evaluation of the predicted biomass defined in absolute terms. Default: \code{NA}, which means that the reference level is defined in relative terms (\code{bfrac}).}
+#'   \item{prop - Risk aversion probability level of the predicted biomass relative to specified reference level for the \code{MSY-HS-PA} rule. Default: 0.95, which corresponds to an accepted risk of 5% (1-0.95).}
+#'   \item{reportmode - Determining which objects will be adreported. Default: 2 = only objects relevant for get.TAC are adreported.}
+#' }
+#'
+#' Dependent on the start of the management period (e.g. advice year),
+#' there might be a time lag between the last observation and the
+#' start of the management period. If this is the case, an assumption
+#' about the intermediate time period (e.g. assessment year) has to be
+#' made. Either the fishing mortality is extrapolated for the
+#' intermediate time period (\code{curc = NULL}; default), or the
+#' argument \code{curc} can be used to set the catch in that period.
+#'
+#' @return A list with absolute and relative reference levels and
+#'     states and estimated TAC; if \code{getFit} is \code{TRUE} the
+#'     fitted object with the respective HCR is returned.
+#'
+#' @references
+#' ICES. 2017. Report of the Workshop on the Development of the ICES
+#' approach to providing MSY advice for category 3 and 4 stocks
+#' (WKMSYCat34), 6-10 March 2017, Copenhagen, Denmark. ICES CM 2017/
+#' ACOM:47. 53 pp.
+#'
+#' ICES. 2018. Report of the Eighth Workshop on the Development of
+#' Quantitative Assessment Methodologies based on LIFE-history traits,
+#' exploitation characteristics, and other relevant parameters for
+#' data-limited stocks (WKLIFE VIII), 8-12 October 2018, Lisbon,
+#' Portugal. ICES CM 2018/ACOM:40. 172 pp.
+#'
+#' ICES 2019. Report of the Ninth Workshop on the Development of
+#' Quantitative Assessment Methodologies based on LIFE-history traits,
+#' exploitation characteristics, and other relevant parameters for
+#' data-limited stocks (WKLIFE IX), 30 September-4 October 2019,
+#' Lisbon, Portugal.
+#'
+#' @export
+#' @examples
+#' rep <- fit.spict(pol$albacore)
+#' get.TAC(rep)
+get.TAC <- function(rep,
+                    hcr = c("MSY","MSY-HS","MSY-HS-frac","MSY-PA","MSY-HS-PA")[1],
+                    args = NULL,
+                    curc = NULL,
+                    sdfac = 1e-3,
+                    getFit = FALSE){
+    repin <- rep
+    inpin <- repin$inp
+
+    ## all hcrs
+    allhcrs <- c("MSY","MSY-HS","MSY-PA","MSY-HS-PA")
+
+    ## elements of args
+    if(is.null(args)) args <- list()
+    args$fracc <- if(!"fracc" %in% names(args)) 0.5 else args$fracc
+    args$fracf <- if(!"fracf" %in% names(args)) 0.5 else args$fracf
+    args$fracb <- if(!"fracb" %in% names(args)) 0.5 else args$fracb
+    args$bfrac <- if(!"bfrac" %in% names(args)) 0.3 else args$bfrac
+    args$babs <- if(!"babs" %in% names(args)) NA else args$babs
+    args$prop <- if(!"prop" %in% names(args)) 0.95 else args$prop
+    args$reportmode <- if(!"reportmode" %in% names(args)) 1 else args$reportmode
+
+    ## option for assessment year (intermediate year between last data and advice year)
+    inttime <- inpin$dtpredcinds[1] - min(inpin$indpred)
+    if(inttime > 0 && !is.null(curc) && !is.na(curc) && is.numeric(curc)){
+        ## make catchList for projected years (timesteps) before manstart
+        catchList <- list()
+        catchList$timeC <- inpin$time[min(inpin$indpred)]
+        catchList$obsC <- curc
+        catchList$stdevfacC <- sdfac
+        catchList$dtc <- (inpin$dtpredcinds[1] - min(inpin$indpred)) * inpin$dteuler
+        inpin$reportmode <- 1
+        repin <- take.c(curc, inpin, repin, catchList = catchList)
+        inpin <- repin$inp
+    }
+
+    ## quantities
+    fmanstart <- get.par('logFm', repin, exp=TRUE)[2]
+    fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
+    bmsy <- get.par('logBmsy', repin, exp=TRUE)[2]
+    logFpFmsy <- get.par("logFpFmsynotS", repin)
+    logBpBmsy <- get.par("logBpBmsy", repin)
+    logFmFmsy <- get.par("logFmFmsynotS", repin)
+    logBmBmsy <- get.par("logBmBmsy", repin)
+
+    ## derived HCRs
+    if(hcr == "MSY-ICES"){
+        args$fracf <- 0.35
+        args$fracb <- 0.35
+        args$fracc <- 0.35
+        hcr2 <- "MSY-HS"
+    }else if(hcr == "MSY-HS-PA"){
+        hcr2 <- "MSY-PA"
+    }else{
+        hcr2 <- hcr
+    }
+
+    ## rules
+    switch(hcr2,
+           "MSY" = {
+               ffac <- fmsy / fmanstart
+               tac <- calc.tac(repin, ffac, args$fracc)
+           },
+           "MSY-HS" = {
+               fi <- 1 - args$fracf
+               fmfmsyi <- exp(qnorm(fi, logFmFmsy[2], logFmFmsy[4]))
+               fmfmsy5 <- exp(qnorm(0.5, logFmFmsy[2], logFmFmsy[4]))
+               bmbmsyi <- 2 * exp(qnorm(args$fracb, logBmBmsy[2], logBmBmsy[4]))
+               fred <- fmfmsy5 / fmfmsyi * min(1, bmbmsyi)
+               ffac <- (fred + 1e-8) * fmsy / fmanstart
+               tac <- calc.tac(repin, ffac, args$fracc)
+           },
+           "MSY-PA" = {
+               quant <- "logBpBmsy"
+               repcop <- repin
+               bmbmsyi <- 2 * exp(qnorm(args$fracb, logBmBmsy[2], logBmBmsy[4]))
+               ffac <- fmsy / fms * min(1, bmbmsyi)
+               if(hcr == "MSY-HS-PA"){
+                   fi <- 1 - args$fracf
+                   fmfmsyi <- exp(qnorm(fi, logFmFmsy[2], logFmFmsy[4]))
+                   fmfmsy5 <- exp(qnorm(0.5, logFmFmsy[2], logFmFmsy[4]))
+                   fred <- fmfmsy5 / fmfmsyi * min(1, bmbmsyi)
+                   ffac <- (fred + 1e-8) * fmsy / fmanstart
+               }
+               inpcop <- make.ffacvec(inpin, ffac)
+               repcop$obj$env$data$ffacvec <- inpcop$ffacvec
+               repcop$obj$env$data$reportmode <- 2
+               repcop$obj$retape()
+               repcop$obj$fn(repin$opt$par)
+               sdr <- try(sdreport(repcop$obj), silent=TRUE)
+               logBpBmsycop <- get.par(quant, sdr)
+               propi <- 1 - args$prob
+               bpbmsyi <- exp(qnorm(propi, logBpBmsycop[2], logBpBmsycop[4]))
+               bfrac <- args$bfrac
+               if(!is.na(args$babs) && is.numeric(args$babs)){
+                   bfrac <- args$babs / bmsy
+               }
+               if((bpbmsyi - bfrac) < -1e-3){
+                   ffac <- try(get.ffac(repcop, bfrac=bfrac, prob=args$prob,
+                                        quant=quant, reportmode = args$reportmode), silent = TRUE)
+
+               }
+               tac <- calc.tac(repin, ffac, args$fracc)
+           },
+           stop(paste0("The specified 'hcr' is not known. Please choose between: ",
+                       paste0(allhcrs, collapse = "; "))))
+
+    ## get fitted object
+    if(getFit){
+        inpt <- make.ffacvec(repin$inp, ffac)
+        repin$obj$env$data$ffacvec <- inpt$ffacvec
+        repin$obj$env$data$reportmode <- 0
+        repin$obj$retape()
+        repin$obj$fn(repin$opt$par)
+        fit <- try(sdreport(repin$obj),silent=TRUE)
+        if(!is(fit,"try-error")) return(fit) else stop("The model could not be fitted.")
+    }
+
+    ## results
+    reslist <- list(hcr = hcr,
+                    manint = inpin$manint,
+                    maneval = inpin$maneval,
+                    TAC = tac,
+                    ffac = ffac,
+                    curc = curc,
+                    sdfac = sdfac,
+                    args = args)
+    ## return
+    return(reslist)
 }

@@ -536,3 +536,96 @@ get.cov <- function(rep, parname1, parname2, cor=FALSE){
         return(rep$cov[inds, inds])
     }
 }
+
+
+#' @name probdev
+#' @title Get probability to be above certain biomass threshold for
+#'     set fishing mortality
+#' @param ffac Fishing mortality factor
+#' @param rep Result list from fit.spict().
+#' @param bfrac Fraction of biomass relativ to biomass reference
+#'     levels (dependent on \code{quant}), e.g.  fraction of B/Bmsy
+#'     which is defined as threshold (Blim = 0.3 Bmsy, Btrigger = 0.5
+#'     Bmsy) or fraction of Bp/Bl
+#' @param prob Probability of being above threshold
+#' @param quant Quantity to use (options: "logBpBmsy", logBpBl")
+#' @param getFrac logical; return
+#' @param verbose logical; print realised probability, set fishing
+#'     mortality factor and deviation
+#' @param reportmode Default 2
+#' @return Returns deviation between targeted and realised probability
+#'     of being above certain biomass threshold under set fishing
+#'     mortality
+probdev <- function(ffac, rep, bfrac = 0.3, 
+                    prob = 0.95, quant = "logBpBmsy",
+                    reportmode = 2,
+                    getFrac = FALSE, verbose = FALSE){
+    ## get F factor
+    inpt <- make.ffacvec(rep$inp, ffac)
+    rep$obj$env$data$ffacvec <- inpt$ffacvec
+    rep$obj$env$data$reportmode <- reportmode
+    rep$obj$retape()
+    rep$obj$fn(rep$opt$par)
+    sdr <- sdreport(rep$obj)
+    last.state <- get.par(quant,sdr)
+    ll <- qnorm(1-prob,last.state[,2],last.state[,4])
+    dev <- (exp(ll) - bfrac)^2
+    if(verbose)  cat("exp(ll): ",exp(ll),"ffac: ",ffac, " dev: ",dev,"\n")
+    if(getFrac) dev <- exp(ll)
+    dev
+}
+
+
+#' @name get.ffac
+#' @title Get the fishing mortality corresponding to set probability
+#'     of being above certain biomass threshold
+#' @param rep Result list from fit.spict().
+#' @param bfrac Fraction of biomass relativ to biomass reference
+#'     levels (dependent on \code{quant}), e.g.  fraction of B/Bmsy
+#'     which is defined as threshold (Blim = 0.3 Bmsy, Btrigger = 0.5
+#'     Bmsy) or fraction of Bp/Bl
+#' @param prob Probability to be above threshold (bfrac; default
+#'     is 0.95)
+#' @param quant Quantity to use (options: "logBpBmsy", logBpBl")
+#' @param reportmode default = 2
+#' @return Optimised Fishing mortality for P(Bp<Blim)
+#' @export
+get.ffac <- function(rep, bfrac=0.3, prob=0.95,
+                     quant = "logBpBmsy", reportmode = 2){
+    ## see if is possible even with zero F  
+    dev0 <- probdev(ffac=1e-6,rep=rep,getFrac=TRUE, prob=prob,
+                    bfrac=bfrac, quant = quant, reportmode = reportmode,
+                    verbose=FALSE)
+    if(!is.finite(dev0) || (dev0 - bfrac) < -1e-3){
+        ## cat("Not possible even with zero F\n")
+        return(1e-6)
+    }
+    offac <- optimize(probdev,c(1e-6,5),tol=1e-2, rep=rep,
+                      bfrac=bfrac,prob=prob,quant=quant,reportmode=reportmode,
+                      verbose=FALSE)
+    offac$minimum
+}
+
+
+#' @name calc.tac
+#' @title Calculate TAC for set fishing mortality factor
+#' @param rep Result list from fit.spict().
+#' @param ffac Fishing mortality factor
+#' @param fracc The fractile of the catch distribution to be used
+#'     for setting the TAC. Default is median (0.5).
+#' @return Estimated TAC given fishing mortality factor
+calc.tac <- function(rep, ffac, fracc = 0.5){
+    inpt <- make.ffacvec(rep$inp, ffac)
+    rep$obj$env$data$ffacvec <- inpt$ffacvec
+    rep$obj$env$data$reportmode <- 2
+    rep$obj$retape()
+    rep$obj$fn(rep$opt$par)
+    if(fracc == 0.5){
+        tac <- rep$obj$report(rep$obj$env$last.par.best)$Cp
+    }else{
+        sdr <- sdreport(rep$obj)
+        logCp <- get.par('logCp', sdr)                  ## check the time period of Cp 
+        tac <- exp(qnorm(fracc, logCp[2], logCp[4]))                    
+    }
+    return(tac)
+}

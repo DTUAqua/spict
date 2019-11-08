@@ -20,3 +20,6 @@ take.c(catch, inpin, repin, dbg = 0, sdfac = 0.001, catchList = NULL)
 \value{
 List containing results of management calculations.
 }
+\description{
+Calculate management when taking a constant catch (proxy for setting a TAC).
+}

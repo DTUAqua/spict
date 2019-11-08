@@ -14,3 +14,6 @@ sumspict.drefpoints(rep, ndigits = 8)
 \value{
 data.frame containing deterministic reference points.
 }
+\description{
+Deternistic reference points of a fit.spict() run.
+}

@@ -30,6 +30,9 @@ plotspict.bbmsy(rep, logax = FALSE, main = "Relative biomass",
 \value{
 Nothing.
 }
+\description{
+Plot estimated B/Bmsy.
+}
 \details{
 Plots estimated B/Bmsy.
 }

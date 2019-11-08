@@ -21,3 +21,6 @@ plotspict.data(inpin, MSY = NULL, one.index = NULL, qlegend = TRUE,
 \value{
 Nothing
 }
+\description{
+Plot input data
+}

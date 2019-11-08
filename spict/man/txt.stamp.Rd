@@ -16,3 +16,6 @@ txt.stamp(string = get.version(), cex = 0.5, do.flag = NULL)
 \value{
 Nothing
 }
+\description{
+Add spict version to plot
+}

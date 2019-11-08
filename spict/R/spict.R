@@ -302,6 +302,7 @@ make.datin <- function(inp, dbg=0){
                   priorFFmsy=inp$priors$logFFmsy,
                   priorBmsyB0=inp$priors$BmsyB0,
                   simple=inp$simple,
+                  reportmode=inp$reportmode,                  
                   dbg=dbg)
     return(datin)
 }

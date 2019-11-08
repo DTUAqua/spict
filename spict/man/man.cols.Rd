@@ -9,3 +9,6 @@ man.cols()
 \value{
 Color vector
 }
+\description{
+Load color of management scenarios.
+}

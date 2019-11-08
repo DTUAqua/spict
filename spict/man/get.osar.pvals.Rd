@@ -12,3 +12,6 @@ get.osar.pvals(rep)
 \value{
 Vector of p-values of length equal to the number of data series.
 }
+\description{
+Check whether ACF of catch and index residuals is significant in any lags.
+}

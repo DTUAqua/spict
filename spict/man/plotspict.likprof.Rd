@@ -16,6 +16,9 @@ plotspict.likprof(input, logpar = FALSE, stamp = get.version())
 \value{
 Nothing but shows a plot.
 }
+\description{
+Plots result of likelihood profiling.
+}
 \details{
 TBA
 }

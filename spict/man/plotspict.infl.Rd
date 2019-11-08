@@ -14,6 +14,9 @@ plotspict.infl(rep, stamp = get.version())
 \value{
 Nothing.
 }
+\description{
+Plots influence statistics of observations.
+}
 \details{
 TBA
 }
