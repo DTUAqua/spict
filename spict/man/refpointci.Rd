@@ -18,3 +18,6 @@ refpointci(t, ll, ul, cicol = "ivory2")
 \value{
 Spline design matrix.
 }
+\description{
+Draw CI around a reference point using polygon
+}

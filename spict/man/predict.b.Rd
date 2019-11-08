@@ -28,3 +28,6 @@
 \value{
 Predicted biomass at the end of dt.
 }
+\description{
+Helper function for sim.spict().
+}

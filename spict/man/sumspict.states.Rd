@@ -14,3 +14,6 @@ sumspict.states(rep, ndigits = 8)
 \value{
 data.frame containing state estimates.
 }
+\description{
+State estimates of a fit.spict() run.
+}

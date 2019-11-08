@@ -14,3 +14,6 @@ sumspict.fixedpars(rep, ndigits = 8)
 \value{
 data.frame containing fixed parameter information.
 }
+\description{
+Fixed parameters table.
+}

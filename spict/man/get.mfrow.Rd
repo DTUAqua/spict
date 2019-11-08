@@ -12,3 +12,6 @@ get.mfrow(n)
 \value{
 Nothing
 }
+\description{
+Get mfrow from the number of plots to be plotted
+}

@@ -14,3 +14,6 @@ fd(d, dec = 2)
 \value{
 Correctly formatted date.
 }
+\description{
+Format date
+}

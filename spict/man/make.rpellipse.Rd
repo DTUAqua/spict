@@ -12,6 +12,9 @@ make.rpellipse(rep)
 \value{
 A matrix with two columns containing the x and y coordinates of the ellipsis.
 }
+\description{
+Calculate confidence ellipsis for reference points.
+}
 \details{
 Calculates the confidence ellipsis of logBmsy and logFmsy (last if multiple)
 }

@@ -14,6 +14,9 @@ plotspict.season(rep, stamp = get.version())
 \value{
 Nothing.
 }
+\description{
+Plot the mean F cycle
+}
 \details{
 If seasonal data are available the seasonal cycle in the fishing mortality can be estimated. This function plots this mean F cycle.
 }

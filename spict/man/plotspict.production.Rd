@@ -19,6 +19,9 @@ plotspict.production(rep, n.plotyears = 40, main = "Production curve",
 \value{
 Nothing.
 }
+\description{
+Plot theoretical production curve and estimates.
+}
 \details{
 Plots the theoretical production curve (production as a function of biomass) as calculated from the estimated model parameters. Overlaid is the estimated production/biomass trajectory.
 }

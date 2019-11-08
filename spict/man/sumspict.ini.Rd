@@ -14,3 +14,6 @@ sumspict.ini(rep, numdigits)
 \value{
 list containing diagnostics information.
 }
+\description{
+Sensitivity to the initial parameter values
+}

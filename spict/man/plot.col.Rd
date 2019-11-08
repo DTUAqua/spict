@@ -5,8 +5,8 @@
 \title{Plot model points colored depending on the quarter to which they belong.}
 \usage{
 \method{plot}{col}(time, obs, obsx = NULL, pch = 1, add = FALSE,
-  typ = "p", do.line = TRUE, add.legend = FALSE, add.vline.at = NULL,
-  ...)
+  typ = "p", do.line = TRUE, add.legend = FALSE,
+  add.vline.at = NULL, ...)
 }
 \arguments{
 \item{time}{Time vector.}
@@ -31,4 +31,7 @@
 }
 \value{
 Nothing.
+}
+\description{
+Plot model points colored depending on the quarter to which they belong.
 }

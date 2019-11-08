@@ -16,6 +16,9 @@ plotspict.osar(rep, collapse.I = TRUE, qlegend = TRUE)
 \value{
 Nothing.
 }
+\description{
+Plot one-step-ahead residuals
+}
 \details{
 Plots observed versus predicted catches.
 }

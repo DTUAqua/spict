@@ -18,6 +18,9 @@ extract.simstats(rep, inp = NULL, exp = NULL, parnames = NULL)
 \value{
 A list containing the relevant statistics.
 }
+\description{
+Extracts relevant statistics from the estimation of a simulated data set.
+}
 \details{
 TBA
 }

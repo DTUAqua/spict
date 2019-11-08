@@ -19,3 +19,6 @@
 \value{
 Nothing.
 }
+\description{
+Plot priors of Meyer & Millar model
+}

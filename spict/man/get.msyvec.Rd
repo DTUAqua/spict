@@ -14,3 +14,6 @@ get.msyvec(inp, msy)
 \value{
 A list containing reference point estimates with upper and lower CI bounds.
 }
+\description{
+If multiple growth rates (r) are used (e.g. for a seasonal model), return specified reference point for all instances of r.
+}

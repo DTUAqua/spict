@@ -9,3 +9,6 @@ warning.stamp()
 \value{
 Nothing
 }
+\description{
+Add warning sign to plot
+}

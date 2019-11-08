@@ -27,24 +27,36 @@
 #'   \item{"4"}{ No fishing, reduce to 1\% of current F.}
 #'   \item{"5"}{ Reduce F by X\%. Default X = 25.}
 #'   \item{"6"}{ Increase F by X\%. Default X = 25.}
-#'   \item{"7"}{ Use ICES MSY advice rule.}
+#'   \item{"7"}{ Use ICES MSY advice rule (ICES, 2017).}
 #'
 #' Scenario 7 implements the ICES MSY advice rule for stocks that are assessed using spict (ICES 2017). MSY B_{trigger} is set equal to B_{MSY} / 2. Then fishing mortality in the short forecast is calculated as:
 #'
-#' F(y+1) =  F(y) * min{ 1, median[B(y+1) / MSY B_{trigger}] } / median[F(y)/F_{MSY}]  
-#' }
+#' F(y+1) = F(y) * min{ 1, median[B(y+1) / MSY B_{trigger}] } /
+#' median[F(y)/F_{MSY}] }
 #' @param repin Result list from fit.spict().
-#' @param scenarios Vector of integers specifying which scenarios to run. Default: 'all'.
+#' @param scenarios Vector of integers specifying which scenarios to run.
+#'     Default: 'all'.
 #' @param manstart Year that management should be initiated.
-#' @param dbg Debug flag, dbg=1 some output, dbg=2 more ourput.
+#' @param catch Catch which will be taken each year in the prediction period. By
+#'     default (\code{NULL}) catch is equal to last year's catch.
+#' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3)
+#' @param catchList List with elements: "obsC", "timeC", "stdevfacC", and "dtc"
+#'     specifying the catch, the time of catch, the factor of the standard
+#'     deviation of the catch, and the catch time interval. By default
+#'     (\code{NULL}) settings are based on the last year.
+#' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
 #' @return List containing results of management calculations.
+#' @references ICES. 2017. Report of the Workshop on the Development of the ICES
+#'     approach to providing MSY advice for category 3 and 4 stocks
+#'     (WKMSYCat34), 6-10 March 2017, Copenhagen, Denmark. ICES CM 2017/ACOM:47.
+#'     53 pp.
 #' @export
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' repman <- manage(rep)
 #' mansummary(repman) # To print projections
-manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, catchList=NULL){
+manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, sdfac = 1, catchList=NULL){
     if (scenarios == 'all'){
         scenarios <- 1:7
     }
@@ -63,12 +75,12 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, cat
         inpin$timepredi <- repin$inp$timepredi
         inpin$manstart <- repin$inp$manstart
         repman <- list() # Output list
-        attr(repman, "scenarios") <- scenarios 
+        attr(repman, "scenarios") <- scenarios
         if (1 %in% scenarios){
             # 1. Specify the catch, which will be taken each year in the prediction period
             lastyearidxs <- min( which( cumsum(rev(inpin$dtc))>=1 ) ) ## warning: this will not make sense with subannual/mixed data with missing values
             if(is.null(catch)) catch <- sum(tail(inpin$obsC, lastyearidxs))
-            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg, catchList=catchList)
+            repman[[1]] <- take.c(catch, inpin, repin, dbg=dbg, sdfac=sdfac, catchList=catchList)
         }
         if (2 %in% scenarios){
             # Keep current F
@@ -78,7 +90,7 @@ manage <- function(repin, scenarios='all', manstart=NULL, dbg=0, catch=NULL, cat
         if (3 %in% scenarios){
             # Fish at Fmsy
             Fmsy <- get.par('logFmsy', repin, exp=TRUE)[2]
-            Flast <- get.par('logF', repin, exp=TRUE)[repin$inp$indpred[1], 2]
+            Flast <- get.par('logFnotS', repin, exp=TRUE)[repin$inp$indpred[1], 2]
             fac3 <- Fmsy / Flast
             repman[[3]] <- prop.F(fac3, inpin, repin, maninds, dbg=dbg)
         }
@@ -139,7 +151,7 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
     objt$fn(repin$opt$par)
     ## repmant <- sdreport(objt)
     verflag <- as.numeric(gsub('[.]', '', as.character(packageVersion('TMB')))) >= 171
-    if (verflag) { 
+    if (verflag) {
       repmant <- sdreport(objt,
                           getJointPrecision=repin$inp$getJointPrecision,
                           bias.correct=repin$inp$bias.correct,
@@ -162,23 +174,28 @@ prop.F <- function(fac, inpin, repin, maninds, corF=FALSE, dbg=0){
 
 
 #' @name take.c
-#' @title Calculate management when taking a constant catch (proxy for setting a TAC).
-#' @param catch Take this catch 'dtpredc' ahead from manstart time 
+#' @title Calculate management when taking a constant catch (proxy for setting a
+#'     TAC).
+#' @param catch Take this catch 'dtpredc' ahead from manstart time
 #' @param inpin Input list.
 #' @param repin Results list.
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
-#' @param sdfac Take catch with this 'stdevfacC' (default = 1e-3) 
+#' @param sdfac Take catch with this 'stdevfacC' (default = 1)
+#' @param catchList List with elements: "obsC", "timeC", "stdevfacC", and "dtc"
+#'     specifying the catch, the time of catch, the factor of the standard
+#'     deviation of the catch, and the catch time interval. By default
+#'     (\code{NULL}) settings are based on the last year.
 #' @return List containing results of management calculations.
 #' @export
-take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
-    
+take.c <- function(catch, inpin, repin, dbg=0, sdfac=1, catchList=NULL){
+
     inpt <- inpin
     if(is.null(catchList)){
-        tmpTime <- repin$inp$timeCpred  
+        tmpTime <- repin$inp$timeCpred
         maninds <- which(tmpTime >= inpin$manstart)
         inpt$timeC <- c( inpt$timeC, tmpTime[maninds] )
         inpt$obsC <- c( inpt$obsC, rep(catch, length(maninds)) )
-        inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(maninds)) )  
+        inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(maninds)) )
         inpt$dtc <- c(inpt$dtc, rep(inpt$dtpredc, length(maninds)) )
     } else {
         inpt$timeC <- c( inpt$timeC, catchList$timeC )
@@ -186,11 +203,11 @@ take.c <- function(catch, inpin, repin, dbg=0, sdfac=1e-3, catchList=NULL){
         if(is.null(catchList$stdevfacC))
             inpt$stdevfacC <- c(inpt$stdevfacC, rep(sdfac, length(catchList$timeC)) )  else
             inpt$stdevfacC <- c(inpt$stdevfacC, catchList$stdevfacC)
-        
+
         inpt$dtc <- c(inpt$dtc, catchList$dtc )
     }
 
-    
+
     inpt <- check.inp(inpt)
     # Make TMB data and object
     plt <- repin$obj$env$parList(repin$opt$par)
@@ -307,7 +324,7 @@ mansummary <- function(repin, ypred=1, include.EBinf=FALSE, include.unc=TRUE, ve
             scenarios <- attr(repman, "scenarios")
             rn <- c('1. Keep current catch', '2. Keep current F', '3. Fish at Fmsy',
                     '4. No fishing', '5. Reduce F 25%', '6. Increase F 25%', '7. MSY advice rule')[scenarios]
-            
+
             rownames(df) <- rn
             rownames(dfrel) <- rn
             rownames(dfabs) <- rn

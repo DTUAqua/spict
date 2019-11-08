@@ -12,6 +12,9 @@ read.aspic(filename)
 \value{
 A list of input variables that can be used as input to fit.spict().
 }
+\description{
+Reads ASPIC input file.
+}
 \details{
 Reads an input file following the ASPIC 7 format described in the ASPIC manual (found here http://www.mhprager.com/aspic.html).
 }

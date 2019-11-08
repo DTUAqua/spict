@@ -4,8 +4,8 @@
 \alias{mansummary}
 \title{Print management summary.}
 \usage{
-mansummary(repin, ypred = 1, include.EBinf = FALSE, include.unc = TRUE,
-  verbose = TRUE)
+mansummary(repin, ypred = 1, include.EBinf = FALSE,
+  include.unc = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{repin}{Result list as output from manage().}
@@ -20,4 +20,7 @@ mansummary(repin, ypred = 1, include.EBinf = FALSE, include.unc = TRUE,
 }
 \value{
 Data frame containing management summary.
+}
+\description{
+Print management summary.
 }

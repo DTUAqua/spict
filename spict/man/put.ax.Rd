@@ -13,6 +13,9 @@ put.xax(rep)
 \value{
 Nothing.
 }
+\description{
+Adds the x-axis to influence plots
+}
 \details{
 TBA
 }
