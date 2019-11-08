@@ -402,52 +402,94 @@ pred.catch <- function(repin, fmsyfac=1, get.sd=FALSE, exp=FALSE, dbg=0){
 #' @name get.TAC
 #' @title Estimate the Total Allowable Catch (TAC)
 #' @param rep Result list from fit.spict().
-#' @param hcr SPiCT specific harvest control rule (HCR). Possible
-#'     rules are: \code{"MSY"}, \code{"MSY-HS"}, or \code{"MSY-HS-PA"}
-#'     (see details for more information).  below.
-#' @param args A list with specific arguments for the respective HCR
-#'     (see details for possible arguments).
-#' @param curc Optional; catch during assessment year, e.g. last
-#'     year's TAC (default: \code{NULL}; see details for more
-#'     information).
-#' @param sdfac Factor for the multiplication of the standard
-#'     deveiation of the catch during the assessment year
-#'     (\code{stdevfacC}; default = 1e-3).
-#' @param getFit Logical; if \code{TRUE} the function returns the
-#'     fitted 'spictcls' object with respective HCR (\code{FALSE} by
-#'     default).
+#' @param fractileList List defining the fractiles of the 3 distributions of
+#'     "catch", "bbmsy", and "ffmsy" (see details for more information). By
+#'     default median is used for all 3 quantities.
+#' @param breakpoint_bbmsy Breakpoint in terms of \eqn{B/B_{MSY}} for the
+#'     hockey-stick HCR (see details for more information). By default (0) no
+#'     breakpoint is assumed.
+#' @param paList List defining an optional precautionary buffer by the fraction
+#'     of "bbmsy" (default = 0, i.e. deactivating the PA buffer) and "prob" the
+#'     risk aversion probability (default = 0.95).
+#' @param catch_pred Catch during assessment year (corresponding to argument
+#'     \code{catch} in \code{\link{take.c}}), e.g. last year's TAC (default:
+#'     \code{NULL}; see details for more information).
+#' @param sdfac Factor for the multiplication of the standard deveiation of the
+#'     catch during the assessment year (\code{stdevfacC}; default = 1; see
+#'     \code{\link{take.c}}).
+#' @param getFit Logical; if \code{TRUE} the function returns the fitted
+#'     'spictcls' object with respective HCR (\code{FALSE} by default).
 #'
-#' @details The possible harvest control rules (argument \code{hcr}) are:
+#' @details The combination of the arguments in the "fractileList",
+#'     "breakpoint_bbmsy", and "paList" allow a number of different harvest
+#'     control rules (HCRs):
 #' \itemize{
-#'   \item{MSY- MSY rule: Fishing at F_{MSY}.}
-#'   \item{MSY-HS - MSY Hockey-Stick rule: Above 0.5B_{MSY} fishing at F_{MSY}, below 0.5B_{MSY} fishing linearly reduced to 0 as suggested in ICES (2017).}
-#'    \item{MSY-ICES - MSY ICES rule: Same as the \code{MSY-HS} rule but using the 35th percentiles for predicted catch, \eqn{B/B_{MSY}}, and \eqn{F/F_{MSY}} following ICES (2019).}
-#'   \item{MSY-PA - MSY rule with additional precautionary buffer: As long as the probability of the predicted biomass relative to a reference biomass (e.g. 0.3B_{MSY}) is above a specified level (e.g. 5%), rule corresponds to \code{MSY}, otherwise reduce F to meet specified probability as introduced in ICES (2018).}
-#'   \item{MSY-HS-PA - MSY Hockey-stick rule with additional precautionary buffer: As long as the probability of the predicted biomass relative to a reference biomass (e.g. 0.3B_{MSY}) is above a specified level (e.g. 5%), rule corresponds to \code{MSY-HS}, otherwise reduce F to meet specified probability as introduced in ICES (2018).}
-#' }
 #'
-#' The possible arguments of the \code{args} list are:
+#' \item{Fishing at F_{MSY} (or any fractile of it in terms of \eqn{F/F_{MSY}}
+#' or catch) if \code{breakpoint_bbmsy == 0} and \code{paList$bbmsy == 0}.}
+#'
+#' \item{MSY hockey-stick rule: Fishing at F_{MSY} above a certain fraction of
+#'     B_{MSY} (\code{breakpoint_bbmsy}) and below the fraction of B_{MSY}
+#'     fishing is reduced to 0 linearly as suggested in ICES (2017) if
+#'     \code{breakpoint_bbmsy != 0} and \code{paList$bbmsy = 0}.}
+#'
+#' \item{MSY (hockey-stick) rule with additional precautionary buffer: As long
+#'     as the probability of the predicted biomass relative to a reference
+#'     biomass (e.g. 0.3 B_{MSY}, defined by \code{paList$bbmsy}) is smaller or
+#'     equal to a specified risk aversion probability (e.g. 95%, defined by
+#'     \code{paList$prob}), fishing at F_{MSY} or according to hockey-stick rule
+#'     (if \code{breakpoint !=0 }) otherwise reduce fishing effort to meet
+#'     specified risk aversion probability (\code{paList$prob}) as introduced in
+#'     ICES (2018).}
+#'
+#' \item{By ICES (2019) recommended MSY hockey-stick rule with 35th percentiles:
+#'     Fishing at 35th percentile of F_{MSY} above the 35th percentile of 0.5
+#'     \eqn{B/B_{MSY}} (\code{breakpoint_bbmsy = 0.5}) and 35th percentile of
+#'     linearly reduced F_{MSY} below the 35th percentile of 0.5
+#'     \eqn{B/B_{MSY}}. TAC corresponds to 35th percentile of predicted catch.
+#'     Rule is applied with \code{fractileList = list(catch=0.35, bbmsy=0.35,
+#'     ffmsy=0.35)}, \code{breakpoint_bbmsy = 0.5}, and \code{paList =
+#'     list(bbmsy = 0, prob = 0.95)}.}}
+#'
+#' More information about the function arguments controlling the HCRs. The
+#' arguments of the "fractileList" are: \itemize{
+#'
+#' \item{catch - Fractile of the predicted catch distribution. Default: 0.5.}
+#'
+#' \item{bbmsy - Fractile of the \eqn{B/B_{MSY}} distribution. Default: 0.5.}
+#'
+#' \item{ffmsy - Fractile of the \eqn{F/F_{MSY}} distribution. Default: 0.5.}}
+#'
+#' The argument "breakpoint_bbmsy" allows to define the MSY hockey-stick rule,
+#' which reduces fishing linearly if the biomass is below specified reference
+#' level as specified here relative to B_{MSY}. Theoretically, any value below 1
+#' is meaningful, but ICES (2017 to 2019) recommend 50% of B_{MSY}
+#' (\code{breakpoint_bbmsy = 0.5}). The argument list "paList" includes:
 #' \itemize{
-#'   \item{fracc - Fractile of the predicted catch distribution. Default: 0.5.}
-#'   \item{fracf - Fractile of the \eqn{F/F_{MSY}} distribution. Default: 0.5.}
-#'   \item{fracb - Fractile of the \eqn{B/B_{MSY}} distribution. Default: 0.5.}
-#'   \item{bfrac - Reference level for the evaluation of the predicted biomass defined as fraction of \eqn{B/B_{MSY}}. Default: 0.3.}
-#'   \item{babs - Reference level for the evaluation of the predicted biomass defined in absolute terms. Default: \code{NA}, which means that the reference level is defined in relative terms (\code{bfrac}).}
-#'   \item{prop - Risk aversion probability level of the predicted biomass relative to specified reference level for the \code{MSY-HS-PA} rule. Default: 0.95, which corresponds to an accepted risk of 5% (1-0.95).}
-#'   \item{reportmode - Determining which objects will be adreported. Default: 2 = only objects relevant for get.TAC are adreported.}
-#' }
 #'
-#' Dependent on the start of the management period (e.g. advice year),
-#' there might be a time lag between the last observation and the
-#' start of the management period. If this is the case, an assumption
-#' about the intermediate time period (e.g. assessment year) has to be
-#' made. Either the fishing mortality is extrapolated for the
-#' intermediate time period (\code{curc = NULL}; default), or the
-#' argument \code{curc} can be used to set the catch in that period.
+#' \item{bbmsy - Reference level for the evaluation of the predicted biomass
+#'   defined as fraction of \eqn{B/B_{MSY}}. By default \code{paList$bbmsy == 0}
+#'   the PA buffer is not used. Theoretically, any value smaller than 1 is
+#'   meaningful, but an ICES recommended value would be 30% \code{paList$bbmsy
+#'   = 0.3} (ICES, 2018).}
 #'
-#' @return A list with absolute and relative reference levels and
-#'     states and estimated TAC; if \code{getFit} is \code{TRUE} the
-#'     fitted object with the respective HCR is returned.
+#' \item{prob - Risk aversion probability of the predicted biomass relative to
+#'   specified reference level (\code{paList$bbmsy}) for all rules with PA
+#'   buffer (\code{paList$bbmsy != 0}). Default: 0.95 as recommended by ICES
+#'   (2018).}}
+#'
+#' Dependent on the start of the management period (e.g. advice year), there
+#' might be a time lag between the last observation and the start of the
+#' management period. If this is the case, an assumption about the intermediate
+#' time period (e.g. assessment year) has to be made. Either the fishing
+#' mortality is extrapolated for the intermediate time period (\code{catch_pred
+#' = NULL}; default), or the argument \code{catch_pred} can be used to set the
+#' catch in that period. The argument \code{sdfac} allows to adjust the standard
+#' deviation of the catch in the intermediate time period.
+#'
+#' @return A list with the TAC and management relevant quantities; if
+#'     \code{getFit} is \code{TRUE} the fitted object with the respective HCR is
+#'     returned.
 #'
 #' @references
 #' ICES. 2017. Report of the Workshop on the Development of the ICES
@@ -470,40 +512,49 @@ pred.catch <- function(repin, fmsyfac=1, get.sd=FALSE, exp=FALSE, dbg=0){
 #' @export
 #' @examples
 #' rep <- fit.spict(pol$albacore)
+#'
+#' ## Fishing at Fmsy
 #' get.TAC(rep)
+#'
+#' ## MSY hockey-stick rule
+#' get.TAC(rep, breakpoint_bbmsy = 0.5)
+#'
+#' ## ICES (2019) recommended HCR
+#' get.TAC(rep, fractileList = list(catch=0.35, bbmsy=0.35, ffmsy=0.35), breakpoint_bbmsy=0.5)
+#'
 get.TAC <- function(rep,
-                    hcr = c("MSY","MSY-HS","MSY-HS-frac","MSY-PA","MSY-HS-PA")[1],
-                    args = NULL,
-                    curc = NULL,
-                    sdfac = 1e-3,
+                    fractileList = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5),
+                    breakpoint_bbmsy = 0,
+                    paList = list(bbmsy = 0, prob = 0.95),
+                    catch_pred = NULL,
+                    sdfac = 1,
                     getFit = FALSE){
-    repin <- rep
+    reppa <- repin <- rep
     inpin <- repin$inp
 
-    ## all hcrs
-    allhcrs <- c("MSY","MSY-HS","MSY-PA","MSY-HS-PA")
-
-    ## elements of args
-    if(is.null(args)) args <- list()
-    args$fracc <- if(!"fracc" %in% names(args)) 0.5 else args$fracc
-    args$fracf <- if(!"fracf" %in% names(args)) 0.5 else args$fracf
-    args$fracb <- if(!"fracb" %in% names(args)) 0.5 else args$fracb
-    args$bfrac <- if(!"bfrac" %in% names(args)) 0.3 else args$bfrac
-    args$babs <- if(!"babs" %in% names(args)) NA else args$babs
-    args$prop <- if(!"prop" %in% names(args)) 0.95 else args$prop
-    args$reportmode <- if(!"reportmode" %in% names(args)) 1 else args$reportmode
+    ## Default lists (if user mis-specifies list or changes single element only)
+    ## fractile list
+    if(is.list(fractileList)) stop("Please provide 'fractileList' with the arguments: 'catch', 'bbmsy', and 'ffmsy'!")
+    default_fractileList = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5)
+    fList <- default_fractileList[which(!names(default_fractileList) %in% names(fractileList))]
+    fList <- c(fList,fractileList)
+    ## PA list
+    if(is.list(paList)) stop("Please provide 'paList' with the arguments: 'bbmsy' and 'prob'!")
+    default_paList = list(bbmsy = 0, prob = 0.95)
+    pList <- default_paList[which(!names(default_paList) %in% names(paList))]
+    pList <- c(pList,paList)
 
     ## option for assessment year (intermediate year between last data and advice year)
     inttime <- inpin$dtpredcinds[1] - min(inpin$indpred)
-    if(inttime > 0 && !is.null(curc) && !is.na(curc) && is.numeric(curc)){
+    if(inttime > 0 && !is.null(catch_pred) && !is.na(catch_pred) && is.numeric(catch_pred)){
         ## make catchList for projected years (timesteps) before manstart
         catchList <- list()
         catchList$timeC <- inpin$time[min(inpin$indpred)]
-        catchList$obsC <- curc
+        catchList$obsC <- catch_pred
         catchList$stdevfacC <- sdfac
         catchList$dtc <- (inpin$dtpredcinds[1] - min(inpin$indpred)) * inpin$dteuler
         inpin$reportmode <- 1
-        repin <- take.c(curc, inpin, repin, catchList = catchList)
+        repin <- take.c(catch_pred, inpin, repin, catchList = catchList)
         inpin <- repin$inp
     }
 
@@ -516,67 +567,41 @@ get.TAC <- function(rep,
     logFmFmsy <- get.par("logFmFmsynotS", repin)
     logBmBmsy <- get.par("logBmBmsy", repin)
 
-    ## derived HCRs
-    if(hcr == "MSY-ICES"){
-        args$fracf <- 0.35
-        args$fracb <- 0.35
-        args$fracc <- 0.35
-        hcr2 <- "MSY-HS"
-    }else if(hcr == "MSY-HS-PA"){
-        hcr2 <- "MSY-PA"
-    }else{
-        hcr2 <- hcr
+    ## HCRs
+    ## FFmsy component
+    fi <- 1 - fList$ffmsy
+    fmfmsyi <- exp(qnorm(fi, logFmFmsy[2], logFmFmsy[4]))
+    fmfmsy5 <- exp(qnorm(0.5, logFmFmsy[2], logFmFmsy[4]))
+    fred <- fmfmsy5 / fmfmsyi
+    ## BBmsy component (hockey stick HCR)
+    if(!is.na(breakpoint_bbmsy) && is.numeric(breakpoint_bbmsy) && breakpoint_bbmsy == 0){
+        bmbmsyi <- 1/breakpoint_bbmsy * exp(qnorm(fList$bbmsy, logBmBmsy[2], logBmBmsy[4]))
+        fred <- fred * min(1, bmbmsyi)
     }
-
-    ## rules
-    switch(hcr2,
-           "MSY" = {
-               ffac <- fmsy / fmanstart
-               tac <- calc.tac(repin, ffac, args$fracc)
-           },
-           "MSY-HS" = {
-               fi <- 1 - args$fracf
-               fmfmsyi <- exp(qnorm(fi, logFmFmsy[2], logFmFmsy[4]))
-               fmfmsy5 <- exp(qnorm(0.5, logFmFmsy[2], logFmFmsy[4]))
-               bmbmsyi <- 2 * exp(qnorm(args$fracb, logBmBmsy[2], logBmBmsy[4]))
-               fred <- fmfmsy5 / fmfmsyi * min(1, bmbmsyi)
-               ffac <- (fred + 1e-8) * fmsy / fmanstart
-               tac <- calc.tac(repin, ffac, args$fracc)
-           },
-           "MSY-PA" = {
-               quant <- "logBpBmsy"
-               repcop <- repin
-               bmbmsyi <- 2 * exp(qnorm(args$fracb, logBmBmsy[2], logBmBmsy[4]))
-               ffac <- fmsy / fms * min(1, bmbmsyi)
-               if(hcr == "MSY-HS-PA"){
-                   fi <- 1 - args$fracf
-                   fmfmsyi <- exp(qnorm(fi, logFmFmsy[2], logFmFmsy[4]))
-                   fmfmsy5 <- exp(qnorm(0.5, logFmFmsy[2], logFmFmsy[4]))
-                   fred <- fmfmsy5 / fmfmsyi * min(1, bmbmsyi)
-                   ffac <- (fred + 1e-8) * fmsy / fmanstart
-               }
-               inpcop <- make.ffacvec(inpin, ffac)
-               repcop$obj$env$data$ffacvec <- inpcop$ffacvec
-               repcop$obj$env$data$reportmode <- 2
-               repcop$obj$retape()
-               repcop$obj$fn(repin$opt$par)
-               sdr <- try(sdreport(repcop$obj), silent=TRUE)
-               logBpBmsycop <- get.par(quant, sdr)
-               propi <- 1 - args$prob
-               bpbmsyi <- exp(qnorm(propi, logBpBmsycop[2], logBpBmsycop[4]))
-               bfrac <- args$bfrac
-               if(!is.na(args$babs) && is.numeric(args$babs)){
-                   bfrac <- args$babs / bmsy
-               }
-               if((bpbmsyi - bfrac) < -1e-3){
-                   ffac <- try(get.ffac(repcop, bfrac=bfrac, prob=args$prob,
-                                        quant=quant, reportmode = args$reportmode), silent = TRUE)
-
-               }
-               tac <- calc.tac(repin, ffac, args$fracc)
-           },
-           stop(paste0("The specified 'hcr' is not known. Please choose between: ",
-                       paste0(allhcrs, collapse = "; "))))
+    ## F reduction factor
+    ffac <- (fred + 1e-8) * fmsy / fmanstart
+    ## PA component
+    if(!is.na(pList$bbmsy) && is.numeric(pList$bbmsy) && pList$bbmsy == 0){
+        inppa <- make.ffacvec(inpin, ffac)
+        reppa$obj$env$data$ffacvec <- inppa$ffacvec
+        reppa$obj$env$data$reportmode <- 1
+        reppa$obj$retape()
+        reppa$obj$fn(repin$opt$par)
+        sdr <- try(sdreport(reppa$obj), silent=TRUE)
+        if(is(sdr,"try-error")) stop("Model variances could not be estimated with the PA.")
+        logBpBmsyPA <- get.par("logBpBmsy", sdr)
+        probi <- 1 - pList$prob
+        bpbmsyiPA <- exp(qnorm(probi, logBpBmsyPA[2], logBpBmsyPA[4]))
+        if((bpbmsyiPA - pList$bbmsy) < -1e-3){
+            ffac <- try(get.ffac(reppa, bfrac=pList$bbmsy, prob=pList$prob,
+                                 quant="logBpBmsy",
+                                 reportmode = 2), silent=TRUE)
+            if(is(ffac,"try-error")) stop("F multiplication factor could not be estimated with the PA.")
+        }
+    }
+    ## Catch component
+    tac <- try(calc.tac(repin, ffac, fList$catch), silent=TRUE)
+    if(is(tac,"try-error")) stop("TAC could not be estimated.")
 
     ## get fitted object
     if(getFit){
@@ -590,14 +615,15 @@ get.TAC <- function(rep,
     }
 
     ## results
-    reslist <- list(hcr = hcr,
-                    manint = inpin$manint,
+    reslist <- list(TAC = tac,
+                    maninterval = inpin$maninterval,
                     maneval = inpin$maneval,
-                    TAC = tac,
                     ffac = ffac,
-                    curc = curc,
-                    sdfac = sdfac,
-                    args = args)
+                    fractileList = fList,
+                    breakpoint_bbmsy = breakpoint_bbmsy,
+                    paList = pList,
+                    catch_pred = catch_pred,
+                    sdfac = sdfac)
     ## return
     return(reslist)
 }
