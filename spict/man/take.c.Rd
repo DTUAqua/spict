@@ -2,9 +2,10 @@
 % Please edit documentation in R/manage.R
 \name{take.c}
 \alias{take.c}
-\title{Calculate management when taking a constant catch (proxy for setting a TAC).}
+\title{Calculate management when taking a constant catch (proxy for setting a
+    TAC).}
 \usage{
-take.c(catch, inpin, repin, dbg = 0, sdfac = 0.001, catchList = NULL)
+take.c(catch, inpin, repin, dbg = 0, sdfac = 1, catchList = NULL)
 }
 \arguments{
 \item{catch}{Take this catch 'dtpredc' ahead from manstart time}
@@ -15,8 +16,17 @@ take.c(catch, inpin, repin, dbg = 0, sdfac = 0.001, catchList = NULL)
 
 \item{dbg}{Debug flag, dbg=1 some output, dbg=2 more output.}
 
-\item{sdfac}{Take catch with this 'stdevfacC' (default = 1e-3)}
+\item{sdfac}{Take catch with this 'stdevfacC' (default = 1)}
+
+\item{catchList}{List with elements: "obsC", "timeC", "stdevfacC", and "dtc"
+specifying the catch, the time of catch, the factor of the standard
+deviation of the catch, and the catch time interval. By default
+(\code{NULL}) settings are based on the last year.}
 }
 \value{
 List containing results of management calculations.
+}
+\description{
+Calculate management when taking a constant catch (proxy for setting a
+    TAC).
 }

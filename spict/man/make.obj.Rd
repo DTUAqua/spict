@@ -18,3 +18,6 @@ make.obj(datin, pl, inp, phase = 1)
 \value{
 List to be used as data input to TMB.
 }
+\description{
+Create TMB obj using TMB::MakeADFun and squelch screen printing.
+}

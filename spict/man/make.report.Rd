@@ -25,6 +25,9 @@ to. If not a connection, \code{make.report} prints to the working directory (def
 \value{
 Nothing.
 }
+\description{
+Creates a pdf file containing the summary output and result plots
+}
 \details{
 This function probably requires that you are running linux and that you have latex functions installed (pdflatex).
 }

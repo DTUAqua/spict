@@ -18,3 +18,6 @@
 \value{
 Predicted F at the end of dt.
 }
+\description{
+Helper function for sim.spict().
+}

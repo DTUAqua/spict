@@ -16,3 +16,6 @@ get.spline(logphi, order, dtfine = 1/100)
 \value{
 Spline values at the points between 0 and 1 with dtfine as time step.
 }
+\description{
+Get the values of the seasonal spline for F.
+}

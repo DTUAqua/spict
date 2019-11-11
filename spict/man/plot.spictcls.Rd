@@ -14,6 +14,9 @@
 \value{
 Nothing.
 }
+\description{
+Plot summarising spict results.
+}
 \details{
 Create a plot containing the following:
 \itemize{

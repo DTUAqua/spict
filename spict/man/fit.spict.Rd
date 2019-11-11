@@ -14,6 +14,9 @@ fit.spict(inp, dbg = 0)
 \value{
 A result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
 }
+\description{
+Fit a continuous-time surplus production model to data.
+}
 \details{
 Fits the model using the TMB package and returns a result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
 

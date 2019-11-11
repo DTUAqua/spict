@@ -14,3 +14,6 @@ shaperate2meanvar(shape, rate)
 \value{
 Vector containing mean and var parameters.
 }
+\description{
+Convert shape and rate of gamma distribution to mean and variance
+}

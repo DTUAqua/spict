@@ -27,6 +27,9 @@ plotspict.catch(rep, main = "Catch", ylim = NULL, qlegend = TRUE,
 \value{
 Nothing.
 }
+\description{
+Plot observed catch and predictions.
+}
 \details{
 Plots observed catch and predictions using the current F and Fmsy. The plot also contains the equilibrium catch if the current F is maintained.
 }

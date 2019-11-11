@@ -12,6 +12,9 @@ calc.osa.resid(rep)
 \value{
 An updated result report, which contains one-step-ahead residuals stored in $osarC and $osarI.
 }
+\description{
+Calculate one-step-ahead residuals.
+}
 \details{
 In TMB one-step-ahead residuals are calculated by sequentially including one data point at a time while keeping the model parameters fixed at their ML estimates. The calculated residuals are tested for independence, bias, and normality.
 }

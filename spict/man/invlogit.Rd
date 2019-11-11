@@ -12,3 +12,6 @@ invlogit(a)
 \value{
 Inverse logit.
 }
+\description{
+Inverse logit transform.
+}

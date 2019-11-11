@@ -11,6 +11,9 @@ Polacheck et al. (1993), Canadian Journal of Fisheries and Aquatic Science, vol 
 \usage{
 data(pol)
 }
+\description{
+Fisheries data included in Polacheck et al. (1993).
+}
 \details{
 Fisheries data for south Atlantic albacore, northern Namibian hake, and New Zealand rock lobster.
 }

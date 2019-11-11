@@ -4,7 +4,8 @@
 \alias{pred.catch}
 \title{Predict the catch of the prediction interval specified in inp}
 \usage{
-pred.catch(repin, fmsyfac = 1, get.sd = FALSE, exp = FALSE, dbg = 0)
+pred.catch(repin, fmsyfac = 1, get.sd = FALSE, exp = FALSE,
+  dbg = 0)
 }
 \arguments{
 \item{fmsyfac}{Projection are made using F = fmsyfac * Fmsy.}
@@ -19,4 +20,7 @@ pred.catch(repin, fmsyfac = 1, get.sd = FALSE, exp = FALSE, dbg = 0)
 }
 \value{
 A vector containing predicted catch (possibly with uncertainty).
+}
+\description{
+Predict the catch of the prediction interval specified in inp
 }

@@ -18,3 +18,6 @@ get.cov(rep, parname1, parname2, cor = FALSE)
 \value{
 Covariance matrix of specified parameters.
 }
+\description{
+Get covariance matrix of two reported quantities not of fixed model parameters. Covariance of fixed model parameters can be found in rep$cov.fixed.
+}

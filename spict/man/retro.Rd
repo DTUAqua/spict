@@ -14,6 +14,9 @@ retro(rep, nretroyear = 5)
 \value{
 A rep list with the added key retro containing the results of the retrospective analysis. Use plotspict.retro() to plot these results.
 }
+\description{
+Conduct retrospective analysis
+}
 \details{
 A retrospective analysis consists of estimating the model with later data points removed sequentially one year at a time.
 }

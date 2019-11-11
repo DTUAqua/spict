@@ -9,3 +9,6 @@ list.possible.priors()
 \value{
 Prints parameters to which priors can be added.
 }
+\description{
+List parameters to which priors can be added
+}

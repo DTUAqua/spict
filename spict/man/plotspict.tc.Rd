@@ -16,6 +16,9 @@ plotspict.tc(rep, main = "Time to Bmsy", stamp = get.version())
 \value{
 Nothing.
 }
+\description{
+Plot time constant.
+}
 \details{
 Plots the time required for the biomass to reach a certain proportion of Bmsy. The time required to reach 95\% of Bmsy is highlighted.
 }

@@ -12,3 +12,6 @@ get.catchindexoverlap(inp)
 \value{
 List containing overlapping catch (y) and index (z) observations and their time vectors.
 }
+\description{
+Find observations of catch and index that overlap
+}

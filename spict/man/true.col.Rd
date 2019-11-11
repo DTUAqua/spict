@@ -9,3 +9,6 @@ true.col()
 \value{
 Color vector
 }
+\description{
+Load color of true values from simulation.
+}

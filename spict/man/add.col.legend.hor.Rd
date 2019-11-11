@@ -9,3 +9,6 @@ add.col.legend.hor()
 \value{
 Nothing.
 }
+\description{
+Add a legend explaining colors of points (horizontal orientation)
+}
