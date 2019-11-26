@@ -226,6 +226,7 @@ calc.prager.stats <- function(rep){
 #' @export
 make.datin <- function(inp, dbg=0){
     datin <- list(reportall=as.numeric(inp$reportall),
+                  reportRel=as.numeric(inp$reportRel),
                   dt=inp$dt,
                   dtpredcinds=inp$dtpredcinds,
                   dtpredcnsteps=inp$dtpredcnsteps,
@@ -274,6 +275,7 @@ make.datin <- function(inp, dbg=0){
                   stabilise=inp$stabilise,
                   MSYregime=inp$MSYregime,
                   priorn=inp$priors$logn,
+                  priorngamma=inp$priors$logngamma,
                   priorr=inp$priors$logr,
                   priorK=inp$priors$logK,
                   priorm=inp$priors$logm,
@@ -301,6 +303,7 @@ make.datin <- function(inp, dbg=0){
                   priorBBmsy=inp$priors$logBBmsy,
                   priorFFmsy=inp$priors$logFFmsy,
                   priorBmsyB0=inp$priors$BmsyB0,
+                  
                   simple=inp$simple,
                   dbg=dbg)
     return(datin)

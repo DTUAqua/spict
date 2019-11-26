@@ -25,5 +25,5 @@ LazyData: true
 VignetteBuilder: knitr
 GithubRepo: spict
 GithubRef: master 
-GithubSHA1: e685d0585fa8411133dddd60fbc71712ecdb7185 
+GithubSHA1: 8da47bfec49f13df833d4a7c588d4d05f2eab62b 
 RoxygenNote: 6.0.1

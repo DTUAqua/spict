@@ -131,6 +131,7 @@ Type objective_function<Type>::operator() ()
 
   // Priors
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
+  DATA_VECTOR(priorngamma);    // Prior vector for logn, gamma distribution [shape, rate, useflag ] 
   DATA_VECTOR(priorr);         // Prior vector for r, [log(mean), stdev in log, useflag]
   //DATA_VECTOR(priorrp);        // Prior vector for rp, [log(mean), stdev in log, useflag]
   DATA_VECTOR(priorK);         // Prior vector for K, [log(mean), stdev in log, useflag]
@@ -536,6 +537,9 @@ Type objective_function<Type>::operator() ()
   }
   if(priorisdi2gamma(2) == 1){
     //ans-= dgamma(1.0/exp(2.0*logsdi), priorisdi2gamma(0), 1.0/priorisdi2gamma(1), 1); 
+  }
+  if(priorngamma(2)==1){
+    ans-= dgamma(logn, priorngamma(0), 1.0/priorngamma(1), 1); 
   }
   // Log-normal priors
   if(priorn(2) == 1){
