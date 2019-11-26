@@ -78,6 +78,7 @@ Type objective_function<Type>::operator() ()
 
   // DATA
   DATA_INTEGER(reportall);     // Report everything?
+  DATA_INTEGER(reportRel);     // ADreport B/mean(B) and F/mean(F) ?
   DATA_VECTOR(dt);             // Time steps
   DATA_VECTOR(dtpredcinds);    // Indices of predictions in F state vector 
   DATA_INTEGER(dtpredcnsteps); // Number of sub time step for prediction
@@ -987,9 +988,16 @@ Type objective_function<Type>::operator() ()
   // Calculate relative levels of biomass and fishing mortality
   vector<Type> logBBmsy(ns);
   vector<Type> logFFmsy(ns);
+  Type meanB = exp(logB).sum()/ns;
+  Type meanF = exp(logF).sum()/ns;
+  vector<Type> logBrel(ns);
+  vector<Type> logFrel(ns);
+
   for(int i=0; i<ns; i++){ 
     logBBmsy(i) = logB(i) - logBmsyvec(i); 
-    logFFmsy(i) = logFs(i) - logFmsyvec(i); 
+    logFFmsy(i) = logFs(i) - logFmsyvec(i);
+    logBrel(i) = logB(i) - log(meanB);
+    logFrel(i) = logF(i) - log(meanF);
   }
 
   //std::cout << "logFFmsy: " << logFFmsy << std::endl;
@@ -1087,9 +1095,11 @@ Type objective_function<Type>::operator() ()
     // These reports are derived from the random effects and are therefore vectors. TMB calculates the covariance of all sdreports leading to a very large covariance matrix which may cause memory problems.
     // B
     ADREPORT(logBBmsy);
+    if(reportRel) ADREPORT(logBrel);
     // F
     ADREPORT(logFFmsy); // Vector of size ns
     ADREPORT(logFs);    // Vector of size ns
+    if(reportRel) ADREPORT(logFrel);
     // C
     ADREPORT(logCpred);
     // I
