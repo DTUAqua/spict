@@ -1,0 +1,784 @@
+---
+title: "SPiCT"
+author: "Martin W. Pedersen, Alexandros Kokkalis, Casper W. Berg"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  rmarkdown::html_vignette: 
+    number_sections: yes
+    toc: yes
+bibliography: bibliography.bib  
+vignette: >
+  %\VignetteIndexEntry{SPiCT}
+  %\VignetteEngine{knitr::rmarkdown} 
+  \usepackage[utf8]{inputenc}
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "  ", fig.align = 'center', cache=FALSE)
+```
+
+# Basic functionality 
+
+## Getting started
+This vignette explains basic and more advanced functions of the `spict` package. The package is installed from gihtub using the `devtools` package:
+```{r, eval=FALSE}
+devtools::install_github("mawp/spict/spict")
+```
+installs the stable version of `spict`. When loading the package the user is greeted and the the installed version is shown:
+
+```{r}
+library(spict)
+```
+The printed version follows the format ver\@SHA, where _ver_ is the manually defined version number and _SHA_ refers to a unique github commit on [github](https://github.com/mawp/spict). The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/mawp/spict/tree/", packageDescription("spict")$GithubSHA1)`). 
+
+A specific verision of `spict` can be installed using the first few digits of the SHA:
+
+```
+devtools::install_github("mawp/spict/spict", ref = "`r substr(packageDescription("spict")$GithubSHA1, 1, 8)`")
+```
+
+## Loading built-in example data 
+
+The package contains the catch and index data analysed in @polacheck1993 that can be loaded using
+
+```{r}
+data(pol) 
+```
+
+Data on three stocks are contained in this dataset: South Atlantic albacore, northern Namibian hake, and New Zealand rock lobster. Here focus will be on the South Atlantic albacore data. This dataset contains the following
+
+```{r}
+pol$albacore
+```
+
+Note that data are structured as a list containing the entries `obsC` (catch observations), `timeC` (time of catch observations), `obsI` (index observations), and `timeI` (time of index observations). If times are not specified it is assumed that the first observation is observed at time 1 and then sequentially onward with a time step of one year. It is therefore recommended to always specify observation times. 
+
+Each catch observation relates to a time interval. This is specified using `dtc`. If `dtc` is left unspecified (as is the case here) each catch observation is assumed to cover the time interval until the next catch observation. For this example with annual catches `dtc` therefore is
+
+```{r}
+inp <- check.inp(pol$albacore)
+inp$dtc
+```
+
+It is important to specify `dtc` if the default assumption is not fulfilled.
+
+## Plotting data 
+\label{pldat} 
+
+The data can be plotted using the command
+
+```{r, fig.width=5, fig.height=5.5, out.width='0.5\\textwidth', fig.show='hold'}
+plotspict.data(pol$albacore)
+```
+
+Note that the number of catch and index observations are given in the respective plot headers. Furthermore, the color of individual points shows when the observation was made and the corresponding colors are shown in the color legend in the top right corner. For illustrative purposes let's try shifting the data a bit
+
+```{r, fig.width=5, fig.height=5.5, out.width='0.5\\textwidth', fig.show='hold'}
+inpshift <- pol$albacore
+inpshift$timeC <- inpshift$timeC + 0.3
+inpshift$timeI <- inpshift$timeI + 0.8
+plotspict.data(inpshift)
+```
+
+Now the colours show that catches are observed in spring and index in autumn.
+
+## Advanced data plotting
+\label{advpldat}
+
+There is also a more advanced function for plotting data, which at the same time does some basic model fitting (linear regression) and shows the results
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+plotspict.ci(pol$albacore)
+```
+
+The two top plots come from `plotspict.data`, with the dashed horizontal line representing a guess of MSY. This guess comes from a linear regression between the index and the catch divided by the index (middle row, left). This regression is expected to have a negative slope. A similar plot can be made showing catch versus catch/index (middle row, right) to approximately find the optimal effort (or effort proxy). The proportional increase in the index as a function of catch (bottom row, right) should show primarily positive increases in index at low catches and vice versa. Positive increases in index at large catches could indicate model violations. In the current plot these are not seen.
+
+## Fitting the model
+
+The model is fitted to data by running
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+res <- fit.spict(pol$albacore)
+```
+
+Here the call to `fit.spict` is wrapped in the `system.time` command to check the time spent on the calculations. This is obviously not required, but done here to show that fitting the model only takes a few seconds. The result of the model fit is stored in `res`, which can either be plotted using `plot` or summarised using `summary`. 
+
+The results are returned as a list that contains output as well as input. The content of this list is
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+names(res)
+```
+
+Many of these variables are generated by `TMB::sdreport()`. In addition to these `spict` includes the list of input values (`inp`), the object used for fitting (`obj`), the result from the optimiser (`opt`), the time spent on fitting the model (`computing.time`), and more less useful variables.
+
+## Interpreting summary of results
+
+The results are summarised using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+capture.output(summary(res))
+```
+
+Here the `capture.output()` is only used to provide line numbers for easier reference, but the `summary()` command works without this. 
+
+- Line 1: Convergence of the model fit, which has code 0 if the fit was succesful. If this is not the case convergence was not obtained and reported results should not be used. In case of non-convergence results will still be reported to aid diagnosis of the problem. 
+- Line 2: Objective function value at the optimum. The objective function is the likelihood function if priors are not used and the posterior density function if priors are used.
+- Line 3: The Euler time step used in the calculation.
+- Line 4: Number of observations for the time series used.
+- Line 6-9: Summary of the priors used in the fit. The priors shown here are the default priors that are applied when priors are unspecified. These are relatively uninformative and are applied because most data-limited situations do not allow simultaneous estimation of all noise parameters and `logn`. The default priors can be disabled (see the section on priors).
+- Line 11-25: Summary of the parameter estimates and their 95% CIs. These can be extracted as a data frame with `sumspict.parest(res)`. 
+- Line 27-31: Estimates of deterministic reference points with 95% CIs. These are the reference points one would derive if stochasticity were ignored. Can be extracted with `sumspict.drefpoints(res)`.
+- Line 32-36: Estimates of stochastic reference points with 95% CIs. These are the reference points of the stochastic model. The column ´rel.diff.Drp´ shows the relative difference when compared to the deterministic reference points. The information can be extracted with `sumspict.srefpoints(res)`.
+- Line 38-43: State estimates in the final year where data were available. The states of the model are biomass (`B`) and fishing mortality (`F`) with the year of the estimates appended. The year is shown as a decimal number as estimates within year are possible. Both absolute (`B` and `F`) and relative estimates (`B/Bmsy` and `F/Fmsy`) are shown. The relative estimates are calculated using the type of reference points given by `msytype` (line 38), where `s` is stochastic and `d` is deterministic. Here `msytype` is ´s´. This information can be extracted using `sumspict.states(res)`.
+- Line 45-52: Predictions of absolute and relative biomass and fishing mortality at the time indicated by `inp$timepredi`, here 1990 (line 47-50). In addition, predicted catch at the time indicated by `inp$timepredc` (line 51). Finally, the equilibrium biomass, indicated by E(B_inf), if current conditions remain constant. There predictions or forecasts are calculated under the fishing scenario given by `inp$ffac`. See the section on forecasting for more information. The prediction summary can be extracted using `sumspict.predictions(res)`.
+
+## Interpreting plots of results
+
+`spict` comes with several plotting abilities. The basic plotting of the results is done using the generic function `plot` that produces a multipanel plot with the most important outputs.
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+plot(res)
+```
+
+Some general comments can be made regarding the style and colours of these plots:
+
+- Estimates (biomass, fishing mortality, catch, production) are shown using blue lines.
+- 95% CIs of absolute quantities are shown using dashed blue lines.
+- 95% CIs of relative biomass and fishing mortality are shown using shaded blue regions.
+- Estimates of reference points ($B_{MSY}$, $F_{MSY}$, $MSY$) are shown using black lines.
+- 95% CIs of reference points are shown using grey shaded regions.
+- The end of the data range is shown using a vertical grey line.
+- Predictions beyond the data range are shown using dotted blue lines.
+- Data are shown using points colored by season. Different index series use different point characters (not shown here).
+
+The individual plots can be plotted separately using the `plotspict.*` family of plotting functions; all functions are summarised in Table 1 and their common arguments that control their look in Table 2:
+
+```{r, echo = FALSE}
+knitr::kable(data.frame(## ls(pattern = "plotspict.*", envir = asNamespace("spict")), 
+  Function = c("**Data**",
+               "`plotspict.ci`", "`plotspict.data`",
+               "**Estimates**",
+               "`plotspict.bbmsy`", "`plotspict.biomass`", "`plotspict.btrend`", "`plotspict.catch`",
+               "`plotspict.f`", "`plotspict.fb`", "`plotspict.ffmsy`", "`plotspict.priors`", "`plotspict.production`",
+               "`plotspict.season`", 
+               "**Diagnostics & extras**",
+               "`plotspict.diagnostic`", "`plotspict.osar`", "`plotspict.likprof`", "`plotspict.retro`",
+               "`plotspict.infl`", "`plotspict.inflsum`", "`plotspict.tc`"),
+  Plot = c("",
+           "Basic data plotting (see section \\ref{pldat})",
+           "Advanced data plotting (see section \\ref{advpldat})",
+           "",
+           "Relative biomass $B/B_{MSY}$ estimates with uncertainty",
+           "Absolute (and relative) biomass estimates with uncertainty",
+           "Expected biomass trend",
+           "Catch data and estimates",
+           "Absolute (and relative) fishing mortality $F$",
+           "Kobe plot of relative fishing mortality over biomass estimates",
+           "Relative fishing mortality $F/F_{MSY}$",
+           "Prior-posterior distribution of all parameters that are estimated using priors",
+           "Production over $B/K$",
+           "Seasonal pattern of fishing mortality $F$", 
+           "",
+           "OSA residual analysis to evaluate the fit",
+           "One-step-ahead residual plots, one for data time-series",
+           "Profile likelihood of one or two parameters",
+           "Retrospective analysis",
+           "Influence statistics of observations",
+           "Summary of influence of observations",
+            "Time to $B_{MSY}$ under different scenarios about $F$"
+           )),
+  caption = "Available plotting functions.")
+```
+
+
+Argument        Value            Result
+--------        -----            ------
+`logax`         logical           If `TRUE`, the y-axis is in log scale
+`main`          string            The title of the plot
+`ylim`          numeric vector    The limits of the y-axis
+`plot.obs`      logical           If `TRUE` (default) the observations are shown
+`qlegend`       logical           If `TRUE` (default) the color legend is shown
+`xlab`, `ylab`  string            The x and y axes labels
+`stamp`         string            Adds a "stamp" at the bottom right corner of the plotting area
+                                  Default is the version and SHA hash of `spict`.
+                                  An empty string removes the stamp.
+                              
+Table: Common arguments in the `plotspict.*` family of funtions
+
+We will now look at them one at a time. The top left is the plot of absolute biomass
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+plotspict.biomass(res)
+```
+
+Note that this plot has a y-axis on the right side related to the relative biomass ($B_t/B_{MSY}$). The shaded 95% CI region relates to this axis, while the dashed blue lines relate to the left y-axis indicating absolute levels. The dashed lines and the shaded region are shown on the same plot to make it easier to assess whether the relative or absolute levels are most accurately estimated. Here, the absolute are more accurate than the relative. Later, we will see examples of the opposite. The horizontal black line is the estimate of $B_{MSY}$ with 95% CI shown as a grey region.
+
+The plot of the relative biomass is produced using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+plotspict.bbmsy(res)
+```
+
+This plot contains much of the same information as given by `plotspict.biomass`, but without the information about absolute biomass and without the 95% CI around the $B_{MSY}$ reference point.
+
+The plots of fishing mortality follow the same principles
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=3, fig.height=3.3, fig.show='hold'}
+plotspict.f(res, main='', qlegend=FALSE, rel.axes=FALSE, rel.ci=FALSE)
+plotspict.ffmsy(res, main='', qlegend=FALSE)
+```
+
+The estimate of $F_{MSY}$ is shown with a horizontal black line with 95% CI shown as a grey region (left plot). The 95% CI of $F_{MSY}$ is very wide in this case. As shown here it is quite straightforward to remove the information about relative levels from the plot of absolute fishing mortality. Furthermore, the argument `main=''` removes the heading and `qlegend=FALSE` removes the colour legend for data points.
+
+The plot of the catch is produced using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+plotspict.catch(res)
+```
+
+This plot shows estimated catches (blue line) versus observed catches (points) with the estimate of $MSY$ plotted as a horizontal black line with its 95% CI given by the grey region.
+
+A phase plot (or kobe plot) of fishing mortality versus biomass is plotted using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+plotspict.fb(res, ylim=c(0, 1.3), xlim=c(0, 300))
+```
+
+The plot shows the development of biomass and fishing mortality since the initial year (here 1967) indicated with a circle until the terminal year (here 1990) indicated with a square. The yellow diamond indicates the mean biomass over a long period if the current (1990) fishing pressure remains. This point can be interpreted as the fished equilibrium and is denoted $E(B_\infty)$ in the legend as a statistical way of expressing the expectation of the biomass as $t \rightarrow \infty$. As the current fishing mortality is close to $F_{MSY}$ the expected long term biomass is close to $B_{MSY}$. 
+
+A vertical dashed red line at $B_t = 0$ indicates the biomass level below which the stock has crashed. The grey shaded banana-shaped area indicates the 95\% confidence region of the pair $F_{MSY}$, $B_{MSY}$. This region is important to visualise jointly as the two reference points are highly (negatively) correlated.
+
+## Residuals and diagnostics
+
+Before proceeding with the results for an actual assessment it is very important that the model residuals are checked and possible model deficiencies identified. Residuals can be calculated using `calc.osa.resid()`. OSA stands for one-step-ahead, which are the proper residuals for state-space models. More information about OSA residuals is contained in @pedersen2016. To calculate and plot residuals and diagnostics do
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=7, fig.show='hold'}
+res <- calc.osa.resid(res)
+plotspict.diagnostic(res)
+```
+
+The first column of the plot contains information related to catch data and the second column contains information related to the index data. The rows contain
+
+  1. Log of the input data series.
+  2. OSA residuals with the p-value of a test for bias (i.e. that the mean of the residuals is different from zero) in the plot header. If the header is green the test was not significant, otherwise the header would be red.
+  3. Empirical autocorrelation of the residuals. Two tests for significant autocorrelation is performed. A Ljung-Box simultaneous test of multiple lags (here 4) with p-value shown in the header, and tests for individual lags shown by dashed horizontal lines in the plot. Here no violation is identified.
+  4. Tests for normality of the residuals both as a QQ-plot and with a Shapiro test with p-value shown in the plot header.
+
+This data did not have any significant violations of the assumptions, which increases confidence in the results. For a discussion of possible violations and remedies the reader is referred to @pedersen2016.
+
+## Extracting parameter estimates
+
+To extract an estimated quantity, here `logBmsy` use
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+get.par('logBmsy', res)
+```
+
+This returns a vector with `ll` being the lower 95% limit of the CI, `est` being the estimated value, `ul` being the upper 95% limit of the CI, `sd` being the standard deviation of the estimate, and `cv` being the coefficient of variation of the estimate. The estimated quantity can also be returned on the natural scale (as opposed to log scale) by running
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+get.par('logBmsy', res, exp=TRUE)
+```
+
+This essentially takes the exponential of `ll`, `est` and `ul` of the values in log, while `sd` is unchanged as it is the standard deviation of the quantity on the scale that it is estimated (here log). When transforming using `exp=TRUE` the $CV = \sqrt{e^{\sigma^2}-1}$. Most parameters are log-transformed under estimation and should therefore be extracted using `exp=TRUE`.
+
+For a standard fit (not using robust observation error, seasonality etc.), the quantities that can be extracted using this method are
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+list.quantities(res)
+```
+
+These should be relatively self-explanatory when knowing that reference points ending with `s` are stochastic and those ending with `d` are deterministic, quantities ending with `p` are predictions and quantities ending with `l` are estimates in the final year. If a quantity is available both on natural and log scale, it is preferred to transform the quantity from log as most quantities are estimated on the log scale.
+
+### Extracting correlation between parameter estimates
+
+The covariance between the model parameters (fixed effects) can be extracted from the results list
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+res$cov.fixed
+```
+
+It is however easier to interpret the correlation rather than covariance. The correlation matrix can be calculated using 
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+cov2cor(res$cov.fixed)
+```
+
+For this data most parameters are well separated, i.e. relatively low correlation, perhaps with the exception of `logm` and `logn`, which have a correlation of $-0.9$. Note that `logr` is absent from the covariance matrix. This is because the model is parameterised in terms of `logm`, `logK`, and `logn` from which `logr` can be derived. The estimate of `logr` is reported using TMB's `sdreport()` function and can be extracted using `get.par()`.
+
+The covariance between random effects (biomass and fishing mortality) is not reported automatically, but can be obtained by setting `inp$getJointPrecision` to `TRUE` (this entails longer computation time and memory requirement).
+
+The covariance between sdported values (i.e. the values reported in `res$value`) are given in `res$cov`. As this matrix is typically large, the function `get.cov()` can be used to extract the covariance between two scalar quantities
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+cov2cor(get.cov(res, 'logBmsy', 'logFmsy'))
+```
+
+This reveals that for this data set the estimates of log Fmsy and log Bmsy are highly correlated. This is often the case and the reason why the model is reparameterised. 
+
+# Advanced functionality
+
+## Retrospective plots
+
+Retrospecitive plots are sometimes used to evaluate the robustness of the model fit to the introduction of new data, i.e. to check whether the fit changes substantially when new data becomes available. Such calculations and plotting thereof can be crudely performed using `retro()` as shown here
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5, fig.height=5, fig.show='hold'}
+rep <- fit.spict(pol$albacore)
+rep <- retro(rep)
+plotspict.retro(rep)
+```
+By default `retro` creates 5 scenarios with catch and index time series which are shortened by the 1 to 5 last observations. The number of scenarios and thus observations which are removed can be changed with the argument `nretroyear` in the function `retro`. The graphs show the different scenarios with different colors. For the albacore data, there is a high consistency between the scenarios except for the fishing mortalites of the second scenario (in red), which indicate a large increase in F.
+
+## Estimation using two or more biomass indices
+
+The estimation can be done using more than one biomass index, for example when scientific surveys are performed more than once every year or when there are both commercial and survey CPUE time-series available. The following example emulates a situation where a long but noisy first quarter index series and a shorter and less noisy second quarter index series are available with different catchabilities
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
+set.seed(123)
+inp <- list(timeC=pol$albacore$timeC, obsC=pol$albacore$obsC)
+inp$timeI <- list(pol$albacore$timeI, pol$albacore$timeI[10:23]+0.25)
+inp$obsI <- list()
+inp$obsI[[1]] <- pol$albacore$obsI * exp(rnorm(23, sd=0.1)) # Index 1
+inp$obsI[[2]] <- 10*pol$albacore$obsI[10:23] # Index 2
+res <- fit.spict(inp)
+sumspict.parest(res)
+plotspict.biomass(res)
+```
+
+The model estimates seperate observation noises and finds that the first index (`sdi1`) is more noisy than the second (`sdi2`). It is furthermore estimated that the catchabilities are different by a factor 10 (`q1` versus `q2`). The biomass plot shows both indices, with circles indicating the first index and squares indicating the second index (the two series can also be distinguished by their colours). It is possible to force the model to assume that two or more index time-series have the same level of observation noise (CV). For example, to assume that `sdi1` equals `sdi2` one must add
+`inp$mapsdi <- c(1,1)` before calling `fit.spict(inp)`. The length of `mapsdi` should equal the number of indices. In case of 3 index series one could for example use `inp$mapsdi <- c(1, 1, 2)` to have series 1 and 2 share sdi and have a separate sdi for series 3. 
+
+## Using effort data instead of commercial CPUE
+
+It is possible to use effort data directly in the model instead of calculating commercial CPUE and inputting this as an index. It is beyond the scope of this vignette to discuss all problems associated with indices based on commercial CPUEs, however it is intuitively clear that using the same information twice (catch as catch and catch in catch/effort) induces a correlation, which the model does not account for. These problems are easily avoided by putting catch and effort seperately
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
+inpeff <- list(timeC=pol$albacore$timeC, obsC=pol$albacore$obsC,
+               timeE=pol$albacore$timeC, obsE=pol$albacore$obsC/pol$albacore$obsI)
+repeff <- fit.spict(inpeff)
+sumspict.parest(repeff)
+par(mfrow=c(2, 2))
+plotspict.bbmsy(repeff)
+plotspict.ffmsy(repeff, qlegend=FALSE)
+plotspict.catch(repeff, qlegend=FALSE)
+plotspict.fb(repeff)
+```
+
+Here the model runs without an index of biomass and instead uses effort as an index of fishing mortality Note that index observations are missing from the biomass plot, but effort observations are present in the plot of fishing mortality. Note also that `q` is missing from the summary of parameter estimates and instead `qf` is  present, which is the commercial catchability. 
+
+Overall for this data set the results in terms of stock status etc. do not change much, and this will probably often be the case, however using effort data directly instead of commercial CPUE is cleaner and avoids inputting the same data twice.
+
+## Scaling the uncertainty of individual data points
+
+It is not always appropriate to assume that the observation noise of a data series is constant in time. Knowledge that certain data points are more uncertain than others can be implemented using `stdevfacC`, `stdevfacI`, and `stdevfacE`, which are vectors containing factors that are multiplied onto the standard deviation of the data points of the corresponding observation vectors. An example where the first 10 years of the biomass index are considered uncertain relative to the remaining time series and therefore are scaled by a factor 5.
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=6.5, fig.show='hold'}
+inp <- pol$albacore
+res1 <- fit.spict(inp)
+inp$stdevfacC <- rep(1, length(inp$obsC))
+inp$stdevfacC[1:10] <- 5
+res2 <- fit.spict(inp)
+par(mfrow=c(2, 1))
+plotspict.catch(res1, main='No scaling')
+plotspict.catch(res2, main='With scaling', qlegend=FALSE)
+```
+
+From the plot it is noted that the scaling factor widens the 95% CIs of the initial ten years of catch data, while narrowing the 95% CIs of the remaining years.
+
+## Simulating data
+
+The package has built-in functionality for simulating data, which is useful for testing. 
+
+### Annual data
+
+Data are simulated using an input list, e.g. `inp`,  containing parameter values specified in `inp$ini`. To simulate data using default parameters run
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+inp <- check.inp(pol$albacore)
+sim <- sim.spict(inp)
+plotspict.data(sim)
+```
+
+This will generate catch and index data of same length as the input catch and index time series (here 23 of each) at the time points of the input data. Note when plotting simulated data, the true biomass and fishing mortality are also included in the plot. 
+
+Another simple example is
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+inp <- list(ini=list(logK=log(100), logm=log(10), logq=log(1)))
+sim <- sim.spict(inp, nobs=50)
+plotspict.data(sim)
+```
+
+Here the required parameters are specified (the rest use default values), and the number of observations is specified as an argument to `sim.spict()`.
+
+A more customised example including model fitting is
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+set.seed(31415926)
+inp <- list(ini=list(logK=log(100), logm=log(10), logq=log(1),
+                     logbkfrac=log(1), logF0=log(0.3), logsdc=log(0.1),
+                     logsdf=log(0.3)))
+sim <- sim.spict(inp, nobs=30)
+res <- fit.spict(sim)
+sumspict.parest(res)
+par(mfrow=c(2, 2))
+plotspict.biomass(res)
+plotspict.f(res, qlegend=FALSE)
+plotspict.catch(res, qlegend=FALSE)
+plotspict.fb(res)
+```
+
+Here the ratio between biomass in the initial year relative to `K` is set using `logbkfrac`, the initial fishing mortality is set using `logF0`, process noise of `F` is set using `logsdf`, and finally observation noise on catches is specified using `logsdc`. 
+
+When printing the summary of the parameter estimates the true values are included as well as a check whether the true value was inside the 95% CIs. Similarly, the true biomass, fishing mortality, and reference points are included in the results plot using a yellow/orange colour.
+
+### Seasonal data
+\label{sec:seas}
+
+It is possible to simulate seasonal data (most often quarterly). Additional variables must be specified in the input list that define the type of seasonality to be used. Spline based seasonality is shown first (`inp$seasontype = 1`). This is the default and therefore does not need to be explicitly specified. It is required that number of seasons is specified using `nseasons` (4 indicates quarterly), the order of the spline must be specified using `splineorder` (3 for quarterly data), time vectors for catch and index containing subannual time points must be specified, and finally the spline parameters (`logphi`) must be set. With four seasons `logphi` must be a vector of length 3, where each value in the vector gives the log fishing intensity relative to level in season four, which is `log(1)`. An example of simulating seasonal data using a spline is
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
+set.seed(1234)
+inp <- list(nseasons=4, splineorder=3)
+inp$timeC <- seq(0, 30-1/inp$nseasons, by=1/inp$nseasons)
+inp$timeI <- seq(0, 30-1/inp$nseasons, by=1/inp$nseasons)
+inp$ini <- list(logK=log(100), logm=log(20), logq=log(1),
+                logbkfrac=log(1), logsdf=log(0.4), logF0=log(0.5),
+                logphi=log(c(0.05, 0.1, 1.8)))
+seasonsim <- sim.spict(inp)
+plotspict.data(seasonsim)
+```
+
+The data plot shows clear seasonality in the catches. To simulate seasonal data using the coupled SDE approach `seasontype` must be set to 2 and `nseasons` to 4. 
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=4.5, fig.show='hold'}
+set.seed(432)
+inp <- list(nseasons=4, seasontype=2)
+inp$timeC <- seq(0, 30-1/inp$nseasons, by=1/inp$nseasons)
+inp$timeI <- seq(0, 30-1/inp$nseasons, by=1/inp$nseasons)
+inp$ini <- list(logK=log(100), logm=log(20), logq=log(1),
+                logbkfrac=log(1), logsdf=log(0.4), logF0=log(0.5))
+seasonsim2 <- sim.spict(inp)
+plotspict.data(seasonsim2)
+```
+
+## Estimation using quarterly data
+Catch information available in sub-annual aggregations, e.g. quarterly catch, can be used to estimate the seasonal pattern of the fishing mortality. The user can choose between two types of seasonality by setting `seasontype` to 1 or 2:
+
+  1. using cyclic B-splines.
+  2. using coupled stochastic differential equations (SDEs).
+  
+Technical description of the season types is found in @pedersen2016.
+
+Here, an example of a spline-based model fitted to quarterly data simulated in section \ref{sec:seas} is shown
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=4.5, fig.show='hold'}
+seasonres <- fit.spict(seasonsim)
+plotspict.biomass(seasonres)
+plotspict.f(seasonres, qlegend=FALSE)
+plotspict.season(seasonres)
+```
+
+The model is able to estimate the seasonal variation in fishing mortality as seen both in the plot of `F` and in the plot of the estimated spline, where blue is the estimated spline, orange is the true spline, and green is the spline if time were truly continuous (it is discretised with the Euler steps shown by the blue line).
+
+To fit the coupled SDE model run
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=4.5, fig.show='hold'}
+seasonres2 <- fit.spict(seasonsim2)
+sumspict.parest(seasonres2)
+plotspict.biomass(seasonres2)
+plotspict.f(seasonres2, qlegend=FALSE)
+```
+
+Two parameters related to the coupled SDEs are estimated (`sdu` and `lambda`) as evident from the summary of estimated parameters. In the plot of fishing mortality it is noted that the amplitude of the seasonal pattern varies over time. This is a property of the coupled SDE model, which is not possible to obtain with the spline based seasonal model. The spline based model has a fixed amplitude and phases, which will lead to biased estimates and autocorrelation in residuals if in reality the seasonal pattern shifts a bit. This is illustrated by fitting a spline based model to data generated with a coupled SDE model
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=7, fig.show='hold'}
+inp2 <- list(obsC=seasonsim2$obsC, obsI=seasonsim2$obsI, 
+             timeC=seasonsim2$timeC, timeI=seasonsim2$timeI,
+             seasontype=1, true=seasonsim2$true)
+rep2 <- fit.spict(inp2)
+rep2 <- calc.osa.resid(rep2)
+plotspict.diagnostic(rep2)
+```
+
+From the diagnostics it is clear that autocorrelation is present in the catch residuals.
+
+## Setting initial parameter values
+
+Initial parameter values used as starting guess of the optimiser can be set using `inp$ini`. For example, to specify the initial value of `logK` set
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+inp <- pol$albacore
+inp$ini$logK <- log(100)
+```
+
+This procedure generalises to all other model parameters. If initial values are not specified they are set to default values. To see the default initial value of a parameter, here `logK`, run
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+inp <- check.inp(pol$albacore)
+inp$ini$logK
+```
+
+This can also be done posterior to fitting the model by printing `res$inp$ini$logK`.
+
+### Checking robustness to initial parameter values
+
+It is prudent to check that the same parameter estimates are obtained if using different initial values. If the optimum of the objective function is poorly defined, i.e. possibly containing multiple optima, it is possible that different parameter estimates will be returned depending on the initial values. To check whether this is the case run
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+set.seed(123)
+check.ini(pol$albacore, ntrials=4)
+```
+
+The argument `ntrials` set the number of different initial values to test for. To keep it simple only few trials are generated here, however for real data cases more should be used, say 30. The `propchng` contains the proportional change of the new randomly generated initial value relative to the base initial value, `inimat` contains the new randomly generated initial values, and `resmat` contains the resulting parameter estimates and a distance from the estimated parameter vector to the base parameter vector. The distance should preferably be close to zero. If that is not the case further investigation is required, i.e. inspection of objective function values, differences in results and residual diagnostics etc. should be performed. The example shown here looks fine in that all converged runs return the same parameter estimates. One trial did not converge, however non-converging trials are to some extent expected as the initial parameters are generated independently from a wide uniform distribution and may thus by chance be very inappropriately chosen.
+
+## Phases and how to fix parameters
+
+The package has the ability to estimate parameters in phases. Users familiar with AD model builder will know that this means that some parameters are held constant in phase 1, some are then released and estimated in phase 2, more are released in phase 3 etc. until all parameters are estimated. Per default all parameters are estimated in phase 1. As an example the standard deviation on the biomass process, `logsdb`, is estimated in phase 2:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+inp <- pol$albacore
+inp$phases$logsdb <- 2
+res <- fit.spict(inp)
+```
+
+Phases can also be used to fix parameters to their initial value by setting the phase to `-1`. For example
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+inp <- pol$albacore
+inp$phases$logsdb <- -1
+inp$ini$logsdb <- log(0.1)
+res <- fit.spict(inp)
+summary(res)
+```
+
+## Priors
+
+SPiCT is a generalisation of previous surplus production models in the sense that stochastic noise is included in both observation and state processes of both fishing and biomass. Estimating all model parameters is only possible if data contain sufficient information, which may not be the case for short time series or time series with limited contrast. The basic data requirements of the model are limited to only catch and biomass index time series. More information may be available, which can be used to improve the model fit. This is particularly advantageous if the model is not able to converge with only catch and index time series. Additional information can then be included in the fit via prior distributions for model parameters. 
+
+### Default priors and how to disable them
+
+Quantities that are traditionally difficult to estimate are `logn`, and the noise ratios `logalpha` and `logbeta` where `logalpha = logsdi - logsdb` and `logbeta = logsdc - logsdf`, respectively. Therefore, to generally stabilise estimation default semi-informative priors are imposed on these quantities that inhibit them from taking extreme and unrealistic values. If informative data are available these priors should have limited effect on results, if informative data are not available estimates will reduce to the priors.
+
+If informative data are available and the default priors therefore are unwanted they can be disabled using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+inp <- pol$albacore
+inp$priors$logn <- c(1, 1, 0)
+inp$priors$logalpha <- c(1, 1, 0)
+inp$priors$logbeta <- c(1, 1, 0)
+fit.spict(inp)
+```
+
+The model is able to converge without priors, however the estimates of `alpha`, `beta` and `n` are very uncertain indicating that limited information is available about these parameters.
+
+### Setting a prior
+
+The model parameters to which priors can be applied can be listed using
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+list.possible.priors()
+```
+
+A prior is set using 
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+inp <- pol$albacore
+inp$priors$logK <- c(log(300), 2, 1)
+fit.spict(inp)
+```
+
+This imposes a Gaussian prior on `logK` with mean $\log(300)$ and standard deviation 2. The third entry indicates that the prior is used (1 means use, 0 means do not use). From the summary it is evident that the default priors were also imposed.
+
+### Priors on random effects
+
+Priors can be applied to random effects of the model, i.e. `logB`, `logF`, `logBBmsy`, (which is $\log(B/Bmsy)$) `logFFmsy` (which is $\log(F/Fmsy)$). An additional argument is required to specify these priors
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=3.5, fig.show='hold'}
+inp <- pol$albacore
+inp$priors$logB <- c(log(80), 0.1, 1, 1980)
+par(mfrow=c(1, 2), mar=c(5, 4.1, 3, 4))
+plotspict.biomass(fit.spict(pol$albacore), ylim=c(0, 500))
+plotspict.biomass(fit.spict(inp), qlegend=FALSE, ylim=c(0, 500))
+```
+
+This imposes a Gaussian prior on `logB` with mean $\log(80)$, standard deviation 0.1 (very informative), the third entry in the vector indicates that the prior is used, the fourth entry indicates the year to which the prior should be applied, here 1980.
+
+It is clear from the plots that the prior influences the results significantly. Furthermore, it is not only the biomass in the year 1980 that is affected, but the information propagates forward and backward because all estimates are correlated. In reality such an informative prior is rarely available, however it may be possible to derive information about the absolute biomass from acoustic survey and swept area estimates. It is, however, critical that the standard deviation used reflects the quality of the information.
+
+
+### Setting priors on the standard deviation of multiple indices
+
+It is possible to set a prior for on some or all noise terms of multiple biomass indices
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6, fig.height=5, fig.show='hold'}
+set.seed(123)
+inp <- list(timeC=pol$albacore$timeC, obsC=pol$albacore$obsC)
+inp$timeI <- list(pol$albacore$timeI, pol$albacore$timeI[10:23]+0.25)
+inp$obsI <- list()
+inp$obsI[[1]] <- pol$albacore$obsI * exp(rnorm(23, sd=0.1)) # Index 1
+inp$obsI[[2]] <- 10*pol$albacore$obsI[10:23] # Index 2
+inp$priors$logsdi <- list(c(1, 1, 0),          # No prior for index 1
+                          c(log(0.1), 0.2, 1)) # Set a prior on index 2
+res <- fit.spict(inp)
+sumspict.priors(res)
+```
+
+
+### Fixing parameters using priors
+
+Model parameters can be fixed using `phases` as described previously. This technique can, however, only be used to fix model parameters and therefore not derived quantities such as `logalpha`, `logr` (which is derived from `logK`, `logm` and `logn`). Fixing a parameter can be regarded as imposing an highly informative prior to the parameter
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=3.5, fig.show='hold'}
+inp <- pol$albacore
+inp$priors$logn <- c(log(2), 1e-3)
+inp$priors$logalpha <- c(log(1), 1e-3)
+inp$priors$logbeta <- c(log(1), 1e-3)
+fit.spict(inp)
+```
+
+The summary indicates that the priors are so informative that the quantities are essentially fixed. It is also noted that the estimates of these quantities are very close to the mean of their respective priors.
+
+### Pitfalls when fixing parameters and specifying priors
+
+Particular caution is required when fixing a parameter that is highly correlated with other parameters because this will to some extent restrict the estimates of the correlated parameters. This could also be a problem when specifying priors depending on the amount of a priori information available. 
+
+## Robust estimation (reducing influence of extreme observations)
+
+The presence of extreme observations may inflate estimates of observation noise and increase the general uncertainty of the fit. To reduce this effect it is possible to apply a robust estimation scheme, which is less sensitive to extreme observations. An example with an extreme observation in the catch series is
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=3.5, fig.show='hold'}
+inp <- pol$albacore
+inp$obsC[10] <- 3*inp$obsC[10]
+res1 <- fit.spict(inp)
+inp$robflagc <- 1
+res2 <- fit.spict(inp)
+sumspict.parest(res2)
+par(mfrow=c(1, 2))
+plotspict.catch(res1, main='Regular fit')
+plotspict.catch(res2, qlegend=FALSE, main='Robust fit')
+```
+
+It is evident from the plot that the presence of the extreme catch observation generally inflates the uncertainty of the estimated catches, while the robust fit is less sensitive. Robust estimation can be applied to index and effort data using `robflagi` and `robflage` respectively.
+
+Robust estimation is implemented using a mixture of light-tailed and a heavy-tailed Gaussian distribution as described in @pedersen2016. This entails two additional parameters (`pp` and `robfac`) that require estimation. This may not always be possible given the increased model complexity. In such cases these parameters should be fixed by setting their phases to `-1`.
+
+## Forecasting and management scenarios
+
+To make a catch forecast a forecast interval needs to be specified. This is done by specifying the start of the interval (`inp$timepredc`) and the length of the interval in years (`inp$dtpredc`). For example, if a forecast of the annual catch of 2018 is of interest, then `inp$timepredc = 2018` and `inp$dtpredc = 1`. In addition to the forecast interval a fishing scenario needs to be specified. This is done by specifying a factor (`inp$ffac`) to multiply the current fishing mortality by (i.e. the F at the last time point of the time period where data are available) and the time that management should start (`inp$manstart`). The time point of the reported forecast of biomass and fishing mortality can be controlled by setting `inp$timepredi`. Producing short-term forecasts entails minimal additional computing time.
+
+Forecasts are produced as part of the usual model fitting. To illustrate the procedure, a short example using the South Atlantic albacore dataset of @polacheck1993 containing catch and commercial CPUE data in the interval 1967 to 1989 is presented. The code to obtain the forecasted annual catch in the interval starting 1991 under a management scenario where the fishing pressure is reduced by 25% starting in 1991, and a forecasted index in 1992 is:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+library(spict)
+data(pol)
+inp <- pol$albacore
+inp$manstart <- 1991
+inp$timepredc <- 1991
+inp$dtpredc <- 1
+inp$timepredi <- 1992
+inp$ffac <- 0.75
+res <- fit.spict(inp)
+```
+
+To specifically show forecast results use
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+sumspict.predictions(res)
+```
+
+This output is also shown when using `summary(res)`. The results can be plotted using `plot(res)`, however to visualise the change in forecasted fishing mortality and associated change in forecasted catch more clearly we use
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+par(mfrow=c(2, 2), mar=c(4, 4.5, 3, 3.5))
+plotspict.bbmsy(res)
+plotspict.ffmsy(res, qlegend=FALSE)
+plotspict.catch(res, qlegend=FALSE)
+plotspict.fb(res, man.legend=FALSE)
+```
+
+Note in the plot that the decrease in fishing pressure results in a constant biomass as opposed to the expected decrease if fishing effort had remained constant.
+
+### Management scenarios
+
+The package has a function that runs several predefined management scenarios, which can be presented in a forecast table. To perform the calculations required to produce the forecast table run:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+res <- manage(res)
+```
+
+where `res` is the result of `fit.spict()` from the code above. Then, the results can be summarised (and extracted) by running:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+df <- mansummary(res)
+```
+
+Then, `df` is a data frame with each line containing a line of the output
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+head(df)
+```
+
+The resulting biomass, fishing mortality and catch of the management scenarios are included in the standard plots
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+par(mfrow=c(2, 2), mar=c(4, 4.5, 3, 3.5))
+plotspict.bbmsy(res)
+plotspict.ffmsy(res, qlegend=FALSE)
+plotspict.catch(res, qlegend=FALSE)
+plotspict.fb(res, man.legend=FALSE)
+```
+
+To obtain results for several forecast horizons without having to rerun the model each time it is required to set `inp$timepredc` equal to the longest horizon of interest. For example
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+inp <- pol$albacore
+inp$timepredc <- 1991
+res <- fit.spict(inp)
+res <- manage(res)
+```
+
+Then the management table for 1990 is:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+mansummary(res, ypred=1, include.unc = FALSE)
+```
+
+and for 1991 is:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+mansummary(res, ypred=2, include.unc = FALSE)
+```
+
+
+# Other model settings and options
+
+## `catchunit` - Define unit of catch observations
+
+This will print the unit of the catches on relevant plots.
+
+Example: `inp$catchunit <- "'000 t"`. 
+
+## `dteuler` and `eulertype` - Temporal discretisation and time step
+
+To solve the continuous-time system an Euler discretisation scheme is used. This requires a time step to be specified (`dteuler`). The smaller the time step the more accurate the approximation to the continuous-time solution, however with the cost of increased memory requirements and computing time. The default value of `dteuler` is $1/16$, which seems sufficiently fine for most cases, and perhaps too fine for some cases. When fitting quarterly data and species with fast growth it is important to have a small `dteuler`. The influence of `dteuler` on the results can be checked by using different values and comparing resulting model estimates. If `dteuler <- 1` the model essentially becomes a discrete-time model with one Euler step per year.
+
+There are two possible temporal discretisation schemes which can be set to either `eulertype = 'hard'` (default) or `eulertype = 'soft'`. If `eulertype = 'hard'` then time is discretised into intervals of length `dteuler`. Observations are then assigned to these intervals. For annual and quarterly data `dteuler = 1/16` is appropriate,  however if fitting to monthly data `dteuler` should be changed to e.g. `1/24`. If `eulertype = 'soft'` (careful, this feature has not been thoroughly tested), then time is discretised into intervals of length `dteuler` and additional time points corresponding to the times of observation are added to the discretisation. This feature is particularly useful if observations (most likely index series) are observed at odd times during the year. The model then estimates values of biomass and fishing mortality at the exact time of the observation instead of assigning the observation to an interval.
+
+## `msytype` - Stochastic and deterministic reference points
+
+As default the stochastic reference points are reported and used for calculation of relative levels of biomass and fishing mortality. It is, however, possible to use the deterministic reference points by setting `inp$msytype <- 'd'`.
+
+## `do.sd.report` - Perform SD report calculations
+
+The sdreport step calculates the uncertainty of all quantities that are reported in addition to the model parameters. For long time series and with small `dteuler` this step may have high memory requirements and a substantial computing time. Thus, if one is only interested in the point estimates of the model parameters it is advisable to set `do.sd.report <- 0` to increase speed.
+
+## `reportall` - Report all derived quantities
+
+If uncertainties of some quantities (such as reference points) are required, but uncertainty on state variables (biomass and fishing mortality) are not needed, then `reportall <- 0` can be used to increase speed.
+
+## `optim.method` - Report all derived quantities
+
+Parameter estimation is per default performed using R's `nlminb()` optimiser. Alternatively it is possible to use `optim` by setting `inp$optim.method <- 'optim'`.
+
+# References
