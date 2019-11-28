@@ -216,7 +216,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 <h1 class="title toc-ignore">Guidelines for the use of the stochastic production model in continuous time (SPiCT)</h1>
 <h4 class="author">T.K. Mildenberger, A. Kokkalis, C.W. Berg</h4>
-<h4 class="date">26 November, 2019</h4>
+<h4 class="date">28 November, 2019</h4>
 
 
 
@@ -276,7 +276,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <h2>Optional model and assessment tuning</h2>
 <p><strong>Disclaimer</strong>: An uncertain assessment is okay; the model should not be tweaked and parameters should not be fixed unless there is sufficient information and evidence to make such assumptions. Rather than avoiding uncertainty, it should be accounted for by means of stochastic harvest control rules <span class="citation">(ICES 2019)</span>.</p>
 <ul>
-<li><p>Increase <strong>iterations of optimisation</strong>. The special error code <code>false convergence (8)</code> could indicate that the optimisation exceeded the maximum number of iterations <code>max.iter</code>. <code>inp$optimiser.control = list(iter.max = 1e4, eval.max = 1e4)</code></p></li>
+<li><p>Increase <strong>iterations of optimisation</strong>. The special error code <code>false convergence (8)</code> could indicate that the optimisation exceeded the maximum number of iterations <code>max.iter</code>. <code>inp$optimiser.control = list(iter.max = 1e5, eval.max = 1e5)</code></p></li>
 <li><p>If the catch time series is longer than the survey(s), <strong>shortening the catch time series</strong> to cover only the period where there is an available biomass index may help model convergence. <code>inp = shorten.inp(inp, 2005, 2018)</code></p></li>
 <li><p><strong>Adjust</strong> the prior for the parameter <code>logn</code> determining the <strong>shape of the production curve</strong>.</p>
 <ul>

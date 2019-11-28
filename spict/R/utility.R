@@ -157,16 +157,16 @@ calc.gamma <- function(n) n^(n/(n-1)) / (n-1)
 #' ## Make the south Atlantic albacore assessment
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
-#' 
+#'
 #' ## See all quantitites that can be extracted
 #' list.quantities(rep)
-#' 
+#'
 #' ## Extract the Bmsy reference point
 #' Bmsy <- get.par('logBmsy', rep, exp=TRUE)
-#' 
+#'
 #' ## Extract the exploitable biomass estimates
 #' Best <- get.par('logB', rep, exp=TRUE)
-#' 
+#'
 #' ## Extract the estimated caryting capacity
 #' K <- get.par('logK', rep, exp=TRUE)
 get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
@@ -535,4 +535,46 @@ get.cov <- function(rep, parname1, parname2, cor=FALSE){
     } else {
         return(rep$cov[inds, inds])
     }
+}
+
+
+#' @name calc.bmsyk
+#' @title Calculates the Bmsy/K ratio
+#' @param rep Result of fit.spict().
+#' @return Bmsy/K
+#' @export
+calc.bmsyk <- function(rep){
+    if(class(rep) != "spictcls" ||
+       !"par.fixed" %in% names(rep)) stop("Please provide an object fitted with 'fit.spict'.")
+    bmsyk <- get.par("BmsyB0", rep, exp=FALSE)[,2]
+    return(bmsyk)
+}
+
+
+#' @name calc.om
+#' @title Calculates the order of magnitude for the relative reference
+#'     levels B/Bmsy and F/Fmsy
+#' @param rep Result of fit.spict().
+#' @details The lower, upper values and the CI range are based on the
+#'     95% confidence interval (CI).
+#' @return Matrix containing the order of magnitude for B/Bmsy and
+#'     F/Fmsy.
+#' @export
+calc.om <- function(rep){
+    if(class(rep) != "spictcls" ||
+       !"par.fixed" %in% names(rep)) stop("Please provide an object fitted with 'fit.spict'.")
+    blbmsy <- get.par("logBlBmsy", rep, exp=TRUE)
+    flfmsy <- get.par("logFlFmsy", rep, exp=TRUE)
+    ## 95% CI range
+    bdiff <- blbmsy[,3] - blbmsy[,1]
+    fdiff <- flfmsy[,3] - flfmsy[,1]
+    ## order of magnitude
+    omagnib <- abs(floor(log10(blbmsy[,3])) - floor(log10(blbmsy[,1])))
+    omagnif <- abs(floor(log10(flfmsy[,3])) - floor(log10(flfmsy[,1])))
+
+    res <- round(cbind(rbind(blbmsy[,1:3],flfmsy[,1:3]),c(bdiff,fdiff),c(omagnib,omagnif)),2)
+    colnames(res) <- c("lower","est","upper",
+                       "CI range","order magnitude")
+    rownames(res) <- c("B/Bmsy","F/Fmsy")
+    return(res)
 }

@@ -135,8 +135,8 @@ stochastic harvest control rules [@wklifeix].
 
 * Increase **iterations of optimisation**. The special error code `false
 convergence (8)` could indicate that the optimisation exceeded the maximum
-number of iterations `max.iter`. `inp$optimiser.control = list(iter.max = 1e4,
-eval.max = 1e4)`
+number of iterations `max.iter`. `inp$optimiser.control = list(iter.max = 1e5,
+eval.max = 1e5)`
 
 * If the catch time series is longer than the survey(s), **shortening
 the catch time series** to cover only the period where there is an
