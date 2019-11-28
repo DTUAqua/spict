@@ -2251,42 +2251,39 @@ plotspict.ci <- function(inp, stamp=get.version()){
 #' @name plotspict.priors
 #' @title Plot priors and posterior distribution.
 #' @param rep A result from fit.spict.
-#' @param do.plot Integer defining maximum number of priors to plot.
+#' @param do.plot Optional integer defining maximum number of priors to plot. Set to NULL to plot all active priors. Default: NULL  
 #' @param stamp Stamp plot with this character string.
+#' @param automfrow Automatically set 'mfrow' to see all priors in one plot? Not used if do.plot is set. Default: TRUE
 #' @return Nothing
 #' @export
-plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
+plotspict.priors <- function(rep, do.plot=NULL, stamp=get.version(), automfrow=TRUE){
     inp <- rep$inp
     useflags <- inp$priorsuseflags
-    #useflags <- numeric(npriors)
-    #for (i in 1:npriors){
-    #    useflag <- inp$priors[[i]][3]
-    #    nm <- names(inp$priors)[i]
-    #    phase <- 1
-    #    if (nm %in% names(inp$phases)) phase <- inp$phases[[nm]]
-    #    if (phase > 0){ # Avoid plotting priors of parameters that are fixed
-    #        useflags[i] <- inp$priors[[i]][3]
-    #    } else {
-    #        useflags[i] <- 0
-    #    }
-    #}
     inds <- which(useflags == 1)
     ninds <- length(inds)
-    ninds <- min(ninds, do.plot)
+    if(!is.null(do.plot)) automfrow <- FALSE 
+    if(automfrow) {
+        nopriors <- get.no.active.priors(inp)
+        op <- par(mfrow=n2mfrow(nopriors))
+        on.exit(par(op))
+    }
+    counter <- 0
     nused <- sum(useflags)
     if (ninds > 0){
         for (i in 1:ninds){
             j <- inds[i]
             priorvec <- inp$priors[[j]]
             nm <- names(inp$priors)[j]
-            if (length(grep('gamma', nm)) == 1){
-                if (length(grep('sd', nm)) == 1){
-                    gpnm <- paste0('log', substr(nm, 2, 4))
-                    par <- get.par(gpnm, rep, exp=FALSE)
-                }
-            }
+            isGamma <- FALSE
             nmpl <- sub('log', '', nm)
+            nmpl <- sub('gamma','',nmpl)
             par <- get.par(nm, rep, exp=FALSE)
+            
+            if (length(grep('gamma', nm)) == 1){
+                isGamma <- TRUE
+                if(nm=="logngamma") par <- get.par("logn",rep,exp=FALSE)
+            }
+            
             repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
             if (nm %in% repriors){
                 par <- par[priorvec[5], , drop=FALSE]
@@ -2296,7 +2293,6 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
                 }
             }
             for (rr in 1:nrow(par)){
-                #nmpl <- sub('log', '', nm)
                 if (nrow(par) > 1){
                     nmpl <- paste0(nmpl, rr)
                 }
@@ -2304,16 +2300,27 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
                 if(is.list(priorvec)) prvec <- priorvec[[rr]]
                 mu <- ifelse(is.na(par[rr, 4]), prvec[1], par[rr, 2])
                 sd <- ifelse(is.na(par[rr, 4]), prvec[2], par[rr, 4])
-                xmin <- mu - 3*sd
-                xmax <- mu + 3*sd
-                x <- seq(xmin, xmax, length=200)
-                priorvals <- dnorm(x, prvec[1], prvec[2])
+                if(isGamma && is.na(par[rr, 4])){
+                    xmin <- 1e-12
+                    xmax <- qgamma(0.99,shape=mu,rate=sd)
+                } else {
+                    xmin <- mu - 3*sd
+                    xmax <- mu + 3*sd                    
+                }
+                xpr <- xpo <- seq(xmin, xmax, length=200)
+                if(!isGamma) {
+                    priorvals <- dnorm(xpr, prvec[1], prvec[2])
+                }  else  {
+                    priorvals <- dgamma(xpr, prvec[1], prvec[2])
+                }
+                
                 if (is.na(par[rr, 4])){
                     posteriorvals <- NULL
                 } else {
-                    posteriorvals <- dnorm(x, par[rr, 2], par[rr, 4])
+                    if(isGamma) xpo <- seq(mu - 3*sd, mu + 3*sd, length=200)
+                    posteriorvals <- dnorm(xpo, par[rr, 2], par[rr, 4])
                 }
-                plot(exp(x), priorvals, typ='l', xlab=nmpl, ylab='Density', log='x',
+                plot(exp(xpr), priorvals, typ='l', xlab=nmpl, ylab='Density', log='x',
                      lwd=1.5, ylim=c(0, max(priorvals, posteriorvals)*1.3))
                 if (is.na(par[rr, 4])){
                     if (!is.na(par[rr, 2])){
@@ -2322,7 +2329,7 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
                     legend('topright', legend=c('Prior', 'Post. Mean'), lty=1:2,
                            col=c(1, 3), lwd=1.5)
                 } else {
-                    lines(exp(x), posteriorvals, col=3, lwd=1.5)
+                    lines(exp(xpo), posteriorvals, col=3, lwd=1.5)
                     legend('topright', legend=c('Prior', 'Post.'), lty=1,
                            col=c(1, 3), lwd=1.5)
                 }
@@ -2330,9 +2337,14 @@ plotspict.priors <- function(rep, do.plot=4, stamp=get.version()){
                 if (rep$opt$convergence != 0){
                     warning.stamp()
                 }
+                counter <- counter + 1
+                if(!is.null(do.plot) && counter >= do.plot) {
+                    txt.stamp(stamp)
+                    return()
+                }
             }
         }
-        txt.stamp(stamp, do.flag=TRUE)
+        txt.stamp(stamp)
     }
 }
 

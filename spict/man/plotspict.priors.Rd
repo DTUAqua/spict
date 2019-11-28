@@ -4,14 +4,17 @@
 \alias{plotspict.priors}
 \title{Plot priors and posterior distribution.}
 \usage{
-plotspict.priors(rep, do.plot = 4, stamp = get.version())
+plotspict.priors(rep, do.plot = NULL, stamp = get.version(),
+  automfrow = TRUE)
 }
 \arguments{
 \item{rep}{A result from fit.spict.}
 
-\item{do.plot}{Integer defining maximum number of priors to plot.}
+\item{do.plot}{Optional integer defining maximum number of priors to plot. Set to NULL to plot all active priors. Default: NULL}
 
 \item{stamp}{Stamp plot with this character string.}
+
+\item{automfrow}{Automatically set 'mfrow' to see all priors in one plot? Not used if do.plot is set. Default: TRUE}
 }
 \value{
 Nothing

@@ -75,8 +75,6 @@
 #' Example: Biomass prior of 200 in 1985
 #'  inp$priors$logB <- c(log(200), 0.2, 1985)
 #'  inp$priors$logB <- c(log(200), 0.2, 1, 1985) # This includes the optional useflag
-#' Example: Inverse gamma prior on sdb^2:
-#'  inp$priors$isdb2gamma <- meanvar2shaperate(1/exp(inp$ini$logsdb)^2, 150^2)
 #' 
 #' - Settings/Options/Preferences
 #' 
@@ -1091,10 +1089,10 @@ check.inp <- function(inp){
         return(priorvec)
     }
     possiblepriors <- c('logn', 'logalpha', 'logbeta', 'logr', 'logK', 'logm', 'logq',
-                        'iqgamma', 'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy',
-                        'logFFmsy', 'logsdb', 'isdb2gamma', 'logsdf', 'isdf2gamma',
-                        'logsdi', 'isdi2gamma', 'logsde', 'isde2gamma', 'logsdc',
-                        'isdc2gamma', 'logsdm', 'logpsi', 'mu', 'BmsyB0','logngamma')
+                        'logqf', 'logbkfrac', 'logB', 'logF', 'logBBmsy',
+                        'logFFmsy', 'logsdb', 'logsdf', 
+                        'logsdi', 'logsde','logsdc',
+                        'logsdm', 'logpsi', 'mu', 'BmsyB0','logngamma')
     repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
     matrixpriors <- c('logsdi','logq')
     npossiblepriors <- length(possiblepriors)

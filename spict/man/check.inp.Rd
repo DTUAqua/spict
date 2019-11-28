@@ -74,8 +74,6 @@ Example: intrinsic growth rate of 0.8
 Example: Biomass prior of 200 in 1985
  inp$priors$logB <- c(log(200), 0.2, 1985)
  inp$priors$logB <- c(log(200), 0.2, 1, 1985) # This includes the optional useflag
-Example: Inverse gamma prior on sdb^2:
- inp$priors$isdb2gamma <- meanvar2shaperate(1/exp(inp$ini$logsdb)^2, 150^2)
 
 - Settings/Options/Preferences
 
@@ -85,6 +83,7 @@ Example: Inverse gamma prior on sdb^2:
  \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation. Example: inp$timepredi <- 2012}
  \item{"inp$do.sd.report"}{ Flag indicating whether SD report (uncertainty of derived quantities) should be calculated. For small values of inp$dteuler this may require a lot of memory. Default: TRUE.}
  \item{"inp$reportall"}{ Flag indicating whether quantities derived from state vectors (e.g. B/Bmsy, F/Fmsy etc.) should be calculated by SD report. For small values of inp$dteuler (< 1/32) reporting all may have to be set to FALSE for sdreport to run. Additionally, if only reference points of parameter estimates are of interest one can set to FALSE to gain a speed-up. Default: TRUE.}
+\item{"inp$reportRel"}{ Flag indicating whether mean 1 standardized states (i.e. B/mean(B), F/mean(F) etc.) should be calculated by SD report. Default: FALSE.}
 \item{"inp$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
  \item{"inp$robflagi"}{ Vector of flags indicating whether robust estimation should be used for indices (either 0 or 1). Default: 0.}
  \item{"inp$ffac"}{ Management scenario represented by a factor to multiply F with when calculating the F of the next time step. ffac=0.8 means a 20\% reduction in F over the next year. The factor is only used when predicting beyond the data set. Default: 1 (0\% reduction).}

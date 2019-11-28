@@ -536,3 +536,41 @@ get.cov <- function(rep, parname1, parname2, cor=FALSE){
         return(rep$cov[inds, inds])
     }
 }
+
+##' @name get.no.active.priors
+##' @title Get number of active priors
+##' @param inp An input list containing priors (after call to check.inp and/or fit.spict)
+##' @return number of active priors
+##' @export
+get.no.active.priors<-function(inp){
+    sum(sapply(inp$priors,function(x){
+        if(is.list(x)){
+            prm <- do.call(rbind,x)
+            return(sum(prm[,3]))
+        } else {
+            x[3]
+        }
+    }))
+}
+
+##' @name modefrac2shaperate
+##' @title Convert mode and fractile to shape and rate in Gamma distribution (only for mode>0, i.e. shape >= 1)
+##' @param mode x for which f(x) is at the maximum
+##' @param xf x for which P(X<=x) = f
+##' @param f fractile
+##' @return Vector containing shape and rate parameters.
+##' @export
+modefrac2shaperate<-function (mode, xf, f=0.9) 
+{
+    dev<-function(z){
+        sr <- exp(z) + c(1,0)  ## we want shape >= 1, such that mode>0
+        m <- (sr[1]-1)/sr[2]
+        cxf <- qgamma(f,sr[1],sr[2])
+        (m-mode)^2 + (xf-cxf)^2
+    }
+    opt <- optim(c(0,0),dev,control=list(reltol=1e-14,abstol=1e-14, maxit=1000))
+    if(opt$value > 1e-13) warning("no exact solution found")
+    vec <- exp(opt$par) + c(1,0)
+    names(vec) <- c("shape", "rate")
+    return(vec)
+}
