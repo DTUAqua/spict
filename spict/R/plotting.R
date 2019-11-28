@@ -64,13 +64,16 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
 #' @title Add spict version to plot
 #' @param string Character string to stamp.
 #' @param cex Stamp cex.
-#' @param do.flag If NULL stamp will be added if not in a multi plot, i.e. mean(par()$mfrow) > 1
+#' @param do.flag If NULL stamp will be added if not in a multi plot, i.e.
+#'     mean(par()$mfrow) > 1
+#' @param new logical, defaulting to 'TRUE'. From \link[graphics]{par}: If set to
+#'     'TRUE', the next high-level plotting command (actually 'plot.new') should
+#'     _not clean_ the frame before drawing _as if it were on a *_new_* device_.
+#'     It is an error (ignored with a warning) to try to use 'new = TRUE' on a
+#'     device that does not currently contain a high-level plot.
 #' @return Nothing
 #' @export
-txt.stamp <- function(string = get.version(), cex=0.5, do.flag=NULL) {
-    #if (string == 'undef'){
-    #    string <- get.version()
-    #}
+txt.stamp <- function(string = get.version(), cex=0.5, do.flag=NULL, new=TRUE){
     if (is.null(do.flag)){
         if (mean(par()$mfrow) > 1){
             do.flag <- FALSE
@@ -79,10 +82,10 @@ txt.stamp <- function(string = get.version(), cex=0.5, do.flag=NULL) {
         }
     }
     if (!is.null(string)){
-        if (string != '' & !is.na(string) & do.flag){
-            opar <- par(new = "TRUE", plt = c(0, 1, 0, 1), mfrow=c(1, 1), xpd=FALSE)
+        if (string != '' && !is.na(string) && do.flag){
+            opar <- par(new = new, plt = c(0, 1, 0, 1), mfrow=c(1, 1), xpd=FALSE)
             on.exit(par(opar))
-            plot(1, typ='n', xaxt='n', yaxt='n', xlab='', ylab='', bty='n') # Empty plot 
+            plot(1, typ='n', xaxt='n', yaxt='n', xlab='', ylab='', bty='n') # Empty plot
             #opar <- par(yaxt = "s", xaxt = "s")
             on.exit(par(opar))
             plt <- par("plt")
@@ -416,6 +419,13 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
     if (!'sderr' %in% names(rep)){
         ylabflag <- is.null(ylab)
         ylimflag <- !is.null(ylim)
+
+        if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+            txt.stamp(stamp, new=FALSE)
+            opar <- par(new = TRUE)
+            on.exit(par(opar))
+        }
+
         mar <- c(5.1, 4.3, 4.1, 4.1)
         if (dev.cur()==1){ # If plot is not open
             opar <- par(mar=mar)
@@ -454,6 +464,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         cvCheck <- ifelse(any(Best[,5] <= 5),5,min(Best[,5]))
         fininds <- which(Best[, 5] <= cvCheck) # Use CV to check for large uncertainties
         BBfininds <- unname(which(is.finite(BB[, 1]) & is.finite(BB[, 3]))) # Use CV to check for large uncertainties
+
         if (!ylimflag){
             if (length(ylim)!=2){
                 ylim <- range(BB[BBfininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2],
@@ -540,7 +551,6 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         if (rep$opt$convergence != 0){
             warning.stamp()
         }
-        txt.stamp(stamp)
     }
 }
 
@@ -570,6 +580,13 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         ylimflag <- !is.null(ylim)
+
+        if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+            txt.stamp(stamp, new=FALSE)
+            opar <- par(new = TRUE)
+            on.exit(par(opar))
+        }
+
         # Biomass plot
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
         Bmsy <- get.par('logBmsy', rep, exp=TRUE)
@@ -649,7 +666,6 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
             plot(1, typ='n', xlab='', ylab='', xaxt='n', yaxt='n', main=paste('Bmsy=NA!', main))
         }
         box(lwd=1.5)
-        txt.stamp(stamp)
     }
 }
 
@@ -837,7 +853,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
         plotspict.osar(rep, collapse.I=FALSE, qlegend=qlegend)
         # Catch ACF
         pvalacfC <- round(as.list(rep$diagn)$LBoxC.p, 4)
-        resC <- rep$osar$logCpres[!is.na(rep$osar$logCpres)]        
+        resC <- rep$osar$logCpres[!is.na(rep$osar$logCpres)]
         osar.acf.plot(resC, lag.max, pvalacfC, ylab='Catch ACF')
         # Effort ACF
         if (inp$nobsE > 0){
@@ -905,6 +921,13 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
                         rel.ci=TRUE, stamp=get.version()){
     if (!'sderr' %in% names(rep)){
         ylabflag <- is.null(ylab) # If null then not manually specified
+
+        if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+            txt.stamp(stamp, new=FALSE)
+            opar <- par(new = TRUE)
+            on.exit(par(opar))
+        }
+
         omar <- par()$mar
         if (rel.axes){
             mar <- c(5.1, 4.3, 4.1, 4.1)
@@ -928,7 +951,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         qf <- get.par('logqf', rep, exp=TRUE)
         Fest <- get.par('logFnotS', rep, exp=TRUE)
         logFest <- get.par('logFnotS', rep)
-        
+
         if (tvgflag){
             Fmsy <- get.par('logFmsyvec', rep, exp=TRUE)
             Fmsyvec <- as.data.frame(Fmsy)
@@ -961,7 +984,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         Ff <- Fest[, 2]
         clf <- FF[, 1] #*Fmsy[2]
         cuf <- FF[, 3] #*Fmsy[2]
-            
+
         #ylimflag <- !is.null(ylim)
         ylimflag <- !is.null(ylim) & length(ylim) == 2 # If FALSE ylim is manually specified
         # Check whether nan values are present in CI limits
@@ -1041,7 +1064,6 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         if (rep$opt$convergence != 0){
             warning.stamp()
         }
-        txt.stamp(stamp)
     }
 }
 
@@ -1068,6 +1090,12 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
                             plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time',
                             stamp=get.version()){
     if (!'sderr' %in% names(rep)){
+        if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+            txt.stamp(stamp, new=FALSE)
+            opar <- par(new = TRUE)
+            on.exit(par(opar))
+        }
+
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         cicol <- 'lightgray'
@@ -1075,7 +1103,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         FF <- get.par('logFFmsynotS', rep, exp=TRUE)
         logFF <- get.par('logFFmsynotS', rep)
         FFs <- get.par('logFFmsy', rep, exp=TRUE)
-        
+
         time <- inp$time[inp$indest]
         cl <- FF[inp$indest, 1]
         F <- FF[inp$indest, 2]
@@ -1088,7 +1116,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         clf <- FF[, 1]
         Ff <- FF[, 2]
         cuf <- FF[, 3]
-        
+
         flag <- length(cu) == 0 | all(!is.finite(cu))
         if (flag){
             # CIs don't exist or are not finite
@@ -1101,9 +1129,9 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         if (length(ylim) != 2){
             ylim <- range(ys, na.rm=TRUE)
             # Limit upper limit
-            ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) 
+            ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds])))
             # Ensure that lineat is included in ylim
-            ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat)) 
+            ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat))
         }
 
         plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]),
@@ -1144,7 +1172,6 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             warning.stamp()
         }
         box(lwd=1.5)
-        txt.stamp(stamp)
     }
 }
 
@@ -1172,6 +1199,11 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
 plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ext=TRUE, rel.axes=FALSE,
                          xlim=NULL, ylim=NULL, labpos=c(1, 1), xlabel=NULL, stamp=get.version()){
     if (!'sderr' %in% names(rep)){
+        if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+            txt.stamp(stamp, new=FALSE)
+            opar <- par(new = TRUE)
+            on.exit(par(opar))
+        }
         #omar <- par()$mar
         mar <- c(5.1, 4.3, 4.1, 4.1)
         if (dev.cur()==1){ # If plot is not open
@@ -1230,7 +1262,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
         }
         if (class(cl) == 'try-error'){
             cl <- matrix(c(log(Bmsy[2]), log(Fmsy[2])), 1, 2)
-        } 
+        }
         if (min(inp$dtc) < 1){ # Quarterly
             alb <- annual(inp$time, logBest[, 2])
             alf <- annual(inp$time, logFest[, 2])
@@ -1367,7 +1399,6 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
         if (rep$opt$convergence != 0){
             warning.stamp()
         }
-        txt.stamp(stamp)
     }
 }
 
@@ -1392,6 +1423,11 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
 plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='blue',
                             xlab='Time', ylab=NULL, stamp=get.version()){
     if (!'sderr' %in% names(rep)){
+        if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+            txt.stamp(stamp, new=FALSE)
+            opar <- par(new = TRUE)
+            on.exit(par(opar))
+        }
         ylabflag <- is.null(ylab) # If null then not manually specified
         inp <- rep$inp
         ylimflag <- !is.null(ylim)
@@ -1516,7 +1552,6 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
             warning.stamp()
         }
         box(lwd=1.5)
-        txt.stamp(stamp)
     }
 }
 
@@ -1536,6 +1571,11 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
 #' @export
 plotspict.production <- function(rep, n.plotyears=40, main='Production curve', stamp=get.version()){
     if (!'sderr' %in% names(rep)){
+        if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+            txt.stamp(stamp, new=FALSE)
+            opar <- par(new = TRUE)
+            on.exit(par(opar))
+        }
         inp <- rep$inp
         tvgflag <- rep$inp$timevaryinggrowth | rep$inp$logmcovflag
         Kest <- get.par('logK', rep, exp=TRUE)
@@ -1568,7 +1608,7 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve', s
             for (i in 1:nr){
                 Pst[[i]] <- pfun(gamma[2], mest[i,2], Kest[2], n[2], Bplot)
             }
-            
+
             Bvec <- Best[binds, 2]
             xlim <- range(Bvec/Kest[2], 0, 1)
             ylim <- c(min(0, Pest[,2]/yscal), max(Pest[,2]/yscal, unlist(Pst)/Pstscal, na.rm=TRUE))
@@ -1610,7 +1650,6 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve', s
         if (rep$opt$convergence != 0){
             warning.stamp()
         }
-        txt.stamp(stamp)
     }
 }
 
@@ -1629,6 +1668,11 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve', s
 #' @export
 plotspict.tc <- function(rep, main='Time to Bmsy', stamp=get.version()){
     if (!'sderr' %in% names(rep) & rep$opt$convergence == 0){
+        if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+            txt.stamp(stamp, new=FALSE)
+            opar <- par(new = TRUE)
+            on.exit(par(opar))
+        }
         inp <- rep$inp
         B0cur <- get.par('logBl', rep, exp=TRUE)[2]
         Kest <- get.par('logK', rep, exp=TRUE)
@@ -1710,7 +1754,6 @@ plotspict.tc <- function(rep, main='Time to Bmsy', stamp=get.version()){
                 if (rep$opt$convergence != 0){
                     warning.stamp()
                 }
-                txt.stamp(stamp)
             }
         }
     }
@@ -1729,6 +1772,11 @@ plotspict.season <- function(rep, stamp=get.version()){
         stop('Input object was not a valid output from fit.spict()!')
     }
     if (!'sderr' %in% names(rep) & 'logphi' %in% names(rep$par.fixed)){
+        if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+            txt.stamp(stamp, new=FALSE)
+            opar <- par(new = TRUE)
+            on.exit(par(opar))
+        }
         jan <- as.POSIXct("2015-01-01 00:00:01 UTC", tz='UTC')
         apr <- jan+(31+28+31)*24*60*60
         jul <- apr+(30+31+30)*24*60*60
@@ -1792,7 +1840,6 @@ plotspict.season <- function(rep, stamp=get.version()){
         if (rep$opt$convergence != 0){
             warning.stamp()
         }
-        txt.stamp(stamp)
     }
 }
 
@@ -1841,7 +1888,7 @@ plotspict.btrend <- function(rep){
 #'  \item{ One-step-ahead residuals of catches using plotspict.osar().}
 #'  \item{ One-step-ahead residuals of catches using plotspict.osar().}
 #' }
-#' 
+#'
 #' @param x A result report as generated by running fit.spict.
 #' @param ... additional arguments affecting the summary produced.
 #' @return Nothing.
@@ -1946,6 +1993,11 @@ put.xax <- function(rep){
 #' @return Nothing.
 #' @export
 plotspict.infl <- function(rep, stamp=get.version()){
+    if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+        txt.stamp(stamp, new=FALSE)
+        opar <- par(new = TRUE)
+        on.exit(par(opar))
+    }
     inp <- rep$inp
     #sernames <- c('C', paste0('I', 1:inp$nindex))
     dfbeta <- rep$infl$dfbeta
@@ -2017,7 +2069,6 @@ plotspict.infl <- function(rep, stamp=get.version()){
     # Plot of influence
     plotspict.inflsum(rep)
     box(lwd=1.5)
-    txt.stamp(stamp)
 }
 
 
@@ -2029,6 +2080,11 @@ plotspict.infl <- function(rep, stamp=get.version()){
 #' @return Nothing.
 #' @export
 plotspict.inflsum <- function(rep, stamp=get.version()){
+    if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+        txt.stamp(stamp, new=FALSE)
+        opar <- par(new = TRUE)
+        on.exit(par(opar))
+    }
     infl <- rep$infl$infl
     nobs <- dim(infl)[1]
     ninfl <- dim(infl)[2]
@@ -2040,7 +2096,6 @@ plotspict.inflsum <- function(rep, stamp=get.version()){
     }
     matplot(infl, pch=1, col=1, add=TRUE)
     put.xax(rep)
-    txt.stamp(stamp)
 }
 
 
@@ -2053,6 +2108,11 @@ plotspict.inflsum <- function(rep, stamp=get.version()){
 #' @return Nothing but shows a plot.
 #' @export
 plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
+    if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+        txt.stamp(stamp, new=FALSE)
+        opar <- par(new = TRUE)
+        on.exit(par(opar))
+    }
     repflag <- 'par.fixed' %in% names(input)
     if (repflag){ # This is a result of fit.spict
         rep <- input
@@ -2091,12 +2151,11 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
         contour(pv[, 1], pv[, 2], pvals, xlab=pars[1], ylab=pars[2], levels=c(0.5, 0.8, 0.95))
     }
     box(lwd=1.5)
-    txt.stamp(stamp)
 }
 
 
 #' @name plotspict.retro
-#' @title Plot results of retrospective analysis 
+#' @title Plot results of retrospective analysis
 #' @param rep A valid result from fit.spict.
 #' @param stamp Stamp plot with this character string.
 #' @return Nothing
@@ -2160,6 +2219,11 @@ plotspict.retro <- function(rep, stamp=get.version()) {
 #' @return Nothing
 #' @export
 plotspict.ci <- function(inp, stamp=get.version()){
+    if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+        txt.stamp(stamp, new=FALSE)
+        opar <- par(new = TRUE)
+        on.exit(par(opar))
+    }
     #op <- par()
     inp <- check.inp(inp)
     if (sum(inp$nobsI) > 0){
@@ -2243,7 +2307,6 @@ plotspict.ci <- function(inp, stamp=get.version()){
     } else {
         plotspict.data(inp)
     }
-    txt.stamp(stamp)
     #par(op)
 }
 
@@ -2453,6 +2516,11 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=TRUE, stamp=
 plotspict.growth <- function(rep, logax=FALSE, main='Time-varying growth', ylim=NULL,
                             xlim=NULL, xlab='Time', plot.ci=TRUE, stamp=get.version()){
     if (!'sderr' %in% names(rep) & rep$inp$timevaryinggrowth){
+        if (!is.null(stamp) && stamp != '' && !is.na(stamp)){
+            txt.stamp(stamp, new=FALSE)
+            opar <- par(new = TRUE)
+            on.exit(par(opar))
+        }
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         rre <- get.par('logrre', rep, exp=TRUE)
@@ -2486,6 +2554,5 @@ plotspict.growth <- function(rep, logax=FALSE, main='Time-varying growth', ylim=
         abline(v=inp$time[inp$indlastobs], col='gray')
         lines(time, rre[, 2], col=rgb(0, gr, 0), lwd=1.5)
         box(lwd=1.5)
-        txt.stamp(stamp)
     }
 }

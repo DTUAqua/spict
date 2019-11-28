@@ -4,14 +4,22 @@
 \alias{txt.stamp}
 \title{Add spict version to plot}
 \usage{
-txt.stamp(string = get.version(), cex = 0.5, do.flag = NULL)
+txt.stamp(string = get.version(), cex = 0.5, do.flag = NULL,
+  new = TRUE)
 }
 \arguments{
 \item{string}{Character string to stamp.}
 
 \item{cex}{Stamp cex.}
 
-\item{do.flag}{If NULL stamp will be added if not in a multi plot, i.e. mean(par()$mfrow) > 1}
+\item{do.flag}{If NULL stamp will be added if not in a multi plot, i.e.
+mean(par()$mfrow) > 1}
+
+\item{new}{logical, defaulting to 'TRUE'. From \link[graphics]{par}: If set to
+'TRUE', the next high-level plotting command (actually 'plot.new') should
+_not clean_ the frame before drawing _as if it were on a *_new_* device_.
+It is an error (ignored with a warning) to try to use 'new = TRUE' on a
+device that does not currently contain a high-level plot.}
 }
 \value{
 Nothing
