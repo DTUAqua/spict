@@ -1,0 +1,43 @@
+Tests with annual data
+[1] 0
+Test 1.1: 
+[1] 0.292
+Test 1.2: 
+       lower  est upper CI range order magnitude
+B/Bmsy  0.21 0.43  0.92     0.72               0
+F/Fmsy  0.98 1.95  3.86     2.87               1
+
+
+Tests with seasonal data
+[1] 0
+Test 2.1: 
+[1] 0.492
+Test 2.2: 
+       lower  est upper CI range order magnitude
+B/Bmsy  0.47 1.06  2.39     1.92               1
+F/Fmsy  0.72 1.40  2.73     2.01               1
+
+
+Tests with mixed data
+[1] 0
+Test 3.1: 
+[1] 0.514
+Test 3.2: 
+       lower  est upper CI range order magnitude
+B/Bmsy  0.92 1.78  3.45     2.54               1
+F/Fmsy  0.26 0.69  1.86     1.61               1
+
+
+Tests with incorrect input
+Test 4.1.1: 
+Error in calc.bmsyk(inp) : 
+  Please provide an object fitted with 'fit.spict'.
+Test 4.1.2: 
+Error in calc.om(inp) : Please provide an object fitted with 'fit.spict'.
+[1] 1
+Test 4.2.1: 
+[1] 0.002
+Test 4.2.2: 
+       lower  est        upper     CI range order magnitude
+B/Bmsy     0 0.81 4.753948e+43 4.753948e+43              87
+F/Fmsy     0 1.23 8.876866e+34 8.876866e+34              69
