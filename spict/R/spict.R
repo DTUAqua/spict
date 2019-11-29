@@ -226,6 +226,7 @@ calc.prager.stats <- function(rep){
 #' @export
 make.datin <- function(inp, dbg=0){
     datin <- list(reportall=as.numeric(inp$reportall),
+                  reportRel=as.numeric(inp$reportRel),
                   dt=inp$dt,
                   dtpredcinds=inp$dtpredcinds,
                   dtpredcnsteps=inp$dtpredcnsteps,
@@ -274,25 +275,20 @@ make.datin <- function(inp, dbg=0){
                   stabilise=inp$stabilise,
                   MSYregime=inp$MSYregime,
                   priorn=inp$priors$logn,
+                  priorngamma=inp$priors$logngamma,
                   priorr=inp$priors$logr,
                   priorK=inp$priors$logK,
                   priorm=inp$priors$logm,
                   priormu=inp$priors$mu,
                   priorq=inp$matrixpriors$logq,
-                  prioriqgamma=inp$priors$iqgamma,
                   priorqf=inp$priors$logqf,
                   priorbkfrac=inp$priors$logbkfrac,
                   priorsdb=inp$priors$logsdb,
-                  priorisdb2gamma=inp$priors$isdb2gamma,
                   priorsdm=inp$priors$logsdm,
                   priorsdf=inp$priors$logsdf,
-                  priorisdf2gamma=inp$priors$isdf2gamma,
                   priorsdi=inp$matrixpriors$logsdi,
-                  priorisdi2gamma=inp$priors$isdi2gamma,
                   priorsde=inp$priors$logsde,
-                  priorisde2gamma=inp$priors$isde2gamma,
                   priorsdc=inp$priors$logsdc,
-                  priorisdc2gamma=inp$priors$isdc2gamma,
                   prioralpha=inp$priors$logalpha,
                   priorbeta=inp$priors$logbeta,
                   priorpsi=inp$priors$logpsi,
@@ -301,6 +297,7 @@ make.datin <- function(inp, dbg=0){
                   priorBBmsy=inp$priors$logBBmsy,
                   priorFFmsy=inp$priors$logFFmsy,
                   priorBmsyB0=inp$priors$BmsyB0,
+                  
                   simple=inp$simple,
                   dbg=dbg)
     return(datin)

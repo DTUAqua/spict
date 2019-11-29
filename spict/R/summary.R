@@ -538,7 +538,7 @@ sumspict.priors <- function(rep, ndigits=8){
     cat('\nPriors\n')
     priors <- rep$inp$priors[indso]
     usepriors <- names(priors)
-    gammainds <- grep('gamma', usepriors)
+    
     usepriors <- gsub('gamma', '', usepriors) # Strip gamma-text away
     npriors <- length(usepriors)
     # RE priors
@@ -557,15 +557,15 @@ sumspict.priors <- function(rep, ndigits=8){
     priorsmat <- rbind( priorsmat, do.call(rbind, matpriors))
     storage.mode(priorsmat)<-"double"
     priorsmat <- priorsmat[ priorsmat[,3] == 1 , , drop=FALSE]
-    
+    gammainds <- grep('gamma', rownames(priorsmat))
     npriors <- nrow(priorsmat)
     usepriors <- rownames(priorsmat)
     str <- character(npriors)
     maxchar <- max(nchar(usepriors))
     for(i in 1:npriors){
       if (i %in% gammainds){
-        shape <- rep$inp$priors[[i]][1]
-        rate <- rep$inp$priors[[i]][2]
+        shape <- priorsmat[i,1]
+        rate <- priorsmat[i,2]
         vec <- shaperate2meanvar(shape, rate)
         str[i] <- paste0('~  dgamma[', round(shape, 3),
                          ', ', round(rate, 3), '] (mean=', round(vec[1], 3), ', sd=', round(vec[3], 3), ')')
