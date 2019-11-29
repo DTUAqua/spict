@@ -9,8 +9,8 @@ set.seed(123)
 suppressMessages(library(spict))
 
 ## error settings
-options(error = expression(NULL))
-
+options(error = print)##expression(NULL))
+error("ss")
 
 ## 1: annual data
 ##--------------------
@@ -27,7 +27,25 @@ round(calc.bmsyk(fit1),3)
 writeLines("Test 1.2: ")
 round(calc.om(fit1),3)
 
+## ## 1.3: shorten input
+## writeLines("Test 1.3: shorten.inp")
+## inp_full <- check.inp(inp)
 
+## ## 1.3.1: no mintime and maxtime
+## inp_full2 <- shorten.inp(inp)
+## all.equal(inp_full, inp_full2)
+
+## ## 1.3.2: only mintime
+## inp_mintime <- shorten.inp(inp, mintime=1980)
+## all.equal(capture.output(inp_full), capture.output(inp_mintime))
+
+## ## 1.3.3: only maxtime
+## inp_maxtime <- shorten.inp(inp, maxtime=1982)
+## all.equal(inp_full, inp_full2)
+
+## ## 1.3.4: mintime and maxtime
+## inp_both <- shorten.inp(inp, mintime=1975.001, maxtime=1981.999)
+## all.equal(inp_full, inp_full2)
 
 
 ## 2: seasonal data
@@ -118,3 +136,5 @@ round(calc.bmsyk(fit4),3)
 ## 4.2.2: calculate order of magnitude
 writeLines("Test 4.2.2: ")
 round(calc.om(fit4),3)
+
+

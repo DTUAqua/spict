@@ -1,3 +1,24 @@
+spict v1.2.8 (Release date: 2019-11-28)
+============
+
+New features:
+
+* Added new vignette: "Guidelines for the use of the stochastic production model in continuous time (SPiCT)"
+* Added helper function `calc.bmsyk` that returns the Bmsy / K ratio of a fitted object
+* Added helper function `calc.om` that return a matrix with the order of magnitude of the confidence interval range of F/Fmsy and B/Bmsy
+* Added helper function `shorten.inp` that cuts the input time series to the specified range
+
+Minor changes:
+
+* Added sdfac argument in `manage` that sets the standard deviation factor keep current catch scenario
+* Increased maximum number of iterations and function evaluations of the `nlminb` optimiser
+
+Bug fixes:
+
+* Use non seasonal F in `manage`
+* Use better default value for the standard deviation factor in `take.c`
+
+
 spict v1.2.7 (Release date: 2019-04-03)
 ============
 
