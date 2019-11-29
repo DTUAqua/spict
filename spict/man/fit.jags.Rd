@@ -4,8 +4,14 @@
 \alias{fit.jags}
 \title{Fit the Meyer & Millar model using rjags}
 \usage{
-fit.jags(inp, fn, n.iter = 10000, n.chains = 1,
-  burnin = round(n.iter/2), thin = 1000)
+fit.jags(
+  inp,
+  fn,
+  n.iter = 10000,
+  n.chains = 1,
+  burnin = round(n.iter/2),
+  thin = 1000
+)
 }
 \arguments{
 \item{inp}{Input list containing data and settings.}

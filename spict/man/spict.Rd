@@ -3,7 +3,6 @@
 \docType{package}
 \name{spict}
 \alias{spict}
-\alias{spict-package}
 \title{Fits a continuous-time surplus production model to data}
 \description{
 Fits a continuous-time surplus production model to data

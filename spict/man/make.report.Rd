@@ -4,9 +4,15 @@
 \alias{make.report}
 \title{Creates a pdf file containing the summary output and result plots}
 \usage{
-make.report(rep, reporttitle = "", reportfile = "report.tex",
-  summaryoutfile = "summaryout.txt", keep.figurefiles = FALSE,
-  keep.txtfiles = FALSE, keep.texfiles = FALSE)
+make.report(
+  rep,
+  reporttitle = "",
+  reportfile = "report.tex",
+  summaryoutfile = "summaryout.txt",
+  keep.figurefiles = FALSE,
+  keep.txtfiles = FALSE,
+  keep.texfiles = FALSE
+)
 }
 \arguments{
 \item{rep}{A valid result from fit.spict with OSA residuals.}

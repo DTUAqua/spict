@@ -4,8 +4,15 @@
 \alias{manage}
 \title{Calculate predictions under different management scenarios}
 \usage{
-manage(repin, scenarios = "all", manstart = NULL, dbg = 0,
-  catch = NULL, sdfac = 1, catchList = NULL)
+manage(
+  repin,
+  scenarios = "all",
+  manstart = NULL,
+  dbg = 0,
+  catch = NULL,
+  sdfac = 1,
+  catchList = NULL
+)
 }
 \arguments{
 \item{repin}{Result list from fit.spict().}

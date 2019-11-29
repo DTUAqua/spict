@@ -4,9 +4,15 @@
 \alias{spict2DLMtool}
 \title{Get function to estimate TAC for the DLMtool package}
 \usage{
-spict2DLMtool(fractileC = 0.5, fractileFFmsy = 0.5,
-  fractileBBmsy = 0.5, uncertaintyCap = FALSE, lower = 0.8,
-  upper = 1.2, env = globalenv())
+spict2DLMtool(
+  fractileC = 0.5,
+  fractileFFmsy = 0.5,
+  fractileBBmsy = 0.5,
+  uncertaintyCap = FALSE,
+  lower = 0.8,
+  upper = 1.2,
+  env = globalenv()
+)
 }
 \arguments{
 \item{fractileC}{The fractile of the catch distribution to be used for setting TAC. Default

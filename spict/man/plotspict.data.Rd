@@ -4,8 +4,13 @@
 \alias{plotspict.data}
 \title{Plot input data}
 \usage{
-plotspict.data(inpin, MSY = NULL, one.index = NULL, qlegend = TRUE,
-  stamp = get.version())
+plotspict.data(
+  inpin,
+  MSY = NULL,
+  one.index = NULL,
+  qlegend = TRUE,
+  stamp = get.version()
+)
 }
 \arguments{
 \item{inpin}{An input list containing data.}

@@ -4,8 +4,15 @@
 \alias{fit.aspic}
 \title{Fits aspic to the data contained in the input file}
 \usage{
-fit.aspic(input, do.boot = FALSE, nboot = NULL, ciperc = NULL,
-  verbose = FALSE, filebase = "tmp", savefile = NULL)
+fit.aspic(
+  input,
+  do.boot = FALSE,
+  nboot = NULL,
+  ciperc = NULL,
+  verbose = FALSE,
+  filebase = "tmp",
+  savefile = NULL
+)
 }
 \arguments{
 \item{input}{A spict input list containing observations.}
