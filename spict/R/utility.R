@@ -578,3 +578,174 @@ calc.om <- function(rep){
     rownames(res) <- c("B/Bmsy","F/Fmsy")
     return(res)
 }
+
+
+#' @name shorten.inp
+#' @title Shorten time series of input data to specified range
+#' @param inp An input list containing data.
+#' @param start Starting time. If \code{NULL} (default), keep from the start of the time series.
+#' @param end Ending time. If \code{NULL} (default), keep until the end of the time series.
+#' @details Time is given in decimal notation (e.g. 2005.3). If both \code{start} and \code{end}
+#' are \code{NULL}, \code{inp} is returned after running \code{check.inp}.
+#' @author T.K. Mildenberger <t.k.mildenberger@gmail.com>
+#' @return List of shortened input time series and input variables as it is returned by \code{\link{check.inp}}
+#' @seealso \code{\link{check.inp}}
+#' @examples
+#' inp <- pol$albacore
+#'
+#' ## Keep only years from 1973 onwards
+#' shorten.inp(inp, mintime = 1973)
+#'
+#' ## Keep years until 1985
+#' shorten.inp(inp, maxtime = 1985)
+#'
+#' ## Empty data set gives an error
+#' shorten.inp(inp, mintime = 1910, maxtime = 1930)
+#' @export
+shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
+    inpin <- check.inp(inp)
+    if (is.null(mintime) & is.null(maxtime)) return(inpin)
+    inpout <- inpin
+
+    ## function to find closest time
+    get.inds <- function(timevec, mintime, maxtime){
+        mintimePot <- min(floor(timevec))
+        maxtimePot <- max(ceiling(timevec))
+        ## set to limits if NULL or incorrectly set
+        if (is.na(mintime) || !is.numeric(mintime) || mintime < mintimePot)
+          mintime <- mintimePot
+        if (is.na(maxtime) || !is.numeric(maxtime) || maxtime > maxtimePot)
+          maxtime <- maxtimePot
+        ## indices
+        inds <- which(timevec >= mintime & timevec <= maxtime)
+        return(inds)
+    }
+
+    ## catch
+    inds <- get.inds(inpin$timeC,mintime,maxtime)
+    inpout$obsC <- inpin$obsC[inds]
+    inpout$timeC <- inpin$timeC[inds]
+    inpout$dtc <- inpin$dtc[inds]
+    inpout$stdevfacC <- inpin$stdevfacC[inds]
+    inpout$timeCpred <- inpin$timeCpred[inds]
+    inpout$dtcp <- inpin$dtcp[inds]
+    inpout$nobsC <- length(inpout$obsC)
+    inpout$obsidC <- seq_along(inpout$obsC)
+
+    ## index
+    if(length(inpin$obsI) > 0){
+        for(i in 1:length(inpin$obsI)){
+            inds <- get.inds(inpin$timeI[[i]],mintime,maxtime)
+            inpout$obsI[[i]] <- inpin$obsI[[i]][inds]
+            inpout$timeI[[i]] <- inpin$timeI[[i]][inds]
+            inpout$obsidI[[i]] <- inpin$obsidI[[i]][inds]
+        }
+        if(!is.null(inpin$stdevfacI)){
+            for(i in 1:length(inpin$obsI)){
+                inpout$stdevfacI[[i]] <- inpin$stdevfacI[[i]][inds]
+            }
+        }
+        inpout$nobsI <- length(inpout$obsI[[1]])
+    }
+
+    ## effort
+    if(length(inpin$obsE) > 0){
+        inds <- get.inds(inpin$timeE,mintime,maxtime)
+        inpout$obsE <- inpin$obsE[inds]
+        inpout$timeE <- inpin$timeE[inds]
+        inpout$stdevfacE <- inpin$stdevfacE[inds]
+        inpout$dte <- inpin$dte[inds]
+    }
+
+    timeobsall <- sort(c(inpout$timeC, inpout$timeC + inpout$dtc,
+                         unlist(inpout$timeI),
+                         inpout$timeE, inpout$timeE + inpout$dte))
+    if (length(timeobsall) == 0) stop("All yars are outside the range ", mintime, "-", maxtime)
+
+    # Time point to predict catches until
+    inpout$timepredc <- max(timeobsall)
+    inpout$timepredi <- max(timeobsall)
+
+    # This may give a problem if effort data has later time points than catches or index
+    if (inpout$nobsE > 0 & sum(inpout$nobsI) > 0){
+        if (max(inpout$timeE) > max(unlist(inpout$timeI), inpout$timeC)){
+            stop('Effort data must overlap temporally with index or catches')
+        }
+    }
+    if ("eulertype" %in% names(inpout)){
+        if (inpout$eulertype == 'hard'){
+            # Hard Euler discretisation
+            if (inpout$start.in.first.data.point){
+                time <- seq(min(timeobsall),
+                            max(inpout$timepredi, inpout$timepredc+inpout$dtpredc),
+                            by=inpout$dteuler)
+            } else {
+                time <- seq(floor(min(timeobsall)),
+                            max(inpout$timepredi, inpout$timepredc+inpout$dtpredc),
+                            by=inpout$dteuler)
+            }
+            inpout$time <- time
+        }
+        if (inpout$eulertype == 'soft'){
+            # Include times of observations (including dtc)
+            time <- seq(ceiling(min(timeobsall)),
+                        max(inpout$timepredi, inpout$timepredc+inpout$dtpredc),
+                        by=inpout$dteuler)
+            inpout$time <- sort(unique(c(timeobsall, time)))
+        }
+        if (!inpout$eulertype %in% c('soft', 'hard'))
+            stop('inp$eulertype must be either "soft" or "hard"!')
+    }
+
+    inpout$dt <- inpout$dt[inpin$time %in% inpout$time]
+    inpout$ns <- length(inpout$time)
+
+    inpout$ffacvec <- inpout$ffacvec[inpin$time %in% inpout$time]
+    inpout$fconvec <- inpout$fconvec[inpin$time %in% inpout$time]
+    inpout$ini$logF <- inpout$ini$logF[inpin$time %in% inpout$time]
+    inpout$ini$logu <- inpout$ini$logu[,(inpin$time %in% inpout$time)]
+    inpout$ini$logB <- inpout$ini$logB[inpin$time %in% inpout$time]
+    inpout$ini$logmre <- inpout$ini$logmre[inpin$time %in% inpout$time]
+    inpout$ini$SARvec <- inpout$ini$SARvec[inpin$time %in% inpout$time]
+    inpout$MSYregime <- inpout$MSYregime[inpin$time %in% inpout$time]
+    inpout$regimeIdx <- NULL
+    inpout$manstart <- NULL
+    inpout$ir <- NULL
+    inpout$ini$logr <- NULL
+
+    if("true" %in% names(inpout)){
+        inpout$true$logu <- inpout$true$logu[,(inpin$time %in% inpout$time)]
+        inpout$true$logmre <- inpout$true$logmre[inpin$time %in% inpout$time]
+        inpout$true$SARvec <- inpout$true$SARvec[inpin$time %in% inpout$time]
+        inpout$true$time <- inpout$true$time[inpin$time %in% inpout$time]
+        inds <- get.inds(inpin$timeC,mintime,maxtime)
+        inpout$true$C <- inpout$true$C[inds]
+        inpout$true$e.c <- inpout$true$e.c[inds]
+        if(length(inpin$true$E) > 0){
+            inds <- get.inds(inpin$timeE,mintime,maxtime)
+            inpout$true$E <- inpout$true$E[inds]
+            inpout$true$e.e <- inpout$true$e.e[inds]
+        }
+        if(length(inpin$true$I) > 0){
+            for(i in 1:length(inpout$true$I)){
+                inds <- get.inds(inpin$timeI[[i]],mintime,maxtime)
+                inpout$true$I[[i]] <- inpout$true$I[[i]][inds]
+                inpout$true$e.i[[i]] <- inpout$true$e.i[[i]][inds]
+                inpout$true$errI[[i]] <- inpout$true$errI[[i]][inds]
+            }
+        }
+        inpout$true$B <- inpout$true$B[inpin$time %in% inpout$time]
+        inpout$true$F <- inpout$true$F[inpin$time %in% inpout$time]
+        inpout$true$Fs <- inpout$true$Fs[inpin$time %in% inpout$time]
+        inpout$true$e.b <- inpout$true$e.b[inpin$time %in% inpout$time]
+        inpout$true$e.f <- inpout$true$e.f[inpin$time %in% inpout$time]
+        inpout$true$BBmsy <- inpout$true$BBmsy[inpin$time %in% inpout$time]
+        inpout$true$FFmsy <- inpout$true$FFmsy[inpin$time %in% inpout$time]
+        inpout$true$logBBmsy <- inpout$true$logBBmsy[inpin$time %in% inpout$time]
+        inpout$true$logFFmsy <- inpout$true$logFFmsy[inpin$time %in% inpout$time]
+        inpout$true$MSYvec <- inpout$true$MSYvec[inpin$time %in% inpout$time]
+        inpout$true$Fmsyvec <- inpout$true$Fmsyvec[inpin$time %in% inpout$time]
+    }
+
+    return(inpout)
+}
