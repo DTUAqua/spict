@@ -8,24 +8,30 @@ set.seed(123)
 ## load spict
 suppressMessages(library(spict))
 
-## error settings
-options(error = print)##expression(NULL))
-error("ss")
+## Test functions
+out <- function(..., sep = '') cat(..., "\n", file = "res.out", append = TRUE, sep = sep)
+get_nchar <- function(...) nchar(paste(as.character(unlist(list(...))), collapse = ' '))
+header <- function(...) out("\n", ..., "\n", rep("=", get_nchar(...)), "\n")
+test_this <- function(title, expression) {
+  out(title)
+  tryCatch(out(capture.output(eval(expression)), sep = "\n"),
+           error = function(e) out("Error:", e$message))
+}
 
-## 1: annual data
-##--------------------
-writeLines("Tests with annual data")
+
+header("1: annual data")
+
 inp <- pol$lobster
 suppressWarnings(fit1 <- fit.spict(inp))
-fit1$opt$convergence
+out(fit1$opt$convergence)
 
-## 1.1: calculate Bmsy/K ratio
-writeLines("Test 1.1: ")
-round(calc.bmsyk(fit1),3)
+test_this("Test 1.1: calculate Bmsy/K ratio", {
+  round(calc.bmsyk(fit1), 3)
+})
 
-## 1.2: calculate order of magnitude
-writeLines("Test 1.2: ")
-round(calc.om(fit1),3)
+test_this("Test 1.2: calculate order of magnitude", {
+  round(calc.om(fit1), 3)
+})
 
 ## ## 1.3: shorten input
 ## writeLines("Test 1.3: shorten.inp")
@@ -48,9 +54,8 @@ round(calc.om(fit1),3)
 ## all.equal(inp_full, inp_full2)
 
 
-## 2: seasonal data
-##--------------------
-writeLines("\n\nTests with seasonal data")
+header("2: seasonal data")
+
 nt <- 50
 inp <- list(nseasons=4, splineorder=3)
 inp$timeC <- seq(0, nt-1/inp$nseasons, by=1/inp$nseasons)
@@ -60,23 +65,22 @@ inp$ini <- list(logK=log(1000), logm=log(800), logq=log(1), logn=log(2),
                 logphi=log(c(0.3, 0.5, 1.8)))
 inpsim <- sim.spict(inp)
 suppressWarnings(fit2 <- fit.spict(inpsim))
-fit2$opt$convergence
+
+out(fit2$opt$convergence)
+
+test_this("2.1: calculate Bmsy/K ratio", {
+  round(calc.bmsyk(fit2),3)
+})
 
 
-## 2.1: calculate Bmsy/K ratio
-writeLines("Test 2.1: ")
-round(calc.bmsyk(fit2),3)
-
-## 2.2: calculate order of magnitude
-writeLines("Test 2.2: ")
-round(calc.om(fit2),3)
+test_this("2.2: calculate order of magnitude", {
+  round(calc.om(fit2),3)
+})
 
 
 
+header("3: Tests with mixed data")
 
-## 3: mixed data
-##--------------------
-writeLines("\n\nTests with mixed data")
 nt <- 50
 inp <- list(nseasons=4, splineorder=3)
 inp$timeC <- c(seq(0, nt/2-1, by=1),seq(nt/2, nt-1/inp$nseasons, by=1/inp$nseasons))
@@ -93,48 +97,46 @@ inp$ini <- list(logK=log(100), logm=log(60), logq=log(1),
                 logphi=log(c(0.05, 0.1, 1.8)))
 inpsim <- sim.spict(inp)
 suppressWarnings(fit3 <- fit.spict(inpsim))
-fit3$opt$convergence
 
-## 3.1: calculate Bmsy/K ratio
-writeLines("Test 3.1: ")
-round(calc.bmsyk(fit3),3)
+out(fit3$opt$convergence)
 
-## 3.2: calculate order of magnitude
-writeLines("Test 3.2: ")
-round(calc.om(fit3),3)
+test_this("3.1: calculate Bmsy/K ratio", {
+  round(calc.bmsyk(fit3),3)
+})
 
-
-
-
-## 4: incorrect input
-##--------------------
-writeLines("\n\nTests with incorrect input")
-
-## 4.1: wrong input
-## ---------------
-## 4.1.1: calculate Bmsy/K ratio
-writeLines("Test 4.1.1: ")
-calc.bmsyk(inp)
-
-## 4.1.2: calculate order of magnitude
-writeLines("Test 4.1.2: ")
-calc.om(inp)
+test_this("3.2: calculate order of magnitude", {         
+  round(calc.om(fit3),3)
+})
 
 
 
-## 4.2: with non converged model
-## ---------------
+header("4: incorrect input")
+
+out("4.1: wrong input")
+
+test_this("4.1.1: Bmsy/K ratio", {
+  calc.bmsyk(inp)
+})
+
+
+test_this("4.1.2: calculate order of magnitude", {
+  calc.om(inp)
+})
+
+
+out("4.2: with non converged model")
+
 inp <- pol$lobster
 inp$obsC <- rnorm(46, 2000, 3)
 suppressWarnings(fit4 <- fit.spict(inp))
-fit4$opt$convergence
 
-## 4.2.1: calculate Bmsy/K ratio
-writeLines("Test 4.2.1: ")
-round(calc.bmsyk(fit4),3)
+out(fit4$opt$convergence)
 
-## 4.2.2: calculate order of magnitude
-writeLines("Test 4.2.2: ")
-round(calc.om(fit4),3)
+test_this("4.2.1: calculate Bmsy/K ratio", {
+  round(calc.bmsyk(fit4),3)
+})
+test_this("4.2.2: calculate order of magnitude", {
+  round(calc.om(fit4),3)
+})
 
 
