@@ -6,12 +6,15 @@
 set.seed(123)
 
 ## load spict
-suppressMessages(library(spict))
+library(spict)
 
 ## Test functions
-out <- function(..., sep = '') cat(..., "\n", file = "res.out", append = TRUE, sep = sep)
-get_nchar <- function(...) nchar(paste(as.character(unlist(list(...))), collapse = ' '))
-header <- function(...) out("\n", ..., "\n", rep("=", get_nchar(...)), "\n")
+out <- function(..., sep = "", append = TRUE)
+  cat(..., "\n", file = "res.out", append = append, sep = sep)
+get_nchar <- function(...)
+  nchar(paste(as.character(unlist(list(...))), collapse = " "))
+header <- function(..., append = TRUE)
+  out("\n", ..., "\n", rep("=", get_nchar(...)), "\n", append = append)
 test_this <- function(title, expression) {
   out(title)
   tryCatch(out(capture.output(eval(expression)), sep = "\n"),
@@ -19,10 +22,11 @@ test_this <- function(title, expression) {
 }
 
 
-header("1: annual data")
+header("1: annual data", append = FALSE)
 
 inp <- pol$lobster
-suppressWarnings(fit1 <- fit.spict(inp))
+fit1 <- fit.spict(inp)
+
 out(fit1$opt$convergence)
 
 test_this("Test 1.1: calculate Bmsy/K ratio", {
@@ -57,24 +61,24 @@ test_this("Test 1.2: calculate order of magnitude", {
 header("2: seasonal data")
 
 nt <- 50
-inp <- list(nseasons=4, splineorder=3)
-inp$timeC <- seq(0, nt-1/inp$nseasons, by=1/inp$nseasons)
-inp$timeI <- seq(0.1, nt-1/inp$nseasons, by=0.5)
-inp$ini <- list(logK=log(1000), logm=log(800), logq=log(1), logn=log(2),
-                logbkfrac=log(0.9), logsdf=log(0.3), logF0=log(0.8),
-                logphi=log(c(0.3, 0.5, 1.8)))
+inp <- list(nseasons = 4, splineorder = 3)
+inp$timeC <- seq(0, nt - 1 / inp$nseasons, by = 1 / inp$nseasons)
+inp$timeI <- seq(0.1, nt - 1 / inp$nseasons, by = 0.5)
+inp$ini <- list(logK = log(1000), logm=log(800), logq = log(1), logn = log(2),
+                logbkfrac = log(0.9), logsdf = log(0.3), logF0 = log(0.8),
+                logphi = log(c(0.3, 0.5, 1.8)))
 inpsim <- sim.spict(inp)
-suppressWarnings(fit2 <- fit.spict(inpsim))
+fit2 <- fit.spict(inpsim)
 
 out(fit2$opt$convergence)
 
 test_this("2.1: calculate Bmsy/K ratio", {
-  round(calc.bmsyk(fit2),3)
+  round(calc.bmsyk(fit2), 3)
 })
 
 
 test_this("2.2: calculate order of magnitude", {
-  round(calc.om(fit2),3)
+  round(calc.om(fit2), 3)
 })
 
 
@@ -91,21 +95,21 @@ inp$ini <- list(logK=log(1000), logm=log(800), logq=log(1), logn=log(2),
 inpsim <- sim.spict(inp)
 
 
-inp$timeI <- seq(0.6, 29.6, by=1)
-inp$ini <- list(logK=log(100), logm=log(60), logq=log(1),
-                logbkfrac=log(1), logsdf=log(0.3), logF0=log(0.5),
-                logphi=log(c(0.05, 0.1, 1.8)))
+inp$timeI <- seq(0.6, 29.6, by = 1)
+inp$ini <- list(logK = log(100), logm = log(60), logq = log(1),
+                logbkfrac = log(1), logsdf = log(0.3), logF0 = log(0.5),
+                logphi = log(c(0.05, 0.1, 1.8)))
 inpsim <- sim.spict(inp)
-suppressWarnings(fit3 <- fit.spict(inpsim))
+fit3 <- fit.spict(inpsim)
 
 out(fit3$opt$convergence)
 
 test_this("3.1: calculate Bmsy/K ratio", {
-  round(calc.bmsyk(fit3),3)
+  round(calc.bmsyk(fit3), 3)
 })
 
-test_this("3.2: calculate order of magnitude", {         
-  round(calc.om(fit3),3)
+test_this("3.2: calculate order of magnitude", {
+  round(calc.om(fit3), 3)
 })
 
 
@@ -128,15 +132,13 @@ out("4.2: with non converged model")
 
 inp <- pol$lobster
 inp$obsC <- rnorm(46, 2000, 3)
-suppressWarnings(fit4 <- fit.spict(inp))
+fit4 <- fit.spict(inp)
 
 out(fit4$opt$convergence)
 
 test_this("4.2.1: calculate Bmsy/K ratio", {
-  round(calc.bmsyk(fit4),3)
+  round(calc.bmsyk(fit4), 3)
 })
 test_this("4.2.2: calculate order of magnitude", {
-  round(calc.om(fit4),3)
+  round(calc.om(fit4), 3)
 })
-
-

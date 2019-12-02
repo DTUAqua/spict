@@ -86,7 +86,7 @@ plotspict.priors(fit2)
 plot(fit2)
 
 sink("res.out")
-print(fit)
-print(fit2)
+print(round(sumspict.parest(fit),3))
+print(round(sumspict.parest(fit2),3))
 sink()
 
