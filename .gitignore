@@ -24,3 +24,4 @@ prv_report.log
 vignette_*
 spict/inst/doc
 .Rbuildignore
+Rplots.pdf
