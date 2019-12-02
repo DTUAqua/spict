@@ -1,5 +1,5 @@
 ---
-title: "Guidelines for the use of the stochastic production model in continuous time (SPiCT)"
+title: "Guidelines for the stochastic production model in continuous time (SPiCT)"
 author: "T.K. Mildenberger, A. Kokkalis, C.W. Berg"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -12,7 +12,7 @@ output:
     keep_tex: false
 bibliography: bibliography.bib
 vignette: >
-  %\VignetteIndexEntry{spict_guidelines}
+  %\VignetteIndexEntry{SPiCT Guidelines}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---

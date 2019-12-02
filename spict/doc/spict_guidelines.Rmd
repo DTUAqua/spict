@@ -1,5 +1,5 @@
 ---
-title: "Guidelines for the use of the stochastic production model in continuous time (SPiCT)"
+title: "Guidelines for the stochastic production model in continuous time (SPiCT)"
 author: "T.K. Mildenberger, A. Kokkalis, C.W. Berg"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -12,7 +12,7 @@ output:
     keep_tex: false
 bibliography: bibliography.bib
 vignette: >
-  %\VignetteIndexEntry{spict_guidelines}
+  %\VignetteIndexEntry{SPiCT Guidelines}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -24,7 +24,7 @@ library(knitr)
 This is a living document, be sure to check for the latest update
 ([link](https://github.com/DTUAqua/spict/commits/master)). The SPiCT package
 is actively developed, check for the most recent package version and
-report problems by opening a new issue at ([link](https://github.com/DTUAqua/spict/issues)).
+report problems at ([link](https://github.com/DTUAqua/spict/releases)).
 
 | Document version | SPiCT version | Comments                     |
 | :--------------- | :-----------: | ---------------------------: |
