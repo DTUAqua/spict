@@ -4,8 +4,7 @@
 \alias{plotspict.priors}
 \title{Plot priors and posterior distribution.}
 \usage{
-plotspict.priors(rep, do.plot = NULL, stamp = get.version(),
-  automfrow = TRUE)
+plotspict.priors(rep, do.plot = NULL, stamp = get.version(), automfrow = TRUE)
 }
 \arguments{
 \item{rep}{A result from fit.spict.}

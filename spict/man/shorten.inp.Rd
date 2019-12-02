@@ -9,9 +9,9 @@ shorten.inp(inp, mintime = NULL, maxtime = NULL)
 \arguments{
 \item{inp}{An input list containing data.}
 
-\item{start}{Starting time. If \code{NULL} (default), keep from the start of the time series.}
+\item{mintime}{Starting time. If \code{NULL} (default), keep from the start of the time series.}
 
-\item{end}{Ending time. If \code{NULL} (default), keep until the end of the time series.}
+\item{maxtime}{Ending time. If \code{NULL} (default), keep until the end of the time series.}
 }
 \value{
 List of shortened input time series and input variables as it is returned by \code{\link{check.inp}}
@@ -22,6 +22,8 @@ Shorten time series of input data to specified range
 \details{
 Time is given in decimal notation (e.g. 2005.3). If both \code{start} and \code{end}
 are \code{NULL}, \code{inp} is returned after running \code{check.inp}.
+
+If code{maxtime} is not set, i.e. the first part of the time series is cut, then management settings are not changed. Otherwise default values are used (see \code{\link{check.inp}}). The \code{ir} vector, which sets up different regimes, is always overwritten.
 }
 \examples{
 inp <- pol$albacore
