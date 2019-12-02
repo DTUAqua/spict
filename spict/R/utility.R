@@ -584,13 +584,14 @@ calc.om <- function(rep){
 #' @name shorten.inp
 #' @title Shorten time series of input data to specified range
 #' @param inp An input list containing data.
-#' @param start Starting time. If \code{NULL} (default), keep from the start of the time series.
-#' @param end Ending time. If \code{NULL} (default), keep until the end of the time series.
+#' @param mintime Starting time. If \code{NULL} (default), keep from the start of the time series.
+#' @param maxtime Ending time. If \code{NULL} (default), keep until the end of the time series.
 #' @details Time is given in decimal notation (e.g. 2005.3). If both \code{start} and \code{end}
 #' are \code{NULL}, \code{inp} is returned after running \code{check.inp}.
 #' @author T.K. Mildenberger <t.k.mildenberger@gmail.com>
 #' @return List of shortened input time series and input variables as it is returned by \code{\link{check.inp}}
 #' @seealso \code{\link{check.inp}}
+#' @details If code{maxtime} is not set, i.e. the first part of the time series is cut, then management settings are not changed. Otherwise default values are used (see \code{\link{check.inp}}). The \code{ir} vector, which sets up different regimes, is always overwritten.
 #' @examples
 #' inp <- pol$albacore
 #'
@@ -710,9 +711,12 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
     inpout$ini$SARvec <- inpout$ini$SARvec[inpin$time %in% inpout$time]
     inpout$MSYregime <- inpout$MSYregime[inpin$time %in% inpout$time]
     inpout$regimeIdx <- NULL
-    inpout$manstart <- NULL
     inpout$ir <- NULL
     inpout$ini$logr <- NULL
+    if (! is.null(maxime)) {
+      inpout$manstart <- NULL
+    }
+
 
     if("true" %in% names(inpout)){
         inpout$true$logu <- inpout$true$logu[,(inpin$time %in% inpout$time)]
@@ -747,7 +751,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
         inpout$true$MSYvec <- inpout$true$MSYvec[inpin$time %in% inpout$time]
         inpout$true$Fmsyvec <- inpout$true$Fmsyvec[inpin$time %in% inpout$time]
     }
-    return(inpout)
+    return(check.inp(inpout))
 }
 
 
