@@ -60,7 +60,7 @@ Error:Please provide an object fitted with 'fit.spict'.
 
 4.2.2: calculate order of magnitude
        lower  est        upper     CI range order magnitude
-B/Bmsy     0 0.91 1.195623e+37 1.195623e+37              75
-F/Fmsy     0 1.09 1.300988e+29 1.300988e+29              59
+B/Bmsy     0 0.74 169138358620 169138358620              23
+F/Fmsy     0 1.34   1654347643   1654347643              18
 
 
