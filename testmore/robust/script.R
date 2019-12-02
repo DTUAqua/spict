@@ -1,6 +1,11 @@
 ## Tests vectorized robflagi and plotspict.priors for list priors
+
+## set seed
+set.seed(456)
+
 ## Also tests using the logngamma prior
 library(spict)
+
 
 ## Fleet=1: catches, Fleet > 1 : indices of exploitable biomass, Fleet=999 : effort
 d<-read.csv("data.txt", skip=1, comment.char="#")
@@ -36,7 +41,7 @@ if(nrow(eff)>0){
 inp$dteuler <- 1/16
 
 ## Don't report covariances -- not needed and size of object is much smaller without
-inp$getReportCovariance = FALSE 
+inp$getReportCovariance = FALSE
 ###########################
 ## Model configuration
 ###########################
@@ -89,4 +94,3 @@ sink("res.out")
 print(round(sumspict.parest(fit),3))
 print(round(sumspict.parest(fit2),3))
 sink()
-
