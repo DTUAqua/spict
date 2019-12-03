@@ -33,7 +33,8 @@ installs the stable version of `spict`. When loading the package the user is gre
 ```{r}
 library(spict)
 ```
-The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/DTUAqua/spict/tree/v", packageVersion("spict"))`).
+The printed version follows the format ver\@SHA, where _ver_ is the spict version number and _SHA_ is a unique github commit on [github](https://github.com/DTUAqua/spict). The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/mawp/spict/tree/v", packageVersion("spict"))`).
+
 
 A specific version of `spict` can be installed using the following:
 
@@ -327,9 +328,9 @@ This reveals that for this data set the estimates of log Fmsy and log Bmsy are h
 Retrospecitive plots are sometimes used to evaluate the robustness of the model fit to the introduction of new data, i.e. to check whether the fit changes substantially when new data becomes available. Such calculations and plotting thereof can be crudely performed using `retro()` as shown here
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5, fig.height=5, fig.show='hold'}
-rep <- fit.spict(pol$albacore)
-rep <- retro(rep)
-plotspict.retro(rep)
+## res <- fit.spict(pol$albacore)
+res <- retro(res, nretroyear = 4)
+plotspict.retro(res)
 ```
 By default `retro` creates 5 scenarios with catch and index time series which are shortened by the 1 to 5 last observations. The number of scenarios and thus observations which are removed can be changed with the argument `nretroyear` in the function `retro`. The graphs show the different scenarios with different colors. For the albacore data, there is a high consistency between the scenarios except for the fishing mortalites of the second scenario (in red), which indicate a large increase in F.
 
