@@ -1,3 +1,37 @@
+spict v1.2.8 (Release date: 2019-12-02)
+============
+
+New features:
+
+* Added new vignette: "Guidelines for the use of the stochastic production model
+  in continuous time (SPiCT)"
+* Added helper function `calc.bmsyk` that returns the Bmsy / K ratio of a fitted
+  object
+* Added helper function `calc.om` that return a matrix with the order of
+  magnitude of the confidence interval range of F/Fmsy and B/Bmsy
+* Added helper function `shorten.inp` that cuts the input time series to the
+  specified range
+* Added option for gamma distributed prior for the parameter determining the
+  shape of the production (`n`) curve on the log scale
+* Added option to report the states in terms of biomass and fishing mortality
+  relative to the overall average over the whole time series (including the
+  prediction period) `Brel` and `Frel`, respectively
+
+Minor changes:
+
+* Added sdfac argument in `manage` that sets the standard deviation factor keep
+  current catch scenario
+* Increased maximum number of iterations and function evaluations of the
+  `nlminb` optimiser
+* Increased tested code coverage
+
+Bug fixes:
+
+* Use non seasonal F in `manage`
+* Use better default value for the standard deviation factor in `take.c`
+* Remove inverse gamma priors which were not fully functional
+
+
 spict v1.2.7 (Release date: 2019-04-03)
 ============
 

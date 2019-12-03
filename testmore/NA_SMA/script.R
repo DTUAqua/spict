@@ -35,7 +35,7 @@ if(nrow(eff)>0){
 inp$dteuler <- 1/16
 
 ## Don't report covariances -- not needed and size of object is much smaller without
-inp$getReportCovariance = FALSE 
+inp$getReportCovariance = FALSE
 ###########################
 ## Model configuration
 ###########################
@@ -66,6 +66,6 @@ inp$phases$logitpp <- -1
 
 fit<-fit.spict(inp)
 
-plotspict.priors(inp)
+plotspict.priors(fit)
 
 cat(fit$opt$objective,"\n", file="res.out")

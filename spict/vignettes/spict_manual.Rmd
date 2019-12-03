@@ -1,15 +1,19 @@
 ---
-title: "SPiCT"
+title: "Manual for the Stochastic Production model in Continuous Time (SPiCT)"
 author: "Martin W. Pedersen, Alexandros Kokkalis, Casper W. Berg"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: 
-  rmarkdown::html_vignette: 
+output:
+  rmarkdown::html_vignette:
     number_sections: yes
     toc: yes
-bibliography: bibliography.bib  
+  pdf_document:
+    number_sections: false
+    toc: false
+    keep_tex: false
+bibliography: bibliography.bib
 vignette: >
-  %\VignetteIndexEntry{SPiCT}
-  %\VignetteEngine{knitr::rmarkdown} 
+  %\VignetteIndexEntry{SPiCT Manual}
+  %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
 
@@ -17,32 +21,33 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "  ", fig.align = 'center', cache=FALSE)
 ```
 
-# Basic functionality 
+# Basic functionality
 
 ## Getting started
 This vignette explains basic and more advanced functions of the `spict` package. The package is installed from gihtub using the `devtools` package:
 ```{r, eval=FALSE}
-devtools::install_github("mawp/spict/spict")
+devtools::install_github("DTUAqua/spict/spict")
 ```
 installs the stable version of `spict`. When loading the package the user is greeted and the the installed version is shown:
 
 ```{r}
 library(spict)
 ```
-The printed version follows the format ver\@SHA, where _ver_ is the manually defined version number and _SHA_ refers to a unique github commit on [github](https://github.com/mawp/spict). The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/mawp/spict/tree/", packageDescription("spict")$GithubSHA1)`). 
+The printed version follows the format ver\@SHA, where _ver_ is the spict version number and _SHA_ is a unique github commit on [github](https://github.com/DTUAqua/spict). The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/mawp/spict/tree/v", packageVersion("spict"))`).
 
-A specific verision of `spict` can be installed using the first few digits of the SHA:
+
+A specific version of `spict` can be installed using the following:
 
 ```
-devtools::install_github("mawp/spict/spict", ref = "`r substr(packageDescription("spict")$GithubSHA1, 1, 8)`")
+devtools::install_github("DTUAqua/spict/spict", ref = "`r packageVersion("spict")`")
 ```
 
-## Loading built-in example data 
+## Loading built-in example data
 
 The package contains the catch and index data analysed in @polacheck1993 that can be loaded using
 
 ```{r}
-data(pol) 
+data(pol)
 ```
 
 Data on three stocks are contained in this dataset: South Atlantic albacore, northern Namibian hake, and New Zealand rock lobster. Here focus will be on the South Atlantic albacore data. This dataset contains the following
@@ -51,7 +56,7 @@ Data on three stocks are contained in this dataset: South Atlantic albacore, nor
 pol$albacore
 ```
 
-Note that data are structured as a list containing the entries `obsC` (catch observations), `timeC` (time of catch observations), `obsI` (index observations), and `timeI` (time of index observations). If times are not specified it is assumed that the first observation is observed at time 1 and then sequentially onward with a time step of one year. It is therefore recommended to always specify observation times. 
+Note that data are structured as a list containing the entries `obsC` (catch observations), `timeC` (time of catch observations), `obsI` (index observations), and `timeI` (time of index observations). If times are not specified it is assumed that the first observation is observed at time 1 and then sequentially onward with a time step of one year. It is therefore recommended to always specify observation times.
 
 Each catch observation relates to a time interval. This is specified using `dtc`. If `dtc` is left unspecified (as is the case here) each catch observation is assumed to cover the time interval until the next catch observation. For this example with annual catches `dtc` therefore is
 
@@ -62,8 +67,8 @@ inp$dtc
 
 It is important to specify `dtc` if the default assumption is not fulfilled.
 
-## Plotting data 
-\label{pldat} 
+## Plotting data
+\label{pldat}
 
 The data can be plotted using the command
 
@@ -101,7 +106,7 @@ The model is fitted to data by running
 res <- fit.spict(pol$albacore)
 ```
 
-Here the call to `fit.spict` is wrapped in the `system.time` command to check the time spent on the calculations. This is obviously not required, but done here to show that fitting the model only takes a few seconds. The result of the model fit is stored in `res`, which can either be plotted using `plot` or summarised using `summary`. 
+Here the call to `fit.spict` is wrapped in the `system.time` command to check the time spent on the calculations. This is obviously not required, but done here to show that fitting the model only takes a few seconds. The result of the model fit is stored in `res`, which can either be plotted using `plot` or summarised using `summary`.
 
 The results are returned as a list that contains output as well as input. The content of this list is
 
@@ -119,14 +124,14 @@ The results are summarised using
 capture.output(summary(res))
 ```
 
-Here the `capture.output()` is only used to provide line numbers for easier reference, but the `summary()` command works without this. 
+Here the `capture.output()` is only used to provide line numbers for easier reference, but the `summary()` command works without this.
 
-- Line 1: Convergence of the model fit, which has code 0 if the fit was succesful. If this is not the case convergence was not obtained and reported results should not be used. In case of non-convergence results will still be reported to aid diagnosis of the problem. 
+- Line 1: Convergence of the model fit, which has code 0 if the fit was succesful. If this is not the case convergence was not obtained and reported results should not be used. In case of non-convergence results will still be reported to aid diagnosis of the problem.
 - Line 2: Objective function value at the optimum. The objective function is the likelihood function if priors are not used and the posterior density function if priors are used.
 - Line 3: The Euler time step used in the calculation.
 - Line 4: Number of observations for the time series used.
 - Line 6-9: Summary of the priors used in the fit. The priors shown here are the default priors that are applied when priors are unspecified. These are relatively uninformative and are applied because most data-limited situations do not allow simultaneous estimation of all noise parameters and `logn`. The default priors can be disabled (see the section on priors).
-- Line 11-25: Summary of the parameter estimates and their 95% CIs. These can be extracted as a data frame with `sumspict.parest(res)`. 
+- Line 11-25: Summary of the parameter estimates and their 95% CIs. These can be extracted as a data frame with `sumspict.parest(res)`.
 - Line 27-31: Estimates of deterministic reference points with 95% CIs. These are the reference points one would derive if stochasticity were ignored. Can be extracted with `sumspict.drefpoints(res)`.
 - Line 32-36: Estimates of stochastic reference points with 95% CIs. These are the reference points of the stochastic model. The column ´rel.diff.Drp´ shows the relative difference when compared to the deterministic reference points. The information can be extracted with `sumspict.srefpoints(res)`.
 - Line 38-43: State estimates in the final year where data were available. The states of the model are biomass (`B`) and fishing mortality (`F`) with the year of the estimates appended. The year is shown as a decimal number as estimates within year are possible. Both absolute (`B` and `F`) and relative estimates (`B/Bmsy` and `F/Fmsy`) are shown. The relative estimates are calculated using the type of reference points given by `msytype` (line 38), where `s` is stochastic and `d` is deterministic. Here `msytype` is ´s´. This information can be extracted using `sumspict.states(res)`.
@@ -154,13 +159,13 @@ Some general comments can be made regarding the style and colours of these plots
 The individual plots can be plotted separately using the `plotspict.*` family of plotting functions; all functions are summarised in Table 1 and their common arguments that control their look in Table 2:
 
 ```{r, echo = FALSE}
-knitr::kable(data.frame(## ls(pattern = "plotspict.*", envir = asNamespace("spict")), 
+knitr::kable(data.frame(## ls(pattern = "plotspict.*", envir = asNamespace("spict")),
   Function = c("**Data**",
                "`plotspict.ci`", "`plotspict.data`",
                "**Estimates**",
                "`plotspict.bbmsy`", "`plotspict.biomass`", "`plotspict.btrend`", "`plotspict.catch`",
                "`plotspict.f`", "`plotspict.fb`", "`plotspict.ffmsy`", "`plotspict.priors`", "`plotspict.production`",
-               "`plotspict.season`", 
+               "`plotspict.season`",
                "**Diagnostics & extras**",
                "`plotspict.diagnostic`", "`plotspict.osar`", "`plotspict.likprof`", "`plotspict.retro`",
                "`plotspict.infl`", "`plotspict.inflsum`", "`plotspict.tc`"),
@@ -177,7 +182,7 @@ knitr::kable(data.frame(## ls(pattern = "plotspict.*", envir = asNamespace("spic
            "Relative fishing mortality $F/F_{MSY}$",
            "Prior-posterior distribution of all parameters that are estimated using priors",
            "Production over $B/K$",
-           "Seasonal pattern of fishing mortality $F$", 
+           "Seasonal pattern of fishing mortality $F$",
            "",
            "OSA residual analysis to evaluate the fit",
            "One-step-ahead residual plots, one for data time-series",
@@ -202,7 +207,7 @@ Argument        Value            Result
 `stamp`         string            Adds a "stamp" at the bottom right corner of the plotting area
                                   Default is the version and SHA hash of `spict`.
                                   An empty string removes the stamp.
-                              
+
 Table: Common arguments in the `plotspict.*` family of funtions
 
 We will now look at them one at a time. The top left is the plot of absolute biomass
@@ -244,13 +249,13 @@ A phase plot (or kobe plot) of fishing mortality versus biomass is plotted using
 plotspict.fb(res, ylim=c(0, 1.3), xlim=c(0, 300))
 ```
 
-The plot shows the development of biomass and fishing mortality since the initial year (here 1967) indicated with a circle until the terminal year (here 1990) indicated with a square. The yellow diamond indicates the mean biomass over a long period if the current (1990) fishing pressure remains. This point can be interpreted as the fished equilibrium and is denoted $E(B_\infty)$ in the legend as a statistical way of expressing the expectation of the biomass as $t \rightarrow \infty$. As the current fishing mortality is close to $F_{MSY}$ the expected long term biomass is close to $B_{MSY}$. 
+The plot shows the development of biomass and fishing mortality since the initial year (here 1967) indicated with a circle until the terminal year (here 1990) indicated with a square. The yellow diamond indicates the mean biomass over a long period if the current (1990) fishing pressure remains. This point can be interpreted as the fished equilibrium and is denoted $E(B_\infty)$ in the legend as a statistical way of expressing the expectation of the biomass as $t \rightarrow \infty$. As the current fishing mortality is close to $F_{MSY}$ the expected long term biomass is close to $B_{MSY}$.
 
 A vertical dashed red line at $B_t = 0$ indicates the biomass level below which the stock has crashed. The grey shaded banana-shaped area indicates the 95\% confidence region of the pair $F_{MSY}$, $B_{MSY}$. This region is important to visualise jointly as the two reference points are highly (negatively) correlated.
 
 ## Residuals and diagnostics
 
-Before proceeding with the results for an actual assessment it is very important that the model residuals are checked and possible model deficiencies identified. Residuals can be calculated using `calc.osa.resid()`. OSA stands for one-step-ahead, which are the proper residuals for state-space models. More information about OSA residuals is contained in @pedersen2016. To calculate and plot residuals and diagnostics do
+Before proceeding with the results for an actual assessment it is very important that the model residuals are checked and possible model deficiencies identified. Residuals can be calculated using `calc.osa.resid()`. OSA stands for one-step-ahead, which are the proper residuals for state-space models. More information about OSA residuals is contained in @spict. To calculate and plot residuals and diagnostics do
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=7, fig.show='hold'}
 res <- calc.osa.resid(res)
@@ -264,7 +269,7 @@ The first column of the plot contains information related to catch data and the 
   3. Empirical autocorrelation of the residuals. Two tests for significant autocorrelation is performed. A Ljung-Box simultaneous test of multiple lags (here 4) with p-value shown in the header, and tests for individual lags shown by dashed horizontal lines in the plot. Here no violation is identified.
   4. Tests for normality of the residuals both as a QQ-plot and with a Shapiro test with p-value shown in the plot header.
 
-This data did not have any significant violations of the assumptions, which increases confidence in the results. For a discussion of possible violations and remedies the reader is referred to @pedersen2016.
+This data did not have any significant violations of the assumptions, which increases confidence in the results. For a discussion of possible violations and remedies the reader is referred to @spict.
 
 ## Extracting parameter estimates
 
@@ -298,7 +303,7 @@ The covariance between the model parameters (fixed effects) can be extracted fro
 res$cov.fixed
 ```
 
-It is however easier to interpret the correlation rather than covariance. The correlation matrix can be calculated using 
+It is however easier to interpret the correlation rather than covariance. The correlation matrix can be calculated using
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 cov2cor(res$cov.fixed)
@@ -314,7 +319,7 @@ The covariance between sdported values (i.e. the values reported in `res$value`)
 cov2cor(get.cov(res, 'logBmsy', 'logFmsy'))
 ```
 
-This reveals that for this data set the estimates of log Fmsy and log Bmsy are highly correlated. This is often the case and the reason why the model is reparameterised. 
+This reveals that for this data set the estimates of log Fmsy and log Bmsy are highly correlated. This is often the case and the reason why the model is reparameterised.
 
 # Advanced functionality
 
@@ -323,9 +328,9 @@ This reveals that for this data set the estimates of log Fmsy and log Bmsy are h
 Retrospecitive plots are sometimes used to evaluate the robustness of the model fit to the introduction of new data, i.e. to check whether the fit changes substantially when new data becomes available. Such calculations and plotting thereof can be crudely performed using `retro()` as shown here
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5, fig.height=5, fig.show='hold'}
-rep <- fit.spict(pol$albacore)
-rep <- retro(rep)
-plotspict.retro(rep)
+## res <- fit.spict(pol$albacore)
+res <- retro(res, nretroyear = 4)
+plotspict.retro(res)
 ```
 By default `retro` creates 5 scenarios with catch and index time series which are shortened by the 1 to 5 last observations. The number of scenarios and thus observations which are removed can be changed with the argument `nretroyear` in the function `retro`. The graphs show the different scenarios with different colors. For the albacore data, there is a high consistency between the scenarios except for the fishing mortalites of the second scenario (in red), which indicate a large increase in F.
 
@@ -346,7 +351,7 @@ plotspict.biomass(res)
 ```
 
 The model estimates seperate observation noises and finds that the first index (`sdi1`) is more noisy than the second (`sdi2`). It is furthermore estimated that the catchabilities are different by a factor 10 (`q1` versus `q2`). The biomass plot shows both indices, with circles indicating the first index and squares indicating the second index (the two series can also be distinguished by their colours). It is possible to force the model to assume that two or more index time-series have the same level of observation noise (CV). For example, to assume that `sdi1` equals `sdi2` one must add
-`inp$mapsdi <- c(1,1)` before calling `fit.spict(inp)`. The length of `mapsdi` should equal the number of indices. In case of 3 index series one could for example use `inp$mapsdi <- c(1, 1, 2)` to have series 1 and 2 share sdi and have a separate sdi for series 3. 
+`inp$mapsdi <- c(1,1)` before calling `fit.spict(inp)`. The length of `mapsdi` should equal the number of indices. In case of 3 index series one could for example use `inp$mapsdi <- c(1, 1, 2)` to have series 1 and 2 share sdi and have a separate sdi for series 3.
 
 ## Using effort data instead of commercial CPUE
 
@@ -364,7 +369,7 @@ plotspict.catch(repeff, qlegend=FALSE)
 plotspict.fb(repeff)
 ```
 
-Here the model runs without an index of biomass and instead uses effort as an index of fishing mortality Note that index observations are missing from the biomass plot, but effort observations are present in the plot of fishing mortality. Note also that `q` is missing from the summary of parameter estimates and instead `qf` is  present, which is the commercial catchability. 
+Here the model runs without an index of biomass and instead uses effort as an index of fishing mortality Note that index observations are missing from the biomass plot, but effort observations are present in the plot of fishing mortality. Note also that `q` is missing from the summary of parameter estimates and instead `qf` is  present, which is the commercial catchability.
 
 Overall for this data set the results in terms of stock status etc. do not change much, and this will probably often be the case, however using effort data directly instead of commercial CPUE is cleaner and avoids inputting the same data twice.
 
@@ -387,7 +392,7 @@ From the plot it is noted that the scaling factor widens the 95% CIs of the init
 
 ## Simulating data
 
-The package has built-in functionality for simulating data, which is useful for testing. 
+The package has built-in functionality for simulating data, which is useful for testing.
 
 ### Annual data
 
@@ -399,7 +404,7 @@ sim <- sim.spict(inp)
 plotspict.data(sim)
 ```
 
-This will generate catch and index data of same length as the input catch and index time series (here 23 of each) at the time points of the input data. Note when plotting simulated data, the true biomass and fishing mortality are also included in the plot. 
+This will generate catch and index data of same length as the input catch and index time series (here 23 of each) at the time points of the input data. Note when plotting simulated data, the true biomass and fishing mortality are also included in the plot.
 
 Another simple example is
 
@@ -428,7 +433,7 @@ plotspict.catch(res, qlegend=FALSE)
 plotspict.fb(res)
 ```
 
-Here the ratio between biomass in the initial year relative to `K` is set using `logbkfrac`, the initial fishing mortality is set using `logF0`, process noise of `F` is set using `logsdf`, and finally observation noise on catches is specified using `logsdc`. 
+Here the ratio between biomass in the initial year relative to `K` is set using `logbkfrac`, the initial fishing mortality is set using `logF0`, process noise of `F` is set using `logsdf`, and finally observation noise on catches is specified using `logsdc`.
 
 When printing the summary of the parameter estimates the true values are included as well as a check whether the true value was inside the 95% CIs. Similarly, the true biomass, fishing mortality, and reference points are included in the results plot using a yellow/orange colour.
 
@@ -449,7 +454,7 @@ seasonsim <- sim.spict(inp)
 plotspict.data(seasonsim)
 ```
 
-The data plot shows clear seasonality in the catches. To simulate seasonal data using the coupled SDE approach `seasontype` must be set to 2 and `nseasons` to 4. 
+The data plot shows clear seasonality in the catches. To simulate seasonal data using the coupled SDE approach `seasontype` must be set to 2 and `nseasons` to 4.
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=4.5, fig.show='hold'}
 set.seed(432)
@@ -467,8 +472,8 @@ Catch information available in sub-annual aggregations, e.g. quarterly catch, ca
 
   1. using cyclic B-splines.
   2. using coupled stochastic differential equations (SDEs).
-  
-Technical description of the season types is found in @pedersen2016.
+
+Technical description of the season types is found in @spict.
 
 Here, an example of a spline-based model fitted to quarterly data simulated in section \ref{sec:seas} is shown
 
@@ -493,7 +498,7 @@ plotspict.f(seasonres2, qlegend=FALSE)
 Two parameters related to the coupled SDEs are estimated (`sdu` and `lambda`) as evident from the summary of estimated parameters. In the plot of fishing mortality it is noted that the amplitude of the seasonal pattern varies over time. This is a property of the coupled SDE model, which is not possible to obtain with the spline based seasonal model. The spline based model has a fixed amplitude and phases, which will lead to biased estimates and autocorrelation in residuals if in reality the seasonal pattern shifts a bit. This is illustrated by fitting a spline based model to data generated with a coupled SDE model
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=7, fig.show='hold'}
-inp2 <- list(obsC=seasonsim2$obsC, obsI=seasonsim2$obsI, 
+inp2 <- list(obsC=seasonsim2$obsC, obsI=seasonsim2$obsI,
              timeC=seasonsim2$timeC, timeI=seasonsim2$timeI,
              seasontype=1, true=seasonsim2$true)
 rep2 <- fit.spict(inp2)
@@ -554,7 +559,7 @@ summary(res)
 
 ## Priors
 
-SPiCT is a generalisation of previous surplus production models in the sense that stochastic noise is included in both observation and state processes of both fishing and biomass. Estimating all model parameters is only possible if data contain sufficient information, which may not be the case for short time series or time series with limited contrast. The basic data requirements of the model are limited to only catch and biomass index time series. More information may be available, which can be used to improve the model fit. This is particularly advantageous if the model is not able to converge with only catch and index time series. Additional information can then be included in the fit via prior distributions for model parameters. 
+SPiCT is a generalisation of previous surplus production models in the sense that stochastic noise is included in both observation and state processes of both fishing and biomass. Estimating all model parameters is only possible if data contain sufficient information, which may not be the case for short time series or time series with limited contrast. The basic data requirements of the model are limited to only catch and biomass index time series. More information may be available, which can be used to improve the model fit. This is particularly advantageous if the model is not able to converge with only catch and index time series. Additional information can then be included in the fit via prior distributions for model parameters.
 
 ### Default priors and how to disable them
 
@@ -580,7 +585,7 @@ The model parameters to which priors can be applied can be listed using
 list.possible.priors()
 ```
 
-A prior is set using 
+A prior is set using
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 inp <- pol$albacore
@@ -641,7 +646,7 @@ The summary indicates that the priors are so informative that the quantities are
 
 ### Pitfalls when fixing parameters and specifying priors
 
-Particular caution is required when fixing a parameter that is highly correlated with other parameters because this will to some extent restrict the estimates of the correlated parameters. This could also be a problem when specifying priors depending on the amount of a priori information available. 
+Particular caution is required when fixing a parameter that is highly correlated with other parameters because this will to some extent restrict the estimates of the correlated parameters. This could also be a problem when specifying priors depending on the amount of a priori information available.
 
 ## Robust estimation (reducing influence of extreme observations)
 
@@ -661,7 +666,7 @@ plotspict.catch(res2, qlegend=FALSE, main='Robust fit')
 
 It is evident from the plot that the presence of the extreme catch observation generally inflates the uncertainty of the estimated catches, while the robust fit is less sensitive. Robust estimation can be applied to index and effort data using `robflagi` and `robflage` respectively.
 
-Robust estimation is implemented using a mixture of light-tailed and a heavy-tailed Gaussian distribution as described in @pedersen2016. This entails two additional parameters (`pp` and `robfac`) that require estimation. This may not always be possible given the increased model complexity. In such cases these parameters should be fixed by setting their phases to `-1`.
+Robust estimation is implemented using a mixture of light-tailed and a heavy-tailed Gaussian distribution as described in @spict. This entails two additional parameters (`pp` and `robfac`) that require estimation. This may not always be possible given the increased model complexity. In such cases these parameters should be fixed by setting their phases to `-1`.
 
 ## Forecasting and management scenarios
 
@@ -757,7 +762,7 @@ mansummary(res, ypred=2, include.unc = FALSE)
 
 This will print the unit of the catches on relevant plots.
 
-Example: `inp$catchunit <- "'000 t"`. 
+Example: `inp$catchunit <- "'000 t"`.
 
 ## `dteuler` and `eulertype` - Temporal discretisation and time step
 

@@ -1,0 +1,66 @@
+
+1: annual data
+==============
+
+0
+Test 1.1: calculate Bmsy/K ratio
+[1] 0.292
+
+
+Test 1.2: calculate order of magnitude
+       lower  est upper CI range order magnitude
+B/Bmsy  0.21 0.43  0.92     0.72               0
+F/Fmsy  0.98 1.95  3.86     2.87               1
+
+
+
+2: seasonal data
+================
+
+0
+2.1: calculate Bmsy/K ratio
+[1] 0.492
+
+
+2.2: calculate order of magnitude
+       lower  est upper CI range order magnitude
+B/Bmsy  0.47 1.06  2.39     1.92               1
+F/Fmsy  0.72 1.40  2.73     2.01               1
+
+
+
+3: Tests with mixed data
+========================
+
+0
+3.1: calculate Bmsy/K ratio
+[1] 0.514
+
+
+3.2: calculate order of magnitude
+       lower  est upper CI range order magnitude
+B/Bmsy  0.92 1.78  3.45     2.54               1
+F/Fmsy  0.26 0.69  1.86     1.61               1
+
+
+
+4: incorrect input
+==================
+
+4.1: wrong input
+4.1.1: Bmsy/K ratio
+Error:Please provide an object fitted with 'fit.spict'.
+4.1.2: calculate order of magnitude
+Error:Please provide an object fitted with 'fit.spict'.
+4.2: with non converged model
+1
+4.2.1: calculate Bmsy/K ratio
+[1] 0.002
+
+
+4.2.2: calculate order of magnitude
+       lower  est        upper     CI range order magnitude
+B/Bmsy     0 0.74 169138358620 169138358620              23
+F/Fmsy     0 1.34   1654347643   1654347643              18
+
+

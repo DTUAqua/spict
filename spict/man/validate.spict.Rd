@@ -4,10 +4,20 @@
 \alias{validate.spict}
 \title{Simulate data and reestimate parameters}
 \usage{
-validate.spict(inp, nsim = 50, invec = c(15, 60, 240), estinp = NULL,
-  backup = NULL, df.out = FALSE, summ.ex.file = NULL,
-  type = "nobs", parnames = NULL, exp = NULL, mc.cores = 8,
-  model = "spict")
+validate.spict(
+  inp,
+  nsim = 50,
+  invec = c(15, 60, 240),
+  estinp = NULL,
+  backup = NULL,
+  df.out = FALSE,
+  summ.ex.file = NULL,
+  type = "nobs",
+  parnames = NULL,
+  exp = NULL,
+  mc.cores = 8,
+  model = "spict"
+)
 }
 \arguments{
 \item{inp}{An inp list with an ini key (see ?check.inp). If you want to use estimated parameters for the simulation create the inp$ini from the pl key of a result of fit.spict().}

@@ -4,8 +4,17 @@
 \alias{arrow.line}
 \title{Draw a line with arrow heads.}
 \usage{
-arrow.line(x, y, length = 0.25, angle = 30, code = 2,
-  col = par("fg"), lty = par("lty"), lwd = par("lwd"), ...)
+arrow.line(
+  x,
+  y,
+  length = 0.25,
+  angle = 30,
+  code = 2,
+  col = par("fg"),
+  lty = par("lty"),
+  lwd = par("lwd"),
+  ...
+)
 }
 \arguments{
 \item{x}{X coordinates.}

@@ -1,11 +1,14 @@
-citHeader("To cite spict in publications, please use:")
-citEntry(entry="article",
+
+bibentry(header="To cite spict in publications, please use:",
+         bibtype="Article",
          title = "A stochastic surplus production model in continuous time",
          author = c(person(given=c("Martin", "W."), family="Pedersen", email="mawp@dtu.dk"),
-             person(given=c("Casper", "W."), family="Berg", email="cbe@aqua.dtu.dk")),
+                    person(given=c("Casper", "W."), family="Berg", email="cbe@aqua.dtu.dk")),
          doi="10.1111/faf.12174",
-         year="2016",
+         year="2017",
          journal="Fish and Fisheries",
-         url = {http://onlinelibrary.wiley.com/doi/10.1111/faf.12174/full},
-         textVersion=NULL
+         volume="18",
+         number=2,
+         pages="226-243",
+         textVersion="Pedersen, M. W. and Berg, C. W. (2017), A stochastic surplus production model in continuous time. Fish and Fisheries, 18(2): 226-243. doi:10.1111/faf.12174"
          )
