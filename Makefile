@@ -42,8 +42,11 @@ quick-install: $(PACKAGE)/src/spict.so
 $(PACKAGE)/src/spict.so: $(PACKAGE)/src/spict.cpp
 	cd $(PACKAGE)/src; echo "library(TMB); compile('spict.cpp','-O0 -g')" | $(R) --slave
 
-vignette:  $(PACKAGE)/vignettes/vignette.Rmd
-	R -e "rmarkdown::render('spict/vignettes/vignette.Rmd', rmarkdown::pdf_document())"
+vignette:
+	R -e "devtools::build_vignettes('spict')"
+	mkdir spict/inst/doc
+	mv spict/doc/* spict/inst/doc/
+	rm -r spict/doc
 
 .PHONY: testmoreseq testonemore testmore $(SUBDIRS)
 
