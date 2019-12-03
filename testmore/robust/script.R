@@ -1,8 +1,5 @@
 ## Tests vectorized robflagi and plotspict.priors for list priors
 
-## set seed
-set.seed(456)
-
 ## Also tests using the logngamma prior
 library(spict)
 
