@@ -26,3 +26,4 @@ spict/inst/doc
 .Rbuildignore
 Rplots.pdf
 res.out
+*.Rcheck

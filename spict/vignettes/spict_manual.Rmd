@@ -26,19 +26,19 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "  ", fig.align = 'center', cac
 ## Getting started
 This vignette explains basic and more advanced functions of the `spict` package. The package is installed from gihtub using the `devtools` package:
 ```{r, eval=FALSE}
-devtools::install_github("mawp/spict/spict")
+devtools::install_github("DTUAqua/spict/spict")
 ```
 installs the stable version of `spict`. When loading the package the user is greeted and the the installed version is shown:
 
 ```{r}
 library(spict)
 ```
-The printed version follows the format ver\@SHA, where _ver_ is the manually defined version number and _SHA_ refers to a unique github commit on [github](https://github.com/mawp/spict). The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/mawp/spict/tree/", packageDescription("spict")$GithubSHA1)`).
+The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/DTUAqua/spict/tree/v", packageVersion("spict"))`).
 
-A specific verision of `spict` can be installed using the first few digits of the SHA:
+A specific version of `spict` can be installed using the following:
 
 ```
-devtools::install_github("mawp/spict/spict", ref = "`r substr(packageDescription("spict")$GithubSHA1, 1, 8)`")
+devtools::install_github("DTUAqua/spict/spict", ref = "`r packageVersion("spict")`")
 ```
 
 ## Loading built-in example data
@@ -254,7 +254,7 @@ A vertical dashed red line at $B_t = 0$ indicates the biomass level below which 
 
 ## Residuals and diagnostics
 
-Before proceeding with the results for an actual assessment it is very important that the model residuals are checked and possible model deficiencies identified. Residuals can be calculated using `calc.osa.resid()`. OSA stands for one-step-ahead, which are the proper residuals for state-space models. More information about OSA residuals is contained in @pedersen2016. To calculate and plot residuals and diagnostics do
+Before proceeding with the results for an actual assessment it is very important that the model residuals are checked and possible model deficiencies identified. Residuals can be calculated using `calc.osa.resid()`. OSA stands for one-step-ahead, which are the proper residuals for state-space models. More information about OSA residuals is contained in @spict. To calculate and plot residuals and diagnostics do
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=7, fig.show='hold'}
 res <- calc.osa.resid(res)
@@ -268,7 +268,7 @@ The first column of the plot contains information related to catch data and the 
   3. Empirical autocorrelation of the residuals. Two tests for significant autocorrelation is performed. A Ljung-Box simultaneous test of multiple lags (here 4) with p-value shown in the header, and tests for individual lags shown by dashed horizontal lines in the plot. Here no violation is identified.
   4. Tests for normality of the residuals both as a QQ-plot and with a Shapiro test with p-value shown in the plot header.
 
-This data did not have any significant violations of the assumptions, which increases confidence in the results. For a discussion of possible violations and remedies the reader is referred to @pedersen2016.
+This data did not have any significant violations of the assumptions, which increases confidence in the results. For a discussion of possible violations and remedies the reader is referred to @spict.
 
 ## Extracting parameter estimates
 
@@ -472,7 +472,7 @@ Catch information available in sub-annual aggregations, e.g. quarterly catch, ca
   1. using cyclic B-splines.
   2. using coupled stochastic differential equations (SDEs).
 
-Technical description of the season types is found in @pedersen2016.
+Technical description of the season types is found in @spict.
 
 Here, an example of a spline-based model fitted to quarterly data simulated in section \ref{sec:seas} is shown
 
@@ -665,7 +665,7 @@ plotspict.catch(res2, qlegend=FALSE, main='Robust fit')
 
 It is evident from the plot that the presence of the extreme catch observation generally inflates the uncertainty of the estimated catches, while the robust fit is less sensitive. Robust estimation can be applied to index and effort data using `robflagi` and `robflage` respectively.
 
-Robust estimation is implemented using a mixture of light-tailed and a heavy-tailed Gaussian distribution as described in @pedersen2016. This entails two additional parameters (`pp` and `robfac`) that require estimation. This may not always be possible given the increased model complexity. In such cases these parameters should be fixed by setting their phases to `-1`.
+Robust estimation is implemented using a mixture of light-tailed and a heavy-tailed Gaussian distribution as described in @spict. This entails two additional parameters (`pp` and `robfac`) that require estimation. This may not always be possible given the increased model complexity. In such cases these parameters should be fixed by setting their phases to `-1`.
 
 ## Forecasting and management scenarios
 
