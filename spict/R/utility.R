@@ -713,7 +713,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
     inpout$regimeIdx <- NULL
     inpout$ir <- NULL
     inpout$ini$logr <- NULL
-    if (! is.null(maxime)) {
+    if (! is.null(maxtime)) {
       inpout$manstart <- NULL
     }
 
