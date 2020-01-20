@@ -17,6 +17,7 @@
 */
 
 // 14.10.2014
+#define TMB_LIB_INIT R_init_spict
 #include <TMB.hpp>
 
 /* Predict biomass */
