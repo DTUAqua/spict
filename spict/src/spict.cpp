@@ -652,7 +652,7 @@ Type objective_function<Type>::operator() ()
 
     // Seasonal component
     if(dbg>0){ std::cout << "-- seasontype: " << seasontype << std::endl; }
-    for(int i=1; i<ns; i++) logS(i) = 0.0; // Initialise
+    for(int i=0; i<ns; i++) logS(i) = 0.0; // Initialise
     if(seasontype == 1 || seasontype == 3 ){
       // Spline
       int ind2, ind3;
