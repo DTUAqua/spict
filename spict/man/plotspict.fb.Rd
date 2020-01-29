@@ -48,10 +48,14 @@ Nothing.
 Plot fishing mortality versus biomass.
 }
 \details{
-Plots estimated fishing mortality as a function of biomass together with reference points and the prediction for next year given a constant F. The equilibrium biomass for F fixed to the current value is also plotted.
+Plots estimated fishing mortality as a function of biomass together
+    with reference points and the prediction for next year given a constant
+    F. The equilibrium biomass for F fixed to the current value is also
+    plotted.
 }
 \examples{
 data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.fb(rep)
+
 }

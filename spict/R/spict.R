@@ -36,7 +36,7 @@
 #'   \item{"logB"}{ Log of the biomass process given by the stochastic differential equation: dB_t = r*B_t*(1-(B_t/K)^n)*dt + sdb*dW_t, where dW_t is Brownian motion.}
 #'   \item{"logF"}{ Log of the fishing mortality process given by: dlog(F_t) = f(t, sdf), where the function f depends on the choice of seasonal model.}
 #' }
-#' 
+#'
 #' Other parameters (which are only needed in certain cases):
 #' \itemize{
 #'   \item{"logphi"}{ Log of parameters used to specify the cyclic B spline representing seasonal variation. Used when inp$nseasons > 1 and inp$seasontype = 1.}
@@ -139,7 +139,7 @@ fit.spict <- function(inp, dbg=0){
                 # Check if TMB version is higher than or equal to 1.7.1
                 # Versions below this don't have the getReportCovariance argument
                 verflag <- as.numeric(gsub('[.]', '', as.character(packageVersion('TMB')))) >= 171
-                if (verflag) { 
+                if (verflag) {
                     rep <- try(TMB::sdreport(obj,
                                              getJointPrecision=inp$getJointPrecision,
                                              bias.correct=inp$bias.correct,
@@ -221,7 +221,7 @@ calc.prager.stats <- function(rep){
 #' @name make.datin
 #' @title Create data list used as input to TMB::MakeADFun.
 #' @param inp List of input variables as output by check.inp.
-#' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. 
+#' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1.
 #' @return List to be used as data input to TMB::MakeADFun.
 #' @export
 make.datin <- function(inp, dbg=0){
@@ -297,8 +297,9 @@ make.datin <- function(inp, dbg=0){
                   priorBBmsy=inp$priors$logBBmsy,
                   priorFFmsy=inp$priors$logFFmsy,
                   priorBmsyB0=inp$priors$BmsyB0,
-                  
+
                   simple=inp$simple,
+                  reportmode=inp$reportmode,
                   dbg=dbg)
     return(datin)
 }

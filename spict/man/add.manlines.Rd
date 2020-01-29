@@ -14,6 +14,8 @@ add.manlines(rep, par, par2 = NULL, index.shift = 0, plot.legend = TRUE, ...)
 \item{par2}{If a second parameter should be used as explanatory variable instead of time.}
 
 \item{index.shift}{Shift initial time point by this index.}
+
+\item{plot.legend}{Logical; should the legend be plotted?}
 }
 \value{
 Nothing

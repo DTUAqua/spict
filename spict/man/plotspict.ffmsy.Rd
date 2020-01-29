@@ -42,10 +42,21 @@ Nothing.
 Plot estimated relative fishing mortality.
 }
 \details{
-Plots estimated fishing mortality with Fmsy and associated confidence interval.
+Plots estimated fishing mortality with Fmsy and associated
+    confidence interval.
+
+If no management scenarios are included in \code{rep$man}, the grey vertical
+line corresponds to the time of the last observation. If management scenarios
+are included in \code{rep$man}, the prediction and confidence intervals of
+the base scenario (\code{rep}) are omitted and instead the projections of the
+different management scenarios are drawn in different colours. Dotted lines
+of the management scenarios reflect the intermediate period, while solid
+lines reflect the management period. Additionally, two vertical lines
+correspond to the start and end of the management period.
 }
 \examples{
 data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.ffmsy(rep)
+
 }

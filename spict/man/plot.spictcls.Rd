@@ -37,9 +37,29 @@ Optional plots included if relevant:
  \item{ One-step-ahead residuals of catches using plotspict.osar().}
  \item{ One-step-ahead residuals of catches using plotspict.osar().}
 }
+
+If no management scenarios are included in \code{rep$man}, the grey vertical
+line corresponds to the time of the last observation. If management scenarios
+are included in \code{rep$man}, the prediction and confidence intervals of
+the base scenario (\code{rep}) are omitted and instead the projections of the
+different management scenarios are drawn in different colours. Dotted lines
+of the management scenarios reflect the intermediate period, while solid
+lines reflect the management period. Additionally, two vertical lines
+correspond to the start and end of the management period.
+
+Be aware that potential catch intervals of more a year, e.g. biennial
+assessment so that the intermediate period spans two years, or management
+period spans two years, are equally split up into annual intervals.
+
+Be aware of the fact that the catches represent intervals, where the length
+of the interval is indicated by \code{dtc}, e.g. with \eqn{dtc = 1, C(1990) =
+[1990,1990[}. In the plot the catches (and vertical lines) correspond to the
+beginning of the catch interval. It might thus seem as if the time of the
+vertical lines and the management interval would not align.
 }
 \examples{
 data(pol)
 rep <- fit.spict(pol$albacore)
 plot(rep)
+
 }
