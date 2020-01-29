@@ -1308,9 +1308,7 @@ man.select <- function(rep, scenarios = "all", verbose = TRUE){
         stop("rep needs to be a fitted spict object!")
     if(!any(names(rep)=="man")) stop("Apply manage() first.")
     ## scenarios in index or name
-    rep <- repVarPer
     scenariosAll <- names(rep$man)
-    scenarios <- NULL
     if(all(is.numeric(scenarios))){
         ind <- scenarios %in% 1:length(scenariosAll)
         if(any(!ind) && verbose) cat("Scenario(s): ", scenarios[which(!ind)],
