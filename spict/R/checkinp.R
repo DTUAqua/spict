@@ -86,14 +86,15 @@
 #' - Settings/Options/Preferences
 #'
 #' \itemize{
-#'  \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc). Should be 1 to get annual predictions and 0.25 for quarterly predictions.}
-#'  \item{"inp$timepredc"}{ Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default: Time of last observation. Example: inp$timepredc <- 2020}
-#'  \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation. Example: inp$timepredi <- 2021}
-#' \item{"inp$maninterval"}{ Two floats representing the start and end of the management period. Example: inp$maninterval <- c(2020.25,2021.25)}
-#' \item{"inp$maneval"}{ Time at which to evaluate model states. Example: inp$maneval <- 2021.25}
-#' \item{"inp$manstart"}{ Deprecated: start of the management period. Updated argument \code{inp$maninterval}.}
+#' \item{"inp$maninterval"}{ Start and end time of management period. Default: One year interval starting at the beginning of the new year after the last observation. Example: inp$maninterval <- c(2020.25,2021.25)}
+#' \item{"inp$maneval"}{ Time for the estimation of predicted model states (biomass and fishing mortality), which can be used to evaluate the implications of management scenarios. Default: At the end of the management interval \code{inp$maninterval[2]}. Example: inp$maneval <- 2021.25}
+#'  \item{"inp$timepredc"}{ Deprecated: Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default depends on \code{inp$maninterval}.}
+#'  \item{"inp$dtpredc"}{ Deprecated: Length of catch prediction interval in years. Default depends on \code{inp$maninterval}.}
+#'  \item{"inp$timepredi"}{ Deprecated: Predict index until this time. Default depends on \code{inp$maneval}.}
+#' \item{"inp$manstart"}{ Deprecated: Start of the management period. Updated argument \code{inp$maninterval}. Default depends on \code{inp$maninterval}.}
 #'  \item{"inp$do.sd.report"}{ Flag indicating whether SD report (uncertainty of derived quantities) should be calculated. For small values of inp$dteuler this may require a lot of memory. Default: TRUE.}
 #'  \item{"inp$reportall"}{ Flag indicating whether quantities derived from state vectors (e.g. B/Bmsy, F/Fmsy etc.) should be calculated by SD report. For small values of inp$dteuler (< 1/32) reporting all may have to be set to FALSE for sdreport to run. Additionally, if only reference points of parameter estimates are of interest one can set to FALSE to gain a speed-up. Default: TRUE.}
+#' \item{"inp$reportmode"}{ Integer between 0 and 2 determining which objects will be adreported. Default: 0 = all quantities are adreported. Example: inp$reportmode <- 1}
 #' \item{"inp$reportRel"}{ Flag indicating whether mean 1 standardized states (i.e. B/mean(B), F/mean(F) etc.) should be calculated by SD report. Default: FALSE.}
 #' \item{"inp$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
 #'  \item{"inp$robflagi"}{ Vector of flags indicating whether robust estimation should be used for indices (either 0 or 1). Default: 0.}
@@ -109,7 +110,6 @@
 #'  \item{"inp$stdevfacE"}{ Factors to multiply the observation error standard deviation of each individual effort observation. Can be used if some observations are more uncertain than others. A list with vectors of same length as observation vectors. Default: 1.}
 #'  \item{"inp$mapsdi"}{ Vector of length equal to the number of index series specifying which indices that should use the same sdi. For example: in case of 3 index series use inp$mapsdi <- c(1, 1, 2) to have series 1 and 2 share sdi and have a separate sdi for series 3. Default: 1:nindex, where nindex is number of index series.}
 #'  \item{"inp$seasontype"}{ If set to 1 use the spline-based representation of seasonality. If set to 2 use the oscillatory SDE system (this is more unstable and difficult to fit, but also more flexible).}
-#' \item{"inp$reportmode"}{ Integer between 0 and 2 determining which objects will be adreported. Default: 0 = all quantities are adreported. Example: inp$reportmode <- 1}
 #' }
 #'
 #' @return An updated list of input variables checked for consistency and with defaults added.
@@ -503,85 +503,98 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     timeobsall <- sort(c(inp$timeC, inp$timeC + inp$dtc,
                          unlist(inp$timeI),
                          inp$timeE, inp$timeE + inp$dte))
-    # Time interval for management
-    if ("maninterval" %in% names(inp)){
+
+    # - Management variables -
+    # Management period, Interval for catch prediction and manstart
+    if (any(names(inp) == "maninterval")){
+        manflag <- FALSE
         if (length(inp$maninterval) < 2){
-            inp$maninterval <- NULL
+            manflag <- TRUE
             if(verbose) warning("Only one of the two times of the management interval specified! The default management interval will be used!\n")
         }else if (inp$maninterval[1] == inp$maninterval[2]){
-            inp$maninterval <- NULL
+            manflag <- TRUE
             if(verbose) warning("The times of the specified management interval are equal! The default management interval will be used!\n")
+        }else if (inp$maninterval[1] > inp$maninterval[2]){
+            inp$maninterval <- sort(inp$maninterval)
+            if(verbose) warning("The specified management interval is not increasing! 'inp$maninterval' [",
+                                inp$maninterval[1],",",inp$maninterval[2], "] will be used!\n")
         }else{
-            if (inp$maninterval[1] > inp$maninterval[2]){
-                inp$maninterval <- sort(inp$maninterval)
-                if(verbose) warning("The specified management interval is not increasing! 'inp$maninterval'",
-                                    inp$maninterval, "will be used!\n")
+        if (inp$maninterval[1] < max(timeobsall)){
+            if(mancheck){  ## necessary to be able to switch off for HCRs with intermediate periods
+                manflag <- TRUE
+                if(verbose) warning("The specified management interval starts before the time of the last observation: ", max(timeobsall),"! The default management interval will be used!\n")
             }
-            if (inp$maninterval[1] < max(timeobsall)){
-                if(mancheck){
-                    manint <- c(max(timeobsall),max(timeobsall) + diff(inp$maninterval))
-                    if(verbose) warning("The specified management interval [",
-                                        inp$maninterval[1],",",inp$maninterval[2],
-                                        "] must start at or after the time of the last observation:",
-                                        max(timeobsall),"! Using the interval [",manint[1],",",
-                                        manint[2],"] instead.")
-                    inp$maninterval <- manint
-                }
-            }
-            if (abs(diff(inp$maninterval)) < inp$dteuler){
-                if(verbose) warning("The specified management interval [",
-                                    inp$maninterval[1],",",inp$maninterval[2],
-                                    "] must be larger than the Euler discretisation time step:",
-                                    inp$dteuler,"!")
-            }
-            if ("timepredc" %in% names(inp) && inp$timepredc != min(inp$maninterval))
-                if(verbose) cat("Both arguments 'inp$maninterval' and 'inp$timepredc' are specified. Only 'inp$maninterval'",
-                                inp$maninterval, "will be used! \n")
-            if ("manstart" %in% names(inp) && inp$manstart != min(inp$maninterval))
-                if(verbose) cat("Both arguments 'inp$maninterval' and 'inp$manstart' are specified. Only 'inp$maninterval'",
-                                inp$maninterval, "will be used! \n")
+        }
+        if (abs(diff(inp$maninterval)) < inp$dteuler){
+            manflag <- TRUE
+            if(verbose) warning("The specified management interval is smaller than the Euler discretisation time step:", inp$dteuler,"! The default management interval will be used!\n")
+        }
+        if (any(names(inp) == "timepredc") && inp$timepredc != min(inp$maninterval))
+            if(verbose) cat("Both arguments 'inp$maninterval' and 'inp$timepredc' are specified. Only 'inp$maninterval'", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
+        if (any(names(inp) == "manstart") && inp$manstart != min(inp$maninterval))
+            if(verbose) cat("Both arguments 'inp$maninterval' and 'inp$manstart' are specified. Only 'inp$maninterval'", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
+        }
+        if(manflag){
+            manstart <- ceiling(max(timeobsall))
+            inp$maninterval <- c(manstart, manstart + 1)
+        }
+        inp$timepredc <- min(inp$maninterval)
+        inp$dtpredc <- abs(diff(inp$maninterval))
+        inp$manstart <- min(inp$maninterval)
+    }else{
+        if(!any(names(inp) == "timepredc") && !any(names(inp) == "dtpredc") && !any(names(inp) == "manstart")){
+            ## if no old variables set -> default of maninterval as start of new year after last observation
+            manstart <- ceiling(max(timeobsall))
+            inp$maninterval <- c(manstart, manstart + 1)
             inp$timepredc <- min(inp$maninterval)
             inp$dtpredc <- abs(diff(inp$maninterval))
             inp$manstart <- min(inp$maninterval)
+        }else if(any(names(inp) == "timepredc") && any(names(inp) == "dtpredc") && any(names(inp) == "manstart")){
+            ## if ALL old variables set -> use old ones and maninterval dependent on them
+            ## stop if manstart after timepredc or any before time of last observation
+            if(inp$manstart < max(timeobsall)) stop("inp$manstart is set before time of last observation!")
+            if(inp$timepredc < max(timeobsall)) stop("inp$timepredc is set before time of last observation!")
+            if(inp$timepredc < inp$manstart) warning("inp$manstart is set after inp$timepredc. This can have unpredictable effects on the management scenarios.")
+            inp$maninterval <- c(inp$timepredc,inp$timepredc+inp$dtpredc)    ## Just dummy ->  maninterval just used to set timepredc, dtpred, and manstart if used
+        }else{
+            ## if any old variable set but others missing -> informative error message
+            if(!any(names(inp) == "timepredc")) stop("Specify inp$timepredc, inp$dtpredc, and inp$manstart or use inp$maninterval!")
+            if(!any(names(inp) == "dtpredc")) stop("Specify inp$timepredc, inp$dtpredc, and inp$manstart or use inp$maninterval!")
+            if(!any(names(inp) == "manstart")) stop("Specify inp$timepredc, inp$dtpredc, and inp$manstart or use inp$maninterval!")
         }
     }
-    # Time point to evaluate model states for management
-    if ("maneval" %in% names(inp)){
-        if(verbose && "timepredi" %in% names(inp) && inp$timepredi != inp$maneval)
+
+    # Time point to evaluate model states for management (p states)
+    if (any(names(inp) == "maneval")){
+        if(verbose && any(names(inp) == "timepredi") && inp$timepredi != inp$maneval)
                         cat("Both arguments 'inp$maneval' and 'inp$timepredi' are specified. Only 'inp$maneval'",
                             inp$maneval, "will be used! \n")
         inp$timepredi <- inp$maneval
+    }else{
+        if(!any(names(inp) == "timepredi")){
+            ## default of maneval as end of the management interval
+            inp$maneval <- inp$maninterval[2]
+            inp$timepredi <- inp$maneval
+        }else{
+            inp$maneval <- inp$timepredi
+        }
     }
-    # Catch prediction time step (dtpredc)
-    if (!"dtpredc" %in% names(inp)){
-        if (length(inp$dtc)>0){
-            inp$dtpredc <- max(inp$dtc)
+
+    # Interval for effort prediction
+    if (!"timeprede" %in% names(inp)){
+        if (inp$nobsE > 0){
+            inp$timeprede <- ceiling(max(timeobsall))
         } else {
-            inp$dtpredc <- 1
-            if(verbose) cat('Assuming a 1 year prediction interval for catch. \n')
+            inp$timeprede <- numeric(0)
         }
-    }
-    # Time point to predict catches until
-    if (!"timepredc" %in% names(inp)){
-        inp$timepredc <- max(timeobsall)
     } else {
-        if (inp$timepredc < max(inp$timeC + inp$dtc)){
-            if(verbose) cat('inp$timepredc:', inp$timepredc,
-                            ' must be equal to or later than the end of the last catch observation interval: ',
-                            max(inp$timeC + inp$dtc), '! \n')
-        }
-    }
-    # Time point to predict indices until
-    if (!"timepredi" %in% names(inp)){
-        inp$timepredi <- max(timeobsall)
-    } else {
-        if (sum(inp$nobsI) > 0){
-            if (inp$timepredi < max(unlist(inp$timeI))){
-                stop('inp$timepredi must be equal to or later than last index observation!')
+        if (inp$nobsE > 0){
+            if (inp$timeprede < max(inp$timeE + inp$dte)){
+                cat('inp$timeprede:', inp$timeprede,
+                    ' must be equal to or later than last effort observation: ', max(inp$timeE + inp$dte), '!  \n')
             }
         }
     }
-    # Effort prediction time step (dtprede)
     if (!"dtprede" %in% names(inp)){
         if (inp$nobsE > 0){
             if (length(inp$dte)>0){
@@ -591,27 +604,12 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
                 cat('Assuming a 1 year prediction interval for effort.\n')
             }
         } else {
-            inp$dtpred <- numeric(0)
-        }
-    }
-    # Time point to predict effort until
-    if (!"timeprede" %in% names(inp)){
-        if (inp$nobsE > 0){
-            inp$timeprede <- max(timeobsall)
-        } else {
-            inp$timeprede <- numeric(0)
-        }
-    } else {
-        if (inp$nobsE > 0){
-            if (inp$timeprede < max(inp$timeE)){
-                cat('inp$timeprede:', inp$timeprede,
-                    ' must be equal to or later than last effort observation: ', max(inp$timeE), '!  \n')
-            }
+            inp$dtprede <- numeric(0)
         }
     }
     # This may give a problem if effort data has later time points than catches or index
-    if (inp$nobsE > 0 & sum(inp$nobsI) > 0){
-        if (max(inp$timeE) > max(unlist(inp$timeI), inp$timeC)){
+    if (inp$nobsE > 0 && sum(inp$nobsI) > 0){
+        if (max(inp$timeE + inp$dte) > max(unlist(inp$timeI), inp$timeC + inp$dtc)){
             stop('Effort data must overlap temporally with index or catches')
         }
     }
@@ -687,16 +685,20 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
     inp$indCpred <- which(inp$time >= max(inp$timeC + inp$dtc))
+
+
+    ## REMOVE:
     # Management
-    if (!"manstart" %in% names(inp)){
-        inp$manstart <- ceiling(inp$time[inp$indpred[1]])
-    }
-    if (!"maninterval" %in% names(inp)){
-        inp$maninterval <- c(inp$manstart, inp$manstart + inp$dtpredc)
-    }
-    if (!"maneval" %in% names(inp)){
-        inp$maneval <- inp$maninterval[1]
-    }
+    ## if (!"manstart" %in% names(inp)){
+    ##     inp$manstart <- ceiling(inp$time[inp$indpred[1]])
+    ## }
+    ## if (!"maninterval" %in% names(inp)){
+    ##     inp$maninterval <- c(inp$manstart, inp$manstart + inp$dtpredc)
+    ## }
+    ## if (!"maneval" %in% names(inp)){
+    ##     inp$maneval <- inp$maninterval[1]
+    ## }
+
     if (!"ffac" %in% names(inp)) inp$ffac <- 1
     if ("ffac" %in% names(inp)){
         if (!is.numeric(inp$ffac)){
@@ -727,6 +729,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
         # -1 in indpred because 1 is for plotting
         inp$fconvec[inp$indpred[-1]] <- inp$fcon + 1e-8 # Add small to avoid taking log of 0
     }
+
     # Seasons
     if (!"nseasons" %in% names(inp)){
         expnseasons <- 1/min(inp$dtc)
