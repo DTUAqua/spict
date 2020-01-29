@@ -796,7 +796,6 @@ make.man.inp <- function(rep, scenarioTitle = "",
     logFmFmsy <- get.par("logFmFmsynotS", repin)
     logBmBmsy <- get.par("logBmBmsy", repin)
 
-
     ## ADVICE RULES
     ## ---------------
     if(!is.numeric(cfac) || is.na(cfac)){
