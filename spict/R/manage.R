@@ -712,7 +712,7 @@ make.man.inp <- function(rep, scenarioTitle = "",
     if(is.null(maninterval)){
         manint <- rep$inp$maninterval
     }else manint <- maninterval
-    checkScenarios <- check.man(rep, maninterval=manint, verbose=FALSE)
+    checkScenarios <- check.man(rep, maninterval=manint, verbose=FALSE, reportmode0 = FALSE)
     if(any(names(rep)=="man")){
         if(checkScenarios$mantime){
             if(is.null(maninterval)) maninterval <- rep$man[[1]]$inp$maninterval
@@ -1577,15 +1577,16 @@ get.TAC <- function(rep,
 #'     management period. Example: maninterval = c(2020.25,2021.25). Default:
 #'     NULL.
 #' @param verbose Should detailed outputs be provided (default: TRUE).
+#' @param reportmode0 Should it be checked that the reportmode is 0 (default: TRUE).
 #'
 #' @details Internal function that checks if the fitted spict objects in
 #'     \code{rep$man} have a consistent management interval.
 #'
 #' @return TRUE/FALSE
 #'
-check.man <- function(rep, maninterval = NULL, verbose = TRUE){
+check.man <- function(rep, maninterval = NULL, verbose = TRUE, reportmode0 = TRUE){
     ## rep wrong class
-    check.rep(rep)
+    check.rep(rep, reportmode0 = reportmode0)
     if(!is.null(maninterval) && length(maninterval) != 2 && all(is.numeric(maninterval)))
         stop("The argument 'maninterval' has to be comprised of two numeric values!")
 

@@ -30,7 +30,7 @@ setClass("spictcls")
 check.rep <- function(rep, reportmode0 = TRUE){
     if(!inherits(rep, "spictcls") || !"opt" %in% names(rep)){
         stop("The argument 'rep' needs to be a fitted spict object. Use 'fit.spict()' to fit a spict model!")
-    }else if(reportmode0 && !rep$inp$reportmode == 0){
+    }else if(reportmode0 && rep$inp$reportmode != 0){
         stop("All states of the spict model need to be reported! Set the argument 'inp$reportmode' to 0 and fit spict
  again!")
     }
@@ -48,7 +48,7 @@ make.ffacvec <- function(inp, ffac){
     inp$ffacvec <- rep(1, inp$ns)
     inp$ffac <- ffac
     # Start in indpred[2] because indpred[1] is mainly for plotting
-    ind <- which(inp$time == inp$maninterval[1])
+    ind <- which(inp$time == inp$manstart)
     inp$ffacvec[ind] <- ffac
     inp$ffacvec <- inp$ffacvec + 1e-8 # Add small to avoid taking log of 0
     return(inp)
@@ -846,7 +846,6 @@ modefrac2shaperate<-function (mode, xf, f=0.9)
 #' @export
 retape.spict <- function(rep, inp, verbose = FALSE, dbg = 0, mancheck=TRUE){
     if(!inherits(rep, "spictcls") || !"opt" %in% names(rep)) stop("rep needs to be a fitted spict object!")
-##     print("retaping ... ")  ## REMOVE:
     repin <- rep
     inpin <- check.inp(inp, verbose = verbose, mancheck=mancheck)
     ## prevent R collapse if prediction time horizon was changed without check.man.time
