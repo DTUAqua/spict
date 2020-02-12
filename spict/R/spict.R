@@ -69,6 +69,7 @@
 #'   \item{"5"}{Constant catchability of the gear used to gather information for the biomass index.}
 #' }
 #' @param inp List of input variables as output by check.inp.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
 #' @param dbg Debugging option. Will print out runtime information useful for debugging if set to 1. Will print even more if set to 2.
 #' @return A result report containing estimates of model parameters, random effects (biomass and fishing mortality), reference points (Fmsy, Bmsy, MSY) including uncertainties given as standard deviations.
 #' @export
@@ -79,10 +80,10 @@
 #' summary(rep)
 #' plot(rep)
 #' @import TMB
-fit.spict <- function(inp, dbg=0){
+fit.spict <- function(inp, verbose=TRUE, dbg=0){
     rep <- NULL
     # Check input list
-    inp <- check.inp(inp)
+    inp <- check.inp(inp, verbose = verbose)
     datin <- make.datin(inp, dbg)
     pl <- inp$parlist
     tic <- Sys.time()
