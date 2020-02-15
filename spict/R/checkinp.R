@@ -124,7 +124,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     # Check management settings if inp is 'checked' list
     isChecked <- ifelse(inherits(inp, "spictcls"), 1, 0)
     if(isChecked && mancheck){
-        inp = check.man.time(inp, printTimeline = FALSE)
+        inp = check.man.time(inp, printTimeline = FALSE, verbose = verbose)
     }
 
     set.default <- function(inpin, key, val){
