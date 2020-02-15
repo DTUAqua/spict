@@ -124,7 +124,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     # Check management settings if inp is 'checked' list
     isChecked <- ifelse(inherits(inp, "spictcls"), 1, 0)
     if(isChecked && mancheck){
-        inp = check.man.time(inp, printTimeline = FALSE, verbose = verbose)
+        inp <- check.man.time(inp, printTimeline = FALSE, verbose = verbose)
     }
 
     set.default <- function(inpin, key, val){
@@ -516,8 +516,8 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
             if(verbose) warning("The times of the specified management interval are equal! The default management interval will be used!\n")
         }else if (inp$maninterval[1] > inp$maninterval[2]){
             inp$maninterval <- sort(inp$maninterval)
-            if(verbose) warning("The specified management interval is not increasing! 'inp$maninterval' [",
-                                inp$maninterval[1],",",inp$maninterval[2], "] will be used!\n")
+            if(verbose) warning("The specified management interval is not increasing! 'inp$maninterval' =",
+                                paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used!\n")
         }else{
         if (inp$maninterval[1] < max(timeobsall)){
             if(mancheck){  ## necessary to be able to switch off for HCRs with intermediate periods
@@ -529,10 +529,10 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
             manflag <- TRUE
             if(verbose) warning("The specified management interval is smaller than the Euler discretisation time step:", inp$dteuler,"! The default management interval will be used!\n")
         }
-        if (any(names(inp) == "timepredc") && inp$timepredc != min(inp$maninterval))
-            if(verbose) cat("Both arguments 'inp$maninterval' and 'inp$timepredc' are specified. Only 'inp$maninterval'", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
-        if (any(names(inp) == "manstart") && inp$manstart != min(inp$maninterval))
-            if(verbose) cat("Both arguments 'inp$maninterval' and 'inp$manstart' are specified. Only 'inp$maninterval'", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
+        if (verbose && any(names(inp) == "timepredc") && inp$timepredc != min(inp$maninterval))
+            cat("Both arguments 'inp$maninterval' and 'inp$timepredc' are specified. Only 'inp$maninterval' =", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
+        if (verbose && any(names(inp) == "manstart") && inp$manstart != min(inp$maninterval))
+            cat("Both arguments 'inp$maninterval' and 'inp$manstart' are specified. Only 'inp$maninterval' =", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
         }
         if(manflag){
             manstart <- ceiling(max(timeobsall))
@@ -548,27 +548,25 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
             inp$maninterval <- c(manstart, manstart + 1)
             inp$timepredc <- min(inp$maninterval)
             inp$dtpredc <- abs(diff(inp$maninterval))
-            inp$manstart <- min(inp$maninterval)
+            inp$manstart <- manstart
         }else if(any(names(inp) == "timepredc") && any(names(inp) == "dtpredc") && any(names(inp) == "manstart")){
             ## if ALL old variables set -> use old ones and maninterval dependent on them
             ## stop if manstart after timepredc or any before time of last observation
             if(inp$manstart < max(timeobsall)) stop("inp$manstart is set before time of last observation!")
             if(inp$timepredc < max(timeobsall)) stop("inp$timepredc is set before time of last observation!")
-            if(inp$timepredc < inp$manstart) warning("inp$manstart is set after inp$timepredc. This can have unpredictable effects on the management scenarios.")
-            inp$maninterval <- c(inp$timepredc,inp$timepredc+inp$dtpredc)    ## Just dummy ->  maninterval just used to set timepredc, dtpred, and manstart if used
-        }else{
-            ## if any old variable set but others missing -> informative error message
-            if(!any(names(inp) == "timepredc")) stop("Specify inp$timepredc, inp$dtpredc, and inp$manstart or use inp$maninterval!")
-            if(!any(names(inp) == "dtpredc")) stop("Specify inp$timepredc, inp$dtpredc, and inp$manstart or use inp$maninterval!")
-            if(!any(names(inp) == "manstart")) stop("Specify inp$timepredc, inp$dtpredc, and inp$manstart or use inp$maninterval!")
-        }
+            ## CHECK: (do they have to be dependent on each other?)
+            if(verbose && inp$timepredc < inp$manstart) warning("inp$manstart is set after inp$timepredc. This can have unpredictable effects on the management scenarios.")
+            inp$maninterval <- c(inp$timepredc, inp$timepredc+inp$dtpredc)
+        }else
+            ## if any of the old variables missing -> informative error message that all have to be specified
+            stop("Specify all three variables: inp$timepredc, inp$dtpredc, and inp$manstart OR use inp$maninterval!")
     }
 
     # Time point to evaluate model states for management (p states)
     if (any(names(inp) == "maneval")){
         if(verbose && any(names(inp) == "timepredi") && inp$timepredi != inp$maneval)
-                        cat("Both arguments 'inp$maneval' and 'inp$timepredi' are specified. Only 'inp$maneval'",
-                            inp$maneval, "will be used! \n")
+            cat("Both arguments 'inp$maneval' and 'inp$timepredi' are specified. Only 'inp$maneval' =",
+                inp$maneval, "will be used! \n")
         inp$timepredi <- inp$maneval
     }else{
         if(!any(names(inp) == "timepredi")){
@@ -681,23 +679,27 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
 
     # -- DERIVED VARIABLES --
     inp$timerange <- range(timeobsall)
-    inp$indlastobs <- cut(max(c(inp$timeC, unlist(inp$timeI), inp$timeE)), inp$time, right=FALSE, labels=FALSE)
+    inp$indlastobs <- cut(max(c(inp$timeC + inp$dtc, unlist(inp$timeI),
+                                inp$timeE + inp$dte)),
+                          inp$time, right=FALSE, labels=FALSE)
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
     inp$indCpred <- which(inp$time >= max(inp$timeC + inp$dtc))
-
-
-    ## REMOVE:
-    # Management
-    ## if (!"manstart" %in% names(inp)){
-    ##     inp$manstart <- ceiling(inp$time[inp$indpred[1]])
-    ## }
-    ## if (!"maninterval" %in% names(inp)){
-    ##     inp$maninterval <- c(inp$manstart, inp$manstart + inp$dtpredc)
-    ## }
-    ## if (!"maneval" %in% names(inp)){
-    ##     inp$maneval <- inp$maninterval[1]
-    ## }
+    # Reset management variables in case they do not match any dteuler time steps
+    if(!any(inp$time == inp$maninterval[1]) || !any(inp$time == inp$maninterval[2])){
+        indmanint <- match.times(inp$maninterval, inp$time)
+        inp$maninterval <- inp$time[indmanint]
+        inp$manstart <- min(inp$maninterval)
+        inp$timepredc <- inp$manstart
+        inp$dtpredc <- diff(inp$maninterval)
+        if(verbose) cat("Specified management interval does not match to any time step. 'inp$maninterval' =",paste0("[",inp$maninterval[1],", ",inp$maninterval[2],"]"), "will be used!\n")
+    }
+    if(!any(inp$time == inp$maneval)){
+        indmaneval <- match.times(inp$maneval, inp$time)
+        inp$maneval <- inp$time[indmaneval]
+        inp$timepredi <- inp$maneval
+        if(verbose) cat("Specified management evaluation time does not match to any time step. 'inp$maneval' =",inp$maneval, "will be used!\n")
+    }
 
     if (!"ffac" %in% names(inp)) inp$ffac <- 1
     if ("ffac" %in% names(inp)){
@@ -1082,7 +1084,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     if (!"logeta" %in% names(inp$ini)) inp$ini$logeta <- log(0.2) # Mean of OU for F
     if ("logphi" %in% names(inp$ini)){
         if (length(inp$ini$logphi)+1 != dim(inp$splinemat)[2]){
-            cat('Mismatch between length of ini$logphi and number of columns of splinemat! removing prespecified ini$logphi and setting default.\n')
+            if(verbose) cat('Mismatch between length of ini$logphi and number of columns of splinemat! removing prespecified ini$logphi and setting default.\n')
             inp$ini$logphi <- NULL
         }
     }
@@ -1094,17 +1096,17 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
         inp$ini$logF <- rep(log(0.2) + inp$ini$logr[1], inp$ns)
     } else {
         if (length(inp$ini$logF) != inp$ns){
-            warning('Wrong length of inp$ini$logF: ', length(inp$ini$logF),
-                    ' Should be equal to inp$ns: ', inp$ns,
-                    ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
+            if(verbose) warning('Wrong length of inp$ini$logF: ', length(inp$ini$logF),
+                                ' Should be equal to inp$ns: ', inp$ns,
+                                ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
             inp$ini$logF <- inp$ini$logF[1:inp$ns]
         }
     }
     if ("logu" %in% names(inp$ini)){
         if (dim(inp$ini$logu)[1] != 2*length(inp$ini$logsdu) || dim(inp$ini$logu)[2] != inp$ns){
-            warning('Wrong dimension of inp$ini$logu: ', dim(inp$ini$logu)[1], 'x',
-                    dim(inp$ini$logu)[2], ' should be equal to 2*length(inp$ini$logsdu) x inp$ns: ',
-                    2*length(inp$ini$logsdu), 'x', inp$ns,', Filling with log(1).')
+            if(verbose) warning('Wrong dimension of inp$ini$logu: ', dim(inp$ini$logu)[1], 'x',
+                                dim(inp$ini$logu)[2], ' should be equal to 2*length(inp$ini$logsdu) x inp$ns: ',
+                                2*length(inp$ini$logsdu), 'x', inp$ns,', Filling with log(1).')
             inp$ini$logu <- NULL
         }
     }
@@ -1115,9 +1117,9 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
         inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
     } else {
         if (length(inp$ini$logB) != inp$ns){
-            warning('Wrong length of inp$ini$logB: ', length(inp$ini$logB),
-                    ' Should be equal to inp$ns: ', inp$ns,
-                    ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
+            if(verbose) warning('Wrong length of inp$ini$logB: ', length(inp$ini$logB),
+                                ' Should be equal to inp$ns: ', inp$ns,
+                                ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
             inp$ini$logB <- inp$ini$logB[1:inp$ns]
         }
     }
@@ -1125,9 +1127,9 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
         inp$ini$logmre <- rep(log(1), inp$ns)
     } else {
         if (length(inp$ini$logmre) != inp$ns){
-            warning('Wrong length of inp$ini$logmre: ', length(inp$ini$logmre),
-                    ' Should be equal to inp$ns: ', inp$ns,
-                    ' Setting length of logmre equal to inp$ns (removing beyond inp$ns).')
+            if(verbose) warning('Wrong length of inp$ini$logmre: ', length(inp$ini$logmre),
+                                ' Should be equal to inp$ns: ', inp$ns,
+                                ' Setting length of logmre equal to inp$ns (removing beyond inp$ns).')
             inp$ini$logmre <- inp$ini$logmre[1:inp$ns]
         }
     }
@@ -1139,7 +1141,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     ## reporting
     if(!"reportmode" %in% names(inp)) inp$reportmode <- 0
 
-    ## timerange of original observations
+    ## timerange of original observations (required for intermediate catch)
     if(!"timerangeObs" %in% names(inp)) inp$timerangeObs <- inp$timerange
 
     # Reorder parameter list

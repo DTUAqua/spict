@@ -555,11 +555,7 @@ check.man.time <- function(x, maninterval = NULL, maneval = NULL, verbose = TRUE
         manintstart <- maxtimeC
         manintend <- maxint
         manintend <- ifelse(manintend > manintstart, manintend, manintstart + (maxint-minint))
-        if(verbose) cat("The specified management interval [",
-                        inpin$maninterval[1],",",inpin$maninterval[2],
-                        "] must start at or after the last catch observation interval: ",
-                        maxtimeC,"! The management interval [",
-                        manintstart,",",manintend,"] is used instead.\n")
+        if(verbose) cat("The management interval must start at or after the last catch observation interval! The management interval", paste0("[",manintstart,",",manintend,"]"),"is used instead.\n")
         inpin$maninterval <- c(manintstart, manintend)
     }
     inpin <- check.inp(inpin, verbose = FALSE, mancheck=FALSE)
