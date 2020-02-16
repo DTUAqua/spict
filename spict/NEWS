@@ -1,3 +1,25 @@
+spict v1.3.0 (Release date: 2020-02-20)
+============
+
+New features:
+
+* New variables to control management related quantities: 'maninterval' and
+ 'maneval'
+* New management functionality (see updated section in manual for full
+  functionality)
+*
+
+Minor changes:
+
+* new defaults for Bl, Fl and Co, and Bp, Fp and co
+
+Bug fixes:
+
+* indlastobs considers end of catch (and effort) interval
+* new default values of management related variables fix inconsistent default
+  values for seasonal data
+
+
 spict v1.2.8 (Release date: 2019-12-02)
 ============
 
