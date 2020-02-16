@@ -845,13 +845,22 @@ make.man.inp <- function(rep, scenarioTitle = "",
         if(is.null(catchList)){
 
             ## Default catch during maninterval preserving seasonality
-            ## observation indices representative of the last full year
-            indFullYear = (length(inp$timeC) - (which(cumsum(rev(diff(inp$timeC))) == 1)-1)) :
-                length(inp$timeC)
-            timeLastC <- inp$timeC[indFullYear]
-            obsLastC <- inp$obsC[indFullYear]
-            dtc <- inp$dtc
-            dtcLastC <- c(dtc,dtc[length(dtc)])[indFullYear]
+            ## use predicted catch observations (because last year might have index but no catch)
+            timeCpred <- inp$timeCpred
+            Cpred <- get.par("logCpred", rep, exp=TRUE)[,2]
+            dtcpred <- inp$dtcp
+
+            ## remove forecast times
+            ind <- timeCpred < inp$timerangeObs[2]
+            timeCpred <- timeCpred[ind]
+            Cpred <- Cpred[ind]
+            dtcpred <- dtcpred[ind]
+
+            ## last full year catches accounting for seasonal catches
+            indFullYear = (length(timeCpred) - (which(cumsum(rev(diff(timeCpred))) == 1)-1)) : length(timeCpred)
+            timeLastC <- timeCpred[indFullYear]
+            obsLastC <- Cpred[indFullYear]
+            dtcLastC <- c(dtcpred,dtcpred[length(dtcpred)])[indFullYear]
             mindtc <- min(dtcLastC)
             tmpTime <- inp$timeCpred
 
@@ -885,10 +894,21 @@ make.man.inp <- function(rep, scenarioTitle = "",
                 cat(paste0("The catch observations do not allow to set a representative default catch for the specified management interval [",manint[1],",",manint[2],"], the catch observations representative of the ",shortlong," interval [",obsint[1],",",obsint[2],"] are used. Use the argument 'catchList' to specify the catch for the management period or change the management period to correspond to a multiple of the catch observation intervals in the last year with catch observations.\n"))
 
             ## default catchList
-            inpt$timeC <- c(inpt$timeC, tmpTime[maninds])
-            inpt$obsC <- c(inpt$obsC, rep(manC * cfac, length(maninds)))
-            inpt$stdevfacC <- c(inpt$stdevfacC, rep(csdfac, length(maninds)))
-            inpt$dtc <- c(inpt$dtc, rep(inpt$dtpredc, length(maninds)))
+            if(inp$timerangeObs[2] > max(inp$timeC + inp$dtc)){
+                noCinds <- which(timeCpred >= max(inp$timeC + inp$dtc))
+                inpt$timeC <- c(inpt$timeC, tmpTime[noCinds], tmpTime[maninds])
+                inpt$obsC <- c(inpt$obsC, Cpred[noCinds],
+                               rep(manC * cfac, length(maninds)))
+                inpt$stdevfacC <- c(inpt$stdevfacC, rep(1, length(noCinds)),
+                                    rep(csdfac, length(maninds)))
+                inpt$dtc <- c(inpt$dtc, dtcpred[noCinds],
+                              rep(inpt$dtpredc, length(maninds)))
+            }else{
+                inpt$timeC <- c(inpt$timeC, tmpTime[maninds])
+                inpt$obsC <- c(inpt$obsC, rep(manC * cfac, length(maninds)))
+                inpt$stdevfacC <- c(inpt$stdevfacC, rep(csdfac, length(maninds)))
+                inpt$dtc <- c(inpt$dtc, rep(inpt$dtpredc, length(maninds)))
+            }
         } else {
             ## specified catchList
             check.catchList(catchList)
