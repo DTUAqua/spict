@@ -572,8 +572,8 @@ check.man.time <- function(x, maninterval = NULL, maneval = NULL, verbose = TRUE
     repin$inp <- inpin
 
     ## extend model time if management times not included
-    if(max(c(inpin$maninterval, inpin$maneval, inp$timepredc + inp$dtepredc,
-             inp$manstart, inp$timepredi, inp$timeprede + inp$dteprede)) > max(inpin$time) ||
+    if(max(c(inpin$maninterval, inpin$maneval, inpin$timepredc + inpin$dtepredc,
+             inpin$manstart, inpin$timepredi, inpin$timeprede + inpin$dteprede)) > max(inpin$time) ||
        mancheck){
         ## 1. correcting inp list
         ## overwrite time vectors with wrong lengths
@@ -752,8 +752,6 @@ make.man.inp <- function(rep, scenarioTitle = "",
     pList <- default_safeguardB[which(!names(default_safeguardB) %in% names(safeguardB))]
     pList <- c(pList,safeguardB)
 
-    ##    browser()
-
     ## fixed catch in INTERMEDIATE YEAR
     inttime <- inp$dtpredcinds[1] - min(inp$indpred)
     if(inttime > 0 && ((!is.null(intermediatePeriodCatch) &&
@@ -843,6 +841,8 @@ make.man.inp <- function(rep, scenarioTitle = "",
         ## Fishing with provided catch or catch factor
         inpt <- inp
         if(is.null(catchList)){
+
+            browser()
 
             ## Default catch during maninterval preserving seasonality
             ## use predicted catch observations (because last year might have index but no catch)
@@ -1635,7 +1635,7 @@ get.TAC <- function(rep,
                          ffac = ffac,
                          cfac = cfac,
                          csdfac = csdfac,
-                         fractiles = fractiles,
+                         fractiles = fList,
                          breakpointB = breakpointB,
                          safeguardB = safeguardB,
                          intermediatePeriodCatch = intermediatePeriodCatch,

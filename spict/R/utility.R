@@ -846,7 +846,6 @@ modefrac2shaperate<-function (mode, xf, f=0.9)
 #' @export
 retape.spict <- function(rep, inp, verbose = FALSE, dbg = 0, mancheck=TRUE){
     if(!check.rep(rep, reportmode0=FALSE)) stop("rep needs to be a fitted spict object!")
-    print("run retape")
     repin <- rep
     inpin <- check.inp(inp, verbose = verbose, mancheck=mancheck)
     ## prevent R collapse if prediction time horizon was changed without check.man.time

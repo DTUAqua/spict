@@ -30,12 +30,14 @@ inp$ini <- list(logK = log(1000), logm=log(800), logq = log(1), logn = log(2),
 inpS <- sim.spict(inp)
 inps <- check.inp(inpS)
 
-reps <- fit.spict(inps)
 
-mans <- manage(reps, scenarios=c(1,6))
+## some tests
 
-plot2(reps)
-dev.print(pdf,"plot2.spictclsSeasonal.pdf")
+
+fit <- fit.spict(inps)
+man <- manage(fit, scenarios=c(1,2,3), maninterval = c(1992,1993))
+
+plot2(man)
 
 
 header("1: check.inp with new functionality", append = FALSE, cnsl=cnsl)

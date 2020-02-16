@@ -4,10 +4,16 @@ spict v1.3.0 (Release date: 2020-02-20)
 New features:
 
 * New variables to control management related quantities: 'maninterval' and
- 'maneval'
+ 'maneval' which replace the variables 'timepredc', 'dtpredc', and 'manstart'
 * New management functionality (see updated section in manual for full
-  functionality)
-*
+  functionality), including:
+  - New scenario 'ices' in manage
+  - new function add.man.scenario to add customised scenarios
+  - get.TAC to estimate TAC
+  - man.timeline to visualise management times
+  - many more
+* plot2 selection of the 4 plots: relative Biomass, relative F, catches, Kobe
+  plot
 
 Minor changes:
 
