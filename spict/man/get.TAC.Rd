@@ -77,12 +77,12 @@ to the details for more information.}
 
 \item{dbg}{Debug flag, dbg=1 some output, dbg=2 more output.}
 
+\item{mancheck}{Should the time-dependent objects in \code{inp} be checked
+against the management time and corrected if necessary? (Default: TRUE)}
+
 \item{breakpointBBmsy}{Breakpoint in terms of \eqn{B/B_{MSY}} for the
 hockey-stick HCR. By default (0) no breakpoint is assumed. Please refer
 to the details for more information.}
-
-\item{checkman}{Should the time-dependent objects in \code{inp} be checked
-against the management time and corrected if necessary? (Default: TRUE)}
 }
 \value{
 The total allowable catch based on specified HCR.

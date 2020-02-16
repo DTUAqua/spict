@@ -9,7 +9,8 @@ check.man.time(
   maninterval = NULL,
   maneval = NULL,
   verbose = TRUE,
-  printTimeline = TRUE
+  printTimeline = TRUE,
+  mancheck = TRUE
 )
 }
 \arguments{
@@ -24,6 +25,9 @@ NULL.}
 2021.25. Default: NULL.}
 
 \item{verbose}{Should detailed outputs be provided (default: TRUE).}
+
+\item{mancheck}{Should the time-dependent objects in \code{inp} be checked
+against the management time and corrected if necessary? (Default: TRUE)}
 
 \item{printTimeLine}{logical; print the management time line (default: TRUE)}
 }

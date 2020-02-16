@@ -679,8 +679,8 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
 
     # -- DERIVED VARIABLES --
     inp$timerange <- range(timeobsall)
-    inp$indlastobs <- cut(max(c(inp$timeC + inp$dtc, unlist(inp$timeI),
-                                inp$timeE + inp$dte)),
+    inp$indlastobs <- cut(max(c(inp$timeC + inp$dtc - inp$dteuler, unlist(inp$timeI),
+                                inp$timeE + inp$dte - inp$dteuler)),
                           inp$time, right=FALSE, labels=FALSE)
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
