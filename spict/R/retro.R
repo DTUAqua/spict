@@ -16,7 +16,7 @@
 
 
 #' @name retro
-#' @title Conduct retrospective analysis 
+#' @title Conduct retrospective analysis
 #' @details A retrospective analysis consists of estimating the model with later data points removed sequentially one year at a time.
 #' @param rep A valid result from fit.spict.
 #' @param nretroyear Number of years of data to remove (this is also the total number of model runs).
@@ -35,17 +35,19 @@ retro <- function(rep, nretroyear=5){
     for (i in 1:nretroyear) {
         inpall[[i]] <- inp1
         indsC <- which(inp1$timeC <= inp1$timeC[inp1$nobsC] - i)
+        indsE <- which(inp1$timeE <= inp1$timeE[inp1$nobsE] - i)
         inpall[[i]]$obsC <- inp1$obsC[indsC]
         inpall[[i]]$timeC <- inp1$timeC[indsC]
         inpall[[i]]$stdevfacC <- inp1$stdevfacC[indsC]
         inpall[[i]]$dtc <- inp1$dtc[indsC]
+        inpall[[i]]$dte <- inp1$dte[indsE]
         indsE <- which(inp1$timeE <= inp1$timeE[inp1$nobsE] - i)
         inpall[[i]]$obsE <- inp1$obsE[indsE]
         inpall[[i]]$timeE <- inp1$timeE[indsE]
         inpall[[i]]$stdevfacE <- inp1$stdevfacE[indsE]
         inpall[[i]]$obsI <- list()
         inpall[[i]]$timeI <- list()
-        for (j in 1:inp1$nindex) {
+        for (j in seq_len(inp1$nindex)) {
             indsI <- which(inp1$timeI[[j]] <= inp1$timeI[[j]][inp1$nobsI[j]] - i)
             inpall[[i]]$obsI[[j]] <- inp1$obsI[[j]][indsI]
             inpall[[i]]$timeI[[j]] <- inp1$timeI[[j]][indsI]
