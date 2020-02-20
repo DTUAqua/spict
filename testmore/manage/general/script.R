@@ -1,6 +1,6 @@
 ## Testing new management functionality
 ## T.K. Mildenberger <t.k.mildenberger@gmail.com>
-## 19/01/2020
+## 16/02/2020
 
 ## flag for printing to consol (dev mode)
 cnsl = TRUE
@@ -31,15 +31,6 @@ inpS <- sim.spict(inp)
 inps <- check.inp(inpS)
 
 
-## some tests
-
-
-fit <- fit.spict(inps)
-man <- manage(fit, scenarios=c(1,2,3), maninterval = c(1992,1993))
-
-plot2(man)
-
-
 header("1: check.inp with new functionality", append = FALSE, cnsl=cnsl)
 ######################################################
 
@@ -53,12 +44,15 @@ timepredc.v128 <- 1990
 dtpredc.v128 <- 1
 manstart.v128 <- 1990
 
-out("All management variables have the same default as spict v1.2.8:")
-out(inpa$timepredi == timepredi.v128, cnsl=cnsl)
+out("Most management variables have the same default as spict v1.2.8:")
 out(inpa$timepredc == timepredc.v128, cnsl=cnsl)
 out(inpa$dtpredc == dtpredc.v128, cnsl=cnsl)
 out(inpa$manstart == manstart.v128, cnsl=cnsl)
 out(inpa$maninterval[1] == manstart.v128, cnsl=cnsl)
+
+out("New default for timepredi (at end of maninterval) compared to v1.2.8:")
+out(inpa$timepredi == timepredi.v128 + 1, cnsl=cnsl)
+
 out("Consistency between new variables:")
 out(inpa$maneval == inpa$timepredi, cnsl=cnsl)
 out(all.equal(inpa$maninterval,c(inpa$timepredc,inpa$timepredc+inpa$dtpredc)), cnsl=cnsl)
@@ -72,12 +66,17 @@ timepredc.v128 <- 40
 dtpredc.v128 <- 0.25
 manstart.v128 <- 40
 
-out("All management variables have the same default as spict v1.2.8:")
+out("Most management variables have the same default as spict v1.2.8:")
 out(inps$timepredc == timepredc.v128, cnsl=cnsl)
 out(inps$manstart == manstart.v128, cnsl=cnsl)
 out(inps$maninterval[1] == manstart.v128, cnsl=cnsl)
-out(inps$dtpredc == dtpredc.v128, cnsl=cnsl)
-out(inps$timepredi == timepredi.v128, cnsl=cnsl)
+
+out("New default management interval length for seasonal data (1 year instead of min(dt)) compared to v1.2.8:")
+out(inps$dtpredc == dtpredc.v128 * 4, cnsl=cnsl)
+
+out("New default for timepredi (at end of maninterval) compared to v1.2.8:")
+out(inps$timepredi == timepredi.v128 + 1, cnsl=cnsl)
+
 out("Consistency between new variables:")
 out(inps$maneval == inps$timepredi, cnsl=cnsl)
 out(all(inps$maninterval == c(inps$timepredc,inps$timepredc+inps$dtpredc)), cnsl=cnsl)
@@ -102,23 +101,12 @@ inp <- inpA
 inp$timepredc <- 1992
 inp$dtpredc <- 2
 inp$timepredi <- 1994
-inp <- check.inp(inp)
-
-out(inp$maneval == inp$timepredi, cnsl=cnsl)
-out(all.equal(inp$maninterval,c(inp$timepredc,inp$timepredc+inp$dtpredc)), cnsl=cnsl)
-out(inp$maninterval[1] == inp$manstart, cnsl=cnsl)
-
-out("using manstart instead of timepredc")
-inp <- inpA
 inp$manstart <- 1992
-inp <- check.inp(inp)
+inp <- check.inp(inp) ## all three variables need to be provided
 
 out(inp$maneval == inp$timepredi, cnsl=cnsl)
 out(all.equal(inp$maninterval,c(inp$timepredc,inp$timepredc+inp$dtpredc)), cnsl=cnsl)
-out("This does not work for maninterval[1] == manstart:", cnsl=cnsl)
 out(inp$maninterval[1] == inp$manstart, cnsl=cnsl)
-out("Because maninterval[1] is set by default to timepredc, which makes more sense as maninterval replaces manstart. However, this could cause some changes in scripts which uses manstart and timepredc and set those variables to different values.", cnsl=cnsl)
-
 
 out("1.2.2: Seasonal data", cnsl=cnsl)
 out("1.2.1.1: From new to old", cnsl=cnsl)
@@ -136,24 +124,14 @@ inp <- inpS
 inp$timepredc <- 42
 inp$dtpredc <- 2
 inp$timepredi <- 44
-inp <- check.inp(inp)
-
-out(inp$maneval == inp$timepredi, cnsl=cnsl)
-out(all.equal(inp$maninterval,c(inp$timepredc,inp$timepredc+inp$dtpredc)), cnsl=cnsl)
-out(inp$maninterval[1] == inp$manstart, cnsl=cnsl)
-
-out("using manstart instead of timepredc")
-inp <- inpS
 inp$manstart <- 42
 inp <- check.inp(inp)
 
 out(inp$maneval == inp$timepredi, cnsl=cnsl)
 out(all.equal(inp$maninterval,c(inp$timepredc,inp$timepredc+inp$dtpredc)), cnsl=cnsl)
-out("This does not work for maninterval[1] == manstart:", cnsl=cnsl)
 out(inp$maninterval[1] == inp$manstart, cnsl=cnsl)
-out("Because maninterval[1] is set by default to timepredc, which makes more sense as maninterval replaces manstart. However, this could cause some changes in scripts which uses manstart and timepredc and set those variables to different values.", cnsl=cnsl)
 
-header("2: check man time", cnsl=cnsl)
+header("2: check.man.time", cnsl=cnsl)
 ######################################################
 
 inpb <- inpa
@@ -170,207 +148,190 @@ out("on rep list", cnsl=cnsl)
 out(length(resa$inp$logmcovariatein) + 1/resa$inp$dteuler == length(resb$inp$logmcovariatein), cnsl=cnsl)
 
 
-header("2: timeline")
+header("3: timeline")
 ######################################################
 
-out(man.timeline(inpa),cnsl=cnsl)
-out(man.timeline(inpb),cnsl=cnsl)
+out("3.1:", man.timeline(inpa),cnsl=cnsl)
+out("3.2:", man.timeline(inpb),cnsl=cnsl)
+out("3.3:", man.timeline(resa),cnsl=cnsl)
+out("3.4:", man.timeline(resb),cnsl=cnsl)
 
-out(man.timeline(resa),cnsl=cnsl)
-out(man.timeline(resb),cnsl=cnsl)
 
-
-header("3: manage / summary / timeline")
+header("4: manage / summary / scenarios / intermediate periods")
 ######################################################
-
-mana <- manage(resb, scenarios=c(1,2))
-
-mana <- manage(resb, scenarios=c("Fmsy","currentCatch"))
-
-plotspict.catch(mana)
-
-inp <- pol$albacore
+inp <- inpA
 inp$maninterval <- c(1990,1991)
-inp$maneval <- 1991
-inp$ffac <- 0.75
-rep <- fit.spict(inp)
+inp <- check.inp(inp)
 
-mana <- manage(rep, scenarios=c("Fmsy","currentCatch"),maninterval = c(1991,1992))
+fit <- fit.spict(inp)
 
-out(man.timeline(mana),cnsl=cnsl)
+## no intermediate period
+mana <- manage(fit, scenarios=c(1,2))
 
-out("Management periods do not match between scenarios",cnsl=cnsl)
-mana1 <- add.man.scenario(mana, maninterval = c(1991.5,1992.5))
+mana1 <- add.man.scenario(mana, maninterval = c(1991.5,1992.5), maneval = 1993)
+test_this("4.1: Management periods do not match between scenarios",{
+    lapply(man.tac(mana1),round,2)
+},cnsl=cnsl)
 
 out(man.timeline(mana1),cnsl=cnsl)
-## BUG: shows management period!
 
-out("Scenario with continue F vs continue C in intermediate period",cnsl=cnsl)
 mana2 <- add.man.scenario(mana, intermediatePeriodCatch = 12)
+test_this("4.2: Scenario with continue F vs continue C in intermediate period",{
+    lapply(man.tac(mana2),round,2)
+},cnsl=cnsl)
 
 out(man.timeline(mana2),cnsl=cnsl)
 
+## intermediate period
+mana3 <- manage(fit, c(1,4), maninterval = c(1993,1995))
 
-rep2 <- manage(rep, c(1,4),maninterval = c(1993,1995))
+test_this("4.3: New summary function",{
+    sumspict.manage(mana3)
+},cnsl=cnsl)
 
-## BUG: mansumaary error about ypred!!!
+test_this("4.4: Old summary function still works:",{
+    mansummary(mana3)
+},cnsl=cnsl)
 
-## manage
-test_this("1.1: run manage all scenarios",{
-    repman <- manage(rep)
-})
+out(sumspict.manage(tmp <- man.select(mana3,1)),cnsl=cnsl)
 
-test_this("1.2: print manage summary",{
-    sumspict.manage(repman)
-})
+out(sumspict.manage(tmp <- man.select(mana3,"noF")),cnsl=cnsl)
 
-test_this("1.3: use deprecated summary function",{
-    mansummary(repman)
-})
+header("5: estimating TAC directly/indirectly")
+######################################################
 
-test_this("1.4: Make selection of management scenarios",{
-    sumspict.manage(man.select(repman,c(1,5,6,8)))
-})
+test_this("5.1: TAC from all management scenarios in rep",{
+    lapply(man.tac(mana2),round,2)
+},cnsl=cnsl)
 
-
-test_this("1.5: Change base management scenario (manbase and of rep)" ,{
-    names(repman$man)
-    repman2 <- manbase.select(repman,"ices")
-    all.equal(sumspict.predictions(repman2),
-              sumspict.predictions(repman$man[[8]]), tolerance = 0.01)
-    all.equal(sumspict.predictions(repman2$manbase),
-              sumspict.predictions(repman$man[[8]]), tolerance = 0.01)
-
-})
+test_this("5.2: TAC for one scenario",{
+    round(get.TAC(fit),2)
+},cnsl=cnsl)
 
 
-## testing adding scenarios
-test_this("1.6: Adding scenarios",{
-    repman1 <- add.man.scenario(repman)
-    repman1 <- add.man.scenario(repman1, ffac = 0.5)
-    repman1 <- add.man.scenario(repman1, ffac = 0.25)
-})
+header("6: Provoke warnings & errors & challenge functionality")
+######################################################
 
-## scenarios should not be overwritten:
-out(length(repman1$man))
-
-## names should bemeaningful:
-out(names(repman1$man))
-
-## sumspict should still work
-out(sumspict.manage(repman1))
-
-## change management interval:
-test_this("1.7: Change management interval" ,{
-    inp <- pol$albacore
+test_this("6.1: Message when manstart and maninterval used and not equal", {
+    inp <- inpA
     inp$maninterval <- c(1992,1993)
-    res <- fit.spict(inp)
-    repman <- manage(res, c(1,5))
-    ## should be the same as this:
-    repman2 <- manage(res, c(1,5), maninterval = c(1992,1993))
+    inp$manstart <- 1991
+    inp <- check.inp(inp)
+}, cnsl=cnsl)
 
-    all.equal(sumspict.predictions(repman),
-              sumspict.predictions(repman2), tolerance = 0.01)
-})
+test_this("6.2: Message when timepredc and maninterval used and not equal", {
+    inp <- inpA
+    inp$maninterval <- c(1992,1993)
+    inp$timepredc <- 1991
+    inp <- check.inp(inp)
+}, cnsl=cnsl)
+
+test_this("6.3: Message when timepredi and maneval used and not equal", {
+    inp <- inpA
+    inp$maneval <- 1992
+    inp$timepredi <- 1991
+    inp <- check.inp(inp)
+}, cnsl=cnsl)
+
+test_this("6.4: Maninterval does not match dteuler time steps", {
+    inp <- inpA
+    inp$maninterval <- c(1991.573838,1992)
+    inp <- check.inp(inp)
+}, cnsl=cnsl)
+
+inp <- inpA
+inp$maninterval <- c(1991,1991.948574)
+inp <- check.inp(inp)
 
 
-# TODO: manage()
+test_this("6.5: Maninterval smaller than dteuler", {
+    inp <- inpA
+    inp$maninterval <- c(1991,1991.004)
+    inp <- check.inp(inp)
+}, cnsl=cnsl)
 
-# TODO: printing/summary()
+## fcon with manstart instead of indpred
+inp <- inpA
+inp$timepredc <- 1992
+inp$dtpredc <- 2
+inp$timepredi <- 1994
+inp$manstart <- 1991
+inp <- check.inp(inp)
+inpt <- make.fconvec(inp, 0.2)
+fit <- fit.spict(inpt)
 
-rep4 <- man.select(rep2)
+test_this("6.6: Warning message when manstart larger than timepredc", {
+    inp <- inpA
+    inp$timepredc <- 1992
+    inp$dtpredc <- 2
+    inp$timepredi <- 1994
+    inp$manstart <- 1993
+    inp <- check.inp(inp)
+}, cnsl=cnsl)
+out("ffac or fcon applied after time used for Cp => warning!", cnsl=cnsl)
 
-rep4 <- man.select(rep2, 2)
 
-rep4 <- man.select(rep2, "noF")
-names(rep4$man)
+test_this("6.7: manstart smaller than timepredc", {
+    inp1 <- inpA
+    inp1$timepredi <- 1993
+    inp1$timepredc <- 1992
+    inp1$dtpredc <- 1
+    inp1$manstart <- 1991
+    inp1$ffac <- 0.2
+    inp1 <- check.inp(inp1)
+    set.seed(124)
+    fit1 <- fit.spict(inp1)
+}, cnsl=cnsl)
 
-## check summary printing (problems with manbase?)
-## dF, dB working correctly?
+## with Cp right after ffac applied
+inp2 <- inpA
+inp2$timepredi <- 1993
+inp2$timepredc <- 1991
+inp2$dtpredc <- 1
+inp2$manstart <- 1991
+inp2$ffac <- 0.2
+inp2 <- check.inp(inp2)
+set.seed(124)
+fit2 <- fit.spict(inp2)
 
-header("3: adding manage scenarios")
+out("Cp differ: ", fit1$Cp != fit2$Cp, cnsl=cnsl)
+out("But values the same just timing different: ",
+    fit2$Cp == get.par("logCpred",fit1,exp=TRUE)[which(inp1$timeCpred == inp2$timepredc),2],
+    " => Thus old functionality and independence between manstart and timepredc is maintained.",
+    cnsl=cnsl)
+
+## missing one of the three required variables => error
+test_this("6.8: Not all variables provided", {
+    inp <- inpA
+    inp$timepredc <- 1992
+    inp$manstart <- 1992
+    inp <- check.inp(inp) ## all three variables need to be provided
+    inp <- inpA
+    inp$timepredc <- 1992
+    inp$dtpredc <- 2
+    inp <- check.inp(inp) ## all three variables need to be provided
+    inp <- inpA
+    inp$dtpredc <- 2
+    inp$manstart <- 1992
+    inp <- check.inp(inp) ## all three variables need to be provided
+}, cnsl=cnsl)
+
+test_this("6.9: wrong input to functions, creating warnings...",{
+    man.select(inp)
+    manage(inp)
+    add.man.scenario(inp)
+    get.TAC(inp)
+    man.tac(inp)
+    spict:::check.man(inp)
+    man.select(fit)
+    man.tac(fit)
+    spict:::check.man(fit)
+}, cnsl=cnsl)
+
+
+header("7: plotting",cnsl=cnsl)
 ######################################################
 
-rep3 <- add.man.scenario(rep2, maninterval=c(1991,1992),
-                         maneval=1993, ffac=2,
-                         scenarioTitle = "moreFishing")
-
-# TODO: add.man.scenario()
-# TODO: printing/summary()
-
-
-rep
-
-rep2 <- add.man.scenario(rep, "loadsFishing", maninterval = c(1992,1993),
-                         catchIntermediatePeriod = 50)
-rep2 <- add.man.scenario(rep2, "loadsFishing2", maninterval = c(1992,1993),
-                         ffac=2)
-
-rep2$man
-
-plotspict.catch(rep2)
-rep2$man[[1]]$inp$timeCpred
-
-inp <- check.inp(pol$albacore)
-inp$reportmode <- 1
-repx <- fit.spict(inp)
-plot(repx)
-
-test <- manage(repx)
-
-
-
-## report tac only
-test_this("1.8: Calculate TAC for fitted spict object without $man" ,{
-    add.man.scenario(res, getFit=FALSE)
-})
-
-
-test_this("1.9: Add scenario to fitted spict object" ,{
-    res <- add.man.scenario(res, cfac=0.5, scenarioTitle = "Half catch")
-})
-
-## how is the default dealt with?
-## what is catchIntermediatePeriod based on as default?
-
-header("4: estimating TAC directly/indirectly")
-######################################################
-
-# TODO: calc.tac()
-
-## report tac only
-test_this("1.8: Calculate the TAC for all add.man.scenarios" ,{
-    man.tac(repman1)
-})
-
-
-header("4: Challenges")
-######################################################
-
-## manstart and maninerval specified
-## maninterval + timepredc specified
-## maneval and timepredi specified
-## management time outside of dteuler time steps
-
-
-
-rep4 <- man.select(inp)
-
-## wrong input to functions, creating warnings...
-
-## in combination with timevarying growth, MSYregimes, etc.
-
-# TODO: error/ wanrings
-
-header("4: plotting")
-######################################################
-
-plotspict.catch(rep2)
-plotspict.bbmsy(rep2)
-
-
-
-## tests
-## TODO: all tests should be numbered
-## TODO: reduce scenario testing
-## TODO: 2 intermediate years, 2 man years, ...
+plotspict.catch(mana)
+plotspict.bbmsy(mana)
+plot2(mana)

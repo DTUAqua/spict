@@ -1,29 +1,48 @@
-spict v1.3.0 (Release date: 2020-02-20)
+spict v1.3.0 (Release date: 2020-02-25)
 ============
 
 New features:
 
+* New management section in SPiCT handbook
 * New variables to control management related quantities: 'maninterval' and
  'maneval' which replace the variables 'timepredc', 'dtpredc', and 'manstart'
+* New defaults for Bl, Fl and Co, and Bp, Fp and co
 * New management functionality (see updated section in manual for full
   functionality), including:
-  - New scenario 'ices' in manage
-  - new function add.man.scenario to add customised scenarios
-  - get.TAC to estimate TAC
-  - man.timeline to visualise management times
-  - many more
-* plot2 selection of the 4 plots: relative Biomass, relative F, catches, Kobe
-  plot
+  - New management scenario 'ices' in `manage()`
+  - New function `add.man.scenario()` to add customised scenarios to `rep$man`
+  - New function `get.TAC()` to estimate TAC of specified scenario
+  - New function `man.tac()` to estimate TAC of all scenarios in `rep$man`
+  - New function `man.timeline()` to visualise management times in form of a timeline
+  - New function `sumspict.manage()` to print summary of all scenarios
+  - New function `check.man.time()` to check and correct model times in respect to management times
+  - New function `man.select()` to select certain scenarios from `rep$man`
+* New function `plot2()` allowing to plot a selection of 4 important plots:
+  relative Biomass, relative F, catches, and the Kobe plot
+*
 
 Minor changes:
 
-* new defaults for Bl, Fl and Co, and Bp, Fp and co
+* retape function
+* make.man.inp function -> include former predcatch, prop.F
+* streamline functionality of `manage()` -> all scenarios use
+  `add.man.scenario()`
+* Updated guidelines vignette
+* intermediate period possible for all scenarios
+* verbose argument in all management functions
+* New test scripts for all management-related functions
+* `manage()` overwrites all scenarios in `rep$man`
+* manbase scenario removed
+* dF and dB in management summary output only shown if all scenarios have the
+  same timeline
+* DLMtool dependent functions removed
 
 Bug fixes:
 
 * indlastobs considers end of catch (and effort) interval
 * new default values of management related variables fix inconsistent default
   values for seasonal data
+* Allow retro to function with effort data
 
 
 spict v1.2.8 (Release date: 2019-12-02)
