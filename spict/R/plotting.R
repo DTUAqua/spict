@@ -44,29 +44,38 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
         esti <- get.par(par, repi, exp=TRUE)[,2]
         if (par == 'logCpred'){
             time <- repi$inp$timeCpred
+            time2 <- time[-length(time)]
             ## check for multi-annual data points
             dtc <- c(diff(time),inpi$dtpredc)
+            dtc2 <- dtc[-length(dtc)] ## without manperiod
             ## split into annual data points
-            if(any(dtc > 1)){
-                indMA <- which(dtc > 1)
+            if(any(dtc2 > 1)){
+                indMA <- which(dtc2 > 1)
                 ## observations
                 esti2 <- list()
-                for(j in 1:length(dtc)){
-                    for(k in 1:dtc[j]){
-                        esti2[[length(esti2)+1]] <- ifelse(dtc[j] > 1, esti[j]/dtc[j], esti[j])
+                for(j in 1:length(dtc2)){
+                    for(k in seq(dtc2[j])){
+                        esti2[[length(esti2)+1]] <- ifelse(dtc2[j] > 1, esti[j]/dtc2[j], esti[j])
                     }
                 }
                 esti2 <- unlist(esti2)
+                esti2 <- c(esti2,esti[length(esti)])
                 ## time
                 time <- sort(unique(c(time,seq(min(time),max(time,inpi$maninterval),1))))
                 time <- time[-length(time)]
             }else esti2 <- esti
+            if(any(dtc2 < 1)){
+                alo <- annual(time2, esti2/dtc2, mean)
+                time <- c(alo$anntime,time[length(time)])
+                esti2 <- c(alo$annvec, esti[length(esti)])
+            }
         } else {
             time <- repi$inp$time
             esti2 <- esti
         }
         ## man period
         manstart <- inpi$maninterval[1]
+        mandiff <- diff(inpi$maninterval)
         indmanstart <- which(time >= manstart)
         maninds <- (indmanstart[1] - index.shift):tail(indmanstart,1)
         if (is.null(par2)){
@@ -74,7 +83,15 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
         } else {
             x <- get.par(par2, repi, exp=TRUE)[maninds, 2]
         }
-        lines(x, esti2[maninds], col=man.cols()[i], lwd=1.5, ...)
+        if(any((manstart-mandiff) != time)){
+            y1 = esti2[maninds][1]
+            y2 = esti2[maninds][2]
+            x3 = manstart-mandiff
+            y3 = y1 - (y1-y2) * (x3 - x[1]) / (x[2] - x[1])
+            lines(c(x3,x[2]), c(y3,y2), col=man.cols()[i], lwd=1.5, ...)
+        }else{
+            lines(x, esti2[maninds], col=man.cols()[i], lwd=1.5, ...)
+        }
         ## int period
         lastobs <- inpi$timerangeObs[2]
         if((manstart-lastobs) > 0){
@@ -85,7 +102,12 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
             } else {
                 x <- get.par(par2, repi, exp=TRUE)[intinds, 2]
             }
-            lines(x, esti2[intinds], col=man.cols()[i], lwd=1.5, lty=3)
+            if(any((manstart-mandiff) != time)){
+                lines(c(x[-length(x)],x3), c(esti2[intinds][-length(esti2[intinds])],y3),
+                      col=man.cols()[i], lwd=1.5, lty=3)
+            }else{
+                lines(x, esti2[intinds], col=man.cols()[i], lwd=1.5, lty=3)
+            }
         }
     }
     nouse <- capture.output(nms <- rownames(sumspict.manage(rep, include.unc=FALSE, verbose=FALSE)))
@@ -242,7 +264,7 @@ arrow.line <- function(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"
 #' @return A list containing the annual means and a corresponding time vector.
 #' @export
 annual <- function(intime, vec, type='mean'){
-    anntime <- intime[which(intime %% 1 ==0)]
+    anntime <- intime[which(intime %% 1 == 0)]
     nanntime <- length(anntime)
     nstepvec <- rep(0, nanntime)
     floortime <- floor(intime)
@@ -1765,7 +1787,10 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
         lines(time, c, col=lcol, lwd=1.5)
         if(manflag){
             if(check.man(rep, verbose=FALSE)$mantime){
-                abline(v=rep$man[[1]]$inp$maninterval-1, col="grey", lty=1, lwd=1)
+                manstart <- rep$man[[1]]$inp$maninterval[1]
+                mandiff <- diff(rep$man[[1]]$inp$maninterval)
+                abline(v=c(manstart - mandiff, manstart),
+                       col="grey", lty=1, lwd=1)
             }
             add.manlines(rep, 'logCpred', index.shift=1, plot.legend=qlegend)
         }else{

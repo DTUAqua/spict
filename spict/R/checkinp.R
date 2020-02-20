@@ -120,7 +120,6 @@
 #'
 #' @export
 check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
-
     ## # Check management settings if inp is 'checked' list
     ## isChecked <- ifelse(inherits(inp, "spictcls"), 1, 0)
     ## if(isChecked && mancheck){
@@ -529,9 +528,11 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
             manflag <- TRUE
             if(verbose) warning("The specified management interval is smaller than the Euler discretisation time step:", inp$dteuler,"! The default management interval will be used!\n")
         }
-        if (verbose && any(names(inp) == "timepredc") && inp$timepredc != min(inp$maninterval))
+        if (verbose && any(names(inp) == "timepredc") && inp$timepredc != min(inp$maninterval) && any(names(inp) == "manstart") && inp$manstart != min(inp$maninterval)){
+            cat("The arguments 'inp$maninterval', 'inp$timepredc', and 'inp$manstart' are specified and differ. Only 'inp$maninterval' =", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
+        }else if (verbose && any(names(inp) == "timepredc") && inp$timepredc != min(inp$maninterval)){
             cat("Both arguments 'inp$maninterval' and 'inp$timepredc' are specified and differ. Only 'inp$maninterval' =", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
-        if (verbose && any(names(inp) == "manstart") && inp$manstart != min(inp$maninterval))
+        }else if (verbose && any(names(inp) == "manstart") && inp$manstart != min(inp$maninterval))
             cat("Both arguments 'inp$maninterval' and 'inp$manstart' are specified and differ. Only 'inp$maninterval' =", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
         }
         if(manflag){
@@ -725,9 +726,21 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     if (!"ffacvec" %in% names(inp)){
         inp <- make.ffacvec(inp, inp$ffac)
     }
+    if (length(inp$ffacvec) != inp$ns){
+        if(verbose) warning('Wrong length of inp$ffacvec: ', length(inp$ffacvec),
+                            '. Should be equal to inp$ns: ', inp$ns,
+                            '. Resetting ffacvec.')
+        inp <- make.ffacvec(inp, inp$ffac)
+    }
     if (!"fconvec" %in% names(inp)){
         inp$fconvec <- numeric(inp$ns)
         # -1 in indpred because 1 is for plotting
+        inp$fconvec[inp$indpred[-1]] <- inp$fcon + 1e-8 # Add small to avoid taking log of 0
+    }
+    if (length(inp$fconvec) != inp$ns){
+        if(verbose) warning('Wrong length of inp$fconvec: ', length(inp$fconvec),
+                            '. Should be equal to inp$ns: ', inp$ns,
+                            '. Resetting fconvec.')
         inp$fconvec[inp$indpred[-1]] <- inp$fcon + 1e-8 # Add small to avoid taking log of 0
     }
 
@@ -906,6 +919,14 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     #inp <- set.default(inp,'logmcovariate', rep(0, inp$nobsC))
     #inp <- set.default(inp, 'logmcovariatetime', 1:inp$nobsC)
     inp <- set.default(inp, 'logmcovariatein', rep(0, inp$ns))
+    if(length(inp$logmcovariatein) != inp$ns){
+        if(verbose) warning('Wrong length of inp$logmcovariatein: ', length(inp$logmcovariatein),
+                            '. Should be equal to inp$ns: ', inp$ns,
+                            '. Resetting logmcovariatein.')
+        inp$logmcovariatein <- NULL
+        inp <- set.default(inp, 'logmcovariatein', rep(0, inp$ns))
+    }
+
 
     # -- MODEL PARAMETERS --
     # Default values
@@ -937,7 +958,10 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     # find number of regimes for 'm'
     if(!'MSYregime' %in% names(inp)){
         inp$MSYregime <- factor(rep(1,length(inp$time)))
-    } else if(length(inp$MSYregime)<length(inp$time)){ # manage changes number of time steps!
+    } else if(length(inp$MSYregime) < length(inp$time)){ # manage changes number of time steps!
+        if(verbose) warning('Wrong length of inp$MSYregime: ', length(inp$MSYregime),
+                            '. Should be equal to inp$ns: ', inp$ns,
+                            '. Resetting MSYregime.')
         inp$MSYregime <- factor(c(inp$MSYregime,
                                   rep( tail(inp$MSYregime,1), length(inp$time)-length(inp$MSYregime))))
     }
@@ -1093,19 +1117,22 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     if (!"logbkfrac" %in% names(inp$ini)) inp$ini$logbkfrac <- log(0.8)
     if (!"logF" %in% names(inp$ini)){
         inp$ini$logF <- rep(log(0.2) + inp$ini$logr[1], inp$ns)
-    } else {
-        if (length(inp$ini$logF) != inp$ns){
-            if(verbose) warning('Wrong length of inp$ini$logF: ', length(inp$ini$logF),
-                                ' Should be equal to inp$ns: ', inp$ns,
-                                ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
-            inp$ini$logF <- inp$ini$logF[1:inp$ns]
-        }
+    } else if (length(inp$ini$logF) > inp$ns){
+        if(verbose) warning('Wrong length of inp$ini$logF: ', length(inp$ini$logF),
+                            '. Should be equal to inp$ns: ', inp$ns,
+                            '. Setting length of logF equal to inp$ns (removing beyond inp$ns).')
+        inp$ini$logF <- inp$ini$logF[1:inp$ns]
+    }else if (length(inp$ini$logF) < inp$ns){
+        if(verbose) warning('Wrong length of inp$ini$logF: ', length(inp$ini$logF),
+                            '. Should be equal to inp$ns: ', inp$ns,
+                            '. Resetting logF.')
+        inp$ini$logF <- rep(log(0.2) + inp$ini$logr[1], inp$ns)
     }
     if ("logu" %in% names(inp$ini)){
         if (dim(inp$ini$logu)[1] != 2*length(inp$ini$logsdu) || dim(inp$ini$logu)[2] != inp$ns){
             if(verbose) warning('Wrong dimension of inp$ini$logu: ', dim(inp$ini$logu)[1], 'x',
-                                dim(inp$ini$logu)[2], ' should be equal to 2*length(inp$ini$logsdu) x inp$ns: ',
-                                2*length(inp$ini$logsdu), 'x', inp$ns,', Filling with log(1).')
+                                dim(inp$ini$logu)[2], '. Should be equal to 2*length(inp$ini$logsdu) x inp$ns: ',
+                                2*length(inp$ini$logsdu), 'x', inp$ns,'. Filling with log(1).')
             inp$ini$logu <- NULL
         }
     }
@@ -1114,24 +1141,31 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     }
     if (!"logB" %in% names(inp$ini)){
         inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
-    } else {
-        if (length(inp$ini$logB) != inp$ns){
-            if(verbose) warning('Wrong length of inp$ini$logB: ', length(inp$ini$logB),
-                                ' Should be equal to inp$ns: ', inp$ns,
-                                ' Setting length of logF equal to inp$ns (removing beyond inp$ns).')
-            inp$ini$logB <- inp$ini$logB[1:inp$ns]
-        }
+    } else if (length(inp$ini$logB) > inp$ns){
+        if(verbose) warning('Wrong length of inp$ini$logB: ', length(inp$ini$logB),
+                            '. Should be equal to inp$ns: ', inp$ns,
+                            '. Setting length of logB equal to inp$ns (removing beyond inp$ns).')
+        inp$ini$logB <- inp$ini$logB[1:inp$ns]
+    } else if (length(inp$ini$logB) < inp$ns){
+        if(verbose) warning('Wrong length of inp$ini$logB: ', length(inp$ini$logB),
+                            '. Should be equal to inp$ns: ', inp$ns,
+                            '. Resetting logB.')
+        inp$ini$logB <- rep(inp$ini$logK + log(0.5), inp$ns)
     }
     if (!"logmre" %in% names(inp$ini)){
         inp$ini$logmre <- rep(log(1), inp$ns)
-    } else {
-        if (length(inp$ini$logmre) != inp$ns){
-            if(verbose) warning('Wrong length of inp$ini$logmre: ', length(inp$ini$logmre),
-                                ' Should be equal to inp$ns: ', inp$ns,
-                                ' Setting length of logmre equal to inp$ns (removing beyond inp$ns).')
-            inp$ini$logmre <- inp$ini$logmre[1:inp$ns]
-        }
+    } else if (length(inp$ini$logmre) > inp$ns){
+        if(verbose) warning('Wrong length of inp$ini$logmre: ', length(inp$ini$logmre),
+                            '. Should be equal to inp$ns: ', inp$ns,
+                            '. Setting length of logmre equal to inp$ns (removing beyond inp$ns).')
+        inp$ini$logmre <- inp$ini$logmre[1:inp$ns]
+    } else if (length(inp$ini$logmre) < inp$ns){
+        if(verbose) warning('Wrong length of inp$ini$logmre: ', length(inp$ini$logmre),
+                            '. Should be equal to inp$ns: ', inp$ns,
+                            '. Resetting logmre.')
+        inp$ini$logmre <- rep(log(1), inp$ns)
     }
+
     #if ("logmre" %in% names(inp$ini)){
     #    inp$ini$logmre <- check.mat(inp$ini$logmre, c(inp$nstocks, inp$ns), 'inp$ini$logmre')
     #}

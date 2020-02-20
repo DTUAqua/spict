@@ -9,7 +9,6 @@ cnsl = TRUE
 set.seed(123)
 
 ## load spict
-## devtools::install_github("DTUAqua/spict/spict")  ## REMOVE:
 require(spict)
 
 ## load testmore functions
@@ -29,6 +28,39 @@ inp$ini <- list(logK = log(1000), logm=log(800), logq = log(1), logn = log(2),
                 logphi = log(c(0.3, 0.5, 1.8)))
 inpS <- sim.spict(inp)
 inps <- check.inp(inpS)
+
+
+inpa$maninterval <- c(1992.5,1993)
+fita <- fit.spict(inpa)
+
+mana2 <- manage(fits,c(1,2))
+
+
+
+inps$maninterval <- c(41.5,42)
+
+fits <- fit.spict(inps)
+
+warnings()
+
+plot2(fits)
+
+mana <- manage(fits,c(1,2))
+
+plot2(mana)
+plotspict.catch(mana, ylim=c(0,2000))
+spict:::check.man(mana)
+
+mana$man[[1]]$inp$maninterval
+mana$man[[2]]$inp$maninterval
+
+
+
+## inter period!
+## plot vertical lines in catch plot!
+
+
+a
 
 
 header("1: check.inp with new functionality", append = FALSE, cnsl=cnsl)
@@ -130,6 +162,29 @@ inp <- check.inp(inp)
 out(inp$maneval == inp$timepredi, cnsl=cnsl)
 out(all.equal(inp$maninterval,c(inp$timepredc,inp$timepredc+inp$dtpredc)), cnsl=cnsl)
 out(inp$maninterval[1] == inp$manstart, cnsl=cnsl)
+
+test_this("1.3: Adjust all time-dependent variables in check.inp",{
+    inp <- pol$albacore
+    inp <- check.inp(inp)
+    inp$maneval <- 1994
+    inp <- check.inp(inp)
+    fit <- fit.spict(inp)
+    fit$opt$convergence
+},cnsl=cnsl)
+
+
+test_this("1.4: Management variables with shorten.inp",{
+    inp <- check.inp(inpS)
+    inp2 <- shorten.inp(inp, mintime = 20)
+    inp$maninterval[1] == inp2$maninterval[1]
+    inp$maninterval[2] == inp2$maninterval[2]
+
+    inp2 <- shorten.inp(inp, maxtime = 38)
+    inp$maninterval[1] == inp2$maninterval[1] + 2
+    inp$maninterval[2] == inp2$maninterval[2] + 2
+    inp$maneval == inp2$maneval + 2
+},cnsl=cnsl)
+
 
 header("2: check.man.time", cnsl=cnsl)
 ######################################################

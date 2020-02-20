@@ -126,19 +126,3 @@ test_this("4.1.1: Bmsy/K ratio", {
 test_this("4.1.2: calculate order of magnitude", {
   calc.om(inp)
 })
-
-
-out("4.2: with non converged model")
-
-inp <- pol$lobster
-inp$obsC <- rnorm(46, 2000, 3)
-fit4 <- fit.spict(inp)
-
-out(fit4$opt$convergence)
-
-test_this("4.2.1: calculate Bmsy/K ratio", {
-  round(calc.bmsyk(fit4), 3)
-})
-test_this("4.2.2: calculate order of magnitude", {
-  round(calc.om(fit4), 3)
-})

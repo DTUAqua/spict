@@ -159,6 +159,7 @@ manage <- function(rep, scenarios = 'all',
             if(inttime > 0 && is.null(intermediatePeriodCatch) &&
                is.null(intermediatePeriodCatchList)){
                 ny <- inttime * rep$inp$dteuler
+                dtclast <- rep$inp$dtc[length(rep$inp$dtc)]
                 ## in case intermediate period spans several years
                 cips <- list()
                 timecs <- list()
@@ -173,8 +174,8 @@ manage <- function(rep, scenarios = 'all',
                         lasttimec <- max(rep$inp$timeC + rep$inp$dtc)
                         ipcList <- NULL
                     }
-                    if(ny > 1){
-                        timeInt<- seq(lasttimec, min(rep$inp$maninterval),1)[1:2]
+                    if(ny > dtclast){
+                        timeInt<- seq(lasttimec, min(rep$inp$maninterval),dtclast)[1:2]
                     }else{
                         timeInt <- c(lasttimec, min(rep$inp$maninterval))
                     }
@@ -185,7 +186,7 @@ manage <- function(rep, scenarios = 'all',
                                                       mancheck = TRUE)
                     timecs[[length(timecs)+1]] <- timeInt
                     dtcs[[length(cips)+1]] <- diff(timeInt)
-                    ny = ny - 1
+                    ny = ny - dtclast
                 }
                 intermediatePeriodCatchList <- list(timeC = unlist(lapply(timecs,"[[",1)),
                                                     obsC = unlist(cips),
@@ -559,7 +560,7 @@ check.man.time <- function(x, maninterval = NULL, maneval = NULL, verbose = TRUE
     ## indpred, indCpred, ns, time, dt, seasons, seasonindex, seasonindex2, ir, isdf, ic, nc, nobsCp, dtcp, timeCpred
 
     ## affected:
-    varNull <- c("logmcovariatein","ffacvec","fconvec", "MSYregime")
+    varNull <- c("logmcovariatein", "ffacvec", "fconvec", "MSYregime")
     varIniNull <- c("logF","logB","logmre","logu")
 
     ## if management interval before last catch observation, adjust maninterval
@@ -1711,12 +1712,12 @@ check.man <- function(rep, maninterval = NULL, maneval = NULL, verbose = TRUE, r
             checkMantime[i,] <- rp$inp$maninterval
             ind <- which(rp$inp$timeCpred == min(rp$inp$maninterval)) - 1
             checkInter[i] <- round(get.par("logCpred", rp, exp=TRUE)[ind,2])
-            checkManeval[i] <- rp$inp$maneval
         }
         if(!is.null(maninterval)) checkMantime <- rbind(checkMantime, maninterval)
         checks1 <- apply(checkMantime,2,function(x) all(x[1] == x))
         if(!all(checks1) && verbose) cat("The management intervals differ between the scenarios.\n")
-        checks2 <- all(checkInter[1] == checkInter)
+        ## if max diff >= 10 -> assuming different processes in intermediate period
+        checks2 <- diff(range(checkInter)) < 10
         if(!all(checks2) && verbose) cat("The assumptions about the intermediate period differ between the scenarios, e.g. continuing the F process vs. constant catch during the intermediate period.\n")
         if(!is.null(maneval)) checkManeval <- c(checkManeval, maneval)
         checks3 <- all(checkManeval[1] == checkManeval)

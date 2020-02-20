@@ -696,9 +696,22 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
                          inpout$timeE, inpout$timeE + inpout$dte))
     if (length(timeobsall) == 0) stop("All yars are outside the range ", mintime, "-", maxtime)
 
-    # Time point to predict catches until
-    inpout$timepredc <- max(timeobsall)
-    inpout$timepredi <- max(timeobsall)
+    ## Let check.inp set all management-related variables if maxtime changed
+    if(!is.null(maxtime)){
+        inpout$maninterval <- NULL
+        inpout$maneval <- NULL
+        inpout$timepredc <- NULL
+        inpout$dtpredc <- NULL
+        inpout$timeprede <- NULL
+        inpout$dtprede <- NULL
+        inpout$manstart <- NULL
+        inpout$timepredi <- NULL
+    }
+
+    ## placeholder to create time vector
+    timepredc <- max(timeobsall)
+    dtpredc <- 1
+    timepredi <- max(timeobsall)
 
     # This may give a problem if effort data has later time points than catches or index
     if (inpout$nobsE > 0 & sum(inpout$nobsI) > 0){
@@ -711,11 +724,11 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
             # Hard Euler discretisation
             if (inpout$start.in.first.data.point){
                 time <- seq(min(timeobsall),
-                            max(inpout$timepredi, inpout$timepredc+inpout$dtpredc),
+                            max(timepredi, timepredc+dtpredc),
                             by=inpout$dteuler)
             } else {
                 time <- seq(floor(min(timeobsall)),
-                            max(inpout$timepredi, inpout$timepredc+inpout$dtpredc),
+                            max(timepredi, timepredc+dtpredc),
                             by=inpout$dteuler)
             }
             inpout$time <- time
@@ -723,7 +736,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
         if (inpout$eulertype == 'soft'){
             # Include times of observations (including dtc)
             time <- seq(ceiling(min(timeobsall)),
-                        max(inpout$timepredi, inpout$timepredc+inpout$dtpredc),
+                        max(timepredi, timepredc+dtpredc),
                         by=inpout$dteuler)
             inpout$time <- sort(unique(c(timeobsall, time)))
         }
@@ -745,7 +758,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
     inpout$regimeIdx <- NULL
     inpout$ir <- NULL
     inpout$ini$logr <- NULL
-    if (! is.null(maxime)) {
+    if (!is.null(maxtime)) {
         inpout$manstart <- NULL
     }
 
@@ -782,7 +795,9 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
         inpout$true$MSYvec <- inpout$true$MSYvec[inpin$time %in% inpout$time]
         inpout$true$Fmsyvec <- inpout$true$Fmsyvec[inpin$time %in% inpout$time]
     }
-    return(check.inp(inpout))
+    inpChecked <- check.inp(inpout)
+    inpChecked <- check.man.time(inpChecked, verbose = FALSE, printTimeline = FALSE)
+    return(inpChecked)
 }
 
 

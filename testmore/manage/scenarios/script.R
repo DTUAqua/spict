@@ -29,87 +29,31 @@ test_this("1.1.1:", {
     round(get.TAC(fit),3)
 })
 test_this("1.1.2:", {
-    round(get.TAC(fit, fractiles = list(catch=0.2)),3)
-})
-test_this("1.1.3:", {
     round(get.TAC(fit, fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
 out("Fishing at Fmsy with PA buffer")
-test_this("1.1.4:", {
+test_this("1.1.3:", {
     round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.8)),3)
 })
-test_this("1.1.5:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.9)),3)
-})
-test_this("1.1.6:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.93)),3)
-})
-test_this("1.1.7:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.95)),3)
-})
-test_this("1.1.8:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.6)),3)
-})
-test_this("1.1.9:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.65)),3)
-})
-test_this("1.1.10:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.7)),3)
-})
-test_this("1.1.11:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.9),
-                                         fractiles = list(catch=0.2)),3)
-})
-test_this("1.1.12:", {
+test_this("1.1.4:", {
     round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.9),
                                          fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
 out("MSY hockey-stick rule")
-test_this("1.1.13:", {
-    round(get.TAC(fit, breakpointB = 0.3),3)
-})
-test_this("1.1.14:", {
+test_this("1.1.5:", {
     round(get.TAC(fit, breakpointB = 0.5),3)
 })
-test_this("1.1.15:", {
-    round(get.TAC(fit, breakpointB = 0.5, fractiles = list(catch=0.2)),3)
-})
-test_this("1.1.16:", {
-    round(get.TAC(fit, breakpointB = 0.5, fractiles = list(catch=0.2, ffmsy=0.1)),3)
-})
-test_this("1.1.17:", {
+test_this("1.1.6:", {
     round(get.TAC(fit, breakpointB = 0.5, fractiles = list(catch=0.2, ffmsy=0.1, bbmsy=0.1)),3)
 })
 
 out("MSY hockey-stick rule with PA buffer")
-test_this("1.1.18:", {
-    round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.3, prob=0.8)),3)
-})
-test_this("1.1.19:", {
+test_this("1.1.7:", {
     round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.9)),3)
 })
-test_this("1.1.20:", {
-    round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.93)),3)
-})
-test_this("1.1.21:", {
-    round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.3, prob=0.95)),3)
-})
-test_this("1.1.22:", {
-    round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.5, prob=0.6)),3)
-})
-test_this("1.1.23:", {
-    round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.5, prob=0.65)),3)
-})
-test_this("1.1.24:", {
-    round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.5, prob=0.7)),3)
-})
-test_this("1.1.25:", {
-    round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.9),
-                                         fractiles = list(catch=0.2)),3)
-})
-test_this("1.1.26:", {
+test_this("1.1.8:", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.5, prob=0.9),
                                          fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
@@ -257,13 +201,6 @@ test_this("2.1.9:", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.3, prob=0.8)),3)
 })
 test_this("2.1.10:", {
-    round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.9)),3)
-})
-test_this("2.1.11:", {
-    round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.9),
-                  fractiles = list(catch=0.2)),3)
-})
-test_this("2.1.12:", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.5, prob=0.9),
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
@@ -281,56 +218,31 @@ test_this("2.2.1:", {
     round(get.TAC(fit),3)
 })
 test_this("2.2.2:", {
-    round(get.TAC(fit, fractiles = list(catch=0.2)),3)
-})
-test_this("2.2.3:", {
     round(get.TAC(fit, fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
 out("Fishing at Fmsy with PA buffer")
-test_this("2.2.4:", {
+test_this("2.2.3:", {
     round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.8)),3)
 })
-test_this("2.2.5:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.9)),3)
-})
-test_this("2.2.6:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.6)),3)
-})
-test_this("2.2.7:", {
+test_this("2.2.4:", {
     round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.65)),3)
 })
 
 out("MSY hockey-stick rule")
-test_this("2.2.8:", {
-    round(get.TAC(fit, breakpointB = 0.3),3)
-})
-test_this("2.2.9:", {
-    round(get.TAC(fit, breakpointB = 0.5),3)
-})
-test_this("2.2.10:", {
+test_this("2.2.5:", {
     round(get.TAC(fit, breakpointB = 0.5, fractiles = list(catch=0.2, ffmsy=0.1)),3)
 })
 
 
 out("MSY hockey-stick rule with PA buffer")
-test_this("2.2.11:", {
-    round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.9)),3)
-})
-test_this("2.2.12:", {
-    round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.9),
-                  fractiles = list(catch=0.2)),3)
-})
-test_this("2.2.13:", {
+test_this("2.2.6:", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.5, prob=0.9),
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
 out("Fishing at Fmsy with TAC during assessment year")
-test_this("2.2.14:", {
-    round(get.TAC(fit, intermediatePeriodCatch = 100),3)
-})
-test_this("2.2.15:", {
+test_this("2.2.7:", {
     round(get.TAC(fit, intermediatePeriodCatch = 100,
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
@@ -364,56 +276,28 @@ test_this("3.1.1:", {
     round(get.TAC(fit),3)
 })
 test_this("3.1.2:", {
-    round(get.TAC(fit, fractiles = list(catch=0.2)),3)
-})
-test_this("3.1.3:", {
     round(get.TAC(fit, fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
 out("Fishing at Fmsy with PA buffer")
-test_this("3.1.4:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.8)),3)
-})
-test_this("3.1.5:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.9)),3)
-})
-test_this("3.1.6:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.6)),3)
-})
-test_this("3.1.7:", {
+test_this("3.1.3:", {
     round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.65)),3)
 })
 
 out("MSY hockey-stick rule")
-test_this("3.1.8:", {
-    round(get.TAC(fit, breakpointB = 0.3),3)
-})
-test_this("3.1.9:", {
-    round(get.TAC(fit, breakpointB = 0.5),3)
-})
-test_this("3.1.10:", {
+test_this("3.1.4:", {
     round(get.TAC(fit, breakpointB = 0.5, fractiles = list(catch=0.2, ffmsy=0.1)),3)
 })
 
 
 out("MSY hockey-stick rule with PA buffer")
-test_this("3.1.11:", {
-    round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.9)),3)
-})
-test_this("3.1.12:", {
-    round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.9),
-                  fractiles = list(catch=0.2)),3)
-})
-test_this("3.1.13:", {
+test_this("3.1.5:", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.5, prob=0.9),
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
 out("Fishing at Fmsy with TAC during assessment year")
-test_this("3.1.14:", {
-    round(get.TAC(fit, intermediatePeriodCatch = 40),3)
-})
-test_this("4.1.15:", {
+test_this("4.1.6:", {
     round(get.TAC(fit, intermediatePeriodCatch = 40,
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
@@ -432,56 +316,28 @@ test_this("4.2.1:", {
     round(get.TAC(fit),3)
 })
 test_this("4.2.2:", {
-    round(get.TAC(fit, fractiles = list(catch=0.2)),3)
-})
-test_this("4.2.3:", {
     round(get.TAC(fit, fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
 out("Fishing at Fmsy with PA buffer")
-test_this("4.2.4:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.8)),3)
-})
-test_this("4.2.5:", {
+test_this("4.2.3:", {
     round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.9)),3)
-})
-test_this("4.2.6:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.6)),3)
-})
-test_this("4.2.7:", {
-    round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.65)),3)
 })
 
 out("MSY hockey-stick rule")
-test_this("4.2.8:", {
-    round(get.TAC(fit, breakpointB = 0.3),3)
-})
-test_this("4.2.9:", {
-    round(get.TAC(fit, breakpointB = 0.5),3)
-})
-test_this("4.2.10:", {
+test_this("4.2.4:", {
     round(get.TAC(fit, breakpointB = 0.5, fractiles = list(catch=0.2, ffmsy=0.1)),3)
 })
 
 
 out("MSY hockey-stick rule with PA buffer")
-test_this("4.2.11:", {
-    round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.9)),3)
-})
-test_this("4.2.12:", {
-    round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.9),
-                  fractiles = list(catch=0.2)),3)
-})
-test_this("4.2.13:", {
+test_this("4.2.5:", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.5, prob=0.9),
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
 out("Fishing at Fmsy with TAC during assessment year")
-test_this("4.2.14:", {
-    round(get.TAC(fit, intermediatePeriodCatch = 40),3)
-})
-test_this("4.2.15:", {
+test_this("4.2.6:", {
     round(get.TAC(fit, intermediatePeriodCatch = 40,
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
