@@ -134,6 +134,12 @@ manage <- function(rep, scenarios = 'all',
         rep <- check.man.time(rep, maninterval = maninterval, maneval = maneval, verbose = FALSE)
     }
 
+    ## check if intermediate period catch used but no intermediate period
+    inttime <- rep$inp$dtpredcinds[1] - min(rep$inp$indpred)
+    if(!is.null(intermediatePeriodCatch) || !is.null(intermediatePeriodCatchList)){
+        if(inttime == 0 && verbose) cat("No intermediate period to apply the intermediatePeriodCatch to. Change mantinerval if you want to specify a catch in the intermediate period.\n")
+    }
+
     ## remove any previously used ffac and fcon from data
     rep$inp$ffacvec <- make.ffacvec(rep$inp, 1.0)$ffacvec
     rep$inp$fconvec <- make.fconvec(rep$inp, 0.0)$fconvec
@@ -150,7 +156,6 @@ manage <- function(rep, scenarios = 'all',
             repc <- rep
 
             ## if intermediate period, run scenario with ffac = 1 and use Cp for intermediatePeriodCatch
-            inttime <- rep$inp$dtpredcinds[1] - min(rep$inp$indpred)
             if(inttime > 0 && is.null(intermediatePeriodCatch) &&
                is.null(intermediatePeriodCatchList)){
                 ny <- inttime * rep$inp$dteuler
@@ -572,12 +577,12 @@ check.man.time <- function(x, maninterval = NULL, maneval = NULL, verbose = TRUE
     repin$inp <- inpin
 
     ## extend model time if management times not included
-    if(max(c(inpin$maninterval, inpin$maneval, inpin$timepredc + inpin$dtepredc,
-             inpin$manstart, inpin$timepredi, inpin$timeprede + inpin$dteprede)) > max(inpin$time) ||
-       mancheck){
+    shortModtime <- max(c(inpin$maninterval, inpin$maneval, inpin$timepredc + inpin$dtepredc,
+                         inpin$manstart, inpin$timepredi, inpin$timeprede + inpin$dteprede)) > max(inpin$time)
+    if(shortModtime || mancheck){
         ## 1. correcting inp list
         ## overwrite time vectors with wrong lengths
-        if(verbose) cat(c("Model time is not equal to specified projection time. Adjusting time-dependent variables in 'inp': ", paste0(c(varNull,paste0("ini$",varIniNull)),collapse=", ")),"\n")
+        if(verbose && shortModtime) cat(c("Model time is not equal to specified projection time. Adjusting time-dependent variables in 'inp': ", paste0(c(varNull,paste0("ini$",varIniNull)),collapse=", ")),"\n")
         inpout <- inpin
         for(i in varNull) inpout[i] <- NULL
         for(i in varIniNull) inpout$ini[i] <- NULL
@@ -656,8 +661,8 @@ check.catchList <- function(catchList, sdfac = 1){
 #'     Default: NULL.
 #' @param maneval Time at which to evaluate model states. Example: \code{maneval
 #'     = 2021.25}. Default: NULL.
-#' @param ffac Factor to multiply current fishing mortality by (default: 1).
-#' @param cfac Factor to multiply current catch by (default: 1). Please refer to
+#' @param ffac Factor to multiply current fishing mortality by (default: NULL).
+#' @param cfac Factor to multiply current catch by (default: NULL). Please refer to
 #'     the details for more information.
 #' @param csdfac Factor for the multiplication of the standard deviation of the
 #'     catch (default: 1). Please refer to the details for more information.
@@ -841,8 +846,6 @@ make.man.inp <- function(rep, scenarioTitle = "",
         ## Fishing with provided catch or catch factor
         inpt <- inp
         if(is.null(catchList)){
-
-            browser()
 
             ## Default catch during maninterval preserving seasonality
             ## use predicted catch observations (because last year might have index but no catch)
@@ -1158,6 +1161,12 @@ add.man.scenario <- function(rep, scenarioTitle = "",
         }
     }
 
+    ## check if intermediate period catch used but no intermediate period
+    inttime <- rep$inp$dtpredcinds[1] - min(rep$inp$indpred)
+    if(!is.null(intermediatePeriodCatch) || !is.null(intermediatePeriodCatchList)){
+        if(inttime == 0 && verbose) cat("No intermediate period to apply the intermediatePeriodCatch to. Change mantinerval if you want to specify a catch in the intermediate period.\n")
+    }
+
     ## remove any previously used ffac and fcon from data
     rep$inp$ffacvec <- make.ffacvec(rep$inp, 1.0)$ffacvec
     rep$inp$fconvec <- make.fconvec(rep$inp, 0.0)$fconvec
@@ -1215,7 +1224,7 @@ add.man.scenario <- function(rep, scenarioTitle = "",
     }
     ## check consistency in intermediate period
     mancheck <- check.man(repout, maninterval=maninterval, verbose=FALSE)
-    if(!mancheck$inter && verbose)
+    if(!mancheck$inter && verbose && mancheck$mantime)
         cat("The assumptions about the intermediate period differ between scenarios, e.g. continuing the F process vs. constant catch during the intermediate period.\n")
     return(repout)
 }
@@ -1353,7 +1362,7 @@ man.select <- function(rep, scenarios = "all", verbose = TRUE){
     ## checks
     if(!inherits(rep, "spictcls") || !"opt" %in% names(rep))
         stop("rep needs to be a fitted spict object!")
-    if(!any(names(rep)=="man")) stop("Apply manage() first.")
+    if(!any(names(rep)=="man")) stop("No management scenarios in the 'rep' list. Run 'manage()' or 'add.man.scenario()' first!\n")
     ## scenarios in index or name
     scenariosAll <- names(rep$man)
     if(all(is.numeric(scenarios))){
@@ -1418,7 +1427,7 @@ man.select <- function(rep, scenarios = "all", verbose = TRUE){
 man.tac <- function(rep, fractileCatch = 0.5, exp = TRUE, verbose=TRUE){
     check.rep(rep, reportmode0 = FALSE)
     if(!"man" %in% names(rep) && verbose)
-        cat("No element called 'man' object in the 'rep' list. Run 'manage()' or 'add.man.scenario()' first!\n")
+        stop("No management scenarios in the 'rep' list. Run 'manage()' or 'add.man.scenario()' first!\n")
 
     ## function(x) x$obj$report(x$obj$env$last.par.best)$Cp
     tacs <- lapply(rep$man, calc.tac, fractileCatch = fractileCatch, exp = exp)
@@ -1460,9 +1469,13 @@ man.timeline <- function(x, verbose = TRUE, obsonly = FALSE){
         }
     }
     ## if fitted object
+    obsonly <- FALSE
+    manevalFlag <- TRUE
     if(inherits(x, "spictcls") && any(names(x) == "opt")){
         if(any(names(x) == "man")){
-            obsobly <- !check.man(x, verbose=verbose)$mantime
+            mancheck = check.man(x, verbose=verbose)
+            obsonly <- !mancheck$mantime
+            manevalFlag <- mancheck$maneval
             inp <- x$man[[1]]$inp
         }else{
             inp <- x$inp
@@ -1494,7 +1507,7 @@ man.timeline <- function(x, verbose = TRUE, obsonly = FALSE){
     colnames(df) <- rep("",dim(df)[2])
     cat("SPiCT timeline:\n")
     print(df, quote=FALSE, row.names = FALSE)
-    cat(paste0("\nManagement evaluation: ",format(round(inp$maneval,2),nsmall=2),"\n"))
+    if(manevalFlag) cat(paste0("\nManagement evaluation: ",format(round(inp$maneval,2),nsmall=2),"\n"))
 }
 
 
@@ -1617,6 +1630,12 @@ get.TAC <- function(rep,
         }
     }
 
+    ## check if intermediate period catch used but no intermediate period
+    inttime <- rep$inp$dtpredcinds[1] - min(rep$inp$indpred)
+    if(!is.null(intermediatePeriodCatch) || !is.null(intermediatePeriodCatchList)){
+        if(inttime == 0 && verbose) cat("No intermediate period to apply the intermediatePeriodCatch to. Change mantinerval if you want to specify a catch in the intermediate period.\n")
+    }
+
     ## remove any previously used ffac and fcon from data
     rep$inp$ffacvec <- make.ffacvec(rep$inp, 1.0)$ffacvec
     rep$inp$fconvec <- make.fconvec(rep$inp, 0.0)$fconvec
@@ -1679,7 +1698,7 @@ check.man <- function(rep, maninterval = NULL, maneval = NULL, verbose = TRUE, r
 
     ## management in rep
     manInRep <- any(names(rep) == "man")
-    if(!manInRep && verbose) cat("No element called 'man' object in the 'rep' list. Run 'manage()' or 'add.man.scenario()' first!\n")
+    if(!manInRep && verbose) cat("No management scenarios in the 'rep' list. Run 'manage()' or 'add.man.scenario()' first!\n")
 
     ## maninterval & intermediate period
     if(manInRep){

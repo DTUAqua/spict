@@ -121,11 +121,11 @@
 #' @export
 check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
 
-    # Check management settings if inp is 'checked' list
-    isChecked <- ifelse(inherits(inp, "spictcls"), 1, 0)
-    if(isChecked && mancheck){
-        inp <- check.man.time(inp, printTimeline = FALSE, verbose = verbose)
-    }
+    ## # Check management settings if inp is 'checked' list
+    ## isChecked <- ifelse(inherits(inp, "spictcls"), 1, 0)
+    ## if(isChecked && mancheck){
+    ##     inp <- check.man.time(inp, printTimeline = FALSE, verbose = verbose)
+    ## }
 
     set.default <- function(inpin, key, val){
         if (!key %in% names(inpin)){
@@ -530,9 +530,9 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
             if(verbose) warning("The specified management interval is smaller than the Euler discretisation time step:", inp$dteuler,"! The default management interval will be used!\n")
         }
         if (verbose && any(names(inp) == "timepredc") && inp$timepredc != min(inp$maninterval))
-            cat("Both arguments 'inp$maninterval' and 'inp$timepredc' are specified. Only 'inp$maninterval' =", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
+            cat("Both arguments 'inp$maninterval' and 'inp$timepredc' are specified and differ. Only 'inp$maninterval' =", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
         if (verbose && any(names(inp) == "manstart") && inp$manstart != min(inp$maninterval))
-            cat("Both arguments 'inp$maninterval' and 'inp$manstart' are specified. Only 'inp$maninterval' =", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
+            cat("Both arguments 'inp$maninterval' and 'inp$manstart' are specified and differ. Only 'inp$maninterval' =", paste0("[",inp$maninterval[1],",",inp$maninterval[2],"]"), "will be used! \n")
         }
         if(manflag){
             manstart <- ceiling(max(timeobsall))
@@ -554,7 +554,6 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
             ## stop if manstart after timepredc or any before time of last observation
             if(inp$manstart < max(timeobsall)) stop("inp$manstart is set before time of last observation!")
             if(inp$timepredc < max(timeobsall)) stop("inp$timepredc is set before time of last observation!")
-            ## CHECK: (do they have to be dependent on each other?)
             if(verbose && inp$timepredc < inp$manstart) warning("inp$manstart is set after inp$timepredc. This can have unpredictable effects on the management scenarios.")
             inp$maninterval <- c(inp$timepredc, inp$timepredc+inp$dtpredc)
         }else
@@ -685,14 +684,14 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
     inp$indCpred <- which(inp$time >= max(inp$timeC + inp$dtc))
-    # Reset management variables in case they do not match any dteuler time steps
+    # Redefine management variables in case they do not match any dteuler time steps
     if(!any(inp$time == inp$maninterval[1]) || !any(inp$time == inp$maninterval[2])){
         indmanint <- match.times(inp$maninterval, inp$time)
         inp$maninterval <- inp$time[indmanint]
         inp$manstart <- min(inp$maninterval)
         inp$timepredc <- inp$manstart
         inp$dtpredc <- diff(inp$maninterval)
-        if(verbose) cat("Specified management interval does not match to any time step. 'inp$maninterval' =",paste0("[",inp$maninterval[1],", ",inp$maninterval[2],"]"), "will be used!\n")
+        if(verbose) cat("Specified management interval does not match to any time step. Management variables are overwritten and 'inp$maninterval' =",paste0("[",inp$maninterval[1],", ",inp$maninterval[2],"]"), "will be used!\n")
     }
     if(!any(inp$time == inp$maneval)){
         indmaneval <- match.times(inp$maneval, inp$time)

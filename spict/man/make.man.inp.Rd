@@ -38,9 +38,9 @@ Default: NULL.}
 \item{maneval}{Time at which to evaluate model states. Example: \code{maneval
 = 2021.25}. Default: NULL.}
 
-\item{ffac}{Factor to multiply current fishing mortality by (default: 1).}
+\item{ffac}{Factor to multiply current fishing mortality by (default: NULL).}
 
-\item{cfac}{Factor to multiply current catch by (default: 1). Please refer to
+\item{cfac}{Factor to multiply current catch by (default: NULL). Please refer to
 the details for more information.}
 
 \item{csdfac}{Factor for the multiplication of the standard deviation of the

@@ -63,7 +63,8 @@ make.ffacvec <- function(inp, ffac){
 make.fconvec <- function(inp, fcon){
     if(!"ns" %in% names(inp)) stop("inp needs to be a checked input list - use 'check.inp()'!")
     inp$fconvec <- numeric(inp$ns)
-    inp$fconvec[inp$indpred[-1]] <- fcon
+##    inp$fconvec[inp$indpred[-1]] <- fcon
+    inp$fconvec[which(inp$time >= inp$manstart)] <- fcon
     inp$fconvec <- inp$fconvec + 1e-8 # Add small to avoid taking log of 0
     return(inp)
 }
@@ -747,7 +748,6 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
     if (! is.null(maxime)) {
         inpout$manstart <- NULL
     }
-
 
     if("true" %in% names(inpout)){
         inpout$true$logu <- inpout$true$logu[,(inpin$time %in% inpout$time)]
