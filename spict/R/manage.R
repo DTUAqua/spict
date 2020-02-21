@@ -1111,7 +1111,8 @@ add.man.scenario <- function(rep, scenarioTitle = "",
                        " differs from existing scenarios in rep$man.\n"))
     }
     ## check if management time within model time
-    reqRep <- (!is.numeric(cfac) || is.na(cfac)) && (!is.numeric(ffac) || is.na(ffac))
+    reqRep <- ((!is.numeric(cfac) || is.na(cfac)) && (!is.numeric(ffac) || is.na(ffac))) ||
+        (is.numeric(cfac) && is.null(catchList))
     if((!is.null(maninterval) || !is.null(maneval)) && mancheck){
         if(reqRep){
             rep <- check.man.time(rep, maninterval = maninterval, maneval = maneval,
@@ -1719,7 +1720,8 @@ get.manC <- function(rep, inp){
 
     lastobs <- inp$lastCatchObs
     timeCpred <- inp$timeCpred
-    lastc <- get.par("logCpred", rep, exp=TRUE)[timeCpred < lastobs & timeCpred >= (lastobs-1),2]
+    lastc <- get.par("logCpred", rep, exp=TRUE)[,2]
+    lastc <- lastc[timeCpred < lastobs & timeCpred >= (lastobs-1)]
     lastctime <- timeCpred[timeCpred <= lastobs & timeCpred >= (lastobs-1)]
     lastcdt <- tail(diff(timeCpred),length(lastc))
     lastcdiff <- diff(range(lastctime))

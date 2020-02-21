@@ -80,6 +80,10 @@ Bug fixes:
   (period between last observation and start of the management period). By
   default the assumptions during the intermediate period are equal (continuing
   the F process) for all scenarios.
+* The argument 'maxtime' in the function `shorten.inp()` did not account for the
+  length of the catch (or effort) interval. Thus, a catch observation for the
+  interval 1990-1991 was included although `maxtime = 1990`. After this bug fix,
+  this observation is not included anymore as it ranges beyond 'maxtime'.
 
 
 spict v1.2.8 (Release date: 2019-12-02)

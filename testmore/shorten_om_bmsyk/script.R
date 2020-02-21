@@ -85,7 +85,7 @@ test_this("2.2: calculate order of magnitude", {
 
 header("3: Tests with mixed data")
 
-nt <- 50
+nt <- 60
 inp <- list(nseasons=4, splineorder=3)
 inp$timeC <- c(seq(0, nt/2-1, by=1),seq(nt/2, nt-1/inp$nseasons, by=1/inp$nseasons))
 inp$timeI <- seq(0.1, nt-1/inp$nseasons, by=0.5)

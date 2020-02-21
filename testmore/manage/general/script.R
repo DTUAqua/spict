@@ -3,7 +3,7 @@
 ## 16/02/2020
 
 ## flag for printing to consol (dev mode)
-cnsl = TRUE
+cnsl = FALSE
 
 ## set seed
 set.seed(123)
@@ -139,17 +139,16 @@ test_this("1.3: Adjust all time-dependent variables in check.inp",{
 },cnsl=cnsl)
 
 
-test_this("1.4: Management variables with shorten.inp",{
-    inp <- check.inp(inpS)
-    inp2 <- shorten.inp(inp, mintime = 20)
-    inp$maninterval[1] == inp2$maninterval[1]
-    inp$maninterval[2] == inp2$maninterval[2]
+out("1.4: Management variables with shorten.inp",cnsl=cnsl)
+inp <- check.inp(inpS)
+inp2 <- shorten.inp(inp, mintime = 20)
+out(inp$maninterval[1] == inp2$maninterval[1],cnsl=cnsl)
+out(inp$maninterval[2] == inp2$maninterval[2],cnsl=cnsl)
 
-    inp2 <- shorten.inp(inp, maxtime = 38)
-    inp$maninterval[1] == inp2$maninterval[1] + 2
-    inp$maninterval[2] == inp2$maninterval[2] + 2
-    inp$maneval == inp2$maneval + 2
-},cnsl=cnsl)
+inp2 <- shorten.inp(inp, maxtime = 38)
+out(inp$maninterval[1] == inp2$maninterval[1] + 2,cnsl=cnsl)
+out(inp$maninterval[2] == inp2$maninterval[2] + 2,cnsl=cnsl)
+out(inp$maneval == inp2$maneval + 2,cnsl=cnsl)
 
 
 header("2: check.man.time", cnsl=cnsl)
@@ -172,10 +171,10 @@ out(length(resa$inp$logmcovariatein) + 1/resa$inp$dteuler == length(resb$inp$log
 header("3: timeline")
 ######################################################
 
-out("3.1:", man.timeline(inpa),cnsl=cnsl)
-out("3.2:", man.timeline(inpb),cnsl=cnsl)
-out("3.3:", man.timeline(resa),cnsl=cnsl)
-out("3.4:", man.timeline(resb),cnsl=cnsl)
+test_this("3.1:", man.timeline(inpa),cnsl=cnsl)
+test_this("3.2:", man.timeline(inpb),cnsl=cnsl)
+test_this("3.3:", man.timeline(resa),cnsl=cnsl)
+test_this("3.4:", man.timeline(resb),cnsl=cnsl)
 
 
 header("4: manage / summary / scenarios / intermediate periods")
@@ -238,6 +237,7 @@ test_this("6.1: Message when manstart and maninterval used and not equal", {
     inp$maninterval <- c(1992,1993)
     inp$manstart <- 1991
     inp <- check.inp(inp)
+    TRUE
 }, cnsl=cnsl)
 
 test_this("6.2: Message when timepredc and maninterval used and not equal", {
@@ -245,6 +245,7 @@ test_this("6.2: Message when timepredc and maninterval used and not equal", {
     inp$maninterval <- c(1992,1993)
     inp$timepredc <- 1991
     inp <- check.inp(inp)
+    TRUE
 }, cnsl=cnsl)
 
 test_this("6.3: Message when timepredi and maneval used and not equal", {
@@ -252,34 +253,22 @@ test_this("6.3: Message when timepredi and maneval used and not equal", {
     inp$maneval <- 1992
     inp$timepredi <- 1991
     inp <- check.inp(inp)
+    TRUE
 }, cnsl=cnsl)
 
 test_this("6.4: Maninterval does not match dteuler time steps", {
     inp <- inpA
     inp$maninterval <- c(1991.573838,1992)
     inp <- check.inp(inp)
+    TRUE
 }, cnsl=cnsl)
-
-inp <- inpA
-inp$maninterval <- c(1991,1991.948574)
-inp <- check.inp(inp)
-
 
 test_this("6.5: Maninterval smaller than dteuler", {
     inp <- inpA
     inp$maninterval <- c(1991,1991.004)
     inp <- check.inp(inp)
+    TRUE
 }, cnsl=cnsl)
-
-## fcon with manstart instead of indpred
-inp <- inpA
-inp$timepredc <- 1992
-inp$dtpredc <- 2
-inp$timepredi <- 1994
-inp$manstart <- 1991
-inp <- check.inp(inp)
-inpt <- make.fconvec(inp, 0.2)
-fit <- fit.spict(inpt)
 
 test_this("6.6: Warning message when manstart larger than timepredc", {
     inp <- inpA
@@ -288,9 +277,8 @@ test_this("6.6: Warning message when manstart larger than timepredc", {
     inp$timepredi <- 1994
     inp$manstart <- 1993
     inp <- check.inp(inp)
+    TRUE
 }, cnsl=cnsl)
-out("ffac or fcon applied after time used for Cp => warning!", cnsl=cnsl)
-
 
 test_this("6.7: manstart smaller than timepredc", {
     inp1 <- inpA
@@ -302,6 +290,7 @@ test_this("6.7: manstart smaller than timepredc", {
     inp1 <- check.inp(inp1)
     set.seed(124)
     fit1 <- fit.spict(inp1)
+    TRUE
 }, cnsl=cnsl)
 
 ## with Cp right after ffac applied
@@ -314,12 +303,12 @@ inp2$ffac <- 0.2
 inp2 <- check.inp(inp2)
 set.seed(124)
 fit2 <- fit.spict(inp2)
-
-out("Cp differ: ", fit1$Cp != fit2$Cp, cnsl=cnsl)
-out("But values the same just timing different: ",
-    fit2$Cp == get.par("logCpred",fit1,exp=TRUE)[which(inp1$timeCpred == inp2$timepredc),2],
-    " => Thus old functionality and independence between manstart and timepredc is maintained.",
+## Cp differ:
+out(fit1$Cp != fit2$Cp, cnsl=cnsl)
+## But values the same just timing different:
+out(fit2$Cp == get.par("logCpred",fit1,exp=TRUE)[which(inp1$timeCpred == inp2$timepredc),2],
     cnsl=cnsl)
+## => Thus old functionality and independence between manstart and timepredc is maintained.
 
 ## missing one of the three required variables => error
 test_this("6.8: Not all variables provided", {

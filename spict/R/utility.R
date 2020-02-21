@@ -638,7 +638,7 @@ calc.om <- function(rep){
 #' @export
 shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
     inpin <- check.inp(inp)
-    if (is.null(mintime) & is.null(maxtime)) return(inpin)
+    if (is.null(mintime) && is.null(maxtime)) return(inpin)
     inpout <- inpin
 
     ## function to find closest time
@@ -656,7 +656,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
     }
 
     ## catch
-    inds <- get.inds(inpin$timeC,mintime,maxtime)
+    inds <- get.inds(inpin$timeC + inpin$dtc, mintime,maxtime)
     inpout$obsC <- inpin$obsC[inds]
     inpout$timeC <- inpin$timeC[inds]
     inpout$dtc <- inpin$dtc[inds]
@@ -684,7 +684,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
 
     ## effort
     if(length(inpin$obsE) > 0){
-        inds <- get.inds(inpin$timeE,mintime,maxtime)
+        inds <- get.inds(inpin$timeE + inp$dte, mintime,maxtime)
         inpout$obsE <- inpin$obsE[inds]
         inpout$timeE <- inpin$timeE[inds]
         inpout$stdevfacE <- inpin$stdevfacE[inds]
@@ -795,7 +795,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
         inpout$true$MSYvec <- inpout$true$MSYvec[inpin$time %in% inpout$time]
         inpout$true$Fmsyvec <- inpout$true$Fmsyvec[inpin$time %in% inpout$time]
     }
-    inpChecked <- check.inp(inpout)
+    inpChecked <- check.inp(inpout, verbose = FALSE)
     inpChecked <- check.man.time(inpChecked, verbose = FALSE, printTimeline = FALSE)
     return(inpChecked)
 }

@@ -972,7 +972,7 @@ function documentation (run `?add.man.scenario`).
 As mentioned above, the management period (and intermediate period) is not
 limited to the length of one year nor to the start of a year, but can span half
 a year, several years or start within any point in time within the year (cf.
-in-year advice @wkliveix). For example, applying one of the default scenarios
+in-year advice @wklifeix). For example, applying one of the default scenarios
 for a half year period starting in the middle of 1990:
 
 first in year advice example

@@ -18,7 +18,6 @@ inp <- check.inp(inp)
 ## fit spict
 rep <- fit.spict(inp)
 
-capture.output(eval(rept <- spict:::retape.spict(rep, inp)))
 
 header("1: Changing prediction horizon", append = FALSE)
 #####################################################
@@ -61,7 +60,7 @@ test_this("1.3: extending prediction horizon with maneval",{
     round(sumspict.predictions(rept),3)
 })
 
-out(all(rep$inp$maneval + 6 == rept$inp$maneval))
+out(all(rep$inp$maneval + 5 == rept$inp$maneval))
 
 out(all.equal(sumspict.predictions(repx),
               sumspict.predictions(rept),tolerance = 0.01))
@@ -77,7 +76,7 @@ test_this("1.3: Shortening prediction horizon",{
     round(sumspict.predictions(rept),3)
 })
 
-out(all(rep$inp$maneval - 1 == rept$inp$maneval))
+out(all(rep$inp$maneval - 2 == rept$inp$maneval))
 
 out(all.equal(sumspict.predictions(repx),
               sumspict.predictions(rept),tolerance = 0.01))
@@ -171,26 +170,4 @@ test_this("3.2: incorrect rep",{
 
 test_this("3.3: non meaningful inp",{
     rept <- spict:::retape.spict(rep, list())
-})
-
-inpt <- inp
-inpt$maninterval <- c(1991,1992)
-test_this("3.4: manually changed maninterval",{
-    rept <- spict:::retape.spict(rep, inpt)
-})
-
-## Non-converged model
-inp <- pol$lobster
-inp$obsC <- rnorm(46, 2000, 3)
-inp$optimiser.control <- list(iter.max = 1e2, eval.max = 1e2)
-fit4 <- fit.spict(inp)
-
-## convergence == 1 indicates non-convergence
-out(fit4$opt$convergence)
-
-inpt <- make.ffacvec(check.inp(inp), ffac=1.2)
-
-rept <- spict:::retape.spict(fit4, inpt)
-test_this("3.5: non-converged model",{
-    rept$opt$convergence
 })
