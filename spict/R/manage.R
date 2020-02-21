@@ -145,7 +145,7 @@ manage <- function(rep, scenarios = 'all',
     rep$inp$fconvec <- make.fconvec(rep$inp, 0.0)$fconvec
 
     ## man scenarios only possible if prediction time
-    timelastobs <- rep$inp$timerangeObs[2]
+    timelastobs <- rep$inp$lastCatchObs
     if(!rep$inp$timepredc < timelastobs){
 
         ## mange overwrites existing scenarios
@@ -169,7 +169,8 @@ manage <- function(rep, scenarios = 'all',
                         lasttimec <- timecs[[length(timecs)]][2]
                         ipcList <- list(timeC = unlist(lapply(timecs,"[[",1)),
                                         obsC = unlist(cips),
-                                        dtc = unlist(dtcs))
+                                        dtc = unlist(dtcs),
+                                        stdevfacC = rep(0.01,length(cips)))
                     }else{
                         lasttimec <- max(rep$inp$timeC + rep$inp$dtc)
                         ipcList <- NULL
@@ -785,7 +786,7 @@ make.man.inp <- function(rep, scenarioTitle = "",
             inpt$dtc <- c(inpt$dtc, intermediatePeriodCatchList$dtc)
         }
         inpt <- check.inp(inpt, verbose = FALSE, mancheck=FALSE)
-        inpt$timerangeObs <- inp$timerange
+        inpt$lastCatchObs <- inp$lastCatchObs
         if(reqRep){
             repout <- reppa <- rep <- retape.spict(rep, inpt, verbose = FALSE, mancheck=FALSE)
         }
@@ -848,67 +849,26 @@ make.man.inp <- function(rep, scenarioTitle = "",
         inpt <- inp
         if(is.null(catchList)){
 
-            ## Default catch during maninterval preserving seasonality
-            ## use predicted catch observations (because last year might have index but no catch)
-            timeCpred <- inp$timeCpred
+            ## get default catch for management period based on observations
+            manC <- get.manC(rep, inp)
+            timec <- inp$timeCpred
             Cpred <- get.par("logCpred", rep, exp=TRUE)[,2]
-            dtcpred <- inp$dtcp
-
-            ## remove forecast times
-            ind <- timeCpred < inp$timerangeObs[2]
-            timeCpred <- timeCpred[ind]
-            Cpred <- Cpred[ind]
-            dtcpred <- dtcpred[ind]
-
-            ## last full year catches accounting for seasonal catches
-            indFullYear = (length(timeCpred) - (which(cumsum(rev(diff(timeCpred))) == 1)-1)) : length(timeCpred)
-            timeLastC <- timeCpred[indFullYear]
-            obsLastC <- Cpred[indFullYear]
-            dtcLastC <- c(dtcpred,dtcpred[length(dtcpred)])[indFullYear]
-            mindtc <- min(dtcLastC)
-            tmpTime <- inp$timeCpred
-
-            ## management indices
-            manint <- inp$maninterval
-            manperiod <- max(manint) - min(manint)
-            manperiodYears <- floor(manperiod)
-            manperiodSpanYear <- floor(manint[2]) - floor(manint[1])
-            maninds <- which(tmpTime >= min(inp$maninterval))
-
-            ## match man indices to obs indices
-            potcatchTimes <- timeLastC ##unique(c(timeLastC, timeLastC + dtcLastC))
-            potcatchTimeYear <- potcatchTimes %% min(floor(potcatchTimes))
-            potcatchTimeYears <- rep(potcatchTimeYear,manperiodSpanYear+1) +
-                rep(0:manperiodSpanYear,each = length(potcatchTimeYear))
-            mantimes <- seq(potcatchTimeYears[which.min(abs(potcatchTimeYears-(manint[1] %% 1)))],
-                            potcatchTimeYears[which.min(abs(potcatchTimeYears-(manint[2] %% 1 +
-                                                                               manperiodSpanYear - mindtc)))],
-                            by = mindtc)
-            catchTimeYears <- potcatchTimeYears[potcatchTimeYears %in% mantimes]
-
-            ## sum
-            indi <- match((catchTimeYears %% 1), potcatchTimeYears)
-            obsint <- range(c(timeLastC[indi],
-                              timeLastC[indi] +
-                              dtcLastC[indi]))
-            manC <- sum(obsLastC[indi])
-            shortlong <- ifelse(manperiod >= diff(range(obsint)), "shorter", "longer")
-
-            if(verbose && manperiod != diff(range(obsint)))
-                cat(paste0("The catch observations do not allow to set a representative default catch for the specified management interval [",manint[1],",",manint[2],"], the catch observations representative of the ",shortlong," interval [",obsint[1],",",obsint[2],"] are used. Use the argument 'catchList' to specify the catch for the management period or change the management period to correspond to a multiple of the catch observation intervals in the last year with catch observations.\n"))
+            maninds <- which(timec >= min(inp$maninterval))
 
             ## default catchList
-            if(inp$timerangeObs[2] > max(inp$timeC + inp$dtc)){
-                noCinds <- which(timeCpred >= max(inp$timeC + inp$dtc))
-                inpt$timeC <- c(inpt$timeC, tmpTime[noCinds], tmpTime[maninds])
+            if(inp$lastCatchObs > max(inp$timeC + inp$dtc)){
+                ## with intermediate period
+                noCinds <- which(timec >= max(inp$timeC + inp$dtc))
+                inpt$timeC <- c(inpt$timeC, timec[noCinds], timec[maninds])
                 inpt$obsC <- c(inpt$obsC, Cpred[noCinds],
                                rep(manC * cfac, length(maninds)))
                 inpt$stdevfacC <- c(inpt$stdevfacC, rep(1, length(noCinds)),
                                     rep(csdfac, length(maninds)))
-                inpt$dtc <- c(inpt$dtc, dtcpred[noCinds],
+                inpt$dtc <- c(inpt$dtc, inp$dtcp[noCinds],
                               rep(inpt$dtpredc, length(maninds)))
             }else{
-                inpt$timeC <- c(inpt$timeC, tmpTime[maninds])
+                ## without intermediate period
+                inpt$timeC <- c(inpt$timeC, timec[maninds])
                 inpt$obsC <- c(inpt$obsC, rep(manC * cfac, length(maninds)))
                 inpt$stdevfacC <- c(inpt$stdevfacC, rep(csdfac, length(maninds)))
                 inpt$dtc <- c(inpt$dtc, rep(inpt$dtpredc, length(maninds)))
@@ -1485,7 +1445,7 @@ man.timeline <- function(x, verbose = TRUE, obsonly = FALSE){
         inp <- x
     }
     inp <- check.inp(inp, verbose = FALSE, mancheck = FALSE)
-    timeC <- format(round(inp$timerangeObs,2),nsmall=2)
+    timeC <- format(round(c(inp$timerange[1],inp$lastCatchObs),2),nsmall=2)
     timeM <- format(round(range(inp$maninterval),2),nsmall=2)
     timeInt <- format(c(max(timeC), min(timeM)),nsmall=2)
     obstext <- c("     Observations",
@@ -1729,4 +1689,66 @@ check.man <- function(rep, maninterval = NULL, maneval = NULL, verbose = TRUE, r
                     inter = manInRep && all(checks2),
                     maneval = manInRep && all(checks3))
     return(reslist)
+}
+
+
+
+#' @name get.manC
+#' @title Estimate catch for management period based on last catch observations
+#'
+#' @param rep A result report as generated by running \code{fit.spict}.
+#' @param inp Input list with ffac or catch observation corresponding to
+#'     management.
+#'
+#' @details Internal function that estimates the catch in the management period
+#'     based on the catch observations in the last year. Only catch observations
+#'     in the last year are considered. If the management period is longer than
+#'     a year the catches of the last year are raised. If the management period
+#'     is shorter than a year, but only annual catches are available, the
+#'     respective fraction of the last annual catch observation is used. If both
+#'     the management period and the catch observations are subannual, the
+#'     subannual catches of the respective 'seasons' of the year corresponding
+#'     to the 'season' of the management period are used. Be aware that the
+#'     estimated catch might correspond to a different season(s) than the
+#'     management period both are subannual and some catch observations are
+#'     missing.
+#'
+#' @return Sum/fraction of catch observations corresponding to management period
+#'
+get.manC <- function(rep, inp){
+
+    lastobs <- inp$lastCatchObs
+    timeCpred <- inp$timeCpred
+    lastc <- get.par("logCpred", rep, exp=TRUE)[timeCpred < lastobs & timeCpred >= (lastobs-1),2]
+    lastctime <- timeCpred[timeCpred <= lastobs & timeCpred >= (lastobs-1)]
+    lastcdt <- tail(diff(timeCpred),length(lastc))
+    lastcdiff <- diff(range(lastctime))
+    lastcTOY <- lastctime[-length(lastctime)] %% 1
+    manint <- inp$maninterval
+    mandiff <- diff(manint)
+    manTOY <- manint[1] %% 1
+
+    if(mandiff >= 1){
+        ## management period longer than a year
+        lastc <- sum(lastc)
+        if(mandiff > lastcdiff){
+            manc <- lastc + lastc * ((mandiff - lastcdiff) / lastcdiff)
+        }else{
+            manc <- lastc * (lastcdiff/mandiff)
+        }
+    }else{
+        ## management period fraction of year
+        if(lastcdiff >= 1){
+            ## (multi-) annual catches
+            manc <- lastc * (mandiff / lastcdiff)
+        }else{
+            ## subannual catches
+            lastcClosest <- which.min(abs(lastcTOY - manTOY))
+            while(sum(lastcdt[lastcClosest]) < mandiff){
+                lastcClosest <- c(lastcClosest, lastcClosest + 1)
+            }
+            manc <- sum(lastc[lastcClosest]) * (mandiff / sum(lastcdt[lastcClosest]))
+        }
+    }
+    return(manc)
 }

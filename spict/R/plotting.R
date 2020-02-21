@@ -63,9 +63,10 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
                 ## time
                 time <- sort(unique(c(time,seq(min(time),max(time,inpi$maninterval),1))))
                 time <- time[-length(time)]
-            }else esti2 <- esti
+            }else
+                esti2 <- esti
             if(any(dtc2 < 1)){
-                alo <- annual(time2, esti2/dtc2, mean)
+                alo <- annual(time2, esti2/dtc, mean)
                 time <- c(alo$anntime,time[length(time)])
                 esti2 <- c(alo$annvec, esti[length(esti)])
             }
@@ -73,7 +74,7 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
             time <- repi$inp$time
             esti2 <- esti
         }
-        ## man period
+        ## management period
         manstart <- inpi$maninterval[1]
         mandiff <- diff(inpi$maninterval)
         indmanstart <- which(time >= manstart)
@@ -83,7 +84,7 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
         } else {
             x <- get.par(par2, repi, exp=TRUE)[maninds, 2]
         }
-        if(any((manstart-mandiff) != time)){
+        if(par == 'logCpred' && any((manstart-mandiff) != time)){
             y1 = esti2[maninds][1]
             y2 = esti2[maninds][2]
             x3 = manstart-mandiff
@@ -92,8 +93,8 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
         }else{
             lines(x, esti2[maninds], col=man.cols()[i], lwd=1.5, ...)
         }
-        ## int period
-        lastobs <- inpi$timerangeObs[2]
+        ## intermediate period
+        lastobs <- inpi$lastCatchObs
         if((manstart-lastobs) > 0){
             indlastobs <- which(time >= lastobs & time < manstart)
             intinds <- (indlastobs[1] - index.shift):maninds[1]
@@ -102,12 +103,17 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, .
             } else {
                 x <- get.par(par2, repi, exp=TRUE)[intinds, 2]
             }
-            if(any((manstart-mandiff) != time)){
+            if(par == 'logCpred' && any((manstart-mandiff) != time)){
                 lines(c(x[-length(x)],x3), c(esti2[intinds][-length(esti2[intinds])],y3),
                       col=man.cols()[i], lwd=1.5, lty=3)
             }else{
                 lines(x, esti2[intinds], col=man.cols()[i], lwd=1.5, lty=3)
             }
+        }else if(par == 'logCpred' && any((manstart-mandiff) != time)){
+            ## last catch observation missing
+            x <- head(tail(time,2),1)
+            lines(c(x,x3), c(head(tail(esti2,2),1),y3),
+                  col=man.cols()[i], lwd=1.5, lty=3)
         }
     }
     nouse <- capture.output(nms <- rownames(sumspict.manage(rep, include.unc=FALSE, verbose=FALSE)))
@@ -129,7 +135,7 @@ get.manlimits <- function(rep, par){
     for (i in 1:nman){
         rp <- rep$man[[ scenarios[i] ]]
         if (par == 'time'){
-            lims[[i]] <- range(rp$inp$time)
+            lims[[i]] <- range(c(rp$inp$time, tail(rp$inp$time, 1) + 0.5))
         }else{
             lims[[i]] <- get.par(par, rp, exp=TRUE)[, 2]
             if(par == "logCpred"){
@@ -589,7 +595,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             ylim[2] <- min(c(ylim[2], 3*max(Best[fininds, 2], unlist(obsI)))) # Limit upper limit
         }
         xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
-        if(manflag) xlim <- range(xlim, get.manlimits(rep,"time"))
+        if(manflag) xlim <- get.manlimits(rep,"time")
         #if (main==-1) main <- 'Absolute biomass'
         if (ylabflag){
             ylab <- expression(B[t])
@@ -752,7 +758,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
                 ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
             }
             xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
-            if(manflag) xlim <- range(xlim, get.manlimits(rep,"time"))
+            if(manflag) xlim <- get.manlimits(rep,"time")
             plot(inp$time[1:indxmax], BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]),
                  ylim=ylim, xlim=xlim, log=log,
                  main=main)
@@ -1184,7 +1190,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         }
         xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
-        if(manflag) xlim <- range(xlim, get.manlimits(rep,"time"))
+        if(manflag) xlim <- get.manlimits(rep,"time")
         #if (main==-1) main <- 'Absolute fishing mortality'
         if (ylabflag){
             ylab <- expression(F[t])
@@ -1331,7 +1337,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat))
         }
         xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
-        if(manflag) xlim <- range(xlim, get.manlimits(rep,"time"))
+        if(manflag) xlim <- get.manlimits(rep,"time")
         plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]),
              xlab=xlab, xlim=xlim, log=log)
         cicol2 <- rgb(0, 0, 1, 0.1)
@@ -1756,7 +1762,7 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
             ylim[2] <- min(c(ylim[2], 3*max(obs))) # Limit upper limit
         }
         xlim <- range(c(inp$time, tail(inp$time,1)))
-        if(manflag) xlim <- range(xlim,get.manlimits(rep,"time"))
+        if(manflag) xlim <- get.manlimits(rep,"time")
         #if (main==-1) main <- 'Catch'
         if (ylabflag){
             ylab <- 'Catch'

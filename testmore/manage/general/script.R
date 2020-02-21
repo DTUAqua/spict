@@ -29,40 +29,6 @@ inp$ini <- list(logK = log(1000), logm=log(800), logq = log(1), logn = log(2),
 inpS <- sim.spict(inp)
 inps <- check.inp(inpS)
 
-
-inpa$maninterval <- c(1992.5,1993)
-fita <- fit.spict(inpa)
-
-mana2 <- manage(fits,c(1,2))
-
-
-
-inps$maninterval <- c(41.5,42)
-
-fits <- fit.spict(inps)
-
-warnings()
-
-plot2(fits)
-
-mana <- manage(fits,c(1,2))
-
-plot2(mana)
-plotspict.catch(mana, ylim=c(0,2000))
-spict:::check.man(mana)
-
-mana$man[[1]]$inp$maninterval
-mana$man[[2]]$inp$maninterval
-
-
-
-## inter period!
-## plot vertical lines in catch plot!
-
-
-a
-
-
 header("1: check.inp with new functionality", append = FALSE, cnsl=cnsl)
 ######################################################
 

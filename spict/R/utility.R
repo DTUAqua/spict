@@ -907,8 +907,7 @@ retape.spict <- function(rep, inp, verbose = FALSE, dbg = 0, mancheck=TRUE){
         }
         repout$computing.time <- repin$computing.time
         if("man" %in% names(repin)) repout$man <- repin$man
-        if("manbase" %in% names(repin)) repout$manbase <- repin$manbase
-        class(repout) <- "spictcls"
+         class(repout) <- "spictcls"
     }
     return(repout)
 }
