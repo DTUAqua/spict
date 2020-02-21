@@ -22,7 +22,6 @@ prv_report.log
 .Rproj.user
 *.Rproj
 vignette_*
-spict/inst/doc
 .Rbuildignore
 Rplots.pdf
 res.out

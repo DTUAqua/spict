@@ -53,6 +53,8 @@ inp$priors$logsdc <- c(log(0.1), 1, 1)
 inp$robflagi <- c(0,1)
 # Predict catches until this year
 inp$timepredc <- max(inp$timeC,na.rm=TRUE) + 1
+inp$manstart <- inp$timepredc
+inp$dtpredc <- 1
 
 # Multiply last F with ffac and forecast using resulting F
 inp$ffac <- 1.00
@@ -68,4 +70,4 @@ fit<-fit.spict(inp)
 
 plotspict.priors(fit)
 
-cat(fit$opt$objective,"\n", file="res.out")
+cat(round(fit$opt$objective,3),"\n", file="res.out")

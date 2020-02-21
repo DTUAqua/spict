@@ -9,7 +9,7 @@ set.seed(123)
 require(spict)
 
 ## load testmore functions
-source("../../funcs.R")
+source("../funcs.R")
 
 ## data
 inpori <- pol$albacore

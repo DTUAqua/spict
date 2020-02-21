@@ -9,7 +9,7 @@ set.seed(123)
 require(spict)
 
 ## load testmore functions
-source("../../funcs.R")
+source("../funcs.R")
 
 
 header("1: Testing add.man.scenarios with annual data", append = FALSE)

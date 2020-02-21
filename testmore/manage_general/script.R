@@ -12,7 +12,7 @@ set.seed(123)
 require(spict)
 
 ## load testmore functions
-source("../../funcs.R")
+source("../funcs.R")
 
 ## all tests based on pol$albacore and seasonal data
 ## annual
