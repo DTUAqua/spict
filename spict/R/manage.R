@@ -151,8 +151,7 @@ manage <- function(rep, scenarios = 'all',
         ## mange overwrites existing scenarios
         rep$man <- NULL
 
-        if (1 %in% indscenarios){
-            # 1. Keep current catch
+        if (1 %in% indscenarios){# 1. Keep current catch
             repc <- rep
 
             ## if intermediate period, run scenario with ffac = 1 and use Cp for intermediatePeriodCatch
@@ -787,6 +786,7 @@ make.man.inp <- function(rep, scenarioTitle = "",
         }
         inpt <- check.inp(inpt, verbose = FALSE, mancheck=FALSE)
         inpt$lastCatchObs <- inp$lastCatchObs
+        inpt$timerangeObs <- inp$timerangeObs
         if(reqRep){
             repout <- reppa <- rep <- retape.spict(rep, inpt, verbose = FALSE, mancheck=FALSE)
         }
@@ -869,7 +869,7 @@ make.man.inp <- function(rep, scenarioTitle = "",
             }else{
                 ## without intermediate period
                 inpt$timeC <- c(inpt$timeC, timec[maninds])
-                inpt$obsC <- c(inpt$obsC, rep(manC * cfac, length(maninds)))
+                inpt$obsC <- c(inpt$obsC, rep(sum(manC) * cfac, length(maninds)))
                 inpt$stdevfacC <- c(inpt$stdevfacC, rep(csdfac, length(maninds)))
                 inpt$dtc <- c(inpt$dtc, rep(inpt$dtpredc, length(maninds)))
             }
@@ -1301,12 +1301,21 @@ calc.tac <- function(rep, inp = NULL, fractileCatch = 0.5, exp = TRUE){
 #'     scenario in the \code{rep$man} list. Setting this argument to \code{NULL}
 #'     or "none", removes all scenarios from the spict object. By default
 #'     (\code{'all'}), all scenarios are selected.
-#' @param verbose Should detailed outputs be provided (default: TRUE).
+#' @param spictcls Should selected scenario be a standard spictcls object?
+#'     Default is \code{FALSE}. See details for more information.
+#' @param verbose Should detailed outputs be provided (default: \code{TRUE}).
 #'
 #' @return A fitted spict object wit selected management scenarios in preferred
-#'     order in \code{rep$man}.
+#'     order in \code{rep$man}. This function can also be used to select a
+#'     specific scenarios in \code{rep$man} as the new main spictcls object. By
+#'     setting the argument \code{spictcls} to \code{TRUE}, management related
+#'     catch observations are removed and the retaped spict object of class
+#'     'spictcls' is returned, comparable to the object returned by
+#'     \code{\link{fit.spict}}. This only works if one scenario is selected
+#'     (\code{length(scnearios) == 1}).
 #'
 #' @examples
+#'
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' rep <- manage(rep, c(2,4,6))
@@ -1319,12 +1328,16 @@ calc.tac <- function(rep, inp = NULL, fractileCatch = 0.5, exp = TRUE){
 #' length(rep$man)
 #' rep2 <- man.select(rep, c(1,3))
 #'
+#' ## select specific scenario as new spictcls object
+#' rep3 <- man.select(rep, 1, spictcls = TRUE)
+#'
 #' @export
-man.select <- function(rep, scenarios = "all", verbose = TRUE){
+man.select <- function(rep, scenarios = "all", spictcls = FALSE, verbose = TRUE){
     ## checks
     if(!inherits(rep, "spictcls") || !"opt" %in% names(rep))
         stop("rep needs to be a fitted spict object!")
     if(!any(names(rep)=="man")) stop("No management scenarios in the 'rep' list. Run 'manage()' or 'add.man.scenario()' first!\n")
+
     ## scenarios in index or name
     scenariosAll <- names(rep$man)
     if(all(is.numeric(scenarios))){
@@ -1340,20 +1353,33 @@ man.select <- function(rep, scenarios = "all", verbose = TRUE){
     }
     scenarios <- as.character(scenarios)
     indscenarios <- which(scenariosAll %in% scenarios)
-    if(verbose){
-        if(length(indscenarios) == 0 && scenarios[1] != "none"){
-            cat("No matching scenario found.\n")
-        }else if(scenarios[1] != "none"){
-            cat("Selected scenario(s): ",paste(scenariosAll[indscenarios], collapse = ", ")," \n")
-        }else{
-            cat("All scenarios removed! \n")
+    if(spictcls){
+        if(length(indscenarios) > 1) stop("More than one scenario selected! To extract a spictcls object from rep$man (manobject = FALSE), one specific scenario has to be selected.")
+        if(length(indscenarios) == 0) stop("No matching scenario found.")
+    }else{
+        if(verbose){
+            if(length(indscenarios) == 0 && scenarios[1] != "none"){
+                cat("No matching scenario found.\n")
+            }else if(scenarios[1] != "none"){
+                cat("Selected scenario(s): ",paste(scenariosAll[indscenarios], collapse = ", ")," \n")
+            }else{
+                cat("All scenarios removed! \n")
+            }
         }
     }
 
     ## select scenarios
     repout <- rep
     repout$man <- list()
-    if(scenarios[1] != "none"){
+    if(spictcls){
+        repout <- rep$man[[indscenarios]]
+        ind <- repout$inp$timeC < repout$inp$lastCatchObs
+        repout$inp$timeC <- repout$inp$timeC[ind]
+        repout$inp$obsC <- repout$inp$obsC[ind]
+        repout$inp$dtc <- repout$inp$dtc[ind]
+        repout$inp$stdevfacC <- repout$inp$dtdevfacC[ind]
+        repout <- retape.spict(repout, repout$inp, mancheck=FALSE)
+    }else if(scenarios[1] != "none"){
         repout$man <- rep$man[indscenarios]
     }else repout$man <- NULL
 

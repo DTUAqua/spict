@@ -342,6 +342,133 @@ test_this("6.9: wrong input to functions, creating warnings...",{
 header("7: plotting",cnsl=cnsl)
 ######################################################
 
-plotspict.catch(mana)
-plotspict.bbmsy(mana)
-plot2(mana)
+if(FALSE){
+    ## annual
+    ## ----------------
+    inp <- pol$albacore
+    fit <- fit.spict(inp)
+
+    ## man period = 1, int period = 0
+    mana1 <- manage(fit, c(1,2,4), maninterval = c(1990,1991))
+
+    ## man period = 1, int period = 1
+    mana2 <- manage(fit, c(1,2,4), maninterval = c(1991,1992))
+
+    ## man period = 2, int period = 1
+    mana3 <- manage(fit, c(1,2,4), maninterval = c(1991,1993))
+
+    ## man period = 0.5, int period = 1
+    mana4 <- manage(fit, c(1,2,4), maninterval = c(1991,1991.5))
+
+    ## man period = 1, int period = 0.5
+    mana5 <- manage(fit, c(1,2,4), maninterval = c(1990.5,1991.5))
+
+    ## man period = 1.5, int period = 0.5
+    mana6 <- manage(fit, c(1,2,4), maninterval = c(1990.5,1992))
+
+    ## man period = 0.5, int period = 0.5
+    mana7 <- manage(fit, c(1,2,4), maninterval = c(1990.5,1991))
+
+    ## man period = 2.5, int period = 1.5, intercatch
+    mana8 <- manage(fit, c(1,2,4), maninterval = c(1991.5,1994), intermediatePeriodCatch = 29)
+
+
+    ## check plots
+    pdf("manscenariosCatchPlot.pdf",width = 10,height=12)
+    opar <- par(mfrow=c(4,2))
+    for(i in 1:8){
+        tmp <- get(paste0("mana",i))
+        plotspict.catch(tmp)
+    }
+    par(opar)
+    dev.off()
+
+    ## check plots
+    pdf("manscenariosBBmsyPlot.pdf",width = 10,height=12)
+    opar <- par(mfrow=c(4,2))
+    for(i in 1:8){
+        tmp <- get(paste0("mana",i))
+        plotspict.bbmsy(tmp)
+    }
+    par(opar)
+    dev.off()
+
+    ## check plots
+    pdf("manscenariosFFmsyPlot.pdf",width = 10,height=12)
+    opar <- par(mfrow=c(4,2))
+    for(i in 1:8){
+        tmp <- get(paste0("mana",i))
+        plotspict.ffmsy(tmp)
+    }
+    par(opar)
+    dev.off()
+
+    ## seasonal
+    ## ----------------
+    set.seed(455)
+    nt <- 25
+    inp <- list(nseasons = 4, splineorder = 3)
+    inp$timeC <- seq(0, nt - 1 / inp$nseasons, by = 1 / inp$nseasons)
+    inp$timeI <- seq(0.1, nt - 1 / inp$nseasons, by = 0.5)
+    inp$ini <- list(logK = log(1000), logm=log(800), logq = log(1), logn = log(2),
+                    logbkfrac = log(0.9), logsdf = log(0.3), logF0 = log(0.8),
+                    logphi = log(c(0.3, 0.5, 1.8)))
+    inpsim <- sim.spict(inp)
+    fits <- fit.spict(inpsim)
+
+    ## man period = 1, int period = 0
+    mana1s <- manage(fits, c(1,2,4), maninterval = c(25,26))
+
+    ## man period = 1, int period = 1
+    mana2s <- manage(fits, c(1,2,4), maninterval = c(26,27))
+
+    ## man period = 2, int period = 1
+    mana3s <- manage(fits, c(1,2,4), maninterval = c(26,28))
+
+    ## man period = 0.5, int period = 1
+    mana4s <- manage(fits, c(1,2,4), maninterval = c(26,26.5))
+
+    ## man period = 1, int period = 0.5
+    mana5s <- manage(fits, c(1,2,4), maninterval = c(25.5,26.5))
+
+    ## man period = 1.5, int period = 0.5
+    mana6s <- manage(fits, c(1,2,4), maninterval = c(25.5,27))
+
+    ## man period = 0.5, int period = 0.5
+    mana7s <- manage(fits, c(1,2,4), maninterval = c(25.5,26))
+
+    ## man period = 2.5, int period = 1.5, intercatch
+    mana8s <- manage(fits, c(1,2,4), maninterval = c(26.5,29), intermediatePeriodCatch = 29)
+
+
+    pdf("manscenariosCatchPlot_sea.pdf",width = 10,height=12)
+    ## check plots
+    opar <- par(mfrow=c(4,2))
+    for(i in 1:8){
+        tmp <- get(paste0("mana",i,"s"))
+        plotspict.catch(tmp)
+    }
+    par(opar)
+    dev.off()
+
+    pdf("manscenariosBBmsyPlot_sea.pdf",width = 10,height=12)
+    ## check plots
+    opar <- par(mfrow=c(4,2))
+    for(i in 1:8){
+        tmp <- get(paste0("mana",i,"s"))
+        plotspict.bbmsy(tmp)
+    }
+    par(opar)
+    dev.off()
+
+    pdf("manscenariosFFmsyPlot_sea.pdf",width = 10,height=12)
+    ## check plots
+    opar <- par(mfrow=c(4,2))
+    for(i in 1:8){
+        tmp <- get(paste0("mana",i,"s"))
+        plotspict.ffmsy(tmp)
+    }
+    par(opar)
+    dev.off()
+
+}

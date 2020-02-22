@@ -33,93 +33,98 @@ get.mfrow <- function(n){
 #' @param par2 If a second parameter should be used as explanatory variable instead of time.
 #' @param index.shift Shift initial time point by this index.
 #' @param plot.legend Logical; should the legend be plotted?
+#' @param verbose Should detailed outputs be provided (default: TRUE).
 #' @return Nothing
 #' @export
-add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, ...){
+add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, verbose = TRUE, ...){
     scenarios <- 1:length(rep$man)
     nman <- length(scenarios)
+    errflag <- rep(FALSE,nman)
     for (i in 1:nman){
-        repi <- rep$man[[ scenarios[i] ]]
-        inpi <- repi$inp
-        esti <- get.par(par, repi, exp=TRUE)[,2]
-        if (par == 'logCpred'){
-            time <- repi$inp$timeCpred
-            time2 <- time[-length(time)]
-            ## check for multi-annual data points
-            dtc <- c(diff(time),inpi$dtpredc)
-            dtc2 <- dtc[-length(dtc)] ## without manperiod
-            ## split into annual data points
-            if(any(dtc2 > 1)){
-                indMA <- which(dtc2 > 1)
-                ## observations
-                esti2 <- list()
-                for(j in 1:length(dtc2)){
-                    for(k in seq(dtc2[j])){
-                        esti2[[length(esti2)+1]] <- ifelse(dtc2[j] > 1, esti[j]/dtc2[j], esti[j])
-                    }
-                }
-                esti2 <- unlist(esti2)
-                esti2 <- c(esti2,esti[length(esti)])
-                ## time
-                time <- sort(unique(c(time,seq(min(time),max(time,inpi$maninterval),1))))
-                time <- time[-length(time)]
-            }else
-                esti2 <- esti
-            if(any(dtc2 < 1)){
-                alo <- annual(time2, esti2/dtc, mean)
-                time <- c(alo$anntime,time[length(time)])
-                esti2 <- c(alo$annvec, esti[length(esti)])
-            }
-        } else {
-            time <- repi$inp$time
-            esti2 <- esti
-        }
-        ## management period
-        manstart <- inpi$maninterval[1]
-        mandiff <- diff(inpi$maninterval)
-        indmanstart <- which(time >= manstart)
-        maninds <- (indmanstart[1] - index.shift):tail(indmanstart,1)
-        if (is.null(par2)){
-            x <- time[maninds]
-        } else {
-            x <- get.par(par2, repi, exp=TRUE)[maninds, 2]
-        }
-        if(par == 'logCpred' && any((manstart-mandiff) != time)){
-            y1 = esti2[maninds][1]
-            y2 = esti2[maninds][2]
-            x3 = manstart-mandiff
-            y3 = y1 - (y1-y2) * (x3 - x[1]) / (x[2] - x[1])
-            lines(c(x3,x[2]), c(y3,y2), col=man.cols()[i], lwd=1.5, ...)
+        rp <- rep$man[[scenarios[i]]]
+        ip <- rp$inp
+        manint <- ip$maninterval
+        mandiff <- diff(manint)
+        est <- get.par(par, rp, exp=TRUE)[,2]
+        dtcp <- ip$dtcp
+        if(par == 'logCpred'){
+            time <- rp$inp$timeCpred
+            lastobs <- ip$lastCatchObs
+            indlastobs <- which(time == lastobs)
         }else{
-            lines(x, esti2[maninds], col=man.cols()[i], lwd=1.5, ...)
+            time <- rp$inp$time
+            lastobs <- ip$timerangeObs[2]
+            indlastobs <- which(time == lastobs)
         }
+        indmanstart <- which(time >= manint[1])
+        ## manperiod
+        if(par == 'logCpred'){
+            if(mandiff < 1){
+                errflag[i] <- TRUE
+                mantime <- NULL
+                manc <- NULL
+            }else if(mandiff > 1){
+                mantime <- seq(manint[1], manint[2], 1)
+                mantime <- mantime[-length(mantime)]
+                manc <- rep(est[indmanstart] / mandiff, length(mantime))
+            }else{
+                mantime <- manint[1]
+                manc <- est[indmanstart]
+            }
+            ind <- which(time < manint[1])
+            preind <- tail(which(dtcp[ind] == 1),1)
+            ## aggregate seasonal catches
+            if(any(dtcp[ind] < 1)){
+                alo <- annual(time[ind], est[ind]/dtcp[ind], mean)
+                time <- alo$anntime
+                est <- alo$annvec
+                ind <- which(time < manint[1])
+                dtcp <- diff(unique(c(time,manint[1])))
+                preind <- which.max(time[which(dtcp >= 1)])
+            }
+            premantime <- time[preind]
+            premanc <- est[preind]
+            x <- c(premantime,mantime)
+            y <- c(premanc,manc)
+        }else{
+            maninds <- (indmanstart[1] - index.shift):tail(indmanstart,1)
+            if (is.null(par2)){
+                x <- time[maninds]
+            } else {
+                x <- get.par(par2, rp, exp=TRUE)[maninds, 2]
+            }
+            y <- est[maninds]
+        }
+        lines(x, y, col=man.cols()[i], lwd=1.5, ...)
         ## intermediate period
-        lastobs <- inpi$lastCatchObs
-        if((manstart-lastobs) > 0){
-            indlastobs <- which(time >= lastobs & time < manstart)
-            intinds <- (indlastobs[1] - index.shift):maninds[1]
+        intdiff <- manint[1] - lastobs
+        if((par != 'logCpred' && intdiff > 0) || (par == 'logCpred' && intdiff == 1)){
+            ind <- which(time >= lastobs & time < manint[1])
+            if(par == 'logCpred'){
+                if(intdiff == 1){
+                    intinds <- (ind[1] - index.shift):preind
+                }
+            }else{
+                intinds <- (ind[1] - index.shift):maninds[1]
+            }
             if (is.null(par2)){
                 x <- time[intinds]
             } else {
-                x <- get.par(par2, repi, exp=TRUE)[intinds, 2]
+                x <- get.par(par2, rp, exp=TRUE)[intinds, 2]
             }
-            if(par == 'logCpred' && any((manstart-mandiff) != time)){
-                lines(c(x[-length(x)],x3), c(esti2[intinds][-length(esti2[intinds])],y3),
-                      col=man.cols()[i], lwd=1.5, lty=3)
-            }else{
-                lines(x, esti2[intinds], col=man.cols()[i], lwd=1.5, lty=3)
-            }
-        }else if(par == 'logCpred' && any((manstart-mandiff) != time)){
-            ## last catch observation missing
-            x <- head(tail(time,2),1)
-            lines(c(x,x3), c(head(tail(esti2,2),1),y3),
-                  col=man.cols()[i], lwd=1.5, lty=3)
+            y <- est[intinds]
+            lines(x, y, col=man.cols()[i], lwd=1.5, lty=3)
         }
     }
+    ## legend
     nouse <- capture.output(nms <- rownames(sumspict.manage(rep, include.unc=FALSE, verbose=FALSE)))
     if (plot.legend){
         legend('topleft', legend=nms, lty=1, col=man.cols()[1:nman], bg='white', cex=0.8)
     }
+    ## Note
+    if(errflag && verbose) cat(paste0("The management period of scenario(s): ",
+                                          paste0(names(rep$man)[errflag],collapse=", "),
+                                          " is shorter than 1 year. Thus, the catch cannot be displayed correctly in the annual catch plot.\n"))
 }
 
 
@@ -510,6 +515,7 @@ add.col.legend <- function(){
 #' @param rel.axes Plot secondary y-axis contatning relative level of F.
 #' @param rel.ci Plot confidence interval for relative level of F.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
 #'
 #' @details Plots estimated biomass, Bmsy with confidence limits.
 #'
@@ -532,7 +538,8 @@ add.col.legend <- function(){
 #' @export
 plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NULL,
                               plot.obs=TRUE, qlegend=TRUE, xlab='Time', ylab=NULL,
-                              rel.axes=TRUE, rel.ci=TRUE, stamp=get.version()){
+                              rel.axes=TRUE, rel.ci=TRUE, stamp=get.version(),
+                              verbose=TRUE){
     check.rep(rep)
     if (!'sderr' %in% names(rep)){
         manflag <- any(names(rep) == "man")
@@ -652,7 +659,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             if(check.man(rep, verbose=FALSE)$mantime){
                 abline(v=c(rep$man[[1]]$inp$maninterval), col="grey", lty=1, lwd=1)
             }
-            add.manlines(rep, 'logB', plot.legend=qlegend)
+            add.manlines(rep, 'logB', plot.legend=qlegend, verbose=verbose)
         }else{
             lines(inp$time[inp$indpred], Best[inp$indpred,2]/scal, col='blue', lty=3)
         }
@@ -700,6 +707,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
 #' @param lineat Draw horizontal line at this y-value.
 #' @param xlab Label of x-axis.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
 #'
 #' @details Plots estimated B/Bmsy.
 #'
@@ -722,7 +730,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
 #' @export
 plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL,
                             plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time',
-                            stamp=get.version()){
+                            stamp=get.version(), verbose=TRUE){
     check.rep(rep)
     if (!'sderr' %in% names(rep)){
         manflag <- any(names(rep) == "man")
@@ -799,7 +807,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
                 if(check.man(rep, verbose=FALSE)$mantime){
                     abline(v=rep$man[[1]]$inp$maninterval, col="grey", lty=1, lwd=1)
                 }
-                add.manlines(rep, 'logBBmsy', plot.legend=qlegend)
+                add.manlines(rep, 'logBBmsy', plot.legend=qlegend, verbose=verbose)
             }else{
                 lines(inp$time[inp$indpred], BB[inp$indpred,2], col='blue', lty=3)
             }
@@ -1064,6 +1072,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
 #' @param rel.axes Plot secondary y-axis contatning relative level of F.
 #' @param rel.ci Plot confidence interval for relative level of F.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
 #'
 #' @details Plots estimated fishing mortality with Fmsy and associated
 #'     confidence interval.
@@ -1087,7 +1096,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
 #' @export
 plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', ylim=NULL,
                         plot.obs=TRUE, qlegend=TRUE, xlab='Time', ylab=NULL, rel.axes=TRUE,
-                        rel.ci=TRUE, stamp=get.version()){
+                        rel.ci=TRUE, stamp=get.version(), verbose=TRUE){
     check.rep(rep)
     if (!'sderr' %in% names(rep)){
         manflag <- any(names(rep) == "man")
@@ -1232,7 +1241,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             if(check.man(rep, verbose=FALSE)$mantime){
                 abline(v=rep$man[[1]]$inp$maninterval, col="grey", lty=1, lwd=1)
             }
-            add.manlines(rep, 'logF', index.shift=1, plot.legend=qlegend)
+            add.manlines(rep, 'logF', index.shift=1, plot.legend=qlegend, verbose=verbose)
         }else{
             if (!absflag) lines(timep, clp, col=maincol, lty=2)
             lines(timep, Fp, col=maincol, lty=3)
@@ -1262,6 +1271,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
 #' @param lineat Draw horizontal line at this y-value.
 #' @param xlab Label of x-axis.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
 #'
 #' @details Plots estimated fishing mortality with Fmsy and associated
 #'     confidence interval.
@@ -1285,7 +1295,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
 #' @export
 plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality', ylim=NULL,
                             plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time',
-                            stamp=get.version()){
+                            stamp=get.version(), verbose=TRUE){
     check.rep(rep)
     if (!'sderr' %in% names(rep)){
         manflag <- any(names(rep) == "man")
@@ -1370,7 +1380,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             if(check.man(rep, verbose=FALSE)$mantime){
                 abline(v=rep$man[[1]]$inp$maninterval, col="grey", lty=1, lwd=1)
             }
-            add.manlines(rep, 'logFFmsy', index.shift=1, plot.legend=qlegend)
+            add.manlines(rep, 'logFFmsy', index.shift=1, plot.legend=qlegend, verbose=verbose)
         }else{
             lines(timep, Fp, col=maincol, lty=3)
         if (!flag) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
@@ -1400,11 +1410,17 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
 #' @param labpos Positions of time stamps of start and end points as in pos in text().
 #' @param xlabel Label of x-axis. If NULL not used.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
 #'
-#' @details Plots estimated fishing mortality as a function of biomass together
-#'     with reference points and the prediction for next year given a constant
-#'     F. The equilibrium biomass for F fixed to the current value is also
-#'     plotted.
+#' @details
+#'
+#' Plots estimated fishing mortality as a function of biomass together with
+#' reference points and the prediction for next year given a constant F. The
+#' equilibrium biomass for F fixed to the current value is also plotted.
+#'
+#' The predicted trajectory (or trajectories of different management scenarios)
+#' are only plotted for annnual data.
+#'
 #'
 #' @return Nothing.
 #'
@@ -1415,7 +1431,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
 #'
 #' @export
 plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ext=TRUE, rel.axes=FALSE,
-                         xlim=NULL, ylim=NULL, labpos=c(1, 1), xlabel=NULL, stamp=get.version()){
+                         xlim=NULL, ylim=NULL, labpos=c(1, 1), xlabel=NULL, stamp=get.version(), verbose=TRUE){
     check.rep(rep)
     if (!'sderr' %in% names(rep)){
         #omar <- par()$mar
@@ -1572,7 +1588,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
         } else {
             lines(bbb, fff, col=maincol, lwd=1.5)
             if ('man' %in% names(rep)){
-                add.manlines(rep, 'logF', par2='logB', index.shift=1, plot.legend=man.legend)
+                add.manlines(rep, 'logF', par2='logB', index.shift=1, plot.legend=man.legend, verbose=verbose)
             }else{
                 lines(Best[inp$indpred,2]/bscal, Fest[inp$indpred,2]/fscal, col=maincol, lty=3)
                 Bll <- tail(Best[inp$indpred,2]/bscal, 1)
@@ -1630,29 +1646,57 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
 #' @param xlab Label of x-axis.
 #' @param ylab Label of y-axis.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
 #'
-#' @details Plots observed catch and predictions using the current F and Fmsy.
-#'     The plot also contains the equilibrium catch if the current F is
-#'     maintained.
+#' @details
 #'
-#' If no management scenarios are included in \code{rep$man}, the grey vertical
-#' line corresponds to the time of the last observation. If management scenarios
-#' are included in \code{rep$man}, the prediction and confidence intervals of
-#' the base scenario (\code{rep}) are omitted and instead the projections of the
-#' different management scenarios are drawn in different colours. Dotted lines
-#' of the management scenarios reflect the intermediate period, while solid
-#' lines reflect the management period. Additionally, two vertical lines
-#' correspond to the start and end of the management period.
+#' Plots observed catch and predictions using the current F and Fmsy. The plot
+#' also contains the equilibrium catch if the current F is maintained. If no
+#' management scenarios are included in \code{rep$man}, the grey vertical line
+#' corresponds to the time of the last observation.
 #'
-#' Be aware that potential catch intervals of more a year, e.g. biennial
-#' assessment so that the intermediate period spans two years, or management
-#' period spans two years, are equally split up into annual intervals.
+#' If management scenarios are included in \code{rep$man}, the prediction and
+#' confidence intervals of the base scenario (\code{rep}) are omitted and
+#' instead the projections of the different management scenarios are drawn in
+#' different colours. Generally, dotted lines of the management scenarios
+#' reflect the intermediate period, while solid lines reflect the management
+#' period. The catch of management period which are longer than 1 year are split
+#' up equally into annual intervals. Two vertical lines correspond to the start
+#' and end of the management period, respectively. However, there are special
+#' cases in which there is only one or no vertical line drawn, the catch
+#' trajectories are missing completely, or the line of the catch trajectory is
+#' solid even in the intermediate period. These cases and their implications on
+#' the annual catch plot are described in the following:
 #'
-#' Be aware of the fact that the catches represent intervals, where the length
-#' of the interval is indicated by \code{dtc}, e.g. with \eqn{dtc = 1, C(1990) =
-#' [1990,1990[}. In the plot the catches (and vertical lines) correspond to the
-#' beginning of the catch interval. It might thus seem as if the time of the
-#' vertical lines and the management interval would not align.
+#' \itemize{
+#'
+#' \item{If the management period is shorter than a year, no catch trajectories
+#'  are drawn and there is only one vertical line indicating the start of the
+#'  assessment period.}
+#'
+#' \item{If the management timeline differs between the scenarios in
+#' \code{rep$man}, no vertical lines are drawn as they would be at different
+#' times for each scenario.}
+#'
+#' \item{If the management period cannot be split equally into annual intervals,
+#' e.g. because it is 1.5 years long, the uneven remains are not displayed, in
+#' this example only the catch representative of one year is displayed.
+#' Additionally, the second vertical line indicating the end of the management
+#' period is omitted.}
+#'
+#' \item{If the intermediate period is shorter or longer than a year, e.g. 0.5
+#' or 1.25 years, the lines of the management period start at the time of the
+#' last observation, because the catch in the intermediate period cannot be
+#' aggregated and displayed correctly. Additionally, the first vertical line
+#' indicating the start of the management period is omitted.}
+#'
+#' }
+#'
+#' All catches in SPiCT represent intervals, where the length of the interval is
+#' indicated by \code{dtc}, e.g. with \eqn{dtc = 1, C(1990) = [1990,1990[}. In
+#' the plot the catches (and vertical lines) correspond to the beginning of the
+#' catch interval. It might thus seem as if the time of the vertical lines and
+#' the management interval would not align.
 #'
 #' @return Nothing.
 #'
@@ -1663,7 +1707,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
 #'
 #' @export
 plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='blue',
-                            xlab='Time', ylab=NULL, stamp=get.version()){
+                            xlab='Time', ylab=NULL, stamp=get.version(), verbose=TRUE){
     check.rep(rep)
     if (!'sderr' %in% names(rep)){
         manflag <- any(names(rep) == "man")
@@ -1792,13 +1836,31 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
         lines(repmax$inp$time, MSYvec$msy)
         lines(time, c, col=lcol, lwd=1.5)
         if(manflag){
-            if(check.man(rep, verbose=FALSE)$mantime){
-                manstart <- rep$man[[1]]$inp$maninterval[1]
-                mandiff <- diff(rep$man[[1]]$inp$maninterval)
-                abline(v=c(manstart - mandiff, manstart),
-                       col="grey", lty=1, lwd=1)
+            ## management lines if all scenarios same management times
+            manint <- rep$man[[1]]$inp$maninterval
+            mandiff <- diff(manint)
+            if(mandiff %% 1 != 0){
+                if(verbose) cat("At least part of the catch during the management period cannot be aggregated into annual/seasonal catches.\n")
             }
-            add.manlines(rep, 'logCpred', index.shift=1, plot.legend=qlegend)
+            if(check.man(rep, verbose=FALSE)$mantime){
+                timecpred <- rep$man[[1]]$inp$timeCpred
+                dtcp <- rep$man[[1]]$inp$dtcp
+                ind <- which(timecpred < manint[1] & dtcp <= 1)
+                est <- get.par("logCpred",rep$man[[1]],exp=TRUE)[,2]
+                alo <- annual(timecpred[ind], est[ind]/dtcp[ind], mean)
+                timecpred <- alo$anntime
+                indmax <- which.max(timecpred)
+                dtcp <- diff(c(timecpred, manint[1]))
+                ind <- which(timecpred < manint[1])
+                ind2 <- unique(c(which(dtcp[ind] == 1),indmax))
+                preind <- tail(ind2,1)
+                preman <- timecpred[preind]
+                endman <- preman + manint[1] - timecpred[tail(ind,1)] + max(0,mandiff-1)
+                if(any(dtcp < 1 | dtcp > 1)) preman <- NULL
+                if(mandiff %% 1 != 0) endman <- NULL
+                abline(v=c(preman, endman), col="grey", lty=1, lwd=1)
+            }
+            add.manlines(rep, 'logCpred', index.shift=1, plot.legend=qlegend, verbose=verbose)
         }else{
             if (inp$dtpredc > 0){
                 lines(timep, cp, col=lcol, lty=3)
@@ -2123,6 +2185,8 @@ plotspict.btrend <- function(rep){
 #' @title Plot summarising spict results.
 #'
 #' @param x A result report as generated by running fit.spict.
+#' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
 #' @param ... additional arguments affecting the summary produced.
 #'
 #' @details Create a plot containing the following:
@@ -2172,7 +2236,7 @@ plotspict.btrend <- function(rep){
 #' plot(rep)
 #'
 #' @export
-plot.spictcls <- function(x, stamp=get.version(), ...){
+plot.spictcls <- function(x, stamp=get.version(), verbose=TRUE,...){
     check.rep(x)
     rep <- x
     logax <- FALSE # Take log of relevant axes? default: FALSE
@@ -2190,15 +2254,15 @@ plot.spictcls <- function(x, stamp=get.version(), ...){
             }
             on.exit(par(opar))
             # Biomass
-            plotspict.biomass(rep, logax=logax, stamp='')
+            plotspict.biomass(rep, logax=logax, stamp='',verbose=verbose)
             # F
-            plotspict.f(rep, logax=logax, qlegend=FALSE, stamp='')
+            plotspict.f(rep, logax=logax, qlegend=FALSE, stamp='',verbose=verbose)
             # Catch
-            plotspict.catch(rep, qlegend=FALSE, stamp='')
+            plotspict.catch(rep, qlegend=FALSE, stamp='',verbose=verbose)
             # B/Bmsy
-            plotspict.bbmsy(rep, logax=logax, qlegend=FALSE, stamp='')
+            plotspict.bbmsy(rep, logax=logax, qlegend=FALSE, stamp='',verbose=verbose)
             # F/Fmsy
-            plotspict.ffmsy(rep, logax=logax, qlegend=FALSE, stamp='')
+            plotspict.ffmsy(rep, logax=logax, qlegend=FALSE, stamp='',verbose=verbose)
             # F versus B
             plotspict.fb(rep, logax=logax, plot.legend=TRUE, stamp='')
         } else {
@@ -2832,6 +2896,7 @@ plotspict.growth <- function(rep, logax=FALSE, main='Time-varying growth', ylim=
 #'
 #' @param x A result report as generated by running fit.spict.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
 #' @param ... additional arguments affecting the summary produced.
 #'
 #' @details Create a plot containing the following:
@@ -2869,7 +2934,7 @@ plotspict.growth <- function(rep, logax=FALSE, main='Time-varying growth', ylim=
 #' plot2(rep)
 #'
 #' @export
-plot2 <- function(x, stamp=get.version(), ...){
+plot2 <- function(x, stamp=get.version(), verbose=TRUE,...){
     check.rep(x)
     rep <- x
     logax <- FALSE # Take log of relevant axes? default: FALSE
@@ -2878,11 +2943,11 @@ plot2 <- function(x, stamp=get.version(), ...){
         opar <- par(mfrow=c(2, 2), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
         on.exit(par(opar))
         # B/Bmsy
-        plotspict.bbmsy(rep, logax=logax, stamp='')
+        plotspict.bbmsy(rep, logax=logax, stamp='',verbose=verbose)
         # F/Fmsy
-        plotspict.ffmsy(rep, logax=logax, qlegend=FALSE, stamp='')
+        plotspict.ffmsy(rep, logax=logax, qlegend=FALSE, stamp='',verbose=verbose)
         # Catch
-        plotspict.catch(rep, qlegend=FALSE, stamp='')
+        plotspict.catch(rep, qlegend=FALSE, stamp='',verbose=verbose)
         # F versus B
         plotspict.fb(rep, logax=logax, man.legend=FALSE, stamp='')
 

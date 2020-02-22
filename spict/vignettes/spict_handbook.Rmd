@@ -802,15 +802,18 @@ with a `man` element:
 plot2(rep)
 ```
 
-If any plotting function of the `plotspict.` family is called on SPiCT object
+If any plotting function of the `plotspict.` family is called on a SPiCT object
 which includes management scenarios (`rep$man != NULL`), the prediction and
 confidence intervals of the base scenario (`rep`) are omitted from the plot and
-instead the projections of the different management scenarios are drawn in
+instead the projections of the different management scenarios are displayed in
 different colours. The grey vertical line corresponding to the time of the last
 observation in the standard plots is replaced by two lines which corresponds to
-the start and end of the management interval. In order to go back to the
-previous plots, one can remove the management scenarios (see below) or assign
-the results of the `manage` function to a different object, e.g. `man <-
+the start and end of the management interval. In some cases, there might only be
+one vertical line displayed in the catch plot or the trajectories of the
+scenarios might be missing in the catch plot. Refer to the function
+documentation if that is the case (`help(plotspict.catch)`). In order to go back
+to the previous plots, one can remove the management scenarios (see below) or
+assign the results of the `manage` function to a different object, e.g. `man <-
 manage(rep)` and have both plotting functionalities with `plot(rep)` and
 `plot(man)`.
 
@@ -1031,22 +1034,42 @@ get.TAC(rep, maninterval = c(1990.25, 1991),
         safeguardB = list(limitB = 0.3), verbose = TRUE)
 ```
 
-After comparing the implications of different management scenarios, it might of
-interest to extract an individual scenario for further analyses, plotting, or
-reporting. Individual scenarios can be extracted from the SPiCT object by
-referencing their names or positioning in the list `rep$man`. The extracted
-object is a standard SPiCT object of the class `spictcls`, which allows for
-example to plot trajectories and uncertainties of predicted quantities by:
+After comparing the implications of different management scenarios, it might be
+of interest to extract a specific scenario for further analyses, plotting, or
+reporting. Specific scenarios can be extracted from the SPiCT object by
+referencing their names or positioning in the list `rep$man`, e.g.
+`rep$man[[1]]`. However, care has to be taken, as some scenarios (e.g.
+'constantCatch' or scenarios with a specified catch in the intermediate period)
+might include additional catch observations. Thus, the best way to select
+certain scenarios is by means of the function `man.select`. This function does
+not only allow to change the order of the management scenarios in `rep$man` or
+make a selection of scenarios, but also allows to extract a certain scenario as
+a standard SPiCT object of the class `spictcls`:
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=8, fig.height=7, fig.show='hold'}
-## with index
-rep_scenario2 <- rep$man[[2]]
-## with scenario name
-names(rep$man)
-rep_cc <- rep$man$currentCatch
-## plotted as standard spict object
-plot2(rep_cc)
+## selection by index
+length(repIntPer$man)
+repSelect1 <- man.select(repIntPer, scenarios = c(3,1))
+
+## selection by scenario name
+names(repIntPer$man)
+repSelect2 <- man.select(repIntPer, scenarios = c("currentCatch"))
+
+## selected object as standard spictcls object
+repSelect3 <- man.select(repIntPer, scenarios = c("currentCatch"), spictcls = TRUE)
+
+## Plot objects with selected scenarios
+opar <- par(mfrow=c(3,1))
+plotspict.catch(repSelect1)
+plotspict.catch(repSelect2)
+plotspict.catch(repSelect3)
+par(opar)
 ```
+
+Note the different catch trajectories of the second and third plot. Although, the
+same scenario was selected, the first approach still shows the management-type
+plot, while the second approach (with argument `spictcls = TRUE`) shows the
+default 'spictcls' catch plot with predicted uncertainties.
 
 All management related results can easily be removed from the SPiCT object by
 overwriting the `man` element: `rep$man = NULL` or

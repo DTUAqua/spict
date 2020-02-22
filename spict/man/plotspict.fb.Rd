@@ -15,7 +15,8 @@ plotspict.fb(
   ylim = NULL,
   labpos = c(1, 1),
   xlabel = NULL,
-  stamp = get.version()
+  stamp = get.version(),
+  verbose = TRUE
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ plotspict.fb(
 \item{xlabel}{Label of x-axis. If NULL not used.}
 
 \item{stamp}{Stamp plot with this character string.}
+
+\item{verbose}{Should detailed outputs be provided (default: TRUE).}
 }
 \value{
 Nothing.
@@ -48,10 +51,12 @@ Nothing.
 Plot fishing mortality versus biomass.
 }
 \details{
-Plots estimated fishing mortality as a function of biomass together
-    with reference points and the prediction for next year given a constant
-    F. The equilibrium biomass for F fixed to the current value is also
-    plotted.
+Plots estimated fishing mortality as a function of biomass together with
+reference points and the prediction for next year given a constant F. The
+equilibrium biomass for F fixed to the current value is also plotted.
+
+The predicted trajectory (or trajectories of different management scenarios)
+are only plotted for annnual data.
 }
 \examples{
 data(pol)

@@ -214,7 +214,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Guidelines for the stochastic production model in continuous time (SPiCT)</h1>
 <h4 class="author">T.K. Mildenberger, A. Kokkalis, C.W. Berg</h4>
-<h4 class="date">21 February, 2020</h4>
+<h4 class="date">22 February, 2020</h4>
 
 
 
@@ -268,7 +268,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <ol style="list-style-type: decimal">
 <li><p>The assessment <strong>converged</strong> (<code>fit$opt$convergence</code> equals <span class="math inline">\(0\)</span>).</p></li>
 <li><p>All <strong>variance parameters</strong> of the model parameters are <strong>finite</strong> (<code>all(is.finite(fit$sd)</code>) should be <code>TRUE</code>).</p></li>
-<li><p><strong>No violation of model assumptions</strong> based on one-step-ahead residuals (bias, auto-correlation, normality). This means, that p-values are insignificant (<span class="math inline">\(&lt; 0.05\)</span>), indicated by green titles in the graphs of <code>plotspict.diagnostic(fit)</code>. Slight violations of these assumptions do not necessarily invalidate model results.</p></li>
+<li><p><strong>No violation of model assumptions</strong> based on one-step-ahead residuals (bias, auto-correlation, normality). This means, that p-values are insignificant (<span class="math inline">\(&gt; 0.05\)</span>), indicated by green titles in the graphs of <code>plotspict.diagnostic(fit)</code>. Slight violations of these assumptions do not necessarily invalidate model results.</p></li>
 <li><p><strong>Consistent patterns in the retrospective analysis</strong> (<code>fit &lt;- retro(fit)</code>). This means that there is no tendency of consistent under- or overestimation of the relative fishing mortality (<span class="math inline">\(\frac{F}{F_{MSY}}\)</span>) and relative biomass (<span class="math inline">\(\frac{B}{B_{MSY}}\)</span>) in successive assessment. The retrospective trajectories of those two quantities should be inside the confidence intervals of the base run.</p></li>
 <li><p><strong>Realistic production curve</strong>. The shape of the production curve should not be too skewed (<span class="math inline">\(\frac{B_{MSY}}{K}\)</span> should be between 0.1 and 0.9). Low values of <span class="math inline">\(\frac{B_{MSY}}{K}\)</span> allow for an infinite population growth rate (<code>calc.bmsyk(fit)</code>).</p></li>
 <li><p><strong>High assessment uncertainty</strong> can indicate a lack of contrast in the input data or violation of the ecological model assumptions. The main variance parameters (<code>logsdb</code>, <code>logsdc</code>, <code>logsdi</code>, <code>logsdf</code>) should not be unrealistically high. Confidence intervals for <span class="math inline">\(\frac{B}{B_{MSY}}\)</span> and <span class="math inline">\(\frac{F}{F_{MSY}}\)</span> should not span more than 1 order of magnitude (<code>calc.om(fit)</code>).</p></li>

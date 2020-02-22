@@ -98,7 +98,7 @@ points should be considered for the acceptance of a SPiCT assessment.
 
 3. **No violation of model assumptions** based on one-step-ahead
 residuals (bias, auto-correlation, normality). This means, that
-p-values are insignificant ($< 0.05$), indicated by green titles in
+p-values are insignificant ($> 0.05$), indicated by green titles in
 the graphs of `plotspict.diagnostic(fit)`. Slight violations of these
 assumptions do not necessarily invalidate model results.
 

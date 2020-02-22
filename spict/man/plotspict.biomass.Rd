@@ -15,7 +15,8 @@ plotspict.biomass(
   ylab = NULL,
   rel.axes = TRUE,
   rel.ci = TRUE,
-  stamp = get.version()
+  stamp = get.version(),
+  verbose = TRUE
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ plotspict.biomass(
 \item{rel.ci}{Plot confidence interval for relative level of F.}
 
 \item{stamp}{Stamp plot with this character string.}
+
+\item{verbose}{Should detailed outputs be provided (default: TRUE).}
 }
 \value{
 Nothing.

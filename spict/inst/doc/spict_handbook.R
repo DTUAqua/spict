@@ -377,13 +377,23 @@ get.TAC(rep, maninterval = c(1990.25, 1991),
         safeguardB = list(limitB = 0.3), verbose = TRUE)
 
 ## ---- results='show', message=FALSE, warning=FALSE, fig.width=8, fig.height=7, fig.show='hold'----
-## with index
-rep_scenario2 <- rep$man[[2]]
-## with scenario name
-names(rep$man)
-rep_cc <- rep$man$currentCatch
-## plotted as standard spict object
-plot2(rep_cc)
+## selection by index
+length(repIntPer$man)
+repSelect1 <- man.select(repIntPer, scenarios = c(3,1))
+
+## selection by scenario name
+names(repIntPer$man)
+repSelect2 <- man.select(repIntPer, scenarios = c("currentCatch"))
+
+## selected object as standard spictcls object
+repSelect3 <- man.select(repIntPer, scenarios = c("currentCatch"), spictcls = TRUE)
+
+## Plot objects with selected scenarios
+opar <- par(mfrow=c(3,1))
+plotspict.catch(repSelect1)
+plotspict.catch(repSelect2)
+plotspict.catch(repSelect3)
+par(opar)
 
 ## ---- results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'----
 rep <- man.select(rep, scenarios = NULL)

@@ -1176,6 +1176,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
 
     ## timerange of original observations (required for intermediate catch)
     if(!"lastCatchObs" %in% names(inp)) inp$lastCatchObs <- max(inp$timeC + inp$dtc)
+    if(!"timerangeObs" %in% names(inp)) inp$timerangeObs <- inp$timerange
 
     # Reorder parameter list
     inp$parlist <- list(logm=inp$ini$logm,

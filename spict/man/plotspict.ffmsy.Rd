@@ -13,7 +13,8 @@ plotspict.ffmsy(
   qlegend = TRUE,
   lineat = 1,
   xlab = "Time",
-  stamp = get.version()
+  stamp = get.version(),
+  verbose = TRUE
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ plotspict.ffmsy(
 \item{xlab}{Label of x-axis.}
 
 \item{stamp}{Stamp plot with this character string.}
+
+\item{verbose}{Should detailed outputs be provided (default: TRUE).}
 }
 \value{
 Nothing.
