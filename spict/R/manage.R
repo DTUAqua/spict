@@ -47,8 +47,8 @@
 #'   \item{"2"}{"currentF":  Keep the F of the current year.}
 #'   \item{"3"}{"Fmsy": Fish at Fmsy i.e. F=Fmsy.}
 #'   \item{"4"}{"noF": No fishing, reduce to 1\% of current F.}
-#'   \item{"5"}{"redF25": Reduce F by X\%. Default X = 25.}
-#'   \item{"6"}{"incrF25": Increase F by X\%. Default X = 25.}
+#'   \item{"5"}{"reduceF25": Reduce F by X\%. Default X = 25.}
+#'   \item{"6"}{"increaseF25": Increase F by X\%. Default X = 25.}
 #'   \item{"7"}{"msyHockeyStick": Use ICES MSY hockey-stick advice rule (ICES, 2017).}
 #'   \item{"8"}{"ices": Use ICES MSY 35th hockey-stick advice rule (ICES, 2019).}}
 #'
@@ -109,8 +109,8 @@ manage <- function(rep, scenarios = 'all',
     check.rep(rep)
 
     ## scenarios in index or name
-    scenariosAll <- c("currentCatch", "currentF", "Fmsy", "noF","redF25",
-                      "incrF25","msyHockeyStick","ices")
+    scenariosAll <- c("currentCatch", "currentF", "Fmsy", "noF","reduceF25",
+                      "increaseF25","msyHockeyStick","ices")
     if(all(is.numeric(scenarios))){
         ind <- scenarios %in% 1:8
         if(any(!ind) && verbose) cat("Scenario(s): ", scenarios[which(!ind)],
@@ -410,8 +410,8 @@ sumspict.manage <- function(rep, include.EBinf=FALSE, include.unc=TRUE, timeline
                                                 "currentF" = 'Keep current F',
                                                 "Fmsy" = 'Fish at Fmsy',
                                                 "noF" = 'No fishing',
-                                                "redF25" = 'Reduce F by 25%',
-                                                "incrF25" = 'Increase F by 25%',
+                                                "reduceF25" = 'Reduce F by 25%',
+                                                "increaseF25" = 'Increase F by 25%',
                                                 "msyHockeyStick" = 'MSY hockey-stick rule',
                                                 "ices" = 'ICES advice rule'))))
     rn <- paste0(paste0(seq(length(rn)),". "),rn, "")
