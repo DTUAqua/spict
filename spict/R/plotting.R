@@ -377,9 +377,9 @@ true.col <- function() rgb(1, 165/255, 0, alpha=0.7) # 'orange'
 #' @title Load color of management scenarios.
 #' @return Color vector
 man.cols <- function(){
-    colvec <- c('magenta', 'cyan', 'black', 'green', 'gold', 'darkred',
-                'blue', 'darkorange', 'darkgreen', 'grey40', 'cadetblue3', 'chocolate3',
-                'darkmagenta', 'darkgoldenrod3', 'darkolivegreen3', 'cyan3', 'coral1', 'grey80')
+    colvec <- c('coral1','darkmagenta','cyan3','black','darkgreen',
+                'magenta','gold','green','cadetblue3',
+                'chocolate3', 'darkolivegreen3','cyan','darkred')
     return(rep(colvec, 3))
 }
 
