@@ -98,10 +98,10 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, v
         lines(x, y, col=man.cols()[i], lwd=1.5, ...)
         ## intermediate period
         intdiff <- manint[1] - lastobs
-        if((par != 'logCpred' && intdiff > 0) || (par == 'logCpred' && intdiff == 1)){
+        if((par != 'logCpred' && intdiff > 0) || (par == 'logCpred' && intdiff %% 1 == 0)){
             ind <- which(time >= lastobs & time < manint[1])
             if(par == 'logCpred'){
-                if(intdiff == 1){
+                if(intdiff %% 1 == 0){
                     intinds <- (ind[1] - index.shift):preind
                 }
             }else{
