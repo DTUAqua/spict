@@ -30,6 +30,7 @@ report problems at ([link](https://github.com/DTUAqua/spict/releases)).
 | :--------------- | :-----------: | ---------------------------: |
 |  v 1.0           | v 1.2.7       | Initial version (2019-09-23) |
 |  v 1.1           | v 1.2.8       | Management section added     |
+|  v 1.2           | v 1.3.0       | Adjusted to package update   |
 
 This document provides specific guidelines for the use of the stochastic
 production model in continuous time [SPiCT, @spict] and is divided into three
@@ -98,7 +99,7 @@ points should be considered for the acceptance of a SPiCT assessment.
 3. **No violation of model assumptions** based on one-step-ahead
 residuals (bias, auto-correlation, normality). This means, that
 p-values are insignificant ($> 0.05$), indicated by green titles in
-the graphs of `spictplot.diagnostic(fit)`. Slight violations of these
+the graphs of `plotspict.diagnostic(fit)`. Slight violations of these
 assumptions do not necessarily invalidate model results.
 
 4. **Consistent patterns in the retrospective analysis** (`fit <-
@@ -161,12 +162,12 @@ Be aware that these modifications might cause smaller confidence bands.
 * Use a **prior for the initial depletion level** based on available
 information, FOR EXAMPLE:
 
-    - If evidence or expert knowledge allows to infer that there was low or no
+    - If evidence or expert knowledge allows to infer that there was **low or no**
     exploitation before the beginning of the available data: initial depletion
     level could be assumed to be close to the carrying capacity (**e.g.**
     `inp$priors$logbkfrac <- c(log(0.8),0.5,1)`)
 
-    - If evidence or expert knowledge allows to infer that there was high
+    - If evidence or expert knowledge allows to infer that there was **high**
     exploitation before the beginning of the available data: initial depletion
     level could be assumed to be a certain fraction of the carrying capacity
     (**e.g.** `inp$priors$logbkfrac <- c(log(0.2),0.5,1)`)
@@ -229,8 +230,8 @@ assessments and thus the calculated TAC.
 TAC based on a SPiCT assessment can be calculated using the `get.TAC()` function
 within the spict package in R, where the function arguments allow to use any of
 the above described HCRs or combinations thereof. The hockey-stick MSY rule with
-35th percentile rules recommended by @wklifeix can be applied by `get.TAC.ices`
-which calls `get.TAC` with required settings.
+the 35th percentile as recommended by @wklifeix can be applied by `get.TAC(rep,
+fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35), breakpointB=0.5)`.
 
 
 ## References

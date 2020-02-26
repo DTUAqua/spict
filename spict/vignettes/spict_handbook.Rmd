@@ -1,6 +1,6 @@
 ---
-title: "Manual for the Stochastic Production model in Continuous Time (SPiCT)"
-author: "Martin W. Pedersen, Alexandros Kokkalis, Casper W. Berg"
+title: "Handbook for the Stochastic Production model in Continuous Time (SPiCT)"
+author: "Martin W. Pedersen, Alexandros Kokkalis, Tobias K. Mildenberger, Casper W. Berg"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   rmarkdown::html_vignette:
@@ -12,7 +12,7 @@ output:
     keep_tex: false
 bibliography: bibliography.bib
 vignette: >
-  %\VignetteIndexEntry{SPiCT Manual}
+  %\VignetteIndexEntry{SPiCT Handbook}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -66,6 +66,16 @@ inp$dtc
 ```
 
 It is important to specify `dtc` if the default assumption is not fulfilled.
+
+Note that the index observations for all data sets analysed in @polacheck1993
+represent commercial CPUE data and the respective times (`inp$timeI`) should
+thus correspond to the middle of the year, e.g. 1988.50, rather than the
+beginning of the year, e.g. 1988.00. The 'incorrect' times of the commercial
+CPUE observations were kept only for reasons of consistency regarding previous
+studies using models which were not implemented in 'continuous time'. We
+emphasise the importance of correct times of the index observations, which
+should most accurately correspond to the timing of the survey or to the middle
+of the year in case of commercial CPUE.
 
 ## Plotting data
 \label{pldat}
@@ -670,91 +680,403 @@ Robust estimation is implemented using a mixture of light-tailed and a heavy-tai
 
 ## Forecasting and management scenarios
 
-To make a catch forecast a forecast interval needs to be specified. This is done by specifying the start of the interval (`inp$timepredc`) and the length of the interval in years (`inp$dtpredc`). For example, if a forecast of the annual catch of 2018 is of interest, then `inp$timepredc = 2018` and `inp$dtpredc = 1`. In addition to the forecast interval a fishing scenario needs to be specified. This is done by specifying a factor (`inp$ffac`) to multiply the current fishing mortality by (i.e. the F at the last time point of the time period where data are available) and the time that management should start (`inp$manstart`). The time point of the reported forecast of biomass and fishing mortality can be controlled by setting `inp$timepredi`. Producing short-term forecasts entails minimal additional computing time.
+All quantities estimated by SPiCT can be forecasted into the future. By default,
+the forecast period starts one time step after the last observation, which can
+be defined by the last index observation or by the end of the last catch or
+effort interval. Forecasting catch, fishing mortality, and biomass is a crucial
+step in fisheries management that allows determining future yields and risk of
+overfishing under current or alternative management scenarios. The following
+provides details to the forecasting and management functionality of SPiCT and
+includes examples based on the South Atlantic albacore data set of
+@polacheck1993, which contains catch and commercial CPUE data from 1967 to 1990.
 
-Forecasts are produced as part of the usual model fitting. To illustrate the procedure, a short example using the South Atlantic albacore dataset of @polacheck1993 containing catch and commercial CPUE data in the interval 1967 to 1989 is presented. The code to obtain the forecasted annual catch in the interval starting 1991 under a management scenario where the fishing pressure is reduced by 25% starting in 1991, and a forecasted index in 1992 is:
+### Forecasting
+Producing short-term forecasts entails minimal additional computing time and is
+part of the usual model fitting with SPiCT. The default settings can be altered
+by specifying the start and end of the forecast interval with the argument
+`maninterval` (= 'management interval'). For example, if a one year forecast of
+the catch of 2021 is of interest, then `maninterval` is set to represent the
+start and end of the forecast interval: `c(2021,2022)`. In addition to the
+forecast interval a fishing scenario can to be specified. This is done by
+specifying a factor (`ffac`) to multiply the fishing mortality at the start of
+the forecast period by. By default, the fishing mortality is unaltered and
+projected forward maintaining potential seasonal patterns. The time point of
+the forecasted biomass and fishing mortality can be controlled by setting
+`maneval` (= 'management evaluation'). The code to obtain the forecasted annual
+catch in the interval starting 1990 under a management scenario where the
+fishing pressure is reduced by 25% starting in 1990, and the time point of
+forecasted biomass and fishing mortality in 1991 is:
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
-library(spict)
-data(pol)
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
 inp <- pol$albacore
-inp$manstart <- 1991
-inp$timepredc <- 1991
-inp$dtpredc <- 1
-inp$timepredi <- 1992
+inp$maninterval <- c(1990,1991)
+inp$maneval <- 1991
 inp$ffac <- 0.75
-res <- fit.spict(inp)
+rep <- fit.spict(inp)
 ```
-
 To specifically show forecast results use
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
-sumspict.predictions(res)
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+sumspict.predictions(rep)
 ```
 
-This output is also shown when using `summary(res)`. The results can be plotted using `plot(res)`, however to visualise the change in forecasted fishing mortality and associated change in forecasted catch more clearly we use
+These predictions are also shown when using `summary(rep)` and as with any spict
+object the results can be plotted using `plot(rep)`. Here, however, we use a
+selection of 4 graphs to visualise the change in forecasted fishing mortality
+and associated change in forecasted catch more clearly:
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
-par(mfrow=c(2, 2), mar=c(4, 4.5, 3, 3.5))
-plotspict.bbmsy(res)
-plotspict.ffmsy(res, qlegend=FALSE)
-plotspict.catch(res, qlegend=FALSE)
-plotspict.fb(res, man.legend=FALSE)
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=8, fig.height=7, fig.show='hold'}
+plot2(rep)
 ```
 
-Note in the plot that the decrease in fishing pressure results in a constant biomass as opposed to the expected decrease if fishing effort had remained constant.
+The dotted lines in the graph represent the predicted quantities for the forecast
+interval. Note the clear drop and subsequent constant fishing mortality
+representing the 25% reduction in fishing pressure as set with `ffac`. The
+decrease in fishing pressure results in constant (slightly increasing) biomass
+as opposed to the expected decrease if fishing effort had remained constant. The
+larger confidence intervals indicate the larger uncertainty associated with
+model predictions without data. Setting `ffac` (or `fcon` for changing the
+fishing mortality by an absolute value instead of a factor) in the input list
+affects any SPiCT fit with this input list. This can be reversed back to the
+default (continuing the F process) by setting `inp$ffac <- NULL`. In the
+following section, we introduce a range of different functions which make the
+exploration of different F factors and other management strategies more
+straight-forward and do not affect the fitted SPiCT object or its input list.
 
-### Management scenarios
 
-The package has a function that runs several predefined management scenarios, which can be presented in a forecast table. To perform the calculations required to produce the forecast table run:
+### Management
+In addition to manually changing the forecast period and fishing factor as
+described above, SPiCT includes a wide range of functions related to fisheries
+management. The `manage` function applies 8 different management scenarios and
+allows to explore the effect of different management strategies on the
+recommended Total Allowable Catch (TAC), or predicted fishing mortality or
+biomass. The scenarios include advice rules such as constant catch, no fishing
+or the current advice rule recommended by the export group for data limited
+fisheries management in ICES [@wklifeix]. The results of this function are
+appended to the `spictcls` object, thus the application is straight-forward:
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
-res <- manage(res)
-```
-
-where `res` is the result of `fit.spict()` from the code above. Then, the results can be summarised (and extracted) by running:
-
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
-df <- mansummary(res)
-```
-
-Then, `df` is a data frame with each line containing a line of the output
-
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
-head(df)
-```
-
-The resulting biomass, fishing mortality and catch of the management scenarios are included in the standard plots
-
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
-par(mfrow=c(2, 2), mar=c(4, 4.5, 3, 3.5))
-plotspict.bbmsy(res)
-plotspict.ffmsy(res, qlegend=FALSE)
-plotspict.catch(res, qlegend=FALSE)
-plotspict.fb(res, man.legend=FALSE)
-```
-
-To obtain results for several forecast horizons without having to rerun the model each time it is required to set `inp$timepredc` equal to the longest horizon of interest. For example
-
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
 inp <- pol$albacore
-inp$timepredc <- 1991
-res <- fit.spict(inp)
-res <- manage(res)
+rep <- fit.spict(inp)
+rep <- manage(rep)
 ```
 
-Then the management table for 1990 is:
+where `rep` is the result of `fit.spict()` from the code above. The `spictcls`
+object fitted in each scenario is stored in a list called `man` within `rep`.
+The argument `scenarios` allows you to limit the number of scenarios to be run
+by indicating scenario numbers, e.g. `scenarios = c(1,5,2,8)`, or scenario
+names, e.g. `scenarios = c("noF", "ices", "incrF25")`. The list of all possible
+management scenarios included in the `manage` function with index and name are:
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
-mansummary(res, ypred=1, include.unc = FALSE)
+\begin{enumerate}
+   \item \textbf{currentCatch}: Keep the catch of the current year (i.e. the last observed catch).
+   \item \textbf{currentF}:  Keep the F of the current year.
+   \item \textbf{Fmsy}: Fish at Fmsy i.e. F=Fmsy.
+   \item \textbf{noF}: No fishing, reduce to 1\% of current F.
+   \item \textbf{reduceF25}: Reduce F by 25\%.
+   \item \textbf{increaseF25}: Increase F by 25\%,
+   \item \textbf{msyHockeyStick}: Use ICES MSY hockey-stick advice rule [@msycat34].
+   \item \textbf{ices}: Use ICES MSY 35th hockey-stick advice rule [@wklifeix].
+\end{enumerate}
+
+More information about these advice rules and other functionality of the
+`manage` function can be found in the function documentation (`?manage`).
+
+The results of the management scenarios can be summarised by:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+sumspict.manage(rep)
 ```
 
-and for 1991 is:
+The summary function prints a timeline as well as the predicted catch during the
+management interval and absolute and relative biomass and fishing mortality at
+the management evaluation time for each scenario. Additionally, the quantities
+'`perc.dB`' and '`perc.dF`' show the percentage change in biomass and fishing
+mortality from the start to the end of the management period for each management
+scenario, respectively. The implications of the different management scenarios
+can also be shown graphically by calling the `plot` function or any plotting
+function of the `plotspict.` family (e.g. `plotspict.ffmsy`) on a spict object
+with a `man` element:
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
-mansummary(res, ypred=2, include.unc = FALSE)
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=8, fig.height=7, fig.show='hold'}
+plot2(rep)
 ```
 
+If any plotting function of the `plotspict.` family is called on a SPiCT object
+which includes management scenarios (`rep$man != NULL`), the prediction and
+confidence intervals of the base scenario (`rep`) are omitted from the plot and
+instead the projections of the different management scenarios are displayed in
+different colours. The grey vertical line corresponding to the time of the last
+observation in the standard plots is replaced by two lines which corresponds to
+the start and end of the management interval. In some cases, there might only be
+one vertical line displayed in the catch plot or the trajectories of the
+scenarios might be missing in the catch plot. Refer to the function
+documentation if that is the case (`help(plotspict.catch)`). In order to go back
+to the previous plots, one can remove the management scenarios (see below) or
+assign the results of the `manage` function to a different object, e.g. `man <-
+manage(rep)` and have both plotting functionalities with `plot(rep)` and
+`plot(man)`.
+
+#### Assessment and intermediate period
+Besides defining the assessment period in the input data as shown above, it can
+also be changed in the `manage` function directly using the argument
+`maninterval`. The management period or interval can correspond to any period
+from a fraction of a year to spanning over several years (see below for more
+examples of variable assessment periods). To visualise the management period the
+function `man.timeline` can be applied to an input list:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+man.timeline(inp)
+```
+
+or to a fitted spict object:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+man.timeline(rep)
+```
+
+As the output shows, the management period period starts right after the time of
+the last observation, in this example in 1990. In reality, however, there is
+often a lag between the data and management period. In fact, the assessment is
+often performed within the gap year and the management scenarios are supposed to
+start at the beginning of the following year. Thus, it makes sense to
+distinguish the intermediate period from the management period. For the albacore
+data set we could assume a management period starting in 1991, which would
+change the time line as follows:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+inp$maninterval <- c(1991,1992)
+man.timeline(inp)
+```
+As can be seen, the timeline includes an additional section called
+'Intermediate' referring to the intermediate period. Management scenarios with
+an intermediate period from 1990 to 1991 and an assessment period can thus be
+specified for the albacore data set with:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+repIntPer <- manage(rep, scenarios = c(1,2),
+                    maninterval = c(1991,1992), maneval = 1992)
+plotspict.catch(repIntPer)
+```
+
+It is important to note that defining a management interval a few time steps
+after the time of the last catch observation requires the model to make an
+assumption about the fishing mortality during the intermediate period. By
+default, SPiCT continues the fishing mortality process in the intermediate
+period, i.e. the fishing mortality corresponds to the estimated F at the time
+step of the last observation and the estimated seasonal F process. However, in
+some cases it might be meaningful to assume a certain catch during this period
+rather than continuing the F process. This might be in particular relevant when
+information about the catch in the intermediate period is available, for example
+in form of a TAC which was recommended and implemented the year before.
+Therefore, a specific catch can be specified for the intermediate period using
+the argument `intermediatePeriodCatch`.
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=9, fig.height=5, fig.show='hold'}
+repIntPerC <- manage(rep, scenarios=c(8), maninterval = c(1991,1992), intermediatePeriodCatch = 20)
+par(mfrow=c(1,2))
+plotspict.biomass(repIntPerC)
+plotspict.catch(repIntPerC)
+```
+As the graph shows, the catch in the intermediate period has been set to 20t
+(year 1990). Dotted lines of the management scenarios reflect the intermediate
+period, while solid lines reflect the management period. Be aware that the
+vertical bars indicating the start and end of the management period might seem
+off by a year for the catch plot, however, they correspond to the timing of the catch observations
+which are drawn at the beginning of the catch interval they refer to.
+
+Note that the specified catch corresponds to the complete intermediate period,
+which might be a year, but could also be quarter of a year or 3 years depending
+on the time of the last observation and the start of the management period (see
+below for examples with variable intermediate periods). Note further, that the
+catch used for the scenario 'currentCatch' is the last observed catch even
+though a certain catch is provided in the intermediate period. The argument
+`intermediatePeriodCatchList` allows to specify any number of catch
+'observations' corresponding to any interval during the intermediate period. It
+is a list with the elements 'obsC', 'timeC', 'dtc' and the optional element
+'stdevfacC' (which is equal to 1 if not provided). Find more information about
+this and related arguments in the documentation of the `manage` function.
+
+#### Custom management scenarios
+The default management scenarios included in the `manage` function are a
+selection of advice rules that are relevant to managers and stakeholders, in
+particular, based on our experience with stocks managed by ICES. However, there
+is no limitation in terms of custom advice rules and management scenarios. The
+function `add.man.scenario` allows to define a wide range of management
+scenarios and creates a new spict object, which can easily be added to exiting
+scenarios in `rep$man` (contrary to `manage` which overwrites all scenarios in
+`rep$man`). For example, to add an additional management scenario to `repIntPer`
+which increases fishing mortality by 50%:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+repIntPer <- add.man.scenario(repIntPer, ffac = 1.5)
+sumspict.manage(repIntPer)
+plotspict.f(repIntPer)
+```
+
+Note that the default name of a scenario 'customScenario_1' was used for this
+management scenario, where '1' represents the number of scenarios in `rep$man`
+with this default label. By using the argument `scenarioTitle` you can specify
+any label for your scenario. For example, to define a scenario that reduces the
+last observed catch by 64% and is labelled 'reduced_catch':
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+repIntPer <- add.man.scenario(repIntPer, cfac = 0.64,
+                              scenarioTitle = "reduced_catch")
+names(repIntPer$man)
+```
+
+Be aware that management scenarios in the list `rep$man` can be overwritten if a
+scenario with the specified `scenarioTitle` is already present in the list. A
+few important arguments of the `add.man.scenario` function to customise
+management scenarios are:
+
+  * __ffac__: Factor to multiply current fishing mortality by.
+  * __cfac__: Factor to multiply current catch by.
+  * __breakpointBBmsy__: Breakpoint in terms of $B/B_{MSY}$ for the hockey-stick
+    HCR. By default no breakpoint is assumed.
+  * __safeguardB__: List defining an optional precautionary buffer by means of a
+    biomass reference level relative to $B/B_{MSY}$ (`limitB`) and the risk
+    aversion probability (`prob`):
+    * __limitB__: Reference level for the evaluation of the predicted biomass
+    defined as fraction of $B/B_{MSY}$. By default the PA buffer is not used.
+    Theoretically, any value smaller than 1 is meaningful, but an ICES
+    recommended value would be 30% `safeguardB$limitB = 0.3` @[wklifeiv].
+    * __prob__: Risk aversion probability of the predicted biomass relative to
+    specified reference level (`limitB`) for all rules with PA buffer. The
+    default value is 0.95 as recommended by [@wklifeix].
+  * __fractiles__: List defining the fractiles of the 3 distributions of `catch`,
+    `bbmsy`, and `ffmsy`:
+    * __catch__: Fractile of the predicted catch distribution.
+    * __bbmsy__: Fractile of the $B/B_{MSY}$ distribution.
+    * __ffmsy__: Fractile of the $F/F_{MSY}$ distribution.
+
+Note that the fractile for the $F/F_{MSY}$ distribution is actually 1 minus the
+fractile specified. Otherwise, a larger fractile would be more precautionary
+than a smaller one, as the current fishing mortality is divided by the value of
+this distribution ($F_{y+1} = \frac{F_y}{\frac{F_y}{F_{MSY}}}$). This allows a
+consistent setting of fractiles among the different quantities.
+
+The advice rule recommended by @wklifeix can thus be defined by the combination
+of several of these arguments:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+repIntPer <- add.man.scenario(repIntPer, scenarioTitle = "ices",
+                         breakpointB = 0.5,
+                         fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35))
+sumspict.manage(repIntPer)
+```
+
+A detailed description of all arguments of this function can be found in the
+function documentation (run `?add.man.scenario`).
+
+
+#### Variable management periods
+As mentioned above, the management period (and intermediate period) is not
+limited to the length of one year nor to the start of a year, but can span half
+a year, several years or start within any point in time within the year (cf.
+in-year advice @wklifeix). For example, applying one of the default scenarios
+for a half year period starting in the middle of 1990:
+
+first in year advice example
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+repVarPer <- manage(rep, scenarios = c(1,4), maninterval = c(1990.5,1991))
+```
+
+Scenarios with different management intervals can also be combined, although the
+functions will print a note about mismatching periods or assumptions in the
+intermediate period. For example, to add an advice rule which reduces the F
+linearly to zero if the biomass is below 50% of $B/B_{MSY}$ over a management
+interval of 2 years to the previous scenarios:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+repVarPer <- add.man.scenario(repVarPer, maninterval = c(1991, 1993),
+                              breakpointB = 0.5)
+plotspict.f(repVarPer)
+```
+
+Additionally, the summary output will not show percentage differences for F or B
+(`NaN`) and the timeline will only show the period with observations as the
+intermediate and management period differ between the scenarios.
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+sumspict.manage(repVarPer)
+```
+
+#### Advanced management settings and functionality
+Besides selecting scenarios in `manage` using the argument `scenarios`, the
+function `man.select` can be used to change the order of scenarios or omit
+certain or all scenarios included in `rep$man`:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+names(rep$man)
+rep <- man.select(rep, scenarios = c(1,3))
+```
+
+One of the important quantities in fisheries management is the predicted catch
+during the management interval under given fishing mortality, also called Total
+Allowable Catch (TAC). The function `man.tac` allows to extract a list with the
+TAC of all scenarios in `rep$man`:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+man.tac(rep)
+```
+
+Note that the unit of the TAC corresponds to the catch unit specified in
+`inp$catchunit` or the unit of the catch observations if not specified. If the
+user is only interested in the TAC of the specified management scenario (e.f.
+for the implementation in a management strategy framework (MSE)), the function
+`get.TAC` can be used:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+get.TAC(rep, maninterval = c(1990.25, 1991),
+        safeguardB = list(limitB = 0.3), verbose = TRUE)
+```
+
+After comparing the implications of different management scenarios, it might be
+of interest to extract a specific scenario for further analyses, plotting, or
+reporting. Specific scenarios can be extracted from the SPiCT object by
+referencing their names or positioning in the list `rep$man`, e.g.
+`rep$man[[1]]`. However, care has to be taken, as some scenarios (e.g.
+'constantCatch' or scenarios with a specified catch in the intermediate period)
+might include additional catch observations. Thus, the best way to select
+certain scenarios is by means of the function `man.select`. This function does
+not only allow to change the order of the management scenarios in `rep$man` or
+make a selection of scenarios, but also allows to extract a certain scenario as
+a standard SPiCT object of the class `spictcls`:
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=8, fig.height=7, fig.show='hold'}
+## selection by index
+length(repIntPer$man)
+repSelect1 <- man.select(repIntPer, scenarios = c(3,1))
+
+## selection by scenario name
+names(repIntPer$man)
+repSelect2 <- man.select(repIntPer, scenarios = c("currentCatch"))
+
+## selected object as standard spictcls object
+repSelect3 <- man.select(repIntPer, scenarios = c("currentCatch"), spictcls = TRUE)
+
+## Plot objects with selected scenarios
+opar <- par(mfrow=c(3,1))
+plotspict.catch(repSelect1)
+plotspict.catch(repSelect2)
+plotspict.catch(repSelect3)
+par(opar)
+```
+
+Note the different catch trajectories of the second and third plot. Although, the
+same scenario was selected, the first approach still shows the management-type
+plot, while the second approach (with argument `spictcls = TRUE`) shows the
+default 'spictcls' catch plot with predicted uncertainties.
+
+All management related results can easily be removed from the SPiCT object by
+overwriting the `man` element: `rep$man = NULL` or
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
+rep <- man.select(rep, scenarios = NULL)
+```
 
 # Other model settings and options
 

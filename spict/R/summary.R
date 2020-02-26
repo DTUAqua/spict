@@ -72,7 +72,7 @@ summary.spictcls <- function(object, ...){
     }
     # -- Priors --
     resout <- sumspict.priors(rep, ndigits)
-    
+
     # -- Fixed parameters --
     resout <- sumspict.fixedpars(rep, ndigits=ndigits)
     if(!is.null(resout)){
@@ -245,7 +245,7 @@ sumspict.parest <- function(rep, ndigits=8){
             }
             rownames(derout) <- c(alphanms, 'beta', rnms, rcnms, roldnms)
             resout <- rbind(derout, resout)
-        }        
+        }
         if('true' %in% names(rep$inp)){
             colnames(resout) <- c(colnms[1], 'true', colnms[2:3], 'true.in.ci', colnms[4])
         } else {
@@ -430,11 +430,11 @@ sumspict.fixedpars <- function(rep, ndigits=8){
     # Remove random effects
     reinds <- which(nms %in% rep$inp$RE)
     if(length(reinds)>0) nms <- nms[-reinds]
-    # Were index observations used? 
+    # Were index observations used?
     if (sum(rep$inp$nobsI) == 0){
         nms <- nms[-match(c('logsdi', 'logq'), nms)]
     }
-    # Were effort observations used? 
+    # Were effort observations used?
     if (rep$inp$nobsE == 0){
         nms <- nms[-match(c('logsde', 'logqf'), nms)]
     }
@@ -484,7 +484,7 @@ sumspict.fixedpars <- function(rep, ndigits=8){
         vals <- trans2real(vals, nms)
         df <- data.frame(fixed.value=vals)
         df <- round(df, ndigits)
-        
+
         if('true' %in% names(rep$inp)){
             alltrue <- unlist(rep$inp$true)
             inds <- match(nms, names(alltrue))
@@ -519,7 +519,7 @@ trans2real <- function(vals, nms, chgnms=TRUE){
         valnms <- names(vals)
         valnms[logitinds] <- gsub('logit', '', valnms[logitinds])
         valnms[logp1inds] <- gsub('logp1', '', valnms[logp1inds])
-        valnms[loginds] <- gsub('log', '', valnms[loginds])    
+        valnms[loginds] <- gsub('log', '', valnms[loginds])
         names(vals) <- valnms
     }
     return(vals)
@@ -538,7 +538,7 @@ sumspict.priors <- function(rep, ndigits=8){
     cat('\nPriors\n')
     priors <- rep$inp$priors[indso]
     usepriors <- names(priors)
-    
+
     usepriors <- gsub('gamma', '', usepriors) # Strip gamma-text away
     npriors <- length(usepriors)
     # RE priors
@@ -601,7 +601,7 @@ sumspict.diagnostics <- function(rep, ndigits=8) {
     nms <- names(diagn)
     if (FALSE){
         # Exclude Ljung-Box test for now, testing phase
-        inds <- grep('LB', nms) 
+        inds <- grep('LB', nms)
         for (i in inds){
             diagn[[nms[i]]] <- NULL
         }
@@ -637,7 +637,7 @@ sumspict.ini <- function(rep, numdigits) {
     stop("rep should be a spictcls object as it is returned by fit.spict")
   }
   if (is.null(rep$check.ini)) {
-    stop("rep does not contain diagnostics, calculate them using calc.osa.resid.")
+    stop("rep does not contain results of the sensitivity analysis to inital parameter values, calculate them using check.ini.")
   }
   return(rep$check.ini)
 }

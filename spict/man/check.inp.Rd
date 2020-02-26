@@ -4,10 +4,15 @@
 \alias{check.inp}
 \title{Check list of input variables}
 \usage{
-check.inp(inp)
+check.inp(inp, verbose = TRUE, mancheck = TRUE)
 }
 \arguments{
 \item{inp}{List of input variables, see details for required variables.}
+
+\item{verbose}{Should detailed outputs be provided (default: TRUE).}
+
+\item{mancheck}{Should the time-dependent objects in \code{inp} be
+checked against the management time and corrected if necessary? (Default: TRUE)}
 }
 \value{
 An updated list of input variables checked for consistency and with defaults added.
@@ -78,11 +83,15 @@ Example: Biomass prior of 200 in 1985
 - Settings/Options/Preferences
 
 \itemize{
- \item{"inp$dtpredc"}{ Length of catch prediction interval in years. Default: max(inp$dtc). Should be 1 to get annual predictions and 0.25 for quarterly predictions.}
- \item{"inp$timepredc"}{ Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default: Time of last observation. Example: inp$timepredc <- 2012}
- \item{"inp$timepredi"}{ Predict index until this time. Default: Time of last observation. Example: inp$timepredi <- 2012}
+\item{"inp$maninterval"}{ Start and end time of management period. Default: One year interval starting at the beginning of the new year after the last observation. Example: inp$maninterval <- c(2020.25,2021.25)}
+\item{"inp$maneval"}{ Time for the estimation of predicted model states (biomass and fishing mortality), which can be used to evaluate the implications of management scenarios. Default: At the end of the management interval \code{inp$maninterval[2]}. Example: inp$maneval <- 2021.25}
+ \item{"inp$timepredc"}{ Deprecated: Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default depends on \code{inp$maninterval}.}
+ \item{"inp$dtpredc"}{ Deprecated: Length of catch prediction interval in years. Default depends on \code{inp$maninterval}.}
+ \item{"inp$timepredi"}{ Deprecated: Predict index until this time. Default depends on \code{inp$maneval}.}
+\item{"inp$manstart"}{ Deprecated: Start of the management period. Updated argument \code{inp$maninterval}. Default depends on \code{inp$maninterval}.}
  \item{"inp$do.sd.report"}{ Flag indicating whether SD report (uncertainty of derived quantities) should be calculated. For small values of inp$dteuler this may require a lot of memory. Default: TRUE.}
  \item{"inp$reportall"}{ Flag indicating whether quantities derived from state vectors (e.g. B/Bmsy, F/Fmsy etc.) should be calculated by SD report. For small values of inp$dteuler (< 1/32) reporting all may have to be set to FALSE for sdreport to run. Additionally, if only reference points of parameter estimates are of interest one can set to FALSE to gain a speed-up. Default: TRUE.}
+\item{"inp$reportmode"}{ Integer between 0 and 2 determining which objects will be adreported. Default: 0 = all quantities are adreported. Example: inp$reportmode <- 1}
 \item{"inp$reportRel"}{ Flag indicating whether mean 1 standardized states (i.e. B/mean(B), F/mean(F) etc.) should be calculated by SD report. Default: FALSE.}
 \item{"inp$robflagc"}{ Flag indicating whether robust estimation should be used for catches (either 0 or 1). Default: 0.}
  \item{"inp$robflagi"}{ Vector of flags indicating whether robust estimation should be used for indices (either 0 or 1). Default: 0.}
@@ -103,4 +112,5 @@ Example: Biomass prior of 200 in 1985
 \examples{
 data(pol)
 (inp <- check.inp(pol$albacore))
+
 }

@@ -1,0 +1,294 @@
+
+1: check.inp with new functionality
+===================================
+
+1.1: Same defaults of management variables as before (v1.2.8)
+1.1.1: Annual data
+Most management variables have the same default as spict v1.2.8:
+TRUE
+TRUE
+TRUE
+TRUE
+New default for timepredi (at end of maninterval) compared to v1.2.8:
+TRUE
+Consistency between new variables:
+TRUE
+TRUE
+TRUE
+1.1.2: Seasonal data
+Most management variables have the same default as spict v1.2.8:
+TRUE
+TRUE
+TRUE
+New default management interval length for seasonal data (1 year instead of min(dt)) compared to v1.2.8:
+TRUE
+New default for timepredi (at end of maninterval) compared to v1.2.8:
+TRUE
+Consistency between new variables:
+TRUE
+TRUE
+TRUE
+1.2: Changing maninterval - changes old variables & reverse
+1.2.1: Annual data
+1.2.1.1: From new to old
+TRUE
+TRUE
+TRUE
+1.2.1.2: From old to new
+TRUE
+TRUE
+TRUE
+1.2.2: Seasonal data
+1.2.1.1: From new to old
+TRUE
+TRUE
+TRUE
+1.2.1.2: From old to new
+TRUE
+TRUE
+TRUE
+1.3: Adjust all time-dependent variables in check.inp
+Both arguments 'inp$maneval' and 'inp$timepredi' are specified. Only 'inp$maneval' = 1994 will be used! 
+[1] 0
+
+
+1.4: Management variables with shorten.inp
+TRUE
+TRUE
+TRUE
+TRUE
+TRUE
+
+2: check.man.time
+=================
+
+on inp list
+TRUE
+on rep list
+TRUE
+
+3: timeline
+===========
+
+3.1:
+SPiCT timeline:
+                                                  
+      Observations              Management        
+    1967.00 - 1990.00        1990.00 - 1991.00    
+ |-----------------------| ----------------------|
+
+Management evaluation: 1991.00
+NULL
+
+
+3.2:
+SPiCT timeline:
+                                                                          
+      Observations             Intermediate             Management        
+    1967.00 - 1990.00        1990.00 - 1991.00       1991.00 - 1992.00    
+ |-----------------------| ----------------------| ----------------------|
+
+Management evaluation: 1991.00
+NULL
+
+
+3.3:
+SPiCT timeline:
+                                                  
+      Observations              Management        
+    1967.00 - 1990.00        1990.00 - 1991.00    
+ |-----------------------| ----------------------|
+
+Management evaluation: 1991.00
+NULL
+
+
+3.4:
+SPiCT timeline:
+                                                                          
+      Observations             Intermediate             Management        
+    1967.00 - 1990.00        1990.00 - 1991.00       1991.00 - 1992.00    
+ |-----------------------| ----------------------| ----------------------|
+
+Management evaluation: 1991.00
+NULL
+
+
+
+4: manage / summary / scenarios / intermediate periods
+======================================================
+
+4.1: Management periods do not match between scenarios
+$currentCatch
+[1] 25.22
+
+$currentF
+[1] 24.74
+
+$customScenario_1
+[1] 20.3
+
+
+
+
+4.2: Scenario with continue F vs continue C in intermediate period
+$currentCatch
+[1] 25.22
+
+$currentF
+[1] 24.74
+
+$customScenario_1
+[1] 21.25
+
+
+
+
+4.3: New summary function
+SPiCT timeline:
+                                                                          
+      Observations             Intermediate             Management        
+    1967.00 - 1990.00        1990.00 - 1993.00       1993.00 - 1995.00    
+ |-----------------------| ----------------------| ----------------------|
+
+Management evaluation: 1991.00
+
+Predictions
+                      C_1993.00 B_1995.00 F_1995.00 B_1995.00/Bmsy
+1. Keep current catch      50.3      46.2     0.539          0.760
+2. No fishing               0.1      96.2     0.000          1.584
+                      F_1995.00/Fmsy perc.dB perc.dF
+1. Keep current catch          1.451   -11.1    16.2
+2. No fishing                  0.001    85.4     0.1
+
+95% CIs of absolute predictions
+                      C_1993.00.lo C_1993.00.hi B_1995.00.lo B_1995.00.hi
+1. Keep current catch         46.1         54.9         14.4        147.5
+2. No fishing                  0.0          0.2         58.5        158.2
+                      F_1995.00.lo F_1995.00.hi
+1. Keep current catch        0.171        1.704
+2. No fishing                0.000        0.003
+
+95% CIs of relative predictions
+                      B_1995.00/Bmsy.lo B_1995.00/Bmsy.hi F_1995.00/Fmsy.lo
+1. Keep current catch             0.103             5.612              0.17
+2. No fishing                     0.374             6.702              0.00
+                      F_1995.00/Fmsy.hi
+1. Keep current catch            12.356
+2. No fishing                     0.010
+                      C_1993.00 B_1995.00 F_1995.00 B_1995.00/Bmsy
+1. Keep current catch      50.3      46.2     0.539          0.760
+2. No fishing               0.1      96.2     0.000          1.584
+                      F_1995.00/Fmsy perc.dB perc.dF
+1. Keep current catch          1.451   -11.1    16.2
+2. No fishing                  0.001    85.4     0.1
+
+
+4.4: Old summary function still works:
+Observed interval, index:  1967.00 - 1989.00
+Observed interval, catch:  1967.00 - 1990.00
+
+Fishing mortality (F) prediction: 1995.00
+Biomass (B) prediction:           1995.00
+Catch (C) prediction interval:    1993.00 - 1995.00
+
+Predictions
+                      C_1993.00 B_1995.00 F_1995.00 B_1995.00/Bmsy
+1. Keep current catch      50.3      46.2     0.539          0.760
+2. No fishing               0.1      96.2     0.000          1.584
+                      F_1995.00/Fmsy perc.dB perc.dF
+1. Keep current catch          1.451   -11.1    16.2
+2. No fishing                  0.001    85.4     0.1
+
+95% CIs of absolute predictions
+                      C_1993.00.lo C_1993.00.hi B_1995.00.lo B_1995.00.hi
+1. Keep current catch         46.1         54.9         14.4        147.5
+2. No fishing                  0.0          0.2         58.5        158.2
+                      F_1995.00.lo F_1995.00.hi
+1. Keep current catch        0.171        1.704
+2. No fishing                0.000        0.003
+
+95% CIs of relative predictions
+                      B_1995.00/Bmsy.lo B_1995.00/Bmsy.hi F_1995.00/Fmsy.lo
+1. Keep current catch             0.103             5.612              0.17
+2. No fishing                     0.374             6.702              0.00
+                      F_1995.00/Fmsy.hi
+1. Keep current catch            12.356
+2. No fishing                     0.010
+                      C_1993.00 B_1995.00 F_1995.00 B_1995.00/Bmsy
+1. Keep current catch      50.3      46.2     0.539          0.760
+2. No fishing               0.1      96.2     0.000          1.584
+                      F_1995.00/Fmsy perc.dB perc.dF
+1. Keep current catch          1.451   -11.1    16.2
+2. No fishing                  0.001    85.4     0.1
+
+
+50.346.20.5390.761.451-11.116.2
+0.196.201.5840.00185.40.1
+
+5: estimating TAC directly/indirectly
+=====================================
+
+5.1: TAC from all management scenarios in rep
+$currentCatch
+[1] 25.22
+
+$currentF
+[1] 24.74
+
+$customScenario_1
+[1] 21.25
+
+
+
+5.2: TAC for one scenario
+[1] 21.25
+
+
+
+6: Provoke warnings & errors & challenge functionality
+======================================================
+
+6.1: Message when manstart and maninterval used and not equal
+Both arguments 'inp$maninterval' and 'inp$manstart' are specified and differ. Only 'inp$maninterval' = [1992,1993] will be used! 
+[1] TRUE
+
+
+6.2: Message when timepredc and maninterval used and not equal
+Both arguments 'inp$maninterval' and 'inp$timepredc' are specified and differ. Only 'inp$maninterval' = [1992,1993] will be used! 
+[1] TRUE
+
+
+6.3: Message when timepredi and maneval used and not equal
+Both arguments 'inp$maneval' and 'inp$timepredi' are specified. Only 'inp$maneval' = 1992 will be used! 
+[1] TRUE
+
+
+6.4: Maninterval does not match dteuler time steps
+Specified management interval does not match to any time step. Management variables are overwritten and 'inp$maninterval' = [1991.5625, 1992] will be used!
+[1] TRUE
+
+
+6.5: Maninterval smaller than dteuler
+[1] TRUE
+
+
+6.6: Warning message when manstart larger than timepredc
+[1] TRUE
+
+
+6.7: manstart smaller than timepredc
+Both arguments 'inp$maninterval' and 'inp$manstart' are specified and differ. Only 'inp$maninterval' = [1992,1993] will be used! 
+[1] TRUE
+
+
+TRUE
+TRUE
+6.8: Not all variables provided
+Error:Specify all three variables: inp$timepredc, inp$dtpredc, and inp$manstart OR use inp$maninterval!
+6.9: wrong input to functions, creating warnings...
+Error:rep needs to be a fitted spict object!
+
+7: plotting
+===========
+

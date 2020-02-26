@@ -14,7 +14,7 @@ inp$obsC <- catchesQonly$catch
 
 inp$catchunit <- "'000 t"
 
-## BITS 
+## BITS
 lbi<-read.csv("ebcodindexsoft24hard.csv")
 
 midL = read.table("midL.dat")$x
@@ -40,7 +40,7 @@ for(i in 1:nrow(lbi)){
     for(l in 1:length(midL)){
         lbi[i,"ESB"] = lbi[i,"ESB"] + esb2$y[l]*lbi[i,l+1]*lw[1]*midL[l]^lw[2]
         lbi[i,"B"] = lbi[i,"B"] + lbi[i,l+1]*lw[1]*midL[l]^lw[2]
-    }    
+    }
 }
 
 mstd<-function(x) x/mean(x,na.rm=TRUE)
@@ -133,4 +133,4 @@ for(i in 1:length(retr9$retro)){
     ##lines(tt,mvec2[,2])
 }
 
-cat(retr9$retro[[i]]$opt$objective,"\n", file="res.out")
+cat(round(retr9$retro[[i]]$opt$objective,3),"\n", file="res.out")
