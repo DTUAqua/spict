@@ -1,5 +1,5 @@
 ---
-title: "Manual for the Stochastic Production model in Continuous Time (SPiCT)"
+title: "Handbook for the Stochastic Production model in Continuous Time (SPiCT)"
 author: "Martin W. Pedersen, Alexandros Kokkalis, Tobias K. Mildenberger, Casper W. Berg"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -12,7 +12,7 @@ output:
     keep_tex: false
 bibliography: bibliography.bib
 vignette: >
-  %\VignetteIndexEntry{SPiCT Manual}
+  %\VignetteIndexEntry{SPiCT Handbook}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---

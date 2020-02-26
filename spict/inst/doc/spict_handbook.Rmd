@@ -1,5 +1,5 @@
 ---
-title: "Manual for the Stochastic Production model in Continuous Time (SPiCT)"
+title: "Handbook for the Stochastic Production model in Continuous Time (SPiCT)"
 author: "Martin W. Pedersen, Alexandros Kokkalis, Tobias K. Mildenberger, Casper W. Berg"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -12,7 +12,7 @@ output:
     keep_tex: false
 bibliography: bibliography.bib
 vignette: >
-  %\VignetteIndexEntry{SPiCT Manual}
+  %\VignetteIndexEntry{SPiCT Handbook}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -773,8 +773,8 @@ management scenarios included in the `manage` function with index and name are:
    \item \textbf{currentF}:  Keep the F of the current year.
    \item \textbf{Fmsy}: Fish at Fmsy i.e. F=Fmsy.
    \item \textbf{noF}: No fishing, reduce to 1\% of current F.
-   \item \textbf{redF25}: Reduce F by 25\%.
-   \item \textbf{incrF25}: Increase F by 25\%,
+   \item \textbf{reduceF25}: Reduce F by 25\%.
+   \item \textbf{increaseF25}: Increase F by 25\%,
    \item \textbf{msyHockeyStick}: Use ICES MSY hockey-stick advice rule [@msycat34].
    \item \textbf{ices}: Use ICES MSY 35th hockey-stick advice rule [@wklifeix].
 \end{enumerate}

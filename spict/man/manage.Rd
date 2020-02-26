@@ -57,8 +57,8 @@ The 8 default scenarios are:
   \item{"2"}{"currentF":  Keep the F of the current year.}
   \item{"3"}{"Fmsy": Fish at Fmsy i.e. F=Fmsy.}
   \item{"4"}{"noF": No fishing, reduce to 1\% of current F.}
-  \item{"5"}{"redF25": Reduce F by X\%. Default X = 25.}
-  \item{"6"}{"incrF25": Increase F by X\%. Default X = 25.}
+  \item{"5"}{"reduceF25": Reduce F by X\%. Default X = 25.}
+  \item{"6"}{"increaseF25": Increase F by X\%. Default X = 25.}
   \item{"7"}{"msyHockeyStick": Use ICES MSY hockey-stick advice rule (ICES, 2017).}
   \item{"8"}{"ices": Use ICES MSY 35th hockey-stick advice rule (ICES, 2019).}}
 
