@@ -676,7 +676,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
             inpout$obsidI[[i]] <- inpin$obsidI[[i]][inds]
         }
         if(!is.null(inpin$stdevfacI)){
-            for(i in 1:length(inpin$obsI)){
+            for(i in 1:length(inpin$stdevfacI)){
                 inpout$stdevfacI[[i]] <- inpin$stdevfacI[[i]][inds]
             }
         }
