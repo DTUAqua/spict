@@ -19,6 +19,7 @@ _region_.tex
 _region_.el
 prv_report.log
 *.gz
+*.zip
 .Rproj.user
 *.Rproj
 vignette_*
