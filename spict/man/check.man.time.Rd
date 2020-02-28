@@ -9,7 +9,7 @@ check.man.time(
   maninterval = NULL,
   maneval = NULL,
   verbose = TRUE,
-  printTimeline = TRUE,
+  printTimeline = FALSE,
   mancheck = TRUE
 )
 }
@@ -29,7 +29,7 @@ NULL.}
 \item{mancheck}{Should the time-dependent objects in \code{inp} be checked
 against the management time and corrected if necessary? (Default: TRUE)}
 
-\item{printTimeLine}{logical; print the management time line (default: TRUE)}
+\item{printTimeLine}{logical; print the management time line (default: FALSE)}
 }
 \value{
 Updated input list or fitted spict object dependent on type of input.
