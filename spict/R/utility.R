@@ -677,6 +677,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
         }
         if(!is.null(inpin$stdevfacI)){
             for(i in 1:length(inpin$stdevfacI)){
+                inds <- get.inds(inpin$timeI[[i]],mintime,maxtime)
                 inpout$stdevfacI[[i]] <- inpin$stdevfacI[[i]][inds]
             }
         }
@@ -871,7 +872,7 @@ retape.spict <- function(rep, inp, verbose = FALSE, dbg = 0, mancheck=TRUE){
     for(i in 1:(length(vars)-1)) check[i] <- identical(length(inpin[[vars[i]]]), length(inpin[[vars[i+1]]]))
     if(verbose && !all(check)) stop("Some vectors in the input list 'inp' do not have the same length. Run 'check.man.time'!")
     ## Make TMB data and object
-    plt <- inpin$parlist
+    plt <- repin$obj$env$parList(repin$opt$par)
     datint <- make.datin(inpin, dbg=dbg)
     objt <- make.obj(datint, plt, inpin, phase=1)
     objt$retape()
