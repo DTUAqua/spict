@@ -71,9 +71,15 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, v
                 mantime <- manint[1]
                 manc <- est[indmanstart]
             }
+            ## aggregate seasonal catches in man
+            if(any(dtcp[indmanstart] < 1)){
+                alo <- annual(time[indmanstart], est[indmanstart]/dtcp[indmanstart], mean)
+                mantime <- alo$anntime
+                manc <- alo$annvec
+            }
             ind <- which(time < manint[1])
             preind <- tail(which(dtcp[ind] == 1),1)
-            ## aggregate seasonal catches
+            ## aggregate seasonal catches before man
             if(any(dtcp[ind] < 1)){
                 alo <- annual(time[ind], est[ind]/dtcp[ind], mean)
                 time <- alo$anntime
@@ -377,7 +383,7 @@ true.col <- function() rgb(1, 165/255, 0, alpha=0.7) # 'orange'
 #' @title Load color of management scenarios.
 #' @return Color vector
 man.cols <- function(){
-    colvec <- c('coral1','darkmagenta','cyan3','black','darkgreen',
+    colvec <- c('darkmagenta','cyan3','darkgreen','coral1','black',
                 'magenta','gold','green','cadetblue3',
                 'chocolate3', 'darkolivegreen3','cyan','darkred')
     return(rep(colvec, 3))
@@ -1241,7 +1247,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             if(check.man(rep, verbose=FALSE)$mantime){
                 abline(v=rep$man[[1]]$inp$maninterval, col="grey", lty=1, lwd=1)
             }
-            add.manlines(rep, 'logF', index.shift=1, plot.legend=qlegend, verbose=verbose)
+            add.manlines(rep, 'logFnotS', index.shift=1, plot.legend=qlegend, verbose=verbose)
         }else{
             if (!absflag) lines(timep, clp, col=maincol, lty=2)
             lines(timep, Fp, col=maincol, lty=3)
@@ -1356,7 +1362,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
                     col=cicol2, border=cicol2)
         }
         if (min(inp$dtc) < 1){ # Plot estimated sub annual F
-            lines(inp$time, FFs[, 2], col=rgb(0, 0, 1, 0.4))
+            lines(inp$time[indest], FFs[indest, 2], col=rgb(0, 0, 1, 0.4))
         }
         if(!manflag) abline(v=inp$time[which(inp$time == inp$timerange[2])],
                                           col='gray')
@@ -1380,11 +1386,11 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             if(check.man(rep, verbose=FALSE)$mantime){
                 abline(v=rep$man[[1]]$inp$maninterval, col="grey", lty=1, lwd=1)
             }
-            add.manlines(rep, 'logFFmsy', index.shift=1, plot.legend=qlegend, verbose=verbose)
+            add.manlines(rep, 'logFFmsynotS', index.shift=1, plot.legend=qlegend, verbose=verbose)
         }else{
             lines(timep, Fp, col=maincol, lty=3)
-        if (!flag) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
-        if (!flag) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
+            if (!flag) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
+            if (!flag) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         }
         abline(h=lineat, col='black')
         if (rep$opt$convergence != 0){
@@ -1819,7 +1825,7 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
         cicol2 <- rgb(0, 0, 1, 0.1)
         lines(time, cl, col=lcol, lwd=1.5, lty=2)
         lines(time, cu, col=lcol, lwd=1.5, lty=2)
-        if(!manflag) abline(v=tail(inp$timeC,1), col='gray')
+        if(!manflag) abline(v=inp$timeC[tail(which(inp$timeC%%1==0),1)], col='gray') ## account for seasonal data
         plot.col(timeo, obs/Cscal, cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
         # Highlight influential index observations
         if ('infl' %in% names(rep) & min(inp$dtc) == 1){
