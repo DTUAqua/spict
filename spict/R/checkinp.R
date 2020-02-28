@@ -785,7 +785,11 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     #    dtcpred <- 1
     #}
     dtcpred <- inp$dtpredc
-    inp$timeCpred <- unique(c(inp$timeC, (seq(tail(inp$timeC,1), inp$timepredc, by=tail(inp$dtc,1))), inp$timepredc))
+    if(inp$timepredc > max(inp$timeC)){
+        inp$timeCpred <- unique(c(inp$timeC, (seq(tail(inp$timeC,1), inp$timepredc, by=tail(inp$dtc,1))), inp$timepredc))
+    }else{ ## for constant catch scenarios which add obs to inp
+        inp$timeCpred <- unique(inp$timeC)
+    }
     inp$nobsCp <- length(inp$timeCpred)
     if( inp$nobsCp > inp$nobsC ){
         ## inp$dtcp <- c(inp$dtc, rep(tail(inp$dtc,1), inp$nobsCp-inp$nobsC-1),dtcpred) ##wrong if int period 0.5yr
