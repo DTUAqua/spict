@@ -13,7 +13,8 @@ get.manC(rep, inp)
 management.}
 }
 \value{
-Sum/fraction of catch observations corresponding to management period
+Table with catches for management period based on last observed
+    catches and corresponding times.
 }
 \description{
 Estimate catch for management period based on last catch observations

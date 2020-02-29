@@ -676,7 +676,8 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
             inpout$obsidI[[i]] <- inpin$obsidI[[i]][inds]
         }
         if(!is.null(inpin$stdevfacI)){
-            for(i in 1:length(inpin$obsI)){
+            for(i in 1:length(inpin$stdevfacI)){
+                inds <- get.inds(inpin$timeI[[i]],mintime,maxtime)
                 inpout$stdevfacI[[i]] <- inpin$stdevfacI[[i]][inds]
             }
         }
@@ -871,7 +872,31 @@ retape.spict <- function(rep, inp, verbose = FALSE, dbg = 0, mancheck=TRUE){
     for(i in 1:(length(vars)-1)) check[i] <- identical(length(inpin[[vars[i]]]), length(inpin[[vars[i+1]]]))
     if(verbose && !all(check)) stop("Some vectors in the input list 'inp' do not have the same length. Run 'check.man.time'!")
     ## Make TMB data and object
-    plt <- inpin$parlist
+    plt <- repin$obj$env$parList(repin$opt$par)
+    ## adjust length of parameters
+    nold <- length(plt$logF)
+    nnew <- length(inpin$ini$logF)
+    var <- c("logF","logB","logmre","SARvec","logu") ## time dependent parameters
+    if(nnew < nold){
+        keep <- 1:nnew
+        for(i in 1:length(var)){
+            if(var[i] == "logu"){
+                plt[[var[i]]] <- plt[[var[i]]][,keep]
+            }else{
+                plt[[var[i]]] <- plt[[var[i]]][keep]
+            }
+        }
+    }else if(nnew > nold){
+        ndiff <- nnew - nold
+        for(i in 1:length(var)){
+            if(var[i] == "logu"){
+                plt[[var[i]]] <- cbind(plt[[var[i]]],
+                                       matrix(plt[[var[i]]][,nold],ncol=ndiff,nrow=dim(plt[[var[i]]])[1]))
+            }else{
+                plt[[var[i]]] <- c(plt[[var[i]]],rep(plt[[var[i]]][nold],ndiff))
+            }
+        }
+    }
     datint <- make.datin(inpin, dbg=dbg)
     objt <- make.obj(datint, plt, inpin, phase=1)
     objt$retape()

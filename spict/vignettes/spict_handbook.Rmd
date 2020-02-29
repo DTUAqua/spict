@@ -962,8 +962,8 @@ of several of these arguments:
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
 repIntPer <- add.man.scenario(repIntPer, scenarioTitle = "ices",
-                         breakpointB = 0.5,
-                         fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35))
+                              breakpointB = 0.5,
+                              fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35))
 sumspict.manage(repIntPer)
 ```
 
@@ -975,10 +975,8 @@ function documentation (run `?add.man.scenario`).
 As mentioned above, the management period (and intermediate period) is not
 limited to the length of one year nor to the start of a year, but can span half
 a year, several years or start within any point in time within the year (cf.
-in-year advice @wklifeix). For example, applying one of the default scenarios
-for a half year period starting in the middle of 1990:
-
-first in year advice example
+in-year advice @wklifeix). For example, applying two default scenarios for a
+half year period starting in the middle of 1990:
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'}
 repVarPer <- manage(rep, scenarios = c(1,4), maninterval = c(1990.5,1991))
@@ -1046,7 +1044,7 @@ not only allow to change the order of the management scenarios in `rep$man` or
 make a selection of scenarios, but also allows to extract a certain scenario as
 a standard SPiCT object of the class `spictcls`:
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=8, fig.height=7, fig.show='hold'}
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=8, fig.height=8, fig.show='hold'}
 ## selection by index
 length(repIntPer$man)
 repSelect1 <- man.select(repIntPer, scenarios = c(3,1))

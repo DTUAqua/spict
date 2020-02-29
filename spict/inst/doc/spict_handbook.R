@@ -350,8 +350,8 @@ names(repIntPer$man)
 
 ## ---- results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'----
 repIntPer <- add.man.scenario(repIntPer, scenarioTitle = "ices",
-                         breakpointB = 0.5,
-                         fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35))
+                              breakpointB = 0.5,
+                              fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35))
 sumspict.manage(repIntPer)
 
 ## ---- results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'----
@@ -376,7 +376,7 @@ man.tac(rep)
 get.TAC(rep, maninterval = c(1990.25, 1991),
         safeguardB = list(limitB = 0.3), verbose = TRUE)
 
-## ---- results='show', message=FALSE, warning=FALSE, fig.width=8, fig.height=7, fig.show='hold'----
+## ---- results='show', message=FALSE, warning=FALSE, fig.width=8, fig.height=8, fig.show='hold'----
 ## selection by index
 length(repIntPer$man)
 repSelect1 <- man.select(repIntPer, scenarios = c(3,1))
