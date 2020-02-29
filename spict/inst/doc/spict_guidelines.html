@@ -214,7 +214,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Guidelines for the stochastic production model in continuous time (SPiCT)</h1>
 <h4 class="author">T.K. Mildenberger, A. Kokkalis, C.W. Berg</h4>
-<h4 class="date">25 February, 2020</h4>
+<h4 class="date">29 February, 2020</h4>
 
 
 
@@ -335,7 +335,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </tbody>
 </table>
 <p>Theoretically, any percentiles could be considered for the three quantities (<span class="math inline">\(C_{y+1}, \frac{B_{y+1}}{B_{MSY B_{trigger}}}, \frac{F_{y}}{F_{MSY}}\)</span>). In the simulation testing done during WKLIFE IX, the same percentile (p) was used for biomass and catch; for fishing mortality the percentile was equal to 100 - p. The results show that across all tested scenarios and harvest control rules, management with the MSY-35 rule leads to high levels of relative yield while retaining the risks at low levels. Higher percentiles than 35th show higher levels of risk while achieving similar levels of relative yield, while lower percentiles show a decrease in yield with small change in risk <span class="citation">(ICES 2019)</span>. It is important to mention that informative priors (lower standard deviations) potentially affect parameter estimates and confidence intervals of SPiCT assessments and thus the calculated TAC.</p>
-<p>TAC based on a SPiCT assessment can be calculated using the <code>get.TAC()</code> function within the spict package in R, where the function arguments allow to use any of the above described HCRs or combinations thereof. The hockey-stick MSY rule with the 35th percentile as recommended by <span class="citation">ICES (2019)</span> can be applied by <code>get.TAC(rep, fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35), breakpointB=0.5)</code>.</p>
+<p>TAC based on a SPiCT assessment can be calculated using the <code>get.TAC()</code> function within the spict package in R, where the function arguments allow to use any of the above described HCRs or combinations thereof. The hockey-stick MSY rule with the 35th percentile as recommended by <span class="citation">ICES (2019)</span> is included as scenario 8 (or ‘ices’) in the <code>manage</code> function, but can also be applied independently of the manage function by <code>get.TAC(rep, fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35), breakpointB=0.5)</code>.</p>
 </div>
 <div id="references" class="section level2 unnumbered">
 <h2>References</h2>

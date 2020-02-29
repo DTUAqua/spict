@@ -873,6 +873,30 @@ retape.spict <- function(rep, inp, verbose = FALSE, dbg = 0, mancheck=TRUE){
     if(verbose && !all(check)) stop("Some vectors in the input list 'inp' do not have the same length. Run 'check.man.time'!")
     ## Make TMB data and object
     plt <- repin$obj$env$parList(repin$opt$par)
+    ## adjust length of parameters
+    nold <- length(plt$logF)
+    nnew <- length(inpin$ini$logF)
+    var <- c("logF","logB","logmre","SARvec","logu") ## time dependent parameters
+    if(nnew < nold){
+        keep <- 1:nnew
+        for(i in 1:length(var)){
+            if(var[i] == "logu"){
+                plt[[var[i]]] <- plt[[var[i]]][,keep]
+            }else{
+                plt[[var[i]]] <- plt[[var[i]]][keep]
+            }
+        }
+    }else if(nnew > nold){
+        ndiff <- nnew - nold
+        for(i in 1:length(var)){
+            if(var[i] == "logu"){
+                plt[[var[i]]] <- cbind(plt[[var[i]]],
+                                       matrix(plt[[var[i]]][,nold],ncol=ndiff,nrow=dim(plt[[var[i]]])[1]))
+            }else{
+                plt[[var[i]]] <- c(plt[[var[i]]],rep(plt[[var[i]]][nold],ndiff))
+            }
+        }
+    }
     datint <- make.datin(inpin, dbg=dbg)
     objt <- make.obj(datint, plt, inpin, phase=1)
     objt$retape()

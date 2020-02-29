@@ -201,6 +201,7 @@ manage <- function(rep, scenarios = 'all',
                                     intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
                                     intermediatePeriodCatchList = intermediatePeriodCatchList,
                                     cfac = 1.0, csdfac = 1.0, verbose = FALSE, mancheck = FALSE)
+
         }
         if (2 %in% indscenarios){
             # 2. Keep current F
@@ -564,7 +565,7 @@ check.man.time <- function(x, maninterval = NULL, maneval = NULL, verbose = TRUE
     varIniNull <- c("logF","logB","logmre","logu")
 
     ## if management interval before last catch observation, adjust maninterval
-    maxtimeC <- inpin$lastCatchObs ## max(inpin$timeC + inpin$dtc)
+    maxtimeC <- max(inpin$timeC + inpin$dtc) ## cannot be lastCatchObs because of shorten.inp
     minint <- min(inpin$maninterval)
     maxint <- max(inpin$maninterval)
     if(minint < maxtimeC){
@@ -1754,7 +1755,7 @@ get.manC <- function(rep, inp){
     lastc <- get.par("logCpred", rep, exp=TRUE)[,2]
     lastc <- lastc[timeCpred < lastobs & timeCpred >= (lastobs-1)]
     lastctime <- timeCpred[timeCpred <= lastobs & timeCpred >= (lastobs-1)]
-    lastcdt <- tail(diff(timeCpred),length(lastc))
+    lastcdt <- tail(diff(timeCpred[timeCpred <= lastobs]),length(lastc))
     lastcdiff <- diff(range(lastctime))
     ## extending vectors for multiannual man intervals
     cdtindvec <- rep(1:length(lastcdt),10)
@@ -1767,7 +1768,7 @@ get.manC <- function(rep, inp){
     ## find closest catch from last catch observations representatiove of full year considering seasonal catches
     lastcTOY <- lastctime[-length(lastctime)] %% 1
     manTOY <- manint[1] %% 1
-    lastcClosest <- which.min(abs(lastcTOY - manTOY))
+    lastcClosest <- which.min(abs(lastcTOY - manTOY))[1]
     ## add last observed catches until time diff is equal or larger than man diff
     while(sum(rep(lastcdt,5)[lastcClosest]) < mandiff)
         lastcClosest <- c(lastcClosest, lastcClosest[max(lastcClosest)] + 1)
@@ -1778,12 +1779,13 @@ get.manC <- function(rep, inp){
     nc <- length(manc)
     ## difference in realised and required man intervals
     mandiffReal <- sum(cdtvec[lastcClosest])
-    diffdiff <- mandiffReal - mandiff
+    diffdiff <- mandiff - mandiffReal ## diffdiff <- mandiffReal - mandiff
     ## correct last catch, which might have overshot required man interval
     manc[nc] <- manc[nc] + manc[nc] * diffdiff
     ## times corresponding to manc
     intint <- manint[1] - lastobs
-    mant <- lastobs + lastcTOY[cdtindvec][ind] + intint
+    if(mandiff > 1) add  <-  seq_len(mandiff) - 1 else add <- 0
+    mant <- lastobs + lastcTOY[cdtindvec][ind] + intint + add
 
     ## return catch for man interval based on last observations and times
     mantab <- cbind(mant,manc)

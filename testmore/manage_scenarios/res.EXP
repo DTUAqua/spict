@@ -33,7 +33,7 @@ MSY hockey-stick rule
 
 MSY hockey-stick rule with PA buffer
 1.1.7:
-[1] 1061.789
+[1] 912.283
 
 
 1.1.8:
@@ -53,11 +53,11 @@ Fishing at Fmsy
 
 Fishing at Fmsy with biomass safeguard
 1.2.3:
-[1] 848.219
+[1] 682.574
 
 
 1.2.4:
-[1] 849.264
+[1] 715.735
 
 
 MSY hockey-stick rule
@@ -84,7 +84,7 @@ Fishing at Fmsy
 1.3.1:
 The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
-[1] 1720.383
+[1] 1714.236
 
 
 1.3.2:
@@ -93,33 +93,33 @@ Fishing at Fmsy with biomass safeguard
 1.3.3:
 The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
-[1] 1198.935
+[1] 1051.909
 
 
 1.3.4:
 The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
-[1] 934.023
+[1] 803.273
 
 
 MSY hockey-stick rule
 1.3.5:
 The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
-[1] 1720.383
+[1] 1714.236
 
 
 1.3.6:
 The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
-[1] 818.395
+[1] 805.9
 
 
 MSY hockey-stick rule with biomass safeguard
 1.3.7:
 The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
-[1] 1720.383
+[1] 1714.236
 
 
 1.3.8:
