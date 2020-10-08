@@ -32,5 +32,5 @@ To install spict from GitHub use
 
 ```
 library(remotes)
-install_github("DTUAqua/spict/spict")            # master branch
+install_github("DTUAqua/spict/spict")
 ```
