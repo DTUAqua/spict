@@ -1496,7 +1496,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
             cl <- numeric()
             class(cl) <- 'try-error'
         }
-        if (class(cl) == 'try-error'){
+        if (class(cl)[1] == 'try-error'){
             cl <- matrix(c(log(Bmsy[2]), log(Fmsy[2])), 1, 2)
         }
         if (min(inp$dtc) < 1){ # Quarterly
