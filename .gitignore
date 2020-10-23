@@ -19,10 +19,10 @@ _region_.tex
 _region_.el
 prv_report.log
 *.gz
+*.zip
 .Rproj.user
 *.Rproj
 vignette_*
-spict/inst/doc
 .Rbuildignore
 Rplots.pdf
 res.out

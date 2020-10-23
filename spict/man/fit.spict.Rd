@@ -4,10 +4,12 @@
 \alias{fit.spict}
 \title{Fit a continuous-time surplus production model to data.}
 \usage{
-fit.spict(inp, dbg = 0)
+fit.spict(inp, verbose = TRUE, dbg = 0)
 }
 \arguments{
 \item{inp}{List of input variables as output by check.inp.}
+
+\item{verbose}{Should detailed outputs be provided (default: TRUE).}
 
 \item{dbg}{Debugging option. Will print out runtime information useful for debugging if set to 1. Will print even more if set to 2.}
 }

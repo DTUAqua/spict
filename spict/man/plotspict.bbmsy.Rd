@@ -13,7 +13,8 @@ plotspict.bbmsy(
   qlegend = TRUE,
   lineat = 1,
   xlab = "Time",
-  stamp = get.version()
+  stamp = get.version(),
+  verbose = TRUE
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ plotspict.bbmsy(
 \item{xlab}{Label of x-axis.}
 
 \item{stamp}{Stamp plot with this character string.}
+
+\item{verbose}{Should detailed outputs be provided (default: TRUE).}
 }
 \value{
 Nothing.
@@ -43,9 +46,19 @@ Plot estimated B/Bmsy.
 }
 \details{
 Plots estimated B/Bmsy.
+
+If no management scenarios are included in \code{rep$man}, the grey vertical
+line corresponds to the time of the last observation. If management scenarios
+are included in \code{rep$man}, the prediction and confidence intervals of
+the base scenario (\code{rep}) are omitted and instead the projections of the
+different management scenarios are drawn in different colours. Dotted lines
+of the management scenarios reflect the intermediate period, while solid
+lines reflect the management period. Additionally, two vertical lines
+correspond to the start and end of the management period.
 }
 \examples{
 data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.bbmsy(rep)
+
 }

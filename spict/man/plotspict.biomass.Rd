@@ -15,7 +15,8 @@ plotspict.biomass(
   ylab = NULL,
   rel.axes = TRUE,
   rel.ci = TRUE,
-  stamp = get.version()
+  stamp = get.version(),
+  verbose = TRUE
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ plotspict.biomass(
 \item{rel.ci}{Plot confidence interval for relative level of F.}
 
 \item{stamp}{Stamp plot with this character string.}
+
+\item{verbose}{Should detailed outputs be provided (default: TRUE).}
 }
 \value{
 Nothing.
@@ -49,9 +52,19 @@ Plot estimated biomass.
 }
 \details{
 Plots estimated biomass, Bmsy with confidence limits.
+
+If no management scenarios are included in \code{rep$man}, the grey vertical
+line corresponds to the time of the last observation. If management scenarios
+are included in \code{rep$man}, the prediction and confidence intervals of
+the base scenario (\code{rep}) are omitted and instead the projections of the
+different management scenarios are drawn in different colours. Dotted lines
+of the management scenarios reflect the intermediate period, while solid
+lines reflect the management period. Additionally, two vertical lines
+correspond to the start and end of the management period.
 }
 \examples{
 data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.biomass(rep)
+
 }

@@ -32,31 +32,146 @@ get.mfrow <- function(n){
 #' @param par The name of the parameter to be plotted.
 #' @param par2 If a second parameter should be used as explanatory variable instead of time.
 #' @param index.shift Shift initial time point by this index.
+#' @param plot.legend Logical; should the legend be plotted?
+#' @param verbose Should detailed outputs be provided (default: TRUE).
 #' @return Nothing
 #' @export
-add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, ...){
-    scenarios <- attr( rep$man, "scenarios" )
+add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, verbose = TRUE, ...){
+    scenarios <- 1:length(rep$man)
     nman <- length(scenarios)
+    errflag <- rep(FALSE,nman)
     for (i in 1:nman){
-        if (par == 'logCpred'){
-            time <- rep$man[[ scenarios[i] ]]$inp$timeCpred
-        } else {
-            time <- rep$man[[ scenarios[i] ]]$inp$time
+        rp <- rep$man[[scenarios[i]]]
+        ip <- rp$inp
+        manint <- ip$maninterval
+        mandiff <- diff(manint)
+        est <- get.par(par, rp, exp=TRUE)[,2]
+        dtcp <- ip$dtcp
+        if(par == 'logCpred'){
+            time <- rp$inp$timeCpred
+            lastobs <- ip$lastCatchObs
+            indlastobs <- which(time == lastobs)
+        }else{
+            time <- rp$inp$time
+            lastobs <- ip$timerangeObs[2]
+            indlastobs <- which(time == lastobs)
         }
-        maninds <- which(time >= rep$inp$timerange[2]) ##rep$inp$manstart)
-        maninds <- (maninds[1] - index.shift):tail(maninds, 1)
-        bman <- get.par(par, rep$man[[ scenarios[i] ]], exp=TRUE)[maninds, 2]
-        if (is.null(par2)){
-            x <- time[maninds]
-        } else {
-            x <- get.par(par2, rep$man[[ scenarios[i] ]], exp=TRUE)[maninds, 2]
+        indmanstart <- which(time >= manint[1])
+        ## manperiod
+        if(par == 'logCpred'){
+            if(mandiff < 1){
+                errflag[i] <- TRUE
+                mantime <- NULL
+                manc <- NULL
+            }else if(mandiff > 1){
+                mantime <- seq(manint[1], manint[2], 1)
+                mantime <- mantime[-length(mantime)]
+                manc <- rep(est[indmanstart] / mandiff, length(mantime))
+            }else{
+                mantime <- manint[1]
+                manc <- est[indmanstart]
+            }
+            ## aggregate seasonal catches in man
+            if(any(dtcp[indmanstart] < 1)){
+                alo <- annual(time[indmanstart], est[indmanstart]/dtcp[indmanstart], mean)
+                mantime <- alo$anntime
+                manc <- alo$annvec
+            }
+            ind <- which(time < manint[1])
+            preind <- tail(which(dtcp[ind] == 1),1)
+            ## aggregate seasonal catches before man
+            if(any(dtcp[ind] < 1)){
+                alo <- annual(time[ind], est[ind]/dtcp[ind], mean)
+                time <- alo$anntime
+                est <- alo$annvec
+                ind <- which(time < manint[1])
+                dtcp <- diff(unique(c(time,manint[1])))
+                preind <- which.max(time[which(dtcp >= 1)])
+            }
+            premantime <- time[preind]
+            premanc <- est[preind]
+            x <- c(premantime,mantime)
+            y <- c(premanc,manc)
+        }else{
+            maninds <- (indmanstart[1] - index.shift):tail(indmanstart,1)
+            if (is.null(par2)){
+                x <- time[maninds]
+            } else {
+                x <- get.par(par2, rp, exp=TRUE)[maninds, 2]
+            }
+            y <- est[maninds]
         }
-        lines(x, bman, col=man.cols()[i], ...)
+        lines(x, y, col=man.cols()[i], lwd=1.5, ...)
+        ## intermediate period
+        intdiff <- manint[1] - lastobs
+        if(intdiff > 0 && (par != 'logCpred' || (par == 'logCpred' && intdiff %% 1 == 0))){
+            ind <- which(time >= lastobs & time < manint[1])
+            if(par == 'logCpred'){
+                if(intdiff %% 1 == 0){
+                    intinds <- (ind[1] - index.shift):preind
+                }
+            }else{
+                intinds <- (ind[1] - index.shift):maninds[1]
+            }
+            if (is.null(par2)){
+                x <- time[intinds]
+            } else {
+                x <- get.par(par2, rp, exp=TRUE)[intinds, 2]
+            }
+            y <- est[intinds]
+            lines(x, y, col=man.cols()[i], lwd=1.5, lty=3)
+        }
     }
-    nouse <- capture.output(nms <- rownames(mansummary(rep, ypred=1, include.unc=FALSE)))
+    ## legend
+    nouse <- capture.output(nms <- rownames(sumspict.manage(rep, include.unc=FALSE, verbose=FALSE)))
     if (plot.legend){
         legend('topleft', legend=nms, lty=1, col=man.cols()[1:nman], bg='white', cex=0.8)
     }
+    ## Note
+    if(errflag && verbose) cat(paste0("The management period of scenario(s): ",
+                                          paste0(names(rep$man)[errflag],collapse=", "),
+                                          " is shorter than 1 year. Thus, the catch cannot be displayed correctly in the annual catch plot.\n"))
+}
+
+
+#' @name get.manlimits
+#' @title Get limts of any parameter considering all spict objects in rep$man
+#' @param rep A result report as generated by running fit.spict.
+#' @param par The name of the parameter to be plotted.
+#' @return plotting limits for all reps in rep$man
+get.manlimits <- function(rep, par){
+    scenarios <- 1:length(rep$man)
+    nman <- length(scenarios)
+    lims <- vector("list",nman)
+    for (i in 1:nman){
+        rp <- rep$man[[ scenarios[i] ]]
+        if (par == 'time'){
+            lims[[i]] <- range(c(rp$inp$time, tail(rp$inp$time, 1) + 0.5))
+        }else{
+            lims[[i]] <- get.par(par, rp, exp=TRUE)[, 2]
+            if(par == "logCpred"){
+                lims[[i]] <- lims[[i]] / c(diff(rp$inp$timeCpred), rp$inp$dtpredc)
+            }
+
+        }
+    }
+    return(range(unlist(lims)))
+}
+
+#' @name get.manmax
+#' @title Get spict object in rep$man with longest time series
+#' @param rep A result report as generated by running fit.spict.
+#' @return rep in rep$man which hast the longest time series
+get.manmax <- function(rep){
+    scenarios <- 1:length(rep$man)
+    nman <- length(scenarios)
+    maxs <- vector("list",nman)
+    for (i in 1:nman){
+        ip <- rep$man[[ scenarios[i] ]]$inp
+        maxs <- max(ip$ns)
+    }
+    repout <- rep$man[[which.max(maxs)[1]]]
+    return(repout)
 }
 
 
@@ -82,7 +197,7 @@ txt.stamp <- function(string = get.version(), cex=0.5, do.flag=NULL) {
         if (string != '' & !is.na(string) & do.flag){
             opar <- par(new = "TRUE", plt = c(0, 1, 0, 1), mfrow=c(1, 1), xpd=FALSE)
             on.exit(par(opar))
-            plot(1, typ='n', xaxt='n', yaxt='n', xlab='', ylab='', bty='n') # Empty plot 
+            plot(1, typ='n', xaxt='n', yaxt='n', xlab='', ylab='', bty='n') # Empty plot
             #opar <- par(yaxt = "s", xaxt = "s")
             on.exit(par(opar))
             plt <- par("plt")
@@ -166,7 +281,7 @@ arrow.line <- function(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"
 #' @return A list containing the annual means and a corresponding time vector.
 #' @export
 annual <- function(intime, vec, type='mean'){
-    anntime <- intime[which(intime %% 1 ==0)]
+    anntime <- intime[which(intime %% 1 == 0)]
     nanntime <- length(anntime)
     nstepvec <- rep(0, nanntime)
     floortime <- floor(intime)
@@ -268,7 +383,9 @@ true.col <- function() rgb(1, 165/255, 0, alpha=0.7) # 'orange'
 #' @title Load color of management scenarios.
 #' @return Color vector
 man.cols <- function(){
-    colvec <- c('magenta', 'cyan', 'black', 'green', 'gold', 'darkred')
+    colvec <- c('darkmagenta','cyan3','darkgreen','coral1','black',
+                'magenta','gold','green','cadetblue3',
+                'chocolate3', 'darkolivegreen3','cyan','darkred')
     return(rep(colvec, 3))
 }
 
@@ -392,7 +509,7 @@ add.col.legend <- function(){
 
 #' @name plotspict.biomass
 #' @title Plot estimated biomass.
-#' @details Plots estimated biomass, Bmsy with confidence limits.
+#'
 #' @param rep A result report as generated by running fit.spict.
 #' @param logax Take log of y-axis? default: FALSE
 #' @param main Title of plot.
@@ -404,16 +521,34 @@ add.col.legend <- function(){
 #' @param rel.axes Plot secondary y-axis contatning relative level of F.
 #' @param rel.ci Plot confidence interval for relative level of F.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
+#'
+#' @details Plots estimated biomass, Bmsy with confidence limits.
+#'
+#' If no management scenarios are included in \code{rep$man}, the grey vertical
+#' line corresponds to the time of the last observation. If management scenarios
+#' are included in \code{rep$man}, the prediction and confidence intervals of
+#' the base scenario (\code{rep}) are omitted and instead the projections of the
+#' different management scenarios are drawn in different colours. Dotted lines
+#' of the management scenarios reflect the intermediate period, while solid
+#' lines reflect the management period. Additionally, two vertical lines
+#' correspond to the start and end of the management period.
+#'
 #' @return Nothing.
+#'
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.biomass(rep)
+#'
 #' @export
 plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NULL,
                               plot.obs=TRUE, qlegend=TRUE, xlab='Time', ylab=NULL,
-                              rel.axes=TRUE, rel.ci=TRUE, stamp=get.version()){
+                              rel.axes=TRUE, rel.ci=TRUE, stamp=get.version(),
+                              verbose=TRUE){
+    check.rep(rep)
     if (!'sderr' %in% names(rep)){
+        manflag <- any(names(rep) == "man")
         ylabflag <- is.null(ylab)
         ylimflag <- !is.null(ylim)
         mar <- c(5.1, 4.3, 4.1, 4.1)
@@ -429,14 +564,25 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
         }
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
+
+        indest <- inp$indest
+        if(manflag){
+            repmax <- get.manmax(rep)
+            indest <- indest[-length(indest)]
+            indxmax <- which(inp$time == inp$timerange[2])
+        }else{
+            repmax <- rep
+            indxmax <- which(inp$time ==  max(inp$time))
+        }
+
         # Biomass plot
-        Best <- get.par('logB', rep, exp=TRUE)
+        Best <- get.par('logB', rep, exp=TRUE)[(1:indxmax),]
         ns <- dim(Best)[1]
         Kest <- get.par('logK', rep, exp=TRUE)
-        Bmsy <- get.par('logBmsy', rep, exp=TRUE)
-        Bmsyvec <- get.msyvec(inp, Bmsy)
+        Bmsy <- get.par('logBmsy', repmax, exp=TRUE)
+        Bmsyvec <- get.msyvec(repmax$inp, Bmsy)[(1:indxmax)]
         qest <- get.par('logq', rep, exp=TRUE)
-        BB <- get.par('logBBmsy', rep, exp=TRUE)
+        BB <- get.par('logBBmsy', rep, exp=TRUE)[(1:indxmax),]
         Bp <- get.par('logBp', rep, exp=TRUE)
         if(!is.null(nrow(Bmsy))) Bmsy <- Bmsy[1,] ## time-varying m leads to several (identical) Bmsy values, drop them
         scal <- 1
@@ -461,28 +607,30 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             }
             ylim[2] <- min(c(ylim[2], 3*max(Best[fininds, 2], unlist(obsI)))) # Limit upper limit
         }
+        xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
+        if(manflag) xlim <- get.manlimits(rep,"time")
         #if (main==-1) main <- 'Absolute biomass'
         if (ylabflag){
             ylab <- expression(B[t])
             ylab <- add.catchunit(ylab, inp$catchunit)
         }
-        plot(inp$time, Best[,2]/scal, typ='n', xlab=xlab, ylab=ylab, main=main, ylim=ylim,
-             xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log)
+        plot(inp$time[1:indxmax], Best[,2]/scal, typ='n', xlab=xlab, ylab=ylab, main=main, ylim=ylim,
+             xlim=xlim, log=log)
         if (rel.axes){
             axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
             mtext(expression(B[t]/B[MSY]), side=4, las=0, line=2.2, cex=par('cex'))
         }
         if (all(is.finite(unlist(Bmsyvec)))){
-            polygon(c(inp$time, rev(inp$time)), c(Bmsyvec$ll,rev(Bmsyvec$ul)),
+            polygon(c(repmax$inp$time, rev(repmax$inp$time)), c(Bmsyvec$ll,rev(Bmsyvec$ul)),
                     col=cicol, border=cicol)
         }
         cicol2 <- rgb(0, 0, 1, 0.1)
-        if (!'yearsepgrowth' %in% names(inp) & rel.ci){
+        if (!'yearsepgrowth' %in% names(inp) && rel.ci){
             polygon(c(inp$time[BBfininds], rev(inp$time[BBfininds])),
                     c(BB[BBfininds, 1], rev(BB[BBfininds, 3]))/scal*Bmsy[2],
                     col=cicol2, border=cicol2)
         }
-        abline(v=inp$time[inp$indlastobs], col='gray')
+        if(!manflag) abline(v=inp$time[inp$indlastobs], col='gray')
         if (plot.obs){
             for (i in nindexseq){
                 plot.col(inp$timeI[[i]], inp$obsI[[i]]/qest[inp$mapq[i], 2], pch=i,
@@ -513,25 +661,33 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             abline(h=inp$true$Bmsy, col='black', lty=3)
         }
         lines(inp$time[inp$indest], Best[inp$indest,2]/scal, col='blue', lwd=1.5)
-        lines(inp$time[inp$indpred], Best[inp$indpred,2]/scal, col='blue', lty=3)
-        lines(inp$time, Bmsyvec$msy, col='black')
+        if (manflag){
+            if(check.man(rep, verbose=FALSE)$mantime){
+                abline(v=c(rep$man[[1]]$inp$maninterval), col="grey", lty=1, lwd=1)
+            }
+            add.manlines(rep, 'logB', plot.legend=qlegend, verbose=verbose)
+        }else{
+            lines(inp$time[inp$indpred], Best[inp$indpred,2]/scal, col='blue', lty=3)
+        }
+        lines(repmax$inp$time, Bmsyvec$msy, col='black')
         # B CI
         #if (inp$phases$logq>0){
         lines(inp$time[inp$indest], Best[inp$indest,1]/scal, col=4, lty=2, lwd=1.5)
         lines(inp$time[inp$indest], Best[inp$indest,3]/scal, col=4, lty=2, lwd=1.5)
-        lines(inp$time[inp$indpred], Best[inp$indpred,1]/scal, col=4, lty=2)
-        lines(inp$time[inp$indpred], Best[inp$indpred,3]/scal, col=4, lty=2)
+        if(!manflag){
+            lines(inp$time[inp$indpred], Best[inp$indpred,1]/scal, col=4, lty=2)
+            lines(inp$time[inp$indpred], Best[inp$indpred,3]/scal, col=4, lty=2)
+        }
         #}
         # B/Bmsy CI
         cicol3 <- rgb(0, 0, 1, 0.2)
         if (!'yearsepgrowth' %in% names(inp)){
             lines(inp$time[inp$indest], BB[inp$indest,1]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
             lines(inp$time[inp$indest], BB[inp$indest,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
-            lines(inp$time[inp$indpred], BB[inp$indpred,1]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
-            lines(inp$time[inp$indpred], BB[inp$indpred,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
-        }
-        if ('man' %in% names(rep)){
-            add.manlines(rep, 'logB', plot.legend=qlegend)
+            if(!manflag){
+                lines(inp$time[inp$indpred], BB[inp$indpred,1]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
+                lines(inp$time[inp$indpred], BB[inp$indpred,3]/scal*Bmsy[2], col=cicol3, lty=1, lwd=1)
+            }
         }
         if ('yearsepgrowth' %in% names(inp)){
             abline(v=inp$yearsepgrowth, col=3)
@@ -547,7 +703,7 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
 
 #' @name plotspict.bbmsy
 #' @title Plot estimated B/Bmsy.
-#' @details Plots estimated B/Bmsy.
+#'
 #' @param rep A result report as generated by running fit.spict.
 #' @param logax Take log of y-axis? default: FALSE
 #' @param main Title of plot.
@@ -557,18 +713,36 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
 #' @param lineat Draw horizontal line at this y-value.
 #' @param xlab Label of x-axis.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
+#'
+#' @details Plots estimated B/Bmsy.
+#'
+#' If no management scenarios are included in \code{rep$man}, the grey vertical
+#' line corresponds to the time of the last observation. If management scenarios
+#' are included in \code{rep$man}, the prediction and confidence intervals of
+#' the base scenario (\code{rep}) are omitted and instead the projections of the
+#' different management scenarios are drawn in different colours. Dotted lines
+#' of the management scenarios reflect the intermediate period, while solid
+#' lines reflect the management period. Additionally, two vertical lines
+#' correspond to the start and end of the management period.
+#'
 #' @return Nothing.
+#'
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.bbmsy(rep)
+#'
 #' @export
 plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL,
                             plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time',
-                            stamp=get.version()){
+                            stamp=get.version(), verbose=TRUE){
+    check.rep(rep)
     if (!'sderr' %in% names(rep)){
+        manflag <- any(names(rep) == "man")
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
+        indxmax <- which(inp$time == ifelse(manflag, inp$timerange[2], max(inp$time)))
         ylimflag <- !is.null(ylim)
         # Biomass plot
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE)
@@ -576,7 +750,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
         Bmsyvec <- get.msyvec(inp, Bmsy)
         if (!all(is.na(Bmsyvec$msy))){ # Don't plot if all are NA
             qest <- get.par('logq', rep, fixed=TRUE, exp=TRUE)
-            BB <- get.par('logBBmsy', rep, exp=TRUE)
+            BB <- get.par('logBBmsy', rep, exp=TRUE)[1:indxmax,]
             ns <- dim(BB)[1]
             cicol <- 'lightgray'
             if (inp$nindex == 0){
@@ -597,13 +771,16 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
                 }
                 ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
             }
-            plot(inp$time, BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]),
-                 ylim=ylim, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log,
+            xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
+            if(manflag) xlim <- get.manlimits(rep,"time")
+            plot(inp$time[1:indxmax], BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]),
+                 ylim=ylim, xlim=xlim, log=log,
                  main=main)
             cicol2 <- rgb(0, 0, 1, 0.1)
-            polygon(c(inp$time[BBfininds], rev(inp$time[BBfininds])),
+            polygon(c(inp$time[1:indxmax][BBfininds], rev(inp$time[1:indxmax][BBfininds])),
                     c(BB[BBfininds, 1], rev(BB[BBfininds, 3])), col=cicol2, border=cicol2)
-            abline(v=inp$time[inp$indlastobs], col='gray')
+            if(!manflag)
+                abline(v=inp$time[which(inp$time == inp$timerange[2])], col='gray')
             if (plot.obs){
                 for (i in nindexseq){
                     plot.col(inp$timeI[[i]], obsI[[i]], pch=i, do.line=FALSE, cex=0.6,
@@ -632,16 +809,22 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
                 lines(inp$true$time, inp$true$B/inp$true$Bmsy, col=true.col()) # Plot true
             }
             lines(inp$time[inp$indest], BB[inp$indest,2], col='blue', lwd=1.5)
-            lines(inp$time[inp$indpred], BB[inp$indpred,2], col='blue', lty=3)
+            if(manflag){
+                if(check.man(rep, verbose=FALSE)$mantime){
+                    abline(v=rep$man[[1]]$inp$maninterval, col="grey", lty=1, lwd=1)
+                }
+                add.manlines(rep, 'logBBmsy', plot.legend=qlegend, verbose=verbose)
+            }else{
+                lines(inp$time[inp$indpred], BB[inp$indpred,2], col='blue', lty=3)
+            }
             cicol3 <- rgb(0, 0, 1, 0.2)
             lines(inp$time[inp$indest], BB[inp$indest,1], col=cicol3, lty=1, lwd=1)
             lines(inp$time[inp$indest], BB[inp$indest,3], col=cicol3, lty=1, lwd=1)
-            lines(inp$time[inp$indpred], BB[inp$indpred,1], col=cicol3, lty=1, lwd=1)
-            lines(inp$time[inp$indpred], BB[inp$indpred,3], col=cicol3, lty=1, lwd=1)
-            abline(h=lineat)
-            if ('man' %in% names(rep)){
-                add.manlines(rep, 'logBBmsy', plot.legend=qlegend)
+            if(!manflag){
+                lines(inp$time[inp$indpred], BB[inp$indpred,1], col=cicol3, lty=1, lwd=1)
+                lines(inp$time[inp$indpred], BB[inp$indpred,3], col=cicol3, lty=1, lwd=1)
             }
+            abline(h=lineat)
             if (rep$opt$convergence != 0){
                 warning.stamp()
             }
@@ -668,6 +851,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
 #' plotspict.osar(rep)
 #' @export
 plotspict.osar <- function(rep, collapse.I=TRUE, qlegend=TRUE){
+    check.rep(rep)
     if ('osar' %in% names(rep)){
         inp <- rep$inp
         Cscal <- 1
@@ -837,7 +1021,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
         plotspict.osar(rep, collapse.I=FALSE, qlegend=qlegend)
         # Catch ACF
         pvalacfC <- round(as.list(rep$diagn)$LBoxC.p, 4)
-        resC <- rep$osar$logCpres[!is.na(rep$osar$logCpres)]        
+        resC <- rep$osar$logCpres[!is.na(rep$osar$logCpres)]
         osar.acf.plot(resC, lag.max, pvalacfC, ylab='Catch ACF')
         # Effort ACF
         if (inp$nobsE > 0){
@@ -882,7 +1066,7 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
 
 #' @name plotspict.f
 #' @title Plot estimated fishing mortality.
-#' @details Plots estimated fishing mortality with Fmsy and associated confidence interval.
+#'
 #' @param rep A result report as generated by running fit.spict.
 #' @param logax Take log of y-axis? default: FALSE
 #' @param main Title of plot.
@@ -894,16 +1078,34 @@ plotspict.diagnostic <- function(rep, lag.max=4, qlegend=TRUE, plot.data=TRUE, m
 #' @param rel.axes Plot secondary y-axis contatning relative level of F.
 #' @param rel.ci Plot confidence interval for relative level of F.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
+#'
+#' @details Plots estimated fishing mortality with Fmsy and associated
+#'     confidence interval.
+#'
+#' If no management scenarios are included in \code{rep$man}, the grey vertical
+#' line corresponds to the time of the last observation. If management scenarios
+#' are included in \code{rep$man}, the prediction and confidence intervals of
+#' the base scenario (\code{rep}) are omitted and instead the projections of the
+#' different management scenarios are drawn in different colours. Dotted lines
+#' of the management scenarios reflect the intermediate period, while solid
+#' lines reflect the management period. Additionally, two vertical lines
+#' correspond to the start and end of the management period.
+#'
 #' @return Nothing.
+#'
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.f(rep)
+#'
 #' @export
 plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', ylim=NULL,
                         plot.obs=TRUE, qlegend=TRUE, xlab='Time', ylab=NULL, rel.axes=TRUE,
-                        rel.ci=TRUE, stamp=get.version()){
+                        rel.ci=TRUE, stamp=get.version(), verbose=TRUE){
+    check.rep(rep)
     if (!'sderr' %in% names(rep)){
+        manflag <- any(names(rep) == "man")
         ylabflag <- is.null(ylab) # If null then not manually specified
         omar <- par()$mar
         if (rel.axes){
@@ -928,9 +1130,19 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         qf <- get.par('logqf', rep, exp=TRUE)
         Fest <- get.par('logFnotS', rep, exp=TRUE)
         logFest <- get.par('logFnotS', rep)
-        
+
+        indest <- inp$indest
+        if(manflag){
+            repmax <- get.manmax(rep)
+            indest <- indest[-length(indest)]
+            indxmax <- which(inp$time == inp$timerange[2]) - 1
+        }else{
+            repmax <- rep
+            indxmax <- which(inp$time ==  max(inp$time))
+        }
+
         if (tvgflag){
-            Fmsy <- get.par('logFmsyvec', rep, exp=TRUE)
+            Fmsy <- get.par('logFmsyvec', repmax, exp=TRUE)
             Fmsyvec <- as.data.frame(Fmsy)
             Fmsyvec$msy <- Fmsyvec$est
             fmsycols <- matrix(rep(Fmsyvec$msy, each=3), ncol=3, byrow=TRUE)
@@ -938,30 +1150,30 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             logFF <- get.par('logFFmsynotS', rep)[, 1:3] + log(fmsycols)
             rel.axes <- FALSE
         } else {
-            Fmsy <- get.par('logFmsy', rep, exp=TRUE)
-            Fmsyd <- get.par('logFmsyd', rep, exp=TRUE)
+            Fmsy <- get.par('logFmsy', repmax, exp=TRUE)
+            Fmsyd <- get.par('logFmsyd', repmax, exp=TRUE)
             if (any(is.na(Fmsy))){
                 Fmsy <- Fmsyd
             }
-            Fmsyvec <- get.msyvec(inp, Fmsy)
+            Fmsyvec <- get.msyvec(repmax$inp, Fmsy)
             FF <- get.par('logFFmsynotS', rep, exp=TRUE)[, 1:3] * Fmsy[2]
             logFF <- get.par('logFFmsynotS', rep)[, 1:3] + log(Fmsy[2])
         }
         Fmsy <- Fmsy[Fmsy[, 1:3] < 50] # only use these inds to calculate ylim
 
-        time <- inp$time[inp$indest]
-        cl <- Fest[inp$indest, 1]
-        F <- Fest[inp$indest, 2]
-        cu <- Fest[inp$indest, 3]
+        time <- inp$time[indest]
+        cl <- Fest[indest, 1]
+        F <- Fest[indest, 2]
+        cu <- Fest[indest, 3]
         timep <- inp$time[inp$indpred]
         clp <- Fest[inp$indpred, 1]
         Fp <- Fest[inp$indpred, 2]
         cup <- Fest[inp$indpred, 3]
-        timef <- inp$time
-        Ff <- Fest[, 2]
-        clf <- FF[, 1] #*Fmsy[2]
-        cuf <- FF[, 3] #*Fmsy[2]
-            
+        timef <- inp$time[1:indxmax]
+        Ff <- Fest[1:indxmax, 2]
+        clf <- FF[1:indxmax, 1] #*Fmsy[2]
+        cuf <- FF[1:indxmax, 3] #*Fmsy[2]
+
         #ylimflag <- !is.null(ylim)
         ylimflag <- !is.null(ylim) & length(ylim) == 2 # If FALSE ylim is manually specified
         # Check whether nan values are present in CI limits
@@ -992,19 +1204,22 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         if (!ylimflag){
             ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         }
+        xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
+        if(manflag) xlim <- get.manlimits(rep,"time")
         #if (main==-1) main <- 'Absolute fishing mortality'
         if (ylabflag){
             ylab <- expression(F[t])
         }
         plot(1, 1, typ='n', main=main, ylim=ylim, col='blue', ylab=ylab, xlab=xlab,
-             xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)))
+             xlim=xlim)
         #plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=ylab, xlab=xlab,
         #     xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)))
         if (rel.axes){
             axis(4, labels=pretty(ylim/Fmsy[2]), at=pretty(ylim/Fmsy[2])*Fmsy[2])
             mtext(expression(F[t]/F[MSY]), side=4, las=0, line=2.2, cex=par('cex'))
         }
-        polygon(c(inp$time, rev(inp$time)), c(Fmsyvec$ll, rev(Fmsyvec$ul)), col=cicol, border=cicol)
+        polygon(c(repmax$inp$time, rev(repmax$inp$time)),
+                c(Fmsyvec$ll, rev(Fmsyvec$ul)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
         if (!relflag & !'yearsepgrowth' %in% names(inp) & rel.ci){
             polygon(c(timef[relfininds], rev(timef[relfininds])),
@@ -1012,9 +1227,9 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         }
         if (min(inp$dtc) < 1){ # Plot estimated sub annual F
             sF <- get.par('logFs', rep, exp=TRUE)
-            lines(inp$time, sF[, 2], col=rgb(0, 0, 1, 0.4))
+            lines(inp$time[1:indxmax], sF[1:indxmax, 2], col=rgb(0, 0, 1, 0.4))
         }
-        abline(v=inp$time[inp$indlastobs], col='gray')
+        if(!manflag) abline(v=inp$time[inp$indlastobs], col='gray')
         if (plot.obs){
             plot.col(inp$timeE, inp$obsE/inp$dte*qf[2], cex=0.7, do.line=FALSE,
                      add=TRUE, add.legend=qlegend)
@@ -1028,15 +1243,19 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         if (!absflag) lines(time, cl, col=maincol, lwd=1.5, lty=2)
         lines(time, F, col=maincol, lwd=1.5)
         if (!absflag) lines(time, cu, col=maincol, lwd=1.5, lty=2)
-        if (!absflag) lines(timep, clp, col=maincol, lty=2)
-        lines(timep, Fp, col=maincol, lty=3)
-        if (!absflag) lines(timep, cup, col=maincol, lty=2)
-        if (!relflag & !'yearsepgrowth' %in% names(inp) & rel.ci) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
-        if (!relflag & !'yearsepgrowth' %in% names(inp) & rel.ci) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
-        lines(inp$time, Fmsyvec$msy, col='black')
-        if ('man' %in% names(rep)){
-            add.manlines(rep, 'logF', index.shift=1, plot.legend=qlegend)
+        if (manflag){
+            if(check.man(rep, verbose=FALSE)$mantime){
+                abline(v=rep$man[[1]]$inp$maninterval, col="grey", lty=1, lwd=1)
+            }
+            add.manlines(rep, 'logFnotS', index.shift=1, plot.legend=qlegend, verbose=verbose)
+        }else{
+            if (!absflag) lines(timep, clp, col=maincol, lty=2)
+            lines(timep, Fp, col=maincol, lty=3)
+            if (!absflag) lines(timep, cup, col=maincol, lty=2)
+            if (!relflag & !'yearsepgrowth' %in% names(inp) & rel.ci) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
+            if (!relflag & !'yearsepgrowth' %in% names(inp) & rel.ci) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         }
+        lines(repmax$inp$time, Fmsyvec$msy, col='black')
         box(lwd=1.5)
         if (rep$opt$convergence != 0){
             warning.stamp()
@@ -1048,7 +1267,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
 
 #' @name plotspict.ffmsy
 #' @title Plot estimated relative fishing mortality.
-#' @details Plots estimated fishing mortality with Fmsy and associated confidence interval.
+#'
 #' @param rep A result report as generated by running fit.spict.
 #' @param logax Take log of y-axis? default: FALSE
 #' @param main Title of plot.
@@ -1058,16 +1277,34 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
 #' @param lineat Draw horizontal line at this y-value.
 #' @param xlab Label of x-axis.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
+#'
+#' @details Plots estimated fishing mortality with Fmsy and associated
+#'     confidence interval.
+#'
+#' If no management scenarios are included in \code{rep$man}, the grey vertical
+#' line corresponds to the time of the last observation. If management scenarios
+#' are included in \code{rep$man}, the prediction and confidence intervals of
+#' the base scenario (\code{rep}) are omitted and instead the projections of the
+#' different management scenarios are drawn in different colours. Dotted lines
+#' of the management scenarios reflect the intermediate period, while solid
+#' lines reflect the management period. Additionally, two vertical lines
+#' correspond to the start and end of the management period.
+#'
 #' @return Nothing.
+#'
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.ffmsy(rep)
+#'
 #' @export
 plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality', ylim=NULL,
                             plot.obs=TRUE, qlegend=TRUE, lineat=1, xlab='Time',
-                            stamp=get.version()){
+                            stamp=get.version(), verbose=TRUE){
+    check.rep(rep)
     if (!'sderr' %in% names(rep)){
+        manflag <- any(names(rep) == "man")
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         cicol <- 'lightgray'
@@ -1075,20 +1312,30 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         FF <- get.par('logFFmsynotS', rep, exp=TRUE)
         logFF <- get.par('logFFmsynotS', rep)
         FFs <- get.par('logFFmsy', rep, exp=TRUE)
-        
-        time <- inp$time[inp$indest]
-        cl <- FF[inp$indest, 1]
-        F <- FF[inp$indest, 2]
-        cu <- FF[inp$indest, 3]
-        timep <- inp$time[inp$indpred]
-        clp <- FF[inp$indpred, 1]
-        Fp <- FF[inp$indpred, 2]
-        cup <- FF[inp$indpred, 3]
-        timef <- inp$time
-        clf <- FF[, 1]
-        Ff <- FF[, 2]
-        cuf <- FF[, 3]
-        
+
+        indest <- inp$indest
+        indpred <- c(which(inp$time == inp$timerange[2]) - 1, inp$indpred)
+        if(manflag){
+            indest <- indest[-length(indest)]
+            indxmax <- which(inp$time == inp$timerange[2]) - 1
+        }else{
+            indest <- indest[-length(indest)]
+            indxmax <- which(inp$time ==  max(inp$time)) - 1
+        }
+
+        time <- inp$time[indest]
+        cl <- FF[indest, 1]
+        F <- FF[indest, 2]
+        cu <- FF[indest, 3]
+        timep <- inp$time[indpred]
+        clp <- FF[indpred, 1]
+        Fp <- FF[indpred, 2]
+        cup <- FF[indpred, 3]
+        timef <- inp$time[1:indxmax]
+        clf <- FF[1:indxmax, 1]
+        Ff <- FF[1:indxmax, 2]
+        cuf <- FF[1:indxmax, 3]
+
         flag <- length(cu) == 0 | all(!is.finite(cu))
         if (flag){
             # CIs don't exist or are not finite
@@ -1101,26 +1348,28 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         if (length(ylim) != 2){
             ylim <- range(ys, na.rm=TRUE)
             # Limit upper limit
-            ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) 
+            ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds])))
             # Ensure that lineat is included in ylim
-            ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat)) 
+            ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat))
         }
-
+        xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
+        if(manflag) xlim <- get.manlimits(rep,"time")
         plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]),
-             xlab=xlab, xlim=range(c(inp$time, tail(inp$time, 1) + 0.5)), log=log)
+             xlab=xlab, xlim=xlim, log=log)
         cicol2 <- rgb(0, 0, 1, 0.1)
         if (!flag){
             polygon(c(timef[fininds], rev(timef[fininds])), c(clf[fininds], rev(cuf[fininds])),
                     col=cicol2, border=cicol2)
         }
         if (min(inp$dtc) < 1){ # Plot estimated sub annual F
-            lines(inp$time, FFs[, 2], col=rgb(0, 0, 1, 0.4))
+            lines(inp$time[indest], FFs[indest, 2], col=rgb(0, 0, 1, 0.4))
         }
-        abline(v=inp$time[inp$indlastobs], col='gray')
+        if(!manflag) abline(v=inp$time[which(inp$time == inp$timerange[2])],
+                                          col='gray')
         if (plot.obs){
             Fmsyvec <- get.par('logFmsyvec', rep, exp=TRUE)
             ie <- cut(inp$timeE, inp$time, right=FALSE, labels=FALSE)
-            if (rep$inp$timevaryinggrowth | rep$inp$logmcovflag){
+            if (rep$inp$timevaryinggrowth || rep$inp$logmcovflag){
                 Fmsy <- Fmsyvec[ie, 2]
             } else {
                 Fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
@@ -1133,13 +1382,17 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         }
         maincol <- 'blue'
         lines(time, F, col=maincol, lwd=1.5)
-        lines(timep, Fp, col=maincol, lty=3)
-        if (!flag) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
-        if (!flag) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
-        abline(h=lineat, col='black')
-        if ('man' %in% names(rep)){
-            add.manlines(rep, 'logFFmsy', index.shift=1, plot.legend=qlegend)
+        if (manflag){
+            if(check.man(rep, verbose=FALSE)$mantime){
+                abline(v=rep$man[[1]]$inp$maninterval, col="grey", lty=1, lwd=1)
+            }
+            add.manlines(rep, 'logFFmsynotS', index.shift=1, plot.legend=qlegend, verbose=verbose)
+        }else{
+            lines(timep, Fp, col=maincol, lty=3)
+            if (!flag) lines(timef, clf, col=rgb(0, 0, 1, 0.2))
+            if (!flag) lines(timef, cuf, col=rgb(0, 0, 1, 0.2))
         }
+        abline(h=lineat, col='black')
         if (rep$opt$convergence != 0){
             warning.stamp()
         }
@@ -1151,7 +1404,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
 
 #' @name plotspict.fb
 #' @title Plot fishing mortality versus biomass.
-#' @details Plots estimated fishing mortality as a function of biomass together with reference points and the prediction for next year given a constant F. The equilibrium biomass for F fixed to the current value is also plotted.
+#'
 #' @param rep A result report as generated by running fit.spict.
 #' @param logax Take log of x and y-axes? default: FALSE
 #' @param plot.legend Plot legend explaining triangle.
@@ -1163,14 +1416,29 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
 #' @param labpos Positions of time stamps of start and end points as in pos in text().
 #' @param xlabel Label of x-axis. If NULL not used.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
+#'
+#' @details
+#'
+#' Plots estimated fishing mortality as a function of biomass together with
+#' reference points and the prediction for next year given a constant F. The
+#' equilibrium biomass for F fixed to the current value is also plotted.
+#'
+#' The predicted trajectory (or trajectories of different management scenarios)
+#' are only plotted for annnual data.
+#'
+#'
 #' @return Nothing.
+#'
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.fb(rep)
+#'
 #' @export
 plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ext=TRUE, rel.axes=FALSE,
-                         xlim=NULL, ylim=NULL, labpos=c(1, 1), xlabel=NULL, stamp=get.version()){
+                         xlim=NULL, ylim=NULL, labpos=c(1, 1), xlabel=NULL, stamp=get.version(), verbose=TRUE){
+    check.rep(rep)
     if (!'sderr' %in% names(rep)){
         #omar <- par()$mar
         mar <- c(5.1, 4.3, 4.1, 4.1)
@@ -1230,7 +1498,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
         }
         if (class(cl) == 'try-error'){
             cl <- matrix(c(log(Bmsy[2]), log(Fmsy[2])), 1, 2)
-        } 
+        }
         if (min(inp$dtc) < 1){ # Quarterly
             alb <- annual(inp$time, logBest[, 2])
             alf <- annual(inp$time, logFest[, 2])
@@ -1325,11 +1593,15 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
             lines(bbb, fff, col=maincol, lwd=1.5)
         } else {
             lines(bbb, fff, col=maincol, lwd=1.5)
-            lines(Best[inp$indpred,2]/bscal, Fest[inp$indpred,2]/fscal, col=maincol, lty=3)
-            Bll <- tail(Best[inp$indpred,2]/bscal, 1)
-            Fll <- tail(Fest[inp$indpred,2]/fscal, 1)
-            lines(c(Bll, EBinf), rep(Fll, 2), lwd=1.5, lty=3, col='blue')
-            points(EBinf, Fll, pch=23, bg='gold')
+            if ('man' %in% names(rep)){
+                add.manlines(rep, 'logF', par2='logB', index.shift=1, plot.legend=man.legend, verbose=verbose)
+            }else{
+                lines(Best[inp$indpred,2]/bscal, Fest[inp$indpred,2]/fscal, col=maincol, lty=3)
+                Bll <- tail(Best[inp$indpred,2]/bscal, 1)
+                Fll <- tail(Fest[inp$indpred,2]/fscal, 1)
+                lines(c(Bll, EBinf), rep(Fll, 2), lwd=1.5, lty=3, col='blue')
+                points(EBinf, Fll, pch=23, bg='gold')
+            }
         }
         nr <- length(inp$ini$logr)
         if (nr > 1){
@@ -1356,9 +1628,6 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
                 }
             }
         }
-        if ('man' %in% names(rep)){
-            add.manlines(rep, 'logF', par2='logB', index.shift=1, plot.legend=man.legend, lwd=1.5)
-        }
         points(bbb[1], fff[1], pch=21, bg='white')
         text(bbb[1], fff[1], round(fbtime[1], 2), pos=labpos[1], cex=0.75, offset=0.5, xpd=TRUE)
         points(Bl, Fl, pch=22, bg='white')
@@ -1374,7 +1643,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
 
 #' @name plotspict.catch
 #' @title Plot observed catch and predictions.
-#' @details Plots observed catch and predictions using the current F and Fmsy. The plot also contains the equilibrium catch if the current F is maintained.
+#'
 #' @param rep A result report as generated by running fit.spict.
 #' @param main Title of plot.
 #' @param ylim Limits for y-axis.
@@ -1383,28 +1652,91 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
 #' @param xlab Label of x-axis.
 #' @param ylab Label of y-axis.
 #' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
+#'
+#' @details
+#'
+#' Plots observed catch and predictions using the current F and Fmsy. The plot
+#' also contains the equilibrium catch if the current F is maintained. If no
+#' management scenarios are included in \code{rep$man}, the grey vertical line
+#' corresponds to the time of the last observation.
+#'
+#' If management scenarios are included in \code{rep$man}, the prediction and
+#' confidence intervals of the base scenario (\code{rep}) are omitted and
+#' instead the projections of the different management scenarios are drawn in
+#' different colours. Generally, dotted lines of the management scenarios
+#' reflect the intermediate period, while solid lines reflect the management
+#' period. The catch of management period which are longer than 1 year are split
+#' up equally into annual intervals. Two vertical lines correspond to the start
+#' and end of the management period, respectively. However, there are special
+#' cases in which there is only one or no vertical line drawn, the catch
+#' trajectories are missing completely, or the line of the catch trajectory is
+#' solid even in the intermediate period. These cases and their implications on
+#' the annual catch plot are described in the following:
+#'
+#' \itemize{
+#'
+#' \item{If the management period is shorter than a year, no catch trajectories
+#'  are drawn and there is only one vertical line indicating the start of the
+#'  assessment period.}
+#'
+#' \item{If the management timeline differs between the scenarios in
+#' \code{rep$man}, no vertical lines are drawn as they would be at different
+#' times for each scenario.}
+#'
+#' \item{If the management period cannot be split equally into annual intervals,
+#' e.g. because it is 1.5 years long, the uneven remains are not displayed, in
+#' this example only the catch representative of one year is displayed.
+#' Additionally, the second vertical line indicating the end of the management
+#' period is omitted.}
+#'
+#' \item{If the intermediate period is shorter or longer than a year, e.g. 0.5
+#' or 1.25 years, the lines of the management period start at the time of the
+#' last observation, because the catch in the intermediate period cannot be
+#' aggregated and displayed correctly. Additionally, the first vertical line
+#' indicating the start of the management period is omitted.}
+#'
+#' }
+#'
+#' All catches in SPiCT represent intervals, where the length of the interval is
+#' indicated by \code{dtc}, e.g. with \eqn{dtc = 1, C(1990) = [1990,1990[}. In
+#' the plot the catches (and vertical lines) correspond to the beginning of the
+#' catch interval. It might thus seem as if the time of the vertical lines and
+#' the management interval would not align.
+#'
 #' @return Nothing.
+#'
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.catch(rep)
+#'
 #' @export
 plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='blue',
-                            xlab='Time', ylab=NULL, stamp=get.version()){
+                            xlab='Time', ylab=NULL, stamp=get.version(), verbose=TRUE){
+    check.rep(rep)
     if (!'sderr' %in% names(rep)){
+        manflag <- any(names(rep) == "man")
         ylabflag <- is.null(ylab) # If null then not manually specified
         inp <- rep$inp
         ylimflag <- !is.null(ylim)
         Cscal <- 1
         cicol <- 'lightgray'
-        tvgflag <- rep$inp$timevaryinggrowth | rep$inp$logmcovflag
+
+        if(manflag){
+            repmax <- get.manmax(rep)
+        }else{
+            repmax <- rep
+        }
+
+        tvgflag <- rep$inp$timevaryinggrowth || rep$inp$logmcovflag
         if (tvgflag){
-            MSY <- get.par('logMSYvec', rep, exp=TRUE)
+            MSY <- get.par('logMSYvec', repmax, exp=TRUE)
             MSYvec <- as.data.frame(MSY)
             MSYvec$msy <- MSYvec$est
         } else {
-            MSY <- get.par('logMSY', rep, exp=TRUE)
-            MSYvec <- get.msyvec(inp, MSY)
+            MSY <- get.par('logMSY', repmax, exp=TRUE)
+            MSYvec <- get.msyvec(repmax$inp, MSY)
         }
         Cpredest <- get.par('logCpred', rep, exp=TRUE)
         Cpredest[Cpredest<0] <- 0
@@ -1470,25 +1802,30 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
         fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
         if (!ylimflag){
             if (length(ylim) != 2){
-                ylim <- range(c(obs, clf[fininds], cuf[fininds], 0.9*min(MSY[, 1]), 1.07*max(MSY[, 3])), na.rm=TRUE)/Cscal
+                ylim <- range(c(obs, clf[fininds], cuf[fininds],
+                                0.9*min(MSY[, 1]), 1.07*max(MSY[, 3])), na.rm=TRUE)/Cscal
                 if (inp$dtpredc > 0){
                     ylim <- range(ylim, clf[fininds], cuf[fininds])
                 }
             }
+            if(manflag) ylim <- range(ylim,get.manlimits(rep,"logCpred"))
             ylim[2] <- min(c(ylim[2], 3*max(obs))) # Limit upper limit
         }
+        xlim <- range(c(inp$time, tail(inp$time,1)))
+        if(manflag) xlim <- get.manlimits(rep,"time")
         #if (main==-1) main <- 'Catch'
         if (ylabflag){
             ylab <- 'Catch'
             ylab <- add.catchunit(ylab, inp$catchunit)
         }
         plot(time, c, typ='n', main=main, xlab=xlab, ylab=ylab,
-             xlim=range(c(inp$time, tail(inp$time,1))), ylim=ylim)
-        polygon(c(inp$time, rev(inp$time)), c(MSYvec$ll,rev(MSYvec$ul)), col=cicol, border=cicol)
+             xlim=xlim, ylim=ylim)
+        polygon(c(repmax$inp$time, rev(repmax$inp$time)),
+                c(MSYvec$ll,rev(MSYvec$ul)), col=cicol, border=cicol)
         cicol2 <- rgb(0, 0, 1, 0.1)
         lines(time, cl, col=lcol, lwd=1.5, lty=2)
         lines(time, cu, col=lcol, lwd=1.5, lty=2)
-        abline(v=tail(inp$timeC,1), col='gray')
+        if(!manflag) abline(v=inp$timeC[tail(which(inp$timeC%%1==0),1)], col='gray') ## account for seasonal data
         plot.col(timeo, obs/Cscal, cex=0.7, do.line=FALSE, add=TRUE, add.legend=qlegend)
         # Highlight influential index observations
         if ('infl' %in% names(rep) & min(inp$dtc) == 1){
@@ -1502,15 +1839,40 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
             abline(h=inp$true$MSY, col=true.col(), lty=1)
             abline(h=inp$true$MSY, col='black', lty=3)
         }
-        lines(inp$time, MSYvec$msy)
+        lines(repmax$inp$time, MSYvec$msy)
         lines(time, c, col=lcol, lwd=1.5)
-        if (inp$dtpredc > 0){
-            lines(timep, cp, col=lcol, lty=3)
-            lines(timep, clp, col=lcol, lwd=1, lty=2)
-            lines(timep, cup, col=lcol, lwd=1, lty=2)
-        }
-        if ('man' %in% names(rep)){
-            add.manlines(rep, 'logCpred', index.shift=1, plot.legend=qlegend)
+        if(manflag){
+            ## management lines if all scenarios same management times
+            manint <- rep$man[[1]]$inp$maninterval
+            mandiff <- diff(manint)
+            if(mandiff %% 1 != 0){
+                if(verbose) cat("At least part of the catch during the management period cannot be aggregated into annual/seasonal catches.\n")
+            }
+            if(check.man(rep, verbose=FALSE)$mantime){
+                timecpred <- rep$man[[1]]$inp$timeCpred
+                dtcp <- rep$man[[1]]$inp$dtcp
+                ind <- which(timecpred < manint[1] & dtcp <= 1)
+                est <- get.par("logCpred",rep$man[[1]],exp=TRUE)[,2]
+                alo <- annual(timecpred[ind], est[ind]/dtcp[ind], mean)
+                timecpred <- alo$anntime
+                indmax <- which.max(timecpred)
+                dtcp <- diff(c(timecpred, manint[1]))
+                ind <- which(timecpred < manint[1])
+                ind2 <- unique(c(which(dtcp[ind] == 1),indmax))
+                preind <- tail(ind2,1)
+                preman <- timecpred[preind]
+                endman <- preman + manint[1] - timecpred[tail(ind,1)] + max(0,mandiff-1)
+                if(any(dtcp < 1 | dtcp > 1)) preman <- NULL
+                if(mandiff %% 1 != 0) endman <- NULL
+                abline(v=c(preman, endman), col="grey", lty=1, lwd=1)
+            }
+            add.manlines(rep, 'logCpred', index.shift=1, plot.legend=qlegend, verbose=verbose)
+        }else{
+            if (inp$dtpredc > 0){
+                lines(timep, cp, col=lcol, lty=3)
+                lines(timep, clp, col=lcol, lwd=1, lty=2)
+                lines(timep, cup, col=lcol, lwd=1, lty=2)
+            }
         }
         if (rep$opt$convergence != 0){
             warning.stamp()
@@ -1534,7 +1896,9 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
 #' rep <- fit.spict(pol$albacore)
 #' plotspict.production(rep)
 #' @export
-plotspict.production <- function(rep, n.plotyears=40, main='Production curve', stamp=get.version()){
+plotspict.production <- function(rep, n.plotyears=40, main='Production curve',
+                                 stamp=get.version()){
+    check.rep(rep)
     if (!'sderr' %in% names(rep)){
         inp <- rep$inp
         tvgflag <- rep$inp$timevaryinggrowth | rep$inp$logmcovflag
@@ -1568,7 +1932,7 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve', s
             for (i in 1:nr){
                 Pst[[i]] <- pfun(gamma[2], mest[i,2], Kest[2], n[2], Bplot)
             }
-            
+
             Bvec <- Best[binds, 2]
             xlim <- range(Bvec/Kest[2], 0, 1)
             ylim <- c(min(0, Pest[,2]/yscal), max(Pest[,2]/yscal, unlist(Pst)/Pstscal, na.rm=TRUE))
@@ -1628,6 +1992,7 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve', s
 #' plotspict.tc(rep)
 #' @export
 plotspict.tc <- function(rep, main='Time to Bmsy', stamp=get.version()){
+    check.rep(rep)
     if (!'sderr' %in% names(rep) & rep$opt$convergence == 0){
         inp <- rep$inp
         B0cur <- get.par('logBl', rep, exp=TRUE)[2]
@@ -1725,6 +2090,7 @@ plotspict.tc <- function(rep, main='Time to Bmsy', stamp=get.version()){
 #' @return Nothing.
 #' @export
 plotspict.season <- function(rep, stamp=get.version()){
+    check.rep(rep)
     if (!'par.fixed' %in% names(rep)){
         stop('Input object was not a valid output from fit.spict()!')
     }
@@ -1803,6 +2169,7 @@ plotspict.season <- function(rep, stamp=get.version()){
 #' @return Nothing.
 #' @export
 plotspict.btrend <- function(rep){
+    check.rep(rep)
     if (!'sderr' %in% names(rep)){
         Bind <- get.par('Bind', rep)
         B <- get.par('logB', rep, exp=TRUE)
@@ -1822,6 +2189,12 @@ plotspict.btrend <- function(rep){
 
 #' @name plot.spictcls
 #' @title Plot summarising spict results.
+#'
+#' @param x A result report as generated by running fit.spict.
+#' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
+#' @param ... additional arguments affecting the summary produced.
+#'
 #' @details Create a plot containing the following:
 #' \itemize{
 #'  \item{1. Estimated biomass using plotspict.biomass().}
@@ -1841,16 +2214,36 @@ plotspict.btrend <- function(rep){
 #'  \item{ One-step-ahead residuals of catches using plotspict.osar().}
 #'  \item{ One-step-ahead residuals of catches using plotspict.osar().}
 #' }
-#' 
-#' @param x A result report as generated by running fit.spict.
-#' @param ... additional arguments affecting the summary produced.
+#'
+#' If no management scenarios are included in \code{rep$man}, the grey vertical
+#' line corresponds to the time of the last observation. If management scenarios
+#' are included in \code{rep$man}, the prediction and confidence intervals of
+#' the base scenario (\code{rep}) are omitted and instead the projections of the
+#' different management scenarios are drawn in different colours. Dotted lines
+#' of the management scenarios reflect the intermediate period, while solid
+#' lines reflect the management period. Additionally, two vertical lines
+#' correspond to the start and end of the management period.
+#'
+#' Be aware that potential catch intervals of more a year, e.g. biennial
+#' assessment so that the intermediate period spans two years, or management
+#' period spans two years, are equally split up into annual intervals.
+#'
+#' Be aware of the fact that the catches represent intervals, where the length
+#' of the interval is indicated by \code{dtc}, e.g. with \eqn{dtc = 1, C(1990) =
+#' [1990,1990[}. In the plot the catches (and vertical lines) correspond to the
+#' beginning of the catch interval. It might thus seem as if the time of the
+#' vertical lines and the management interval would not align.
+#'
 #' @return Nothing.
+#'
 #' @examples
 #' data(pol)
 #' rep <- fit.spict(pol$albacore)
 #' plot(rep)
+#'
 #' @export
-plot.spictcls <- function(x, stamp=get.version(), ...){
+plot.spictcls <- function(x, stamp=get.version(), verbose=TRUE,...){
+    check.rep(x)
     rep <- x
     logax <- FALSE # Take log of relevant axes? default: FALSE
     #if (!exists('stamp')){
@@ -1867,15 +2260,15 @@ plot.spictcls <- function(x, stamp=get.version(), ...){
             }
             on.exit(par(opar))
             # Biomass
-            plotspict.biomass(rep, logax=logax, stamp='')
+            plotspict.biomass(rep, logax=logax, stamp='',verbose=verbose)
             # F
-            plotspict.f(rep, logax=logax, qlegend=FALSE, stamp='')
+            plotspict.f(rep, logax=logax, qlegend=FALSE, stamp='',verbose=verbose)
             # Catch
-            plotspict.catch(rep, qlegend=FALSE, stamp='')
+            plotspict.catch(rep, qlegend=FALSE, stamp='',verbose=verbose)
             # B/Bmsy
-            plotspict.bbmsy(rep, logax=logax, qlegend=FALSE, stamp='')
+            plotspict.bbmsy(rep, logax=logax, qlegend=FALSE, stamp='',verbose=verbose)
             # F/Fmsy
-            plotspict.ffmsy(rep, logax=logax, qlegend=FALSE, stamp='')
+            plotspict.ffmsy(rep, logax=logax, qlegend=FALSE, stamp='',verbose=verbose)
             # F versus B
             plotspict.fb(rep, logax=logax, plot.legend=TRUE, stamp='')
         } else {
@@ -2096,7 +2489,7 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 
 
 #' @name plotspict.retro
-#' @title Plot results of retrospective analysis 
+#' @title Plot results of retrospective analysis
 #' @param rep A valid result from fit.spict.
 #' @param stamp Stamp plot with this character string.
 #' @return Nothing
@@ -2251,7 +2644,7 @@ plotspict.ci <- function(inp, stamp=get.version()){
 #' @name plotspict.priors
 #' @title Plot priors and posterior distribution.
 #' @param rep A result from fit.spict.
-#' @param do.plot Optional integer defining maximum number of priors to plot. Set to NULL to plot all active priors. Default: NULL  
+#' @param do.plot Optional integer defining maximum number of priors to plot. Set to NULL to plot all active priors. Default: NULL
 #' @param stamp Stamp plot with this character string.
 #' @param automfrow Automatically set 'mfrow' to see all priors in one plot? Not used if do.plot is set. Default: TRUE
 #' @return Nothing
@@ -2261,7 +2654,7 @@ plotspict.priors <- function(rep, do.plot=NULL, stamp=get.version(), automfrow=T
     useflags <- inp$priorsuseflags
     inds <- which(useflags == 1)
     ninds <- length(inds)
-    if(!is.null(do.plot)) automfrow <- FALSE 
+    if(!is.null(do.plot)) automfrow <- FALSE
     if(automfrow) {
         nopriors <- get.no.active.priors(inp)
         op <- par(mfrow=n2mfrow(nopriors))
@@ -2278,12 +2671,12 @@ plotspict.priors <- function(rep, do.plot=NULL, stamp=get.version(), automfrow=T
             nmpl <- sub('log', '', nm)
             nmpl <- sub('gamma','',nmpl)
             par <- get.par(nm, rep, exp=FALSE)
-            
+
             if (length(grep('gamma', nm)) == 1){
                 isGamma <- TRUE
                 if(nm=="logngamma") par <- get.par("logn",rep,exp=FALSE)
             }
-            
+
             repriors <- c('logB', 'logF', 'logBBmsy', 'logFFmsy')
             if (nm %in% repriors){
                 par <- par[priorvec[5], , drop=FALSE]
@@ -2305,7 +2698,7 @@ plotspict.priors <- function(rep, do.plot=NULL, stamp=get.version(), automfrow=T
                     xmax <- qgamma(0.99,shape=mu,rate=sd)
                 } else {
                     xmin <- mu - 3*sd
-                    xmax <- mu + 3*sd                    
+                    xmax <- mu + 3*sd
                 }
                 xpr <- xpo <- seq(xmin, xmax, length=200)
                 if(!isGamma) {
@@ -2313,7 +2706,7 @@ plotspict.priors <- function(rep, do.plot=NULL, stamp=get.version(), automfrow=T
                 }  else  {
                     priorvals <- dgamma(xpr, prvec[1], prvec[2])
                 }
-                
+
                 if (is.na(par[rr, 4])){
                     posteriorvals <- NULL
                 } else {
@@ -2500,4 +2893,70 @@ plotspict.growth <- function(rep, logax=FALSE, main='Time-varying growth', ylim=
         box(lwd=1.5)
         txt.stamp(stamp)
     }
+}
+
+
+
+#' @name plot2
+#' @title Plot summarising spict results (alternative plot composition)
+#'
+#' @param x A result report as generated by running fit.spict.
+#' @param stamp Stamp plot with this character string.
+#' @param verbose Should detailed outputs be provided (default: TRUE).
+#' @param ... additional arguments affecting the summary produced.
+#'
+#' @details Create a plot containing the following:
+#' \itemize{
+#'  \item{1. Estimated biomass relative to Bmsy using plotspict.bbmsy().}
+#'  \item{2. Estimated fishing mortality relative to Fmsy using plotspict.ffmsy().}
+#'  \item{3. Observed versus predicted catches using plotspict.catch().}
+#'  \item{4. Estimated F versus estimated B using plotspict.fb().}
+#' }
+#'
+#' If no management scenarios are included in \code{rep$man}, the grey vertical
+#' line corresponds to the time of the last observation. If management scenarios
+#' are included in \code{rep$man}, the prediction and confidence intervals of
+#' the base scenario (\code{rep}) are omitted and instead the projections of the
+#' different management scenarios are drawn in different colours. Dotted lines
+#' of the management scenarios reflect the intermediate period, while solid
+#' lines reflect the management period. Additionally, two vertical lines
+#' correspond to the start and end of the management period.
+#'
+#' Be aware that potential catch intervals of more a year, e.g. biennial
+#' assessment so that the intermediate period spans two years, or management
+#' period spans two years, are equally split up into annual intervals.
+#'
+#' Be aware of the fact that the catches represent intervals, where the length
+#' of the interval is indicated by \code{dtc}, e.g. with \eqn{dtc = 1, C(1990) =
+#' [1990,1990[}. In the plot the catches (and vertical lines) correspond to the
+#' beginning of the catch interval. It might thus seem as if the time of the
+#' vertical lines and the management interval would not align.
+#'
+#' @return Nothing.
+#'
+#' @examples
+#' data(pol)
+#' rep <- fit.spict(pol$albacore)
+#' plot2(rep)
+#'
+#' @export
+plot2 <- function(x, stamp=get.version(), verbose=TRUE,...){
+    check.rep(x)
+    rep <- x
+    logax <- FALSE # Take log of relevant axes? default: FALSE
+    inp <- rep$inp
+    if (inp$reportall){
+        opar <- par(mfrow=c(2, 2), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
+        on.exit(par(opar))
+        # B/Bmsy
+        plotspict.bbmsy(rep, logax=logax, stamp='',verbose=verbose)
+        # F/Fmsy
+        plotspict.ffmsy(rep, logax=logax, qlegend=FALSE, stamp='',verbose=verbose)
+        # Catch
+        plotspict.catch(rep, qlegend=FALSE, stamp='',verbose=verbose)
+        # F versus B
+        plotspict.fb(rep, logax=logax, man.legend=FALSE, stamp='')
+
+    }
+    txt.stamp(stamp, do.flag=TRUE)
 }
