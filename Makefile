@@ -43,10 +43,14 @@ $(PACKAGE)/src/spict.so: $(PACKAGE)/src/spict.cpp
 	cd $(PACKAGE)/src; echo "library(TMB); compile('spict.cpp','-O0 -g')" | $(R) --slave
 
 vignette:
-	R -e "devtools::build_vignettes('spict')"
-	mkdir spict/inst/doc
-	mv spict/doc/* spict/inst/doc/
-	rm -r spict/doc
+	for f in spict/vignettes/*.Rmd; do \
+		R -e "library(rmarkdown); render('$$f', 'all')"; \
+	done
+	mkdir -p spict/inst/doc
+	mv spict/vignettes/*.pdf spict/inst/doc/
+	mv spict/vignettes/*.html spict/inst/doc/
+	cp spict/vignettes/*.Rmd spict/inst/doc/
+	rm -r spict/vignettes/*.tex
 
 .PHONY: testmoreseq testonemore testmore $(SUBDIRS)
 

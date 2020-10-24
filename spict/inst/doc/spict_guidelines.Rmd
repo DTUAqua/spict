@@ -107,7 +107,7 @@ retro(fit)`). This means that there is no tendency of consistent
 under- or overestimation of the relative fishing mortality
 ($\frac{F}{F_{MSY}}$) and relative biomass ($\frac{B}{B_{MSY}}$) in
 successive assessment. The retrospective trajectories of those two
-quantities should be inside the confidence intervals of the base run.
+quantities should be inside the credible intervals of the base run.
 
 5. **Realistic production curve**. The shape of the production curve
 should not be too skewed ($\frac{B_{MSY}}{K}$ should be between 0.1
@@ -117,7 +117,7 @@ population growth rate (`calc.bmsyk(fit)`).
 6. **High assessment uncertainty** can indicate a lack of contrast in
 the input data or violation of the ecological model assumptions. The
 main variance parameters (`logsdb`, `logsdc`, `logsdi`, `logsdf`)
-should not be unrealistically high. Confidence intervals for
+should not be unrealistically high. Credible intervals for
 $\frac{B}{B_{MSY}}$ and $\frac{F}{F_{MSY}}$ should not span more than
 1 order of magnitude (`calc.om(fit)`).
 
@@ -157,7 +157,7 @@ shorten.inp(inp, 2005, 2018)`
     - Fixing n to resemble the Schaefer production model (or the meta study,
     alternatively): `inp$ini$logn <- log(2); inp$phases$logn <- -1`
 
-Be aware that these modifications might cause smaller confidence bands.
+Be aware that these modifications might cause smaller credible bands.
 
 * Use a **prior for the initial depletion level** based on available
 information, FOR EXAMPLE:
@@ -224,8 +224,8 @@ retaining the risks at low levels. Higher percentiles than 35th show higher
 levels of risk while achieving similar levels of relative yield, while lower
 percentiles show a decrease in yield with small change in risk [@wklifeix]. It is
 important to mention that informative priors (lower standard deviations)
-potentially affect parameter estimates and confidence intervals of SPiCT
-assessments and thus the calculated TAC.
+potentially affect parameter estimates and credible intervals of SPiCT
+assessments, and therefore affecting the calculated TAC.
 
 TAC based on a SPiCT assessment can be calculated using the `get.TAC()` function
 within the spict package in R, where the function arguments allow to use any of

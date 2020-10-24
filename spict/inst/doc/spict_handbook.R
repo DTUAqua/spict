@@ -22,7 +22,7 @@ plotspict.data(pol$albacore)
 
 ## ---- fig.width=5, fig.height=5.5, out.width='0.5\\textwidth', fig.show='hold'----
 inpshift <- pol$albacore
-inpshift$timeC <- inpshift$timeC + 0.3
+inpshift$timeC <- inpshift$timeC
 inpshift$timeI <- inpshift$timeI + 0.8
 plotspict.data(inpshift)
 
@@ -35,7 +35,10 @@ res <- fit.spict(pol$albacore)
 ## ---- results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'----
 names(res)
 
-## ---- results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'----
+## ---- eval=FALSE--------------------------------------------------------------
+#  summary(res)
+
+## ---- echo=FALSE,results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'----
 capture.output(summary(res))
 
 ## ---- results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'----
@@ -295,7 +298,7 @@ plotspict.catch(res2, qlegend=FALSE, main='Robust fit')
 
 ## ---- results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=5, fig.show='hold'----
 inp <- pol$albacore
-inp$maninterval <- c(1990,1991)
+inp$maninterval <- c(1990, 1991)
 inp$maneval <- 1991
 inp$ffac <- 0.75
 rep <- fit.spict(inp)
