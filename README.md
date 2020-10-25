@@ -13,7 +13,7 @@ An R-package for fittng surplus production models in continuous-time to fisherie
 
 ## Help files
 
-A vignette for the package is available [`here`](https://github.com/DTUAqua/spict/raw/master/spict/inst/doc/spict_manual.pdf), and serves as an introduction to the package and its functionality. The vignette also contains description of the more advanced features of the package.
+A vignette for the package is available [`here`](https://github.com/DTUAqua/spict/raw/master/spict/inst/doc/spict_handbook.pdf), and serves as an introduction to the package and its functionality. The vignette also contains description of the more advanced features of the package.
 
 A document with technical guidelines for using SPiCT is available [here](https://github.com/DTUAqua/spict/raw/master/spict/inst/doc/spict_guidelines.pdf). This is a living document that has a list of things to check before accepting an assessment and some options to deal with more dificult data sets.
 
