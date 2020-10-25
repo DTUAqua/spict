@@ -4,7 +4,9 @@
 \name{pol}
 \alias{pol}
 \title{Fisheries data included in Polacheck et al. (1993).}
-\format{Data are lists containing data and initial values for estimation formatted to be used as an input to fit.spict().}
+\format{
+Data are lists containing data and initial values for estimation formatted to be used as an input to fit.spict().
+}
 \source{
 Polacheck et al. (1993), Canadian Journal of Fisheries and Aquatic Science, vol 50, pp. 2597-2607.
 }

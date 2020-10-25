@@ -49,6 +49,8 @@ New features:
   implemented.
 * A new family of ADreported quantities is introduced: The 'm' quantities, e.g.
   `logFmFmsy`, correspond to the start of the management period.
+* New function `mohns_rho` that calculates Mohn's rho from the retrospective analysis
+  of user selected quantities
 
 Minor changes:
 

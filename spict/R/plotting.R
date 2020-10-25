@@ -2492,9 +2492,10 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 #' @title Plot results of retrospective analysis
 #' @param rep A valid result from fit.spict.
 #' @param stamp Stamp plot with this character string.
+#' @param add.mohn Adds Mohn's rho
 #' @return Nothing
 #' @export
-plotspict.retro <- function(rep, stamp=get.version()) {
+plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
   opar <- par(mfrow=c(2, 2), mar=c(5, 4.2, 2, 2))
   on.exit(par(opar))
   if (! is(rep, "spictcls")) stop("This function only works with spictcls objects")
@@ -2533,6 +2534,7 @@ plotspict.retro <- function(rep, stamp=get.version()) {
   for (i in seq(nruns)){
     lines(time[[i]], sel(bbs[[i]]), col=cols[i], lwd=2)
   }
+  if(add.mohn) mtext(paste("Mohn's rho = ", round(mohns_rho(rep, what = "BBmsy"), 3)), 3, -1)
   box(lwd=1.5)
   plot(time[[1]], sel(ffs[[1]]), typ='n', ylim=range(sapply(ffs, sel), na.rm = TRUE), xlab='Time',
        ylab = expression(F[t]/F[MSY]), lwd=1.5)
@@ -2540,6 +2542,7 @@ plotspict.retro <- function(rep, stamp=get.version()) {
   for (i in seq(nruns)){
     lines(time[[i]], sel(ffs[[i]]), col=cols[i], lwd=2)
   }
+  if(add.mohn) mtext(paste("Mohn's rho = ", round(mohns_rho(rep, what = "FFmsy"), 3)), 3, -1)
   box(lwd=1.5)
   txt.stamp(stamp, do.flag=TRUE)
 }

@@ -4,12 +4,14 @@
 \alias{plotspict.retro}
 \title{Plot results of retrospective analysis}
 \usage{
-plotspict.retro(rep, stamp = get.version())
+plotspict.retro(rep, stamp = get.version(), add.mohn = TRUE)
 }
 \arguments{
 \item{rep}{A valid result from fit.spict.}
 
 \item{stamp}{Stamp plot with this character string.}
+
+\item{add.mohn}{Adds Mohn's rho}
 }
 \value{
 Nothing

@@ -340,12 +340,18 @@ This reveals that for this data set the estimates of log Fmsy and log Bmsy are h
 
 Retrospecitive plots are sometimes used to evaluate the robustness of the model fit to the introduction of new data, i.e. to check whether the fit changes substantially when new data becomes available. Such calculations and plotting thereof can be crudely performed using `retro()` as shown here
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=5, fig.height=5, fig.show='hold'}
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=5, fig.show='hold'}
 ## res <- fit.spict(pol$albacore)
 res <- retro(res, nretroyear = 4)
 plotspict.retro(res)
 ```
-By default `retro` creates 5 scenarios with catch and index time series which are shortened by the 1 to 5 last observations. The number of scenarios and thus observations which are removed can be changed with the argument `nretroyear` in the function `retro`. The graphs show the different scenarios with different colors.
+By default `retro` creates 5 scenarios with catch and index time series which are shortened by the 1 to 5 last observations. The number of scenarios and thus observations which are removed can be changed with the argument `nretroyear` in the function `retro`. The graphs show the different peels with different colors. For the relative biomass and fishing mortality, the Mohn's rho are shown inside the corresponding plots. Mohn's rho for different values can be calculated using the function `mohns_rho`.
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=5, fig.height=5, fig.show='hold'}
+## res <- fit.spict(pol$albacore)
+## res <- retro(res)
+mohns_rho(res, what = c("FFmsy", "BBmsy"))
+```
 
 ## Estimation using two or more biomass indices
 
@@ -481,13 +487,24 @@ plotspict.data(seasonsim2)
 ```
 
 ## Estimation using quarterly data
-Catch information available in sub-annual aggregations, e.g. quarterly catch, can be used to estimate the seasonal pattern of the fishing mortality. The user can choose between two types of seasonality by setting `seasontype` to 1 or 2:
+Catch information available in sub-annual aggregations, e.g. quarterly catch, can be used to estimate the seasonal pattern of the fishing mortality. The user can choose between two types of seasonality by setting `seasontype` to 1, 2 or 3:
 
   1. using cyclic B-splines.
   2. using coupled stochastic differential equations (SDEs).
+  3. combination of a cyclic spline (fixed seasonal pattern) and mean-zero autoregressive process
 
-Technical description of the season types is found in @spict.
+Technical description of the first two season types is found in @spict. The third is described by the following equation:
 
+\begin{align}
+F_t &= S_t G_t \exp( A_{q(t)} ) \\
+d\log G_t &= \sigma_FdV_t 
+\end{align}
+
+\begin{itemize}
+\item $S_t$ is a cyclic spline and $G_t$ is diffusion process.
+	\item $A_{q(t)} = \varphi_A  A_{q(t-1)} + \varepsilon_{A,q(t)}$ is a discrete time mean zero autoregressive process , and $q$ maps $t$ to a quarter. 
+\end{itemize}
+	
 Here, an example of a spline-based model fitted to quarterly data simulated in section \ref{sec:seas} is shown
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=4.5, fig.show='hold'}

@@ -29,7 +29,6 @@
 #' plotspict.retro(rep)
 #' @export
 retro <- function(rep, nretroyear=5){
-    verflag <- as.numeric(gsub("[.]", "", as.character(packageVersion("TMB")))) >= 171
     inp1 <- rep$inp
     inpall <- list()
     for (i in 1:nretroyear) {
@@ -63,4 +62,41 @@ retro <- function(rep, nretroyear=5){
         rep$retro <- asd
     }
     return(rep)
+}
+
+
+#' @name mohns_rho
+#' @title Calculate Mohn's rho for different estimates
+#' @details A function that calculates Mohn's rho for selected estimated quantities. The function allows the user to define the method of aggrgating from the subannual time steps (1/dteuler) into annual values; the default is to take the mean.
+#' @param rep A valid result from fit.spict
+#' @param what character vector specifying the quantities
+#' @param annualfunc function used to convert subannual data into annual
+#' @return A named vector with the Monh's rho value for each quantity.
+#' @examples
+#' data(pol)
+#' inp <- pol$albacore
+#' rep <- fit.spict(inp)
+#' rep <- retro(rep, nretroyear = 4)
+#' mohns_rho(rep)
+#' @export
+mohns_rho <- function(rep, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
+  getFullYearEstimates <- function(x, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
+    res <- lapply(what, function(ww) {
+      par <- paste0("log", ww)
+      indest <- x$inp$indest
+      time <- x$inp$time[indest]
+      tapply(get.par(par, x, exp = TRUE)[indest, 2], floor(time), annualfunc)
+    })
+    res <- do.call(cbind.data.frame, res)
+    names(res) <- what
+    setNames(do.call(cbind.data.frame, res), what)
+  }
+  ## Adapted from fishfollower/SAM/stockassessment package
+  ref <- getFullYearEstimates(rep, what = what, annualfunc = annualfunc)
+  ret <- lapply(rep$retro, getFullYearEstimates, what = what, annualfunc = annualfunc)
+  bias <- lapply(ret, function(x) {
+    y <- rownames(x)[nrow(x)]
+    (x[rownames(x) == y, ] - ref[rownames(ref) == y, ]) / ref[rownames(ref) == y, ]
+  })
+  colMeans(do.call(rbind, bias))
 }
