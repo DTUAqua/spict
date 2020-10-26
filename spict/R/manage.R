@@ -671,7 +671,7 @@ check.catchList <- function(catchList, sdfac = 1){
 #' @param fractiles List defining the fractiles of the 3 distributions of
 #'     'catch', 'bbmsy', and 'ffmsy'. By default (0.5) median is used for all 3
 #'     quantities. Please refer to the details for more information.
-#' @param breakpointBBmsy Breakpoint in terms of \eqn{B/B_{MSY}} for the
+#' @param breakpointB Breakpoint in terms of \eqn{B/B_{MSY}} for the
 #'     hockey-stick HCR. By default (0) no breakpoint is assumed. Please refer
 #'     to the details for more information.
 #' @param safeguardB List defining an optional precautionary buffer by means of
@@ -917,7 +917,7 @@ make.man.inp <- function(rep, scenarioTitle = "",
 #' @param fractiles List defining the fractiles of the 3 distributions of
 #'     'catch', 'bbmsy', and 'ffmsy'. By default (0.5) median is used for all 3
 #'     quantities. Please refer to the details for more information.
-#' @param breakpointBBmsy Breakpoint in terms of \eqn{B/B_{MSY}} for the
+#' @param breakpointB Breakpoint in terms of \eqn{B/B_{MSY}} for the
 #'     hockey-stick HCR. By default (0) no breakpoint is assumed. Please refer
 #'     to the details for more information.
 #' @param safeguardB List defining an optional precautionary buffer by means of
@@ -1523,7 +1523,7 @@ man.timeline <- function(x, verbose = TRUE, obsonly = FALSE){
 #' @param fractiles List defining the fractiles of the 3 distributions of
 #'     'catch', 'bbmsy', and 'ffmsy'. By default (0.5) median is used for all 3
 #'     quantities. Please refer to the details for more information.
-#' @param breakpointBBmsy Breakpoint in terms of \eqn{B/B_{MSY}} for the
+#' @param breakpointB Breakpoint in terms of \eqn{B/B_{MSY}} for the
 #'     hockey-stick HCR. By default (0) no breakpoint is assumed. Please refer
 #'     to the details for more information.
 #' @param safeguardB List defining an optional precautionary buffer by means of

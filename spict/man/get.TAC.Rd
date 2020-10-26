@@ -50,6 +50,10 @@ catch (default: 1). Please refer to the details for more information.}
 'catch', 'bbmsy', and 'ffmsy'. By default (0.5) median is used for all 3
 quantities. Please refer to the details for more information.}
 
+\item{breakpointB}{Breakpoint in terms of \eqn{B/B_{MSY}} for the
+hockey-stick HCR. By default (0) no breakpoint is assumed. Please refer
+to the details for more information.}
+
 \item{safeguardB}{List defining an optional precautionary buffer by means of
 a biomass reference level relative to \eqn{B/B_{MSY}} (\code{'limitB'};
 default: 0, i.e. deactivating the PA buffer) and the risk aversion
@@ -79,10 +83,6 @@ to the details for more information.}
 
 \item{mancheck}{Should the time-dependent objects in \code{inp} be checked
 against the management time and corrected if necessary? (Default: TRUE)}
-
-\item{breakpointBBmsy}{Breakpoint in terms of \eqn{B/B_{MSY}} for the
-hockey-stick HCR. By default (0) no breakpoint is assumed. Please refer
-to the details for more information.}
 }
 \value{
 The total allowable catch based on specified HCR.
