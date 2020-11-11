@@ -357,7 +357,7 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
     perc.dB <- numeric(nsc)
     perc.dF <- numeric(nsc)
     EBinf <- numeric(nsc)
-    cflag <- evalflag <- numeric(nsc)
+    cflag <- intflag <- evalflag <- numeric(nsc)
     for(i in 1:nsc){
         rp <- repman[[ scenarios[i] ]]
         EBinf[i] <- get.EBinf(rp)
@@ -373,7 +373,9 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
         BBnextyear[i, ] <- round(get.par('logBBmsy', rp, exp=TRUE)[indnext, 1:3], 2)
         FFnextyear[i, ] <- round(get.par('logFFmsy', rp, exp=TRUE)[indnext, 1:3], 2)
         cflag[i] <- ifelse(!is.null(rp$inp$manfacs$cfac) && rp$inp$timerangeObs[2] < rp$inp$maninterval[1],"*","")
+        intflag[i] <- ifelse(!identical(rp$inp$maninterval, rep$inp$maninterval),"+","")
         evalflag[i] <- ifelse(rp$inp$maneval != rep$inp$maneval,"^","")
+
     }
     indnextCrep <- which((rp$inp$timeCpred+rp$inp$dtcp) == max(rp$inp$maninterval))
     FBtime <- fd(max(rp$inp$maninterval))
@@ -417,7 +419,7 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
                                                 "msyHockeyStick" = 'MSY hockey-stick rule',
                                                 "ices" = 'ICES advice rule'))))
     rn <- paste0(paste0(seq(length(rn)),". "),rn, "")
-    rn <- paste0(rn, cflag, evalflag)
+    rn <- paste0(rn, cflag, intflag, evalflag)
     rownames(df) <- rn
     rownames(dfunc) <- rn
     #cat('Management summary\n')
@@ -472,8 +474,11 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
     if(any(cflag == "*")){
         cat("\n* This scenario is based on the last observed catch and might thus imply another catch in the intermediate year.\n")
     }
+    if(any(intflag == "+")){
+        cat("+ This scenario assumes another management period. Thus, the catch might not be comparable.\n")
+    }
     if(any(evalflag == "^")){
-        cat("^ This scenario assumes another management evaluation time.\n")
+        cat("^ This scenario assumes another management evaluation time. Thus, the states might not be comparable.\n")
     }
 
     invisible(df)
