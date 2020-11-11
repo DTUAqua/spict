@@ -301,7 +301,9 @@ manage <- function(rep, scenarios = 'all',
 #' }
 #'
 #' @export
-sumspict.manage <- function(rep, include.EBinf=FALSE, include.unc=TRUE, timeline = TRUE, verbose=TRUE){
+sumspict.manage <- function(rep, include.EBinf=FALSE,
+                            include.unc=FALSE, include.abs=FALSE,
+                            timeline = TRUE, verbose=TRUE){
     repin <- rep
 
     if(!any(names(repin) == "man"))
@@ -355,19 +357,23 @@ sumspict.manage <- function(rep, include.EBinf=FALSE, include.unc=TRUE, timeline
     perc.dB <- numeric(nsc)
     perc.dF <- numeric(nsc)
     EBinf <- numeric(nsc)
-
+    cflag <- evalflag <- numeric(nsc)
     for(i in 1:nsc){
         rp <- repman[[ scenarios[i] ]]
         EBinf[i] <- get.EBinf(rp)
         perc.dB[i] <- get.pdelta('logB',rp)
         perc.dF[i] <- get.pdelta('logF',rp)
-        indnext <- which(rp$inp$time == max(rp$inp$maninterval))
-        indnextC <- which((rp$inp$timeCpred + rp$inp$dtcp) == max(rp$inp$maninterval))
-        Cnextyear[i, ] <- round(get.par('logCpred', rp, exp=TRUE)[indnextC, 1:3], 1)
+        indnext <- which(rp$inp$time == rp$inp$maneval)
+        ## indnextC <- which((rp$inp$timeCpred + rp$inp$dtcp) == max(rp$inp$maninterval))
+        indnextC <- which(rp$inp$timeCpred == rp$inp$maninterval[1])
+        logCp <- get.par('logCpred', rp, exp=FALSE)[indnextC,]
+        Cnextyear[i, ] <- round(exp(qnorm(rp$inp$manFractiles$catch, logCp[2], logCp[4])), 1)
         Bnextyear[i, ] <- round(get.par('logB', rp, exp=TRUE)[indnext, 1:3], 1)
-        Fnextyear[i, ] <- round(get.par('logF', rp, exp=TRUE)[indnext, 1:3], 3)
-        BBnextyear[i, ] <- round(get.par('logBBmsy', rp, exp=TRUE)[indnext, 1:3], 3)
-        FFnextyear[i, ] <- round(get.par('logFFmsy', rp, exp=TRUE)[indnext, 1:3], 3)
+        Fnextyear[i, ] <- round(get.par('logF', rp, exp=TRUE)[indnext, 1:3], 2)
+        BBnextyear[i, ] <- round(get.par('logBBmsy', rp, exp=TRUE)[indnext, 1:3], 2)
+        FFnextyear[i, ] <- round(get.par('logFFmsy', rp, exp=TRUE)[indnext, 1:3], 2)
+        cflag[i] <- ifelse(!is.null(rp$inp$manfacs$cfac) && rp$inp$timerangeObs[2] < rp$inp$maninterval[1],"*","")
+        evalflag[i] <- ifelse(rp$inp$maneval != rep$inp$maneval,"^","")
     }
     indnextCrep <- which((rp$inp$timeCpred+rp$inp$dtcp) == max(rp$inp$maninterval))
     FBtime <- fd(max(rp$inp$maninterval))
@@ -385,26 +391,21 @@ sumspict.manage <- function(rep, include.EBinf=FALSE, include.unc=TRUE, timeline
         perc.dB <- rep(NaN,nsc)
         perc.dF <- rep(NaN,nsc)
     }
-    df <- cbind(Cnextyear[, 2], Bnextyear[, 2], Fnextyear[, 2], BBnextyear[, 2],
-                FFnextyear[, 2], perc.dB, perc.dF)
-    colnames(df)[1:5] <- c(Cn, Bn, Fn, BBn, FFn)
+    ## predictions and uncertainty
+    inds <- c(1,3)
+    if(include.abs){
+        df <- cbind("C"=Cnextyear[, 2], "B/Bmsy"=BBnextyear[,2], "F/Fmsy"=FFnextyear[,2],
+                    "B"=Bnextyear[,2], "F"=Fnextyear[,2])
+        dfunc <- cbind(BBnextyear[,inds,drop=FALSE], FFnextyear[,inds,drop=FALSE],
+                       Bnextyear[,inds,drop=FALSE], Fnextyear[,inds,drop=FALSE])
+    }else{
+        df <- cbind("C"=Cnextyear[, 2], "B/Bmsy"=BBnextyear[,2], "F/Fmsy"=FFnextyear[,2])
+        dfunc <- cbind(BBnextyear[,inds,drop=FALSE], FFnextyear[,inds,drop=FALSE])
+    }
     qinds <- grep('q', colnames(df))
     colnames(df)[qinds] <- sub('q', '/', colnames(df)[qinds]) # Replace q with /
-    # Data frame with uncertainties of absolute predictions
-    inds <- c(1, 3)
-    dfabs <- cbind(Cnextyear[, inds,drop=FALSE], Bnextyear[, inds,drop=FALSE], Fnextyear[, inds,drop=FALSE])
-    colnames(dfabs) <- c(colnames(Cnextyear)[inds], colnames(Bnextyear)[inds],
-                         colnames(Fnextyear)[inds])
-    colnames(dfabs) <- sub("C",Cn,colnames(dfabs))
-    colnames(dfabs) <- sub("B",Bn,colnames(dfabs))
-    colnames(dfabs) <- sub("F",Fn,colnames(dfabs))
-    # Data frame with uncertainties of relative predictions
-    dfrel <- cbind(BBnextyear[, inds,drop=FALSE], FFnextyear[, inds,drop=FALSE])
-    colnames(dfrel) <- c(colnames(BBnextyear)[inds], colnames(FFnextyear)[inds])
-    qinds <- grep('q', colnames(dfrel))
-    colnames(dfrel)[qinds] <- sub('q', '/', colnames(dfrel)[qinds]) # Replace q with /
-    colnames(dfrel) <- sub("B/Bmsy",BBn,colnames(dfrel))
-    colnames(dfrel) <- sub("F/Fmsy",FFn,colnames(dfrel))
+    qinds <- grep('q', colnames(dfunc))
+    colnames(dfunc)[qinds] <- sub('q', '/', colnames(dfunc)[qinds]) # Replace q with /
     # Set row names
     rn <- suppressMessages(unlist(
         plyr::revalue(scenarios, replace = list("currentCatch" = 'Keep current catch',
@@ -416,9 +417,9 @@ sumspict.manage <- function(rep, include.EBinf=FALSE, include.unc=TRUE, timeline
                                                 "msyHockeyStick" = 'MSY hockey-stick rule',
                                                 "ices" = 'ICES advice rule'))))
     rn <- paste0(paste0(seq(length(rn)),". "),rn, "")
+    rn <- paste0(rn, cflag, evalflag)
     rownames(df) <- rn
-    rownames(dfrel) <- rn
-    rownames(dfabs) <- rn
+    rownames(dfunc) <- rn
     #cat('Management summary\n')
     timerangeI <- range(unlist(rep$inp$timeI))
     timerangeC <- range(rep$inp$timeC)
@@ -454,22 +455,25 @@ sumspict.manage <- function(rep, include.EBinf=FALSE, include.unc=TRUE, timeline
             man.timeline(repman[[1]]$inp, obsonly = !mancheck$mantime, verbose=FALSE)
             cat('\n')
         }
-        cat('Predictions\n')
     }
+    cat('Predicted catch for management period and states at management evaluation time:\n\n')
     print(df)
     if (include.unc){
-        cat('\n95% CIs of absolute predictions\n')
-        print(dfabs)
-        cat('\n95% CIs of relative predictions\n')
-        print(dfrel)
+        cat('\n95% confidence intervals for states:\n\n')
+        print(dfunc)
     }
-
-    if(verbose){
-        if(!mancheck$mantime){
-            cat("\nThe management intervals differ between the scenarios! Predictions refer to different time periods and intervals. Information about the management period and percentage differences cannot be displayed correctly and are omitted.\n")
-        }else if(!mancheck$inter){
-            cat("\nThe assumptions of the intermediate period differ between the scenarios, e.g. continuing the F process vs. constant catch. The percentage differences cannot be displayed correctly and are omitted.\n")
-        }
+    ## if(verbose){
+    ##     if(!mancheck$mantime){
+    ##         cat("\nThe management intervals differ between the scenarios! Predictions refer to different time periods and intervals. Information about the management period and percentage differences cannot be displayed correctly and are omitted.\n")
+    ##     }else if(!mancheck$inter){
+    ##         cat("\nThe assumptions of the intermediate period differ between the scenarios, e.g. continuing the F process vs. constant catch. The percentage differences cannot be displayed correctly and are omitted.\n")
+    ##     }
+    ## }
+    if(any(cflag == "*")){
+        cat("\n* This scenario is based on the last observed catch and might thus imply another catch in the intermediate year.\n")
+    }
+    if(any(evalflag == "^")){
+        cat("^ This scenario assumes another management evaluation time.\n")
     }
 
     invisible(df)
@@ -1137,6 +1141,18 @@ add.man.scenario <- function(rep, scenarioTitle = "",
     rep$inp$ffacvec <- make.ffacvec(rep$inp, 1.0)$ffacvec
     rep$inp$fconvec <- make.fconvec(rep$inp, 0.0)$fconvec
 
+    ## fractile list
+    if(!is.list(fractiles)) stop("Please provide 'fractiles' with the arguments: 'catch', 'bbmsy', and 'ffmsy'!")
+    default_fractiles = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5)
+    fList <- default_fractiles[which(!names(default_fractiles) %in% names(fractiles))]
+    fList <- c(fList,fractiles)
+
+    ## BIOMASS SAFEGUARD
+    if(!is.list(safeguardB)) stop("Please provide 'safeguardB' with the arguments: 'limitB' and 'prob'!")
+    default_safeguardB = list(limitB = 0, prob = 0.95)
+    pList <- default_safeguardB[which(!names(default_safeguardB) %in% names(safeguardB))]
+    pList <- c(pList,safeguardB)
+
     ## get inpt for retape
     ## get updated inp
     inpt <- make.man.inp(rep=rep,
@@ -1146,9 +1162,9 @@ add.man.scenario <- function(rep, scenarioTitle = "",
                          ffac = ffac,
                          cfac = cfac,
                          csdfac = csdfac,
-                         fractiles = fractiles,
+                         fractiles = fList,
                          breakpointB = breakpointB,
-                         safeguardB = safeguardB,
+                         safeguardB = pList,
                          intermediatePeriodCatch = intermediatePeriodCatch,
                          intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
                          intermediatePeriodCatchList = intermediatePeriodCatchList,
@@ -1159,6 +1175,12 @@ add.man.scenario <- function(rep, scenarioTitle = "",
 
     ## retape spict
     repman <- retape.spict(rep, inpt, verbose = FALSE, mancheck=FALSE)
+    ## save fractile and Co info in inp
+    repman$inp$manFractiles <- fList
+    repman$inp$manBreakpointB <- breakpointB
+    repman$inp$manSafeguardB <- pList
+    repman$inp$manfacs <- list("cfac" = cfac, "ffac" = ffac, "bfac" = NULL)
+
     ## check if man already in repout
     if(!"man" %in% names(repout)){
         repout$man <- list()
@@ -1638,6 +1660,12 @@ get.TAC <- function(rep,
     fList <- default_fractiles[which(!names(default_fractiles) %in% names(fractiles))]
     fList <- c(fList,fractiles)
 
+    ## BIOMASS SAFEGUARD
+    if(!is.list(safeguardB)) stop("Please provide 'safeguardB' with the arguments: 'limitB' and 'prob'!")
+    default_safeguardB = list(limitB = 0, prob = 0.95)
+    pList <- default_safeguardB[which(!names(default_safeguardB) %in% names(safeguardB))]
+    pList <- c(pList,safeguardB)
+
     ## get updated inp
     inpt <- make.man.inp(rep=rep,
                          scenarioTitle = scenarioTitle,
@@ -1648,7 +1676,7 @@ get.TAC <- function(rep,
                          csdfac = csdfac,
                          fractiles = fList,
                          breakpointB = breakpointB,
-                         safeguardB = safeguardB,
+                         safeguardB = pList,
                          intermediatePeriodCatch = intermediatePeriodCatch,
                          intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
                          intermediatePeriodCatchList = intermediatePeriodCatchList,

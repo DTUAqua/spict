@@ -1182,6 +1182,47 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     if(!"lastCatchObs" %in% names(inp)) inp$lastCatchObs <- max(inp$timeC + inp$dtc)
     if(!"timerangeObs" %in% names(inp)) inp$timerangeObs <- inp$timerange
 
+    ## fractiles used for management
+    deffractiles <- list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5)
+    if(!"manFractiles" %in% names(inp)){
+        fractiles <- deffractiles
+    }else if(inherits(inp$manFractiles, "list")){
+        fractiles <- inp$manFractiles
+    }else{
+        stop("The element 'inp$manFractiles' has to be a list including any of the following elements: 'catch', 'ffmsy', 'bbmsy'!")
+    }
+    inp$manFractiles <- deffractiles[which(!names(deffractiles) %in% names(fractiles))]
+    inp$manFractiles <- c(inp$manFractiles, fractiles)
+
+    ## biomass breakpoint used for management
+    if(!"manBreakpointB" %in% names(inp)) inp$manBreakpointB <- 0
+
+    ## biomass safeguard used for management
+    defsafeB = list(limitB = 0, prob = 0.95)
+    if(!"manSafeguardB" %in% names(inp)){
+        safeB <- defsafeB
+    }else if(inherits(inp$manSafeguardB, "list")){
+        safeB <- inp$manSafeguardB
+    }else{
+        stop("The element 'inp$manSafeguardB' has to be a list including any of the following elements: 'limitB', 'prob'!")
+    }
+    inp$manSafeguardB <- defsafeB[which(!names(defsafeB) %in% names(safeB))]
+    inp$manSafeguardB <- c(inp$manSafeguardB, safeB)
+
+    ## cfac, ffac, bfac
+    deffacs = list(cfac = NULL, ffac = NULL, bfac = NULL)
+    if(!"manfacs" %in% names(inp)){
+        manfacs <- deffacs
+    }else if(inherits(inp$manfacs, "list")){
+        manfacs <- inp$manfacs
+    }else{
+        stop("The element 'inp$manfacs' has to be a list including any of the following elements: 'cfac', 'ffac', 'bfac'!")
+    }
+    inp$manfacs <- deffacs[which(!names(deffacs) %in% names(manfacs))]
+    inp$manfacs <- c(inp$manfacs, manfacs)
+
+
+
     # Reorder parameter list
     inp$parlist <- list(logm=inp$ini$logm,
                         mu=inp$ini$mu,
