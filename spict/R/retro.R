@@ -29,6 +29,8 @@
 #' plotspict.retro(rep)
 #' @export
 retro <- function(rep, nretroyear=5){
+    if (!"spictcls" %in% class(rep)) stop("This is not a spictcls object from `fit.spict`")
+    if (rep$opt$convergence != 0) stop("The fitted object was not converged.")
     inp1 <- rep$inp
     inpall <- list()
     for (i in 1:nretroyear) {
@@ -80,6 +82,8 @@ retro <- function(rep, nretroyear=5){
 #' mohns_rho(rep)
 #' @export
 mohns_rho <- function(rep, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
+  if (!"spictcls" %in% class(rep)) stop("This function only works with spictcls objects")
+  if (!"retro" %in% names(rep)) stop("Please run the retrospective analysis first using the `retro` function.")
   getFullYearEstimates <- function(x, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
     res <- lapply(what, function(ww) {
       par <- paste0("log", ww)
