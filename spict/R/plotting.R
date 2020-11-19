@@ -2493,7 +2493,8 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 #' @param rep A valid result from fit.spict.
 #' @param stamp Stamp plot with this character string.
 #' @param add.mohn Adds Mohn's rho
-#' @return Nothing
+#' @return If \code{add.mohn} is \code{TRUE} returns the Mohn's rho for B/Bmsy and F/Fmsy. Otherwise returns \code{NULL} invisibly.
+#' @note The retrospective runs that did not converge are excluded from the plots and from the calculation of Mohn's rho. A message is displayed in such a case.
 #' @export
 plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
   opar <- par(mfrow=c(2, 2), mar=c(5, 4.2, 2, 2))
@@ -2563,6 +2564,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
             if (nnotconv == 1) "was" else "were" , " not converged: ",
             paste(which(!conv) - 1, collapse = ", "))
   }
+  if (add.mohn) mr else invisible(NULL)
 }
 
 
