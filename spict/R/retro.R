@@ -20,6 +20,7 @@
 #' @details A retrospective analysis consists of estimating the model with later data points removed sequentially one year at a time.
 #' @param rep A valid result from fit.spict.
 #' @param nretroyear Number of years of data to remove (this is also the total number of model runs).
+#' @param reduce_output_size logical, if \code{TRUE} (default) the retro is run with \code{getReportCovariance} and \code{getJointPrecision} set as \code{FALSE}
 #' @return A rep list with the added key retro containing the results of the retrospective analysis. Use plotspict.retro() to plot these results.
 #' @examples
 #' data(pol)
@@ -28,7 +29,7 @@
 #' rep <- retro(rep, nretroyear=6)
 #' plotspict.retro(rep)
 #' @export
-retro <- function(rep, nretroyear=5){
+retro <- function(rep, nretroyear=5, reduce_output_size = TRUE){
     if (!"spictcls" %in% class(rep)) stop("This is not a spictcls object from `fit.spict`")
     if (rep$opt$convergence != 0) stop("The fitted object was not converged.")
     inp1 <- rep$inp
@@ -54,6 +55,8 @@ retro <- function(rep, nretroyear=5){
             inpall[[i]]$timeI[[j]] <- inp1$timeI[[j]][indsI]
             inpall[[i]]$stdevfacI[[j]] <- inp1$stdevfacI[[j]][indsI]
         }
+        inpall[[i]]$getReportCovariance <- !reduce_output_size
+        inpall[[i]]$getJointPrecision <- !reduce_output_size
         inpall[[i]] <- check.inp(inpall[[i]])
     }
     asd <- try(parallel::mclapply(inpall, fit.spict))
@@ -66,6 +69,7 @@ retro <- function(rep, nretroyear=5){
     ## Add the base run into the retro list
     baserun <- rep
     baserun$retro <- NULL
+    baserun$cov <- NA
     rep$retro <- c(list(baserun), rep$retro)
     return(rep)
 }

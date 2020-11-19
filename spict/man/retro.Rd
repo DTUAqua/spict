@@ -4,12 +4,14 @@
 \alias{retro}
 \title{Conduct retrospective analysis}
 \usage{
-retro(rep, nretroyear = 5)
+retro(rep, nretroyear = 5, reduce_output_size = TRUE)
 }
 \arguments{
 \item{rep}{A valid result from fit.spict.}
 
 \item{nretroyear}{Number of years of data to remove (this is also the total number of model runs).}
+
+\item{reduce_output_size}{logical, if \code{TRUE} (default) the retro is run with \code{getReportCovariance} and \code{getJointPrecision} set as \code{FALSE}}
 }
 \value{
 A rep list with the added key retro containing the results of the retrospective analysis. Use plotspict.retro() to plot these results.
