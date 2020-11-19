@@ -1,0 +1,34 @@
+
+Check retrospective analysis functionality
+==========================================
+
+
+1. Retro and Mohn's rho exclude not converged runs
+==================================================
+
+1.1. Convergence of last two retros is not achieved
+[1] 0 0 0 0 0 0 1 1
+
+
+1.2. Mohn's rho is calculated correctly
+[1] "Exluded 2 retrospective runs that were not converged: 6, 7"
+
+
+1.3. Plot is shown correctly
+[1] "Exluded 2 retrospective runs that were not converged: 6, 7"
+
+
+1.4. The results from plotspict.retro and monh's rho should be the same
+[1] TRUE
+
+
+
+2. Error expectations
+=====================
+
+2.1. No spictcls object produces an error
+Error:This is not a spictcls object from `fit.spict`
+
+
+2.2. Not converged fitted object produces an error
+Error:The fitted object was not converged.
