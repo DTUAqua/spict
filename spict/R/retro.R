@@ -99,6 +99,16 @@ mohns_rho <- function(rep, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
     names(res) <- what
     setNames(do.call(cbind.data.frame, res), what)
   }
+  ## Exclude not converged runs
+  conv <- sapply(rep$retro, function(x) x$opt$convergence)
+  conv <- ifelse(conv == 0, TRUE, FALSE)
+  nnotconv <- sum(!conv)
+  if (nnotconv > 0) {
+    message("Exluded ", nnotconv, " retrospective runs that ",
+            if (nnotconv == 1) "was" else "were" , " not converged: ",
+            paste(which(!conv) - 1, collapse = ", "))
+  }
+  rep$retro <- rep$retro[conv]
   ## Adapted from fishfollower/SAM/stockassessment package
   ret <- lapply(rep$retro, getFullYearEstimates, what = what, annualfunc = annualfunc)
   ref <- ret[[1]]
