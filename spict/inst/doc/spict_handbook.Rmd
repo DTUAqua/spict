@@ -338,16 +338,16 @@ This reveals that for this data set the estimates of log Fmsy and log Bmsy are h
 
 ## Retrospective plots
 
-Retrospecitive plots are sometimes used to evaluate the robustness of the model fit to the introduction of new data, i.e. to check whether the fit changes substantially when new data becomes available. Such calculations and plotting thereof can be crudely performed using `retro()` as shown here
+Retrospecitive plots are sometimes used to evaluate the robustness of the model fit to the introduction of new data, i.e. to check whether the fit changes substantially when new data becomes available. Such calculations and plotting thereof can be performed using `retro()` as shown here
 
 ```{r, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=5, fig.show='hold'}
 ## res <- fit.spict(pol$albacore)
 res <- retro(res, nretroyear = 4)
 plotspict.retro(res)
 ```
-By default `retro` creates 5 scenarios with catch and index time series which are shortened by the 1 to 5 last observations. The number of scenarios and thus observations which are removed can be changed with the argument `nretroyear` in the function `retro`. The graphs show the different peels with different colors. For the relative biomass and fishing mortality, the Mohn's rho are shown inside the corresponding plots. Mohn's rho for different values can be calculated using the function `mohns_rho`.
+By default `retro` creates 5 scenarios with catch and index time series which are shortened by the 1 to 5 last observations. The number of scenarios and thus observations which are removed can be changed with the argument `nretroyear` in the function `retro`. The graphs show the different peels with different colors. For the relative biomass and fishing mortality, the Mohn's rho are shown inside the corresponding plots. Mohn's rho for other quantities can be calculated using the function `mohns_rho`.
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=5, fig.height=5, fig.show='hold'}
+```{r, results='show', message=FALSE, warning=FALSE}
 ## res <- fit.spict(pol$albacore)
 ## res <- retro(res)
 mohns_rho(res, what = c("FFmsy", "BBmsy"))
