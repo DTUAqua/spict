@@ -63,6 +63,10 @@ retro <- function(rep, nretroyear=5){
     else {
         rep$retro <- asd
     }
+    ## Add the base run into the retro list
+    baserun <- rep
+    baserun$retro <- NULL
+    rep$retro <- c(list(baserun), rep$retro)
     return(rep)
 }
 
@@ -96,9 +100,9 @@ mohns_rho <- function(rep, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
     setNames(do.call(cbind.data.frame, res), what)
   }
   ## Adapted from fishfollower/SAM/stockassessment package
-  ref <- getFullYearEstimates(rep, what = what, annualfunc = annualfunc)
   ret <- lapply(rep$retro, getFullYearEstimates, what = what, annualfunc = annualfunc)
-  bias <- lapply(ret, function(x) {
+  ref <- ret[[1]]
+  bias <- lapply(ret[-1], function(x) {
     y <- rownames(x)[nrow(x)]
     (x[rownames(x) == y, ] - ref[rownames(ref) == y, ]) / ref[rownames(ref) == y, ]
   })

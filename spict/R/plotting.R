@@ -2498,8 +2498,6 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
   opar <- par(mfrow=c(2, 2), mar=c(5, 4.2, 2, 2))
   on.exit(par(opar))
-  baserun <- rep[- which(names(rep) == "retro")]
-  rep$retro <- append(structure(list(baserun), class = "spictcls"), rep$retro)
   if (!"spictcls" %in% class(rep)) stop("This function only works with spictcls objects")
   if (!"retro" %in% names(rep)) stop("Please run the retrospective analysis first using the `retro` function.")
   nruns <- length(rep$retro)
