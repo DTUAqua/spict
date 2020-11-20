@@ -2489,11 +2489,12 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 
 
 #' @name plotspict.retro
+#' @rdname plotspict.retro
 #' @title Plot results of retrospective analysis
 #' @param rep A valid result from fit.spict.
 #' @param stamp Stamp plot with this character string.
 #' @param add.mohn Adds Mohn's rho
-#' @return If \code{add.mohn} is \code{TRUE} returns the Mohn's rho for B/Bmsy and F/Fmsy. Otherwise returns \code{NULL} invisibly.
+#' @return Ivisible \code{NULL}. If \code{add.mohn} is \code{TRUE}, \code{plotspict.retro} returns the Mohn's rho for B/Bmsy and F/Fmsy.
 #' @note The retrospective runs that did not converge are excluded from the plots and from the calculation of Mohn's rho. A message is displayed in such a case.
 #' @export
 plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
@@ -2567,6 +2568,35 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
   if (add.mohn) mr else invisible(NULL)
 }
 
+#' @rdname plotspict.retro
+#' @export
+plotspict.retro.fixed <- function(rep) {
+  cols <-  c("#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999")
+  conv <- sapply(rep$retro, function(x) x$opt$convergence == 0)
+  nnotconv <- sum(!conv)
+  if (nnotconv > 0) {
+      message("Exluded ", nnotconv, " retrospective runs that ",
+              if (nnotconv == 1) "was" else "were" , " not converged: ",
+              paste(which(!conv) - 1, collapse = ", "))
+  }
+  s <- seq_along(rep$retro)
+  nms <- names(rep$par.fixed)
+  n <- ceiling(sqrt(length(nms)))
+  lbls <- c("All", ifelse(conv[-1], paste0("-", s[-length(s)]), ""))
+  par(mfrow = c(n, n), mar = c(3, 3, 1.2, 0.5))
+  for (par in nms) {
+      ms <- sapply(rep$retro, function(x) if(x$opt$convergence == 0) get.par(par, x, exp = TRUE) else rep(NA, 5))
+      ylim <- range(ms[1:3, ], 0, na.rm = TRUE) * 1.05
+      plot(ms[2, ], ylim = ylim, axes = FALSE, ylab = "", xlab = "", yaxs = "i", pch = 20, col = cols, cex = 1.5)
+      arrows(s, ms[1, ], s, ms[3, ], angle = 90, length = 0.05, code = 3, lwd = 3, col = cols)
+      title(main = sub("log", "", par), line = 0.2)
+      axis(1, at = s, labels = lbls, las = 2)
+      mtext(c("All", paste0("-", s[-length(s)], "*"))[!conv], at = s[!conv], side = 1, las = 2, line = 1, col = 2, cex = 0.7)
+      axis(2)
+      box()
+  }
+  invisible(NULL)
+}
 
 
 #' @name plotspict.ci

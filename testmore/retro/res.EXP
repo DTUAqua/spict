@@ -22,6 +22,10 @@ Check retrospective analysis functionality
 [1] TRUE
 
 
+1.5. Plot fixed effects retro shows message with excluded runs
+[1] TRUE
+
+
 
 2. Error expectations
 =====================

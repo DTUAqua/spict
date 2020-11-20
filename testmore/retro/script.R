@@ -25,6 +25,9 @@ test_this("1.3. Plot is shown correctly", capture.output(mr2 <- plotspict.retro(
 
 test_this("1.4. The results from plotspict.retro and monh's rho should be the same", all.equal(mr1, mr2))
 
+msg <- capture.output(plotspict.retro.fixed(fit), type = "message")
+test_this("1.5. Plot fixed effects retro shows message with excluded runs", length(msg) != 0)
+
 ## Expect error - not a fitted object
 header("2. Error expectations")
 test_this("2.1. No spictcls object produces an error", retro(pol$albacore))
