@@ -29,8 +29,8 @@
 #' plotspict.retro(rep)
 #' @export
 retro <- function(rep, nretroyear=5){
-    if (!"spictcls" %in% class(rep)) stop("This is not a spictcls object from `fit.spict`")
-    if (rep$opt$convergence != 0) stop("The fitted object was not converged.")
+    if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
+    if (rep$opt$convergence != 0) stop("The fitted object did not converged.")
     inp1 <- rep$inp
     inpall <- list()
     for (i in 1:nretroyear) {

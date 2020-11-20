@@ -2499,8 +2499,8 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
   opar <- par(mfrow=c(2, 2), mar=c(5, 4.2, 2, 2))
   on.exit(par(opar))
-  if (!"spictcls" %in% class(rep)) stop("This function only works with spictcls objects")
-  if (!"retro" %in% names(rep)) stop("Please run the retrospective analysis first using the `retro` function.")
+  if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
+  if (!"retro" %in% names(rep)) stop("No results of the retro function found. Please run the retrospective analysis using the `retro` function.")
   if (add.mohn) {
     mr <- suppressMessages(mohns_rho(rep, what = c("FFmsy", "BBmsy")))
     mrr <- round(mr, 3)
