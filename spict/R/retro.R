@@ -86,8 +86,8 @@ retro <- function(rep, nretroyear=5){
 #' mohns_rho(rep)
 #' @export
 mohns_rho <- function(rep, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
-  if (!"spictcls" %in% class(rep)) stop("This function only works with spictcls objects")
-  if (!"retro" %in% names(rep)) stop("Please run the retrospective analysis first using the `retro` function.")
+  if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
+  if (!"retro" %in% names(rep)) stop("No results of the retro function found. Please run the retrospective analysis using the `retro` function.")
   getFullYearEstimates <- function(x, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
     res <- lapply(what, function(ww) {
       par <- paste0("log", ww)
