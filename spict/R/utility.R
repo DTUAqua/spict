@@ -643,7 +643,8 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
     inpout <- inpin
 
     ## function to find closest time
-    get.inds <- function(timevec, mintime, maxtime){
+    get.inds <- function(timevec, mintime, maxtime, timevec2 = NULL){
+        if(is.null(timevec2)) timevec2 <- timevec
         mintimePot <- min(floor(timevec))
         maxtimePot <- max(ceiling(timevec))
         ## set to limits if NULL or incorrectly set
@@ -652,12 +653,12 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
         if (is.na(maxtime) || !is.numeric(maxtime) || maxtime > maxtimePot)
             maxtime <- maxtimePot
         ## indices
-        inds <- which(timevec >= mintime & timevec <= maxtime)
+        inds <- which(timevec >= mintime & timevec2 <= maxtime)
         return(inds)
     }
 
     ## catch
-    inds <- get.inds(inpin$timeC + inpin$dtc, mintime,maxtime)
+    inds <- get.inds(inpin$timeC, mintime, maxtime, inpin$timeC + inpin$dtc)
     inpout$obsC <- inpin$obsC[inds]
     inpout$timeC <- inpin$timeC[inds]
     inpout$dtc <- inpin$dtc[inds]
