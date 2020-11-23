@@ -2498,7 +2498,7 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 #' @note The retrospective runs that did not converge are excluded from the plots and from the calculation of Mohn's rho. A message is displayed in such a case.
 #' @export
 plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
-  opar <- par(mfrow=c(2, 2), mar=c(4, 4, 0.8, 0.8))
+  opar <- par(mfrow=c(2, 2), mar=c(2.5, 4, 0.7, 2.3), xpd = FALSE)
   on.exit(par(opar))
   if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
   if (!"retro" %in% names(rep)) stop("No results of the retro function found. Please run the retrospective analysis using the `retro` function.")
@@ -2521,8 +2521,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
   ## Do plots
   cols <-  c("#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999")
   ylim <- range(sapply(bs, sel), na.rm = TRUE)
-  plot(time[[1]], sel(bs[[1]]), type = 'n', ylim = ylim, xlab='Time',
-       ylab = "", lwd=1.5)
+  plot(time[[1]], sel(bs[[1]]), type = 'n', ylim = ylim, xlab='', ylab = "", lwd=1.5)
   title(ylab = expression(B[t]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(bs[[1]][,1], rev(bs[[1]][,3])), col = "lightgrey", border = NA)
   for (i in seq(nruns)) {
@@ -2530,15 +2529,18 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
       lines(time[[i]], sel(bs[[i]]), col=cols[i], lwd=2)
     }
   }
-  par(lend = 2)
-  legend(par("usr")[2], par("usr")[4],
-         xjust = 1, yjust = 1,
-         legend = c("All", ifelse(conv[-1], paste0("-", seq(nruns - 1))[conv[-1]], "")),
-         col = cols[conv], lty = 1, seg.len = 0.5, lwd = 6,
-         bg = "transparent", box.lwd = 0)
-  par(lend = 1)
+  par(lend = 2, xpd = NA)
+  s <- seq(nruns)
+  lbls <- c("All", ifelse(conv[-1], paste0("-", s[-length(s)]), ""))[conv]
+  usr <- par("usr")
+  legend(usr[2], mean(c(usr[3], usr[4])),
+         xjust = 0, yjust = 0.5,
+         legend = lbls,
+         col = cols[s][conv], lty = 1, seg.len = 0.5, lwd = 6,
+         x.intersp = 0.5, bg = "transparent", box.lwd = 0, box.lty = 0)
+  par(lend = 1, xpd = FALSE)
   box(lwd=1.5)
-  plot(time[[1]], sel(fs[[1]]), typ='n', ylim=range(sapply(fs, sel), na.rm = TRUE), xlab='Time',
+  plot(time[[1]], sel(fs[[1]]), typ='n', ylim=range(sapply(fs, sel), na.rm = TRUE), xlab='',
        ylab = "", lwd=1.5)
   title(ylab = expression(F[t]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(fs[[1]][,1], rev(fs[[1]][,3])), col = "lightgrey", border = NA)
@@ -2548,7 +2550,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
     }
   }
   box(lwd=1.5)
-  plot(time[[1]], sel(bbs[[1]]), typ='n', ylim=range(sapply(bbs, sel), na.rm = TRUE), xlab='Time',
+  plot(time[[1]], sel(bbs[[1]]), typ='n', ylim=range(sapply(bbs, sel), na.rm = TRUE), xlab='',
        ylab = "", lwd=1.5)
   title(ylab = expression(B[t]/B[MSY]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(bbs[[1]][,1], rev(bbs[[1]][,3])), col = "lightgrey", border = NA)
@@ -2560,8 +2562,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
   if (add.mohn) mtext(paste("Mohn's rho = ", mrr["BBmsy"]), 3, -1.2)
   box(lwd=1.5)
   plot(time[[1]], sel(ffs[[1]]), typ = 'n',
-       ylim = range(sapply(ffs, sel), na.rm = TRUE),
-       xlab = 'Time', ylab = "", lwd=1.5)
+       ylim = range(sapply(ffs, sel), na.rm = TRUE), xlab = '', ylab = "", lwd=1.5)
   title(ylab = expression(F[t] / F[MSY]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(ffs[[1]][,1], rev(ffs[[1]][,3])), col = "lightgray", border = NA)
   for (i in seq(nruns)){
@@ -2574,7 +2575,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
   txt.stamp(stamp, do.flag=TRUE)
   nnotconv <- sum(!conv)
   if (nnotconv > 0) {
-    message("Exluded ", nnotconv, " retrospective runs that ",
+    message("Excluded ", nnotconv, " retrospective runs that ",
             if (nnotconv == 1) "was" else "were" , " not converged: ",
             paste(which(!conv) - 1, collapse = ", "))
   }
@@ -2588,7 +2589,7 @@ plotspict.retro.fixed <- function(rep) {
   conv <- sapply(rep$retro, function(x) x$opt$convergence == 0)
   nnotconv <- sum(!conv)
   if (nnotconv > 0) {
-      message("Exluded ", nnotconv, " retrospective runs that ",
+      message("Excluded ", nnotconv, " retrospective runs that ",
               if (nnotconv == 1) "was" else "were" , " not converged: ",
               paste(which(!conv) - 1, collapse = ", "))
   }
