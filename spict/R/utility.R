@@ -646,7 +646,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
     get.inds <- function(timevec, mintime, maxtime, timevec2 = NULL){
         if(is.null(timevec2)) timevec2 <- timevec
         mintimePot <- min(floor(timevec))
-        maxtimePot <- max(ceiling(timevec))
+        maxtimePot <- max(ceiling(timevec2))
         ## set to limits if NULL or incorrectly set
         if (is.na(mintime) || !is.numeric(mintime) || mintime < mintimePot)
             mintime <- mintimePot
