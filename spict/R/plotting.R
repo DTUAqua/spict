@@ -2591,7 +2591,9 @@ plotspict.retro.fixed <- function(rep) {
       arrows(s, ms[1, ], s, ms[3, ], angle = 90, length = 0.05, code = 3, lwd = 3, col = cols)
       title(main = sub("log", "", par), line = 0.2)
       axis(1, at = s, labels = lbls, las = 2)
-      mtext(c("All", paste0("-", s[-length(s)], "*"))[!conv], at = s[!conv], side = 1, las = 2, line = 1, col = 2, cex = 0.7)
+      if (nnotconv > 0) {
+          mtext(c("All", paste0("-", s[-length(s)], "*"))[!conv], at = s[!conv], side = 1, las = 2, line = 1, col = 2, cex = 0.7)
+      }
       axis(2)
       box()
   }
