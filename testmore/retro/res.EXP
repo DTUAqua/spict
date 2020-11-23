@@ -15,7 +15,7 @@ Check retrospective analysis functionality
 
 
 1.3. Plot is shown correctly
-[1] "Exluded 2 retrospective runs that were not converged: 6, 7"
+[1] "Excluded 2 retrospective runs that were not converged: 6, 7"
 
 
 1.4. The results from plotspict.retro and monh's rho should be the same
@@ -31,8 +31,8 @@ Check retrospective analysis functionality
 =====================
 
 2.1. No spictcls object produces an error
-Error:This is not a spictcls object from `fit.spict`
+Error:This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.
 
 
 2.2. Not converged fitted object produces an error
-Error:The fitted object was not converged.
+Error:The fitted object did not converged.
