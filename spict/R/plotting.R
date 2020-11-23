@@ -2498,7 +2498,7 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 #' @note The retrospective runs that did not converge are excluded from the plots and from the calculation of Mohn's rho. A message is displayed in such a case.
 #' @export
 plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
-  opar <- par(mfrow=c(2, 2), mar=c(5, 4.2, 2, 2))
+  opar <- par(mfrow=c(2, 2), mar=c(4, 4, 0.8, 0.8))
   on.exit(par(opar))
   if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
   if (!"retro" %in% names(rep)) stop("No results of the retro function found. Please run the retrospective analysis using the `retro` function.")
@@ -2508,7 +2508,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
   }
   nruns <- length(rep$retro)
   bs <- bbs <- fs <- ffs <- time <- conv <- list()
-    for (i in 1:nruns){
+  for (i in 1:nruns){
       bs[[i]] <- get.par('logB', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
       bbs[[i]] <- get.par('logBBmsy', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
       fs[[i]] <- get.par('logFnotS', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
@@ -2516,49 +2516,62 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
       time[[i]] <- rep$retro[[i]]$inp$time[rep$retro[[i]]$inp$indest]
       conv[[i]] <- rep$retro[[i]]$opt$convergence
   }
+  conv <- ifelse(unlist(conv) == 0, TRUE, FALSE)
   sel <- function(x) x[,2]
   ## Do plots
   cols <-  c("#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999")
-  plot(time[[1]], sel(bs[[1]]), type = 'n', ylim=range(sapply(bs, sel), na.rm = TRUE), xlab='Time',
-       ylab = expression(B[t]), lwd=1.5)
+  ylim <- range(sapply(bs, sel), na.rm = TRUE)
+  plot(time[[1]], sel(bs[[1]]), type = 'n', ylim = ylim, xlab='Time',
+       ylab = "", lwd=1.5)
+  title(ylab = expression(B[t]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(bs[[1]][,1], rev(bs[[1]][,3])), col = "lightgrey", border = NA)
   for (i in seq(nruns)) {
-    if (conv[[i]] == 0) {
+    if (conv[i]) {
       lines(time[[i]], sel(bs[[i]]), col=cols[i], lwd=2)
     }
   }
+  par(lend = 2)
+  legend(par("usr")[2], par("usr")[4],
+         xjust = 1, yjust = 1,
+         legend = c("All", ifelse(conv[-1], paste0("-", seq(nruns - 1))[conv[-1]], "")),
+         col = cols[conv], lty = 1, seg.len = 0.5, lwd = 6,
+         bg = "transparent", box.lwd = 0)
+  par(lend = 1)
   box(lwd=1.5)
   plot(time[[1]], sel(fs[[1]]), typ='n', ylim=range(sapply(fs, sel), na.rm = TRUE), xlab='Time',
-       ylab = expression(F[t]), lwd=1.5)
+       ylab = "", lwd=1.5)
+  title(ylab = expression(F[t]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(fs[[1]][,1], rev(fs[[1]][,3])), col = "lightgrey", border = NA)
   for (i in seq(nruns)) {
-    if (conv[[i]] == 0) {
+    if (conv[i]) {
       lines(time[[i]], sel(fs[[i]]), col=cols[i], lwd=2)
     }
   }
   box(lwd=1.5)
   plot(time[[1]], sel(bbs[[1]]), typ='n', ylim=range(sapply(bbs, sel), na.rm = TRUE), xlab='Time',
-       ylab = expression(B[t]/B[MSY]), lwd=1.5)
+       ylab = "", lwd=1.5)
+  title(ylab = expression(B[t]/B[MSY]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(bbs[[1]][,1], rev(bbs[[1]][,3])), col = "lightgrey", border = NA)
   for (i in seq(nruns)){
-    if (conv[[i]] == 0) {
+    if (conv[i]) {
       lines(time[[i]], sel(bbs[[i]]), col=cols[i], lwd=2)
     }
   }
   if (add.mohn) mtext(paste("Mohn's rho = ", mrr["BBmsy"]), 3, -1.2)
   box(lwd=1.5)
-  plot(time[[1]], sel(ffs[[1]]), typ='n', ylim=range(sapply(ffs, sel), na.rm = TRUE), xlab='Time',
-       ylab = expression(F[t]/F[MSY]), lwd=1.5)
+  plot(time[[1]], sel(ffs[[1]]), typ = 'n',
+       ylim = range(sapply(ffs, sel), na.rm = TRUE),
+       xlab = 'Time', ylab = "", lwd=1.5)
+  title(ylab = expression(F[t] / F[MSY]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(ffs[[1]][,1], rev(ffs[[1]][,3])), col = "lightgray", border = NA)
   for (i in seq(nruns)){
-    if (conv[[i]] == 0) {
+    if (conv[i]) {
       lines(time[[i]], sel(ffs[[i]]), col=cols[i], lwd=2)
     }
   }
   if (add.mohn) mtext(paste("Mohn's rho = ", mrr["FFmsy"]), 3, -1.2)
   box(lwd=1.5)
   txt.stamp(stamp, do.flag=TRUE)
-  conv <- ifelse(unlist(conv) == 0, TRUE, FALSE)
   nnotconv <- sum(!conv)
   if (nnotconv > 0) {
     message("Exluded ", nnotconv, " retrospective runs that ",
