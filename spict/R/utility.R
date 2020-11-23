@@ -63,7 +63,7 @@ make.ffacvec <- function(inp, ffac){
 make.fconvec <- function(inp, fcon){
     if(!"ns" %in% names(inp)) stop("inp needs to be a checked input list - use 'check.inp()'!")
     inp$fconvec <- numeric(inp$ns)
-##    inp$fconvec[inp$indpred[-1]] <- fcon
+    ##    inp$fconvec[inp$indpred[-1]] <- fcon
     inp$fconvec[which(inp$time >= inp$manstart)] <- fcon
     inp$fconvec <- inp$fconvec + 1e-8 # Add small to avoid taking log of 0
     return(inp)
@@ -285,7 +285,7 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
 list.quantities <- function(rep) {
     with(rep,
          sort(unique(c(names(value), names(par.fixed), names(par.random))))
-         )
+    )
 }
 
 #' @name get.msyvec
@@ -643,21 +643,22 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
     inpout <- inpin
 
     ## function to find closest time
-    get.inds <- function(timevec, mintime, maxtime){
+    get.inds <- function(timevec, mintime, maxtime, timevec2 = NULL){
+        if(is.null(timevec2)) timevec2 <- timevec
         mintimePot <- min(floor(timevec))
-        maxtimePot <- max(ceiling(timevec))
+        maxtimePot <- max(ceiling(timevec2))
         ## set to limits if NULL or incorrectly set
         if (is.na(mintime) || !is.numeric(mintime) || mintime < mintimePot)
             mintime <- mintimePot
         if (is.na(maxtime) || !is.numeric(maxtime) || maxtime > maxtimePot)
             maxtime <- maxtimePot
         ## indices
-        inds <- which(timevec >= mintime & timevec <= maxtime)
+        inds <- which(timevec >= mintime & timevec2 <= maxtime)
         return(inds)
     }
 
     ## catch
-    inds <- get.inds(inpin$timeC + inpin$dtc, mintime,maxtime)
+    inds <- get.inds(inpin$timeC, mintime, maxtime, inpin$timeC + inpin$dtc)
     inpout$obsC <- inpin$obsC[inds]
     inpout$timeC <- inpin$timeC[inds]
     inpout$dtc <- inpin$dtc[inds]
@@ -686,7 +687,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
 
     ## effort
     if(length(inpin$obsE) > 0){
-        inds <- get.inds(inpin$timeE + inp$dte, mintime,maxtime)
+        inds <- get.inds(inpin$timeE, mintime,maxtime, inpin$timeE + inpin$dte)
         inpout$obsE <- inpin$obsE[inds]
         inpout$timeE <- inpin$timeE[inds]
         inpout$stdevfacE <- inpin$stdevfacE[inds]
@@ -769,11 +770,11 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
         inpout$true$logmre <- inpout$true$logmre[inpin$time %in% inpout$time]
         inpout$true$SARvec <- inpout$true$SARvec[inpin$time %in% inpout$time]
         inpout$true$time <- inpout$true$time[inpin$time %in% inpout$time]
-        inds <- get.inds(inpin$timeC,mintime,maxtime)
+        inds <- get.inds(inpin$timeC,mintime,maxtime, inpin$timeC + inpin$dtc)
         inpout$true$C <- inpout$true$C[inds]
         inpout$true$e.c <- inpout$true$e.c[inds]
         if(length(inpin$true$E) > 0){
-            inds <- get.inds(inpin$timeE,mintime,maxtime)
+            inds <- get.inds(inpin$timeE,mintime,maxtime, inpin$timeE + inpin$dte)
             inpout$true$E <- inpout$true$E[inds]
             inpout$true$e.e <- inpout$true$e.e[inds]
         }
@@ -867,7 +868,7 @@ retape.spict <- function(rep, inp, verbose = FALSE, dbg = 0, mancheck=TRUE){
     inpin <- check.inp(inp, verbose = verbose, mancheck=mancheck)
     ## prevent R collapse if prediction time horizon was changed without check.man.time
     vars <- c("logmcovariatein","ffacvec","fconvec","MSYregime")
-              ## not testing: "ini$logF","ini$logB","ini$logmre" ## == dim(ini$logu)[1]
+    ## not testing: "ini$logF","ini$logB","ini$logmre" ## == dim(ini$logu)[1]
     check <- rep(NA,length(vars)-1)
     for(i in 1:(length(vars)-1)) check[i] <- identical(length(inpin[[vars[i]]]), length(inpin[[vars[i+1]]]))
     if(verbose && !all(check)) stop("Some vectors in the input list 'inp' do not have the same length. Run 'check.man.time'!")
@@ -933,7 +934,7 @@ retape.spict <- function(rep, inp, verbose = FALSE, dbg = 0, mancheck=TRUE){
         }
         repout$computing.time <- repin$computing.time
         if("man" %in% names(repin)) repout$man <- repin$man
-         class(repout) <- "spictcls"
+        class(repout) <- "spictcls"
     }
     return(repout)
 }
