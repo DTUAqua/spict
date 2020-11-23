@@ -33,7 +33,7 @@ installs the stable version of `spict`. When loading the package the user is gre
 ```{r}
 library(spict)
 ```
-The printed version follows the format ver\@SHA, where _ver_ is the spict version number and _SHA_ is a unique github commit on [github](https://github.com/DTUAqua/spict). The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/mawp/spict/tree/v", packageVersion("spict"))`).
+The printed version follows the format ver\@SHA, where _ver_ is the spict version number and _SHA_ is a unique github commit on [github](https://github.com/DTUAqua/spict). The content of this vignette pertains to the version printed above that can be found  [here](`r paste0("https://github.com/DTUAqua/spict/tree/v", packageVersion("spict"))`).
 
 
 A specific version of `spict` can be installed using the following:
