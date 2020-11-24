@@ -2488,9 +2488,8 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 }
 
 cols <- function() {
-    cs <- c("#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00",
-      "#FFFF33", "#A65628", "#F781BF", gray(seq(0.9, 0.1, -0.1)))
-    c(cs, adjustcolor(cs[-1], 0.5))
+    cs <- c("#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF")
+    c(cs, adjustcolor(cs[-1], 0.5), adjustcolor(cs[-1], 0.2))
 }
 
 #' @name plotspict.retro
@@ -2542,7 +2541,9 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
         ncol <- sum(conv)
     } else {
         ncol <- ceiling(sum(conv) / 2)
-        w <- unique(c(rbind(seq(ncol), seq(ncol + 1, sum(conv)))))
+        a <- seq(ncol)
+        b <- seq(ncol + 1, sum(conv) + sum(conv) %% 2)
+        w <- unique(c(rbind(a, b)))
         lbls <- lbls[w]
         cls <- cls[w]
     }
