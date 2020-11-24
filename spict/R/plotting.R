@@ -2487,6 +2487,11 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
     txt.stamp(stamp)
 }
 
+cols <- function() {
+    cs <- c("#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00",
+      "#FFFF33", "#A65628", "#F781BF", gray(seq(0.9, 0.1, -0.1)))
+    c(cs, adjustcolor(cs[-1], 0.5))
+}
 
 #' @name plotspict.retro
 #' @rdname plotspict.retro
@@ -2498,7 +2503,7 @@ plotspict.likprof <- function(input, logpar=FALSE, stamp=get.version()){
 #' @note The retrospective runs that did not converge are excluded from the plots and from the calculation of Mohn's rho. A message is displayed in such a case.
 #' @export
 plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
-    opar <- par(mfrow=c(2, 2), mar=c(2.5, 3.3, 4, 0.8), xpd = FALSE)
+    opar <- par(mfrow=c(2, 2), mar=c(2.5, 3.3, 4, 0.8))
     on.exit(par(opar))
     if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
     if (!"retro" %in% names(rep)) stop("No results of the retro function found. Please run the retrospective analysis using the `retro` function.")
@@ -2508,7 +2513,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
     }
     nruns <- length(rep$retro)
     bs <- bbs <- fs <- ffs <- time <- conv <- list()
-    for (i in 1:nruns){
+    for (i in 1:nruns) {
         bs[[i]] <- get.par('logB', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
         bbs[[i]] <- get.par('logBBmsy', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
         fs[[i]] <- get.par('logFnotS', rep$retro[[i]], exp=TRUE)[rep$retro[[i]]$inp$indest, 1:3]
@@ -2519,8 +2524,8 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
     conv <- ifelse(unlist(conv) == 0, TRUE, FALSE)
     sel <- function(x) x[,2]
     ## Do plots
-    cols <-  c("#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999", "#555555", gray(seq(0.9, 0.1, -0.1)))
-    ylim <- c(0.8,1.2) * range(sapply(bs, sel), na.rm = TRUE)
+    cols <- cols()
+    ylim <- range(0, sapply(bs[conv], sel), na.rm = TRUE) * 1.2
     plot(time[[1]], sel(bs[[1]]), type = 'n', ylim = ylim, xlab='', ylab = "", lwd=1.5)
     title(ylab = expression(B[t]), line = 2.2)
     polygon(c(time[[1]], rev(time[[1]])), c(bs[[1]][,1], rev(bs[[1]][,3])), col = "lightgrey", border = NA)
@@ -2529,20 +2534,29 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
             lines(time[[i]], sel(bs[[i]]), col=cols[i], lwd=2)
         }
     }
-    par(lend = 2, xpd = NA)
+    par(lend = 2)
     s <- seq(nruns)
     lbls <- c("All", ifelse(conv[-1], paste0("-", s[-length(s)]), ""))[conv]
+    cls <- cols[s][conv]
+    if (sum(conv) <= 10) {
+        ncol <- sum(conv)
+    } else {
+        ncol <- ceiling(sum(conv) / 2)
+        w <- unique(c(rbind(seq(ncol), seq(ncol + 1, sum(conv)))))
+        lbls <- lbls[w]
+        cls <- cls[w]
+    }
     usr <- par("usr")
-
-    legend(usr[2] + diff(usr[c(1, 2)]) * 0.1  , mean(usr[4]), title = "Number of retrospective years",
-           xjust = 0.5, yjust = 0.1,
-           legend = lbls, ncol = sum(conv),
-           col = cols[s][conv], lty = 1, seg.len = 1, lwd = 6,
-           x.intersp = 0.5, bg = "transparent", box.lwd = 0, box.lty = 0)
-    par(lend = 1, xpd = FALSE)
+    xx <- usr[2] + diff(usr[c(1, 2)]) * 0.1
+    yy <- mean(usr[4])
+    legend(xx, yy, title = "Number of retrospective years",
+           xjust = 0.5, yjust = 0.1, legend = lbls, ncol = ncol,
+           col = cls, lty = 1, seg.len = 1, lwd = 6,
+           x.intersp = 0.5, bg = "transparent", box.lwd = 0, box.lty = 0, xpd = NA)
+    par(lend = 1)
     box(lwd=1.5)
     plot(time[[1]], sel(fs[[1]]), typ='n',
-         ylim = c(0.8, 1.2) * range(sapply(fs, sel), na.rm = TRUE),
+         ylim = range(0, sapply(fs[conv], sel), na.rm = TRUE) * 1.2,
          xlab='', ylab = "", lwd=1.5)
     title(ylab = expression(F[t]), line = 2.2)
     polygon(c(time[[1]], rev(time[[1]])), c(fs[[1]][,1], rev(fs[[1]][,3])), col = "lightgrey", border = NA)
@@ -2554,7 +2568,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
     box(lwd=1.5)
     par(mar=c(4, 3.3, 2.5, 0.8))
     plot(time[[1]], sel(bbs[[1]]), typ='n',
-         ylim = c(0.8,1.2) * range(sapply(bbs, sel), na.rm = TRUE),
+         ylim = range(0, sapply(bbs[conv], sel), na.rm = TRUE) * 1.2,
          xlab='', ylab = "", lwd=1.5)
     title(ylab = expression(B[t]/B[MSY]), line = 2.2)
     polygon(c(time[[1]], rev(time[[1]])), c(bbs[[1]][,1], rev(bbs[[1]][,3])), col = "lightgrey", border = NA)
@@ -2566,7 +2580,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
     if (add.mohn) mtext(bquote("Mohn's " * rho[B/B[MSY]] * " = " * .(unname(mrr["BBmsy"]))), 3, 0.1 )
     box(lwd=1.5)
     plot(time[[1]], sel(ffs[[1]]), typ = 'n',
-         ylim = c(0.8,1.2) * range(sapply(ffs, sel), na.rm = TRUE), xlab = '', ylab = "", lwd=1.5)
+         ylim = range(0, sapply(ffs[conv], sel), na.rm = TRUE) * 1.2, xlab = '', ylab = "", lwd=1.5)
     title(ylab = expression(F[t] / F[MSY]), line = 2.2)
     polygon(c(time[[1]], rev(time[[1]])), c(ffs[[1]][,1], rev(ffs[[1]][,3])), col = "lightgray", border = NA)
     for (i in seq(nruns)){
@@ -2589,7 +2603,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
 #' @rdname plotspict.retro
 #' @export
 plotspict.retro.fixed <- function(rep) {
-  cols <-  c("#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999")
+  cols <- cols()
   conv <- sapply(rep$retro, function(x) x$opt$convergence == 0)
   nnotconv <- sum(!conv)
   if (nnotconv > 0) {
