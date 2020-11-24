@@ -2589,28 +2589,34 @@ plotspict.retro.fixed <- function(rep) {
   conv <- sapply(rep$retro, function(x) x$opt$convergence == 0)
   nnotconv <- sum(!conv)
   if (nnotconv > 0) {
-      message("Excluded ", nnotconv, " retrospective runs that ",
+      message("Excluded ", nnotconv, " retrospective ",
+              if (nnotconv == 1) "run" else "runs" ," that ",
               if (nnotconv == 1) "was" else "were" , " not converged: ",
               paste(which(!conv) - 1, collapse = ", "))
   }
   s <- seq_along(rep$retro)
   nms <- names(rep$par.fixed)
-  n <- ceiling(sqrt(length(nms)))
+  nnms <- length(nms)
+  nc <- ceiling(nnms/3)
+  nr <- ceiling(nnms/nc)
+  ## n <- ceiling(sqrt(length(nms)))
   lbls <- c("All", ifelse(conv[-1], paste0("-", s[-length(s)]), ""))
-  par(mfrow = c(n, n), mar = c(3, 3, 1.2, 0.5))
+  par(mfrow = c(nr, nc), mar = c(4, 3, 2, 1), oma = c(3,3,2,2))
   for (par in nms) {
       ms <- sapply(rep$retro, function(x) if(x$opt$convergence == 0) get.par(par, x, exp = TRUE) else rep(NA, 5))
       ylim <- range(ms[1:3, ], 0, na.rm = TRUE) * 1.05
       plot(ms[2, ], ylim = ylim, axes = FALSE, ylab = "", xlab = "", yaxs = "i", pch = 20, col = cols, cex = 1.5)
       arrows(s, ms[1, ], s, ms[3, ], angle = 90, length = 0.05, code = 3, lwd = 3, col = cols)
-      title(main = sub("log", "", par), line = 0.2)
+      mtext(sub("log", "", par), line = 0.5, cex = 1, font = 2)
       axis(1, at = s, labels = lbls, las = 2)
       if (nnotconv > 0) {
-          mtext(c("All", paste0("-", s[-length(s)], "*"))[!conv], at = s[!conv], side = 1, las = 2, line = 1, col = 2, cex = 0.7)
+          mtext(c("All", paste0("-", s[-length(s)]))[!conv], at = s[!conv], side = 1, las = 2, line = 1, col = 2, cex = 0.7)
       }
       axis(2)
       box()
   }
+  mtext("Parameter estimate", 2, 0.5, outer=TRUE, cex = 1.2)
+  mtext("Number of retrospective years", 1, 0.5, outer=TRUE, cex = 1.2)
   invisible(NULL)
 }
 
