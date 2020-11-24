@@ -2520,7 +2520,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
   sel <- function(x) x[,2]
   ## Do plots
   cols <-  c("#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999")
-  ylim <- range(sapply(bs, sel), na.rm = TRUE)
+  ylim <- c(0.8,1.2) * range(sapply(bs, sel), na.rm = TRUE)
   plot(time[[1]], sel(bs[[1]]), type = 'n', ylim = ylim, xlab='', ylab = "", lwd=1.5)
   title(ylab = expression(B[t]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(bs[[1]][,1], rev(bs[[1]][,3])), col = "lightgrey", border = NA)
@@ -2540,8 +2540,9 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
          x.intersp = 0.5, bg = "transparent", box.lwd = 0, box.lty = 0)
   par(lend = 1, xpd = FALSE)
   box(lwd=1.5)
-  plot(time[[1]], sel(fs[[1]]), typ='n', ylim=range(sapply(fs, sel), na.rm = TRUE), xlab='',
-       ylab = "", lwd=1.5)
+  plot(time[[1]], sel(fs[[1]]), typ='n',
+       ylim = c(0.8, 1.2) * range(sapply(fs, sel), na.rm = TRUE),
+       xlab='', ylab = "", lwd=1.5)
   title(ylab = expression(F[t]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(fs[[1]][,1], rev(fs[[1]][,3])), col = "lightgrey", border = NA)
   for (i in seq(nruns)) {
@@ -2550,8 +2551,9 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
     }
   }
   box(lwd=1.5)
-  plot(time[[1]], sel(bbs[[1]]), typ='n', ylim=range(sapply(bbs, sel), na.rm = TRUE), xlab='',
-       ylab = "", lwd=1.5)
+  plot(time[[1]], sel(bbs[[1]]), typ='n',
+       ylim = c(0.8,1.2) * range(sapply(bbs, sel), na.rm = TRUE),
+       xlab='', ylab = "", lwd=1.5)
   title(ylab = expression(B[t]/B[MSY]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(bbs[[1]][,1], rev(bbs[[1]][,3])), col = "lightgrey", border = NA)
   for (i in seq(nruns)){
@@ -2562,7 +2564,7 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
   if (add.mohn) mtext(paste("Mohn's rho = ", mrr["BBmsy"]), 3, -1.2)
   box(lwd=1.5)
   plot(time[[1]], sel(ffs[[1]]), typ = 'n',
-       ylim = range(sapply(ffs, sel), na.rm = TRUE), xlab = '', ylab = "", lwd=1.5)
+       ylim = c(0.8,1.2) * range(sapply(ffs, sel), na.rm = TRUE), xlab = '', ylab = "", lwd=1.5)
   title(ylab = expression(F[t] / F[MSY]), line = 2.2)
   polygon(c(time[[1]], rev(time[[1]])), c(ffs[[1]][,1], rev(ffs[[1]][,3])), col = "lightgray", border = NA)
   for (i in seq(nruns)){
