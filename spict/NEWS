@@ -1,3 +1,20 @@
+spict v1.3.1
+============
+
+New features:
+
+* New function: `plotspict.retro.fixed`. Plots parameter estimates (and confidence intervalse) in each of the retrosepctive runs
+
+Minor changes:
+
+* `plotspict.retro` returns Mohn's rho if `add.mohn` is TRUE
+* `plotspict.retro` was polished, added legend, better
+
+Bug fixes:
+
+* Fixed Mohn's rho calculation that was ignoring the base run
+* Fixed shorten.inp for catch and effort
+
 spict v1.3.0 (Release date: 2020-10-23)
 ============
 
