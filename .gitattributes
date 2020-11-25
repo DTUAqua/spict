@@ -1,1 +1,2 @@
 spict/vignettes/*.html linguist-documentation
+spict/inst/doc/*.html linguist-documentation
