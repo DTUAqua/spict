@@ -2604,6 +2604,8 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
 #' @rdname plotspict.retro
 #' @export
 plotspict.retro.fixed <- function(rep) {
+  if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
+  if (!"retro" %in% names(rep)) stop("No results of the retro function found. Please run the retrospective analysis using the `retro` function.")
   cols <- cols()
   conv <- sapply(rep$retro, function(x) x$opt$convergence == 0)
   nnotconv <- sum(!conv)
@@ -2621,18 +2623,32 @@ plotspict.retro.fixed <- function(rep) {
   ## n <- ceiling(sqrt(length(nms)))
   lbls <- c("All", ifelse(conv[-1], paste0("-", s[-length(s)]), ""))
   par(mfrow = c(nr, nc), mar = c(4, 3, 2, 1), oma = c(3,3,2,2))
-  for (par in nms) {
-      ms <- sapply(rep$retro, function(x) if(x$opt$convergence == 0) get.par(par, x, exp = TRUE) else rep(NA, 5))
-      ylim <- range(ms[1:3, ], 0, na.rm = TRUE) * 1.05
-      plot(ms[2, ], ylim = ylim, axes = FALSE, ylab = "", xlab = "", yaxs = "i", pch = 20, col = cols, cex = 1.5)
-      arrows(s, ms[1, ], s, ms[3, ], angle = 90, length = 0.05, code = 3, lwd = 3, col = cols)
-      mtext(sub("log", "", par), line = 0.5, cex = 1, font = 2)
-      axis(1, at = s, labels = lbls, las = 2)
-      if (nnotconv > 0) {
-          mtext(c("All", paste0("-", s[-length(s)]))[!conv], at = s[!conv], side = 1, las = 2, line = 1, col = 2, cex = 0.7)
+  for (par in unique(nms)) {
+      nreps <- sum(nms == par)
+      rownames <- if (nreps == 1) par else paste0(par, seq(nreps))
+      ms <- lapply(rep$retro, function(x) {
+          if (x$opt$convergence == 0) {
+              p <- get.par(par, x, exp = TRUE)
+              rownames(p) <- rownames
+              p
+          } else {
+              matrix(NA, ncol = 5, nrow = nreps, dimnames = list(rownames, c("ll", "est", "ul", "sd", "cv")))
+          }
+      })
+
+      for (r in seq(nreps)) {
+          vals <- if (nreps == 1) do.call(rbind, ms) else t(sapply(ms, function(x) x[r, ]))
+          ylim <- range(vals[, 1:3], 0, na.rm = TRUE) * 1.05
+          plot(vals[, 2], ylim = ylim, axes = FALSE, ylab = "", xlab = "", yaxs = "i", pch = 20, col = cols, cex = 1.5)
+          arrows(s, vals[, 1], s, vals[, 3], angle = 90, length = 0.05, code = 3, lwd = 3, col = cols)
+          mtext(sub("log", "", rownames[r]), line = 0.5, cex = 1, font = 2)
+          axis(1, at = s, labels = lbls, las = 2)
+          if (nnotconv > 0) {
+              mtext(c("All", paste0("-", s[-length(s)]))[!conv], at = s[!conv], side = 1, las = 2, line = 1, col = 2, cex = 0.7)
+          }
+          axis(2)
+          box()
       }
-      axis(2)
-      box()
   }
   mtext("Parameter estimate", 2, 0.5, outer=TRUE, cex = 1.2)
   mtext("Number of retrospective years", 1, 0.5, outer=TRUE, cex = 1.2)
