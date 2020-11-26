@@ -95,7 +95,7 @@ mohns_rho <- function(rep, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
   getFullYearEstimates <- function(x, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
     res <- lapply(what, function(ww) {
       par <- paste0("log", ww)
-      indest <- x$inp$indest
+      indest <- head(x$inp$indest, -1)
       time <- x$inp$time[indest]
       tapply(get.par(par, x, exp = TRUE)[indest, 2], floor(time), annualfunc)
     })
@@ -104,8 +104,7 @@ mohns_rho <- function(rep, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
     setNames(do.call(cbind.data.frame, res), what)
   }
   ## Exclude not converged runs
-  conv <- sapply(rep$retro, function(x) x$opt$convergence)
-  conv <- ifelse(conv == 0, TRUE, FALSE)
+  conv <- sapply(rep$retro, function(x) x$opt$convergence == 0)
   nnotconv <- sum(!conv)
   if (nnotconv > 0) {
     message("Exluded ", nnotconv, " retrospective runs that ",
