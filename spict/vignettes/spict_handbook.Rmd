@@ -39,7 +39,7 @@ The printed version follows the format ver\@SHA, where _ver_ is the spict versio
 A specific version of `spict` can be installed using the following:
 
 ```
-devtools::install_github("DTUAqua/spict/spict", ref = "`r packageVersion("spict")`")
+devtools::install_github("DTUAqua/spict/spict", ref = "v`r packageVersion("spict")`")
 ```
 
 ## Loading built-in example data
@@ -180,7 +180,7 @@ knitr::kable(data.frame(## ls(pattern = "plotspict.*", envir = asNamespace("spic
                "`plotspict.f`", "`plotspict.fb`", "`plotspict.ffmsy`", "`plotspict.priors`", "`plotspict.production`",
                "`plotspict.season`",
                "**Diagnostics & extras**",
-               "`plotspict.diagnostic`", "`plotspict.osar`", "`plotspict.likprof`", "`plotspict.retro`",
+               "`plotspict.diagnostic`", "`plotspict.osar`", "`plotspict.likprof`", "`plotspict.retro`", "`plotspict.retro.fixed`",
                "`plotspict.infl`", "`plotspict.inflsum`", "`plotspict.tc`"),
   Plot = c("",
            "Basic data plotting (see section \\ref{pldat})",
@@ -201,6 +201,7 @@ knitr::kable(data.frame(## ls(pattern = "plotspict.*", envir = asNamespace("spic
            "One-step-ahead residual plots, one for data time-series",
            "Profile likelihood of one or two parameters",
            "Retrospective analysis",
+           "Retrospective analysis of fixed effects",
            "Influence statistics of observations",
            "Summary of influence of observations",
             "Time to $B_{MSY}$ under different scenarios about $F$"
@@ -225,7 +226,7 @@ Table: Common arguments in the `plotspict.*` family of funtions
 
 We will now look at them one at a time. The top left is the plot of absolute biomass
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+```{r plotspict.biomass, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 plotspict.biomass(res)
 ```
 
@@ -233,7 +234,7 @@ Note that this plot has a y-axis on the right side related to the relative bioma
 
 The plot of the relative biomass is produced using
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+```{r plotspict.bbmsy, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 plotspict.bbmsy(res)
 ```
 
@@ -241,7 +242,7 @@ This plot contains much of the same information as given by `plotspict.biomass`,
 
 The plots of fishing mortality follow the same principles
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=3, fig.height=3.3, fig.show='hold'}
+```{r plotspict.f, results='show', message=FALSE, warning=FALSE, fig.width=3, fig.height=3.3, fig.show='hold'}
 plotspict.f(res, main='', qlegend=FALSE, rel.axes=FALSE, rel.ci=FALSE)
 plotspict.ffmsy(res, main='', qlegend=FALSE)
 ```
@@ -250,7 +251,7 @@ The estimate of $F_{MSY}$ is shown with a horizontal black line with 95% CI show
 
 The plot of the catch is produced using
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+```{r plotspict.catch, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 plotspict.catch(res)
 ```
 
@@ -258,7 +259,7 @@ This plot shows estimated catches (blue line) versus observed catches (points) w
 
 A phase plot (or kobe plot) of fishing mortality versus biomass is plotted using
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+```{r plotspict.fb, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 plotspict.fb(res, ylim=c(0, 1.3), xlim=c(0, 300))
 ```
 
@@ -270,7 +271,7 @@ A vertical dashed red line at $B_t = 0$ indicates the biomass level below which 
 
 Before proceeding with the results for an actual assessment it is very important that the model residuals are checked and possible model deficiencies identified. Residuals can be calculated using `calc.osa.resid()`. OSA stands for one-step-ahead, which are the proper residuals for state-space models. More information about OSA residuals is contained in @spict. To calculate and plot residuals and diagnostics do
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=7, fig.show='hold'}
+```{r plotspict.diagnostic, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=7, fig.show='hold'}
 res <- calc.osa.resid(res)
 plotspict.diagnostic(res)
 ```
@@ -288,13 +289,13 @@ This data did not have any significant violations of the assumptions, which incr
 
 To extract an estimated quantity, here `logBmsy` use
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+```{r get.par, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
 get.par('logBmsy', res)
 ```
 
 This returns a vector with `ll` being the lower 95% limit of the CI, `est` being the estimated value, `ul` being the upper 95% limit of the CI, `sd` being the standard deviation of the estimate, and `cv` being the coefficient of variation of the estimate. The estimated quantity can also be returned on the natural scale (as opposed to log scale) by running
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+```{r get.par2, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
 get.par('logBmsy', res, exp=TRUE)
 ```
 
@@ -302,7 +303,7 @@ This essentially takes the exponential of `ll`, `est` and `ul` of the values in 
 
 For a standard fit (not using robust observation error, seasonality etc.), the quantities that can be extracted using this method are
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
+```{r list.quantities, results='show', message=FALSE, warning=FALSE, fig.width=6.5, fig.height=5.5, fig.show='hold'}
 list.quantities(res)
 ```
 
@@ -312,13 +313,13 @@ These should be relatively self-explanatory when knowing that reference points e
 
 The covariance between the model parameters (fixed effects) can be extracted from the results list
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+```{r cov.fixed, results='show', message=FALSE, warning=FALSE}
 res$cov.fixed
 ```
 
 It is however easier to interpret the correlation rather than covariance. The correlation matrix can be calculated using
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+```{r cor.fixed, results='show', message=FALSE, warning=FALSE}
 cov2cor(res$cov.fixed)
 ```
 
@@ -328,7 +329,7 @@ The covariance between random effects (biomass and fishing mortality) is not rep
 
 The covariance between sdported values (i.e. the values reported in `res$value`) are given in `res$cov`. As this matrix is typically large, the function `get.cov()` can be used to extract the covariance between two scalar quantities
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
+```{r cor.bf, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 cov2cor(get.cov(res, 'logBmsy', 'logFmsy'))
 ```
 
@@ -340,18 +341,28 @@ This reveals that for this data set the estimates of log Fmsy and log Bmsy are h
 
 Retrospecitive plots are sometimes used to evaluate the robustness of the model fit to the introduction of new data, i.e. to check whether the fit changes substantially when new data becomes available. Such calculations and plotting thereof can be performed using `retro()` as shown here
 
-```{r, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=5, fig.show='hold'}
+```{r plotspict.retro, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=5, fig.show='hold'}
 ## res <- fit.spict(pol$albacore)
 res <- retro(res, nretroyear = 4)
 plotspict.retro(res)
 ```
 By default `retro` creates 5 scenarios with catch and index time series which are shortened by the 1 to 5 last observations. The number of scenarios and thus observations which are removed can be changed with the argument `nretroyear` in the function `retro`. The graphs show the different peels with different colors. For the relative biomass and fishing mortality, the Mohn's rho are shown inside the corresponding plots. Mohn's rho for other quantities can be calculated using the function `mohns_rho`.
 
-```{r, results='show', message=FALSE, warning=FALSE}
+```{r mohns_rho, results='show', message=FALSE, warning=FALSE}
 ## res <- fit.spict(pol$albacore)
 ## res <- retro(res)
 mohns_rho(res, what = c("FFmsy", "BBmsy"))
 ```
+
+The function `plotspict.retro.fixed` makes a plot of the paramter estimates, with corresponding 95\% confidence intervals for each of the retrospective runs.
+
+```{r plotspict.retro.fixed, results='show', message=FALSE, warning=FALSE}
+## res <- fit.spict(pol$albacore)
+## res <- retro(res)
+plotspict.retro.fixed(res)
+```
+
+
 
 ## Estimation using two or more biomass indices
 
