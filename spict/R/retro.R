@@ -92,12 +92,17 @@ retro <- function(rep, nretroyear=5, reduce_output_size = TRUE){
 mohns_rho <- function(rep, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
   if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
   if (!"retro" %in% names(rep)) stop("No results of the retro function found. Please run the retrospective analysis using the `retro` function.")
+
   getFullYearEstimates <- function(x, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
     res <- lapply(what, function(ww) {
-      par <- paste0("log", ww)
-      indest <- head(x$inp$indest, -1)
-      time <- x$inp$time[indest]
-      tapply(get.par(par, x, exp = TRUE)[indest, 2], floor(time), annualfunc)
+      if (ww == "Ipred") {
+        get.par("logIpred", x, exp = TRUE)[, 2]
+      } else {
+        par <- paste0("log", ww)
+        indest <- head(x$inp$indest, -1)
+        time <- x$inp$time[indest]
+        tapply(get.par(par, x, exp = TRUE)[indest, 2], floor(time), annualfunc)
+      }
     })
     res <- do.call(cbind.data.frame, res)
     names(res) <- what
