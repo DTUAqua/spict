@@ -2622,7 +2622,8 @@ plotspict.retro.fixed <- function(rep) {
   nr <- ceiling(nnms/nc)
   ## n <- ceiling(sqrt(length(nms)))
   lbls <- c("All", ifelse(conv[-1], paste0("-", s[-length(s)]), ""))
-  par(mfrow = c(nr, nc), mar = c(4, 3, 2, 1), oma = c(3,3,2,2))
+  opar <- par(mfrow = c(nr, nc), mar = c(3, 3, 1, 1), oma = c(3, 3, 1, 1))
+  on.exit(par(opar))
   for (par in unique(nms)) {
       nreps <- sum(nms == par)
       rownames <- if (nreps == 1) par else paste0(par, seq(nreps))
@@ -2641,7 +2642,7 @@ plotspict.retro.fixed <- function(rep) {
           ylim <- range(vals[, 1:3], 0, na.rm = TRUE) * 1.05
           plot(vals[, 2], ylim = ylim, axes = FALSE, ylab = "", xlab = "", yaxs = "i", pch = 20, col = cols, cex = 1.5)
           arrows(s, vals[, 1], s, vals[, 3], angle = 90, length = 0.05, code = 3, lwd = 3, col = cols)
-          mtext(sub("log", "", rownames[r]), line = 0.5, cex = 1, font = 2)
+          mtext(sub("log", "", rownames[r]), line = 0.2, cex = 1, font = 2)
           axis(1, at = s, labels = lbls, las = 2)
           if (nnotconv > 0) {
               mtext(c("All", paste0("-", s[-length(s)]))[!conv], at = s[!conv], side = 1, las = 2, line = 1, col = 2, cex = 0.7)
