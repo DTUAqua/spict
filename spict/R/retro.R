@@ -92,16 +92,29 @@ retro <- function(rep, nretroyear=5, reduce_output_size = TRUE){
 mohns_rho <- function(rep, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
   if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
   if (!"retro" %in% names(rep)) stop("No results of the retro function found. Please run the retrospective analysis using the `retro` function.")
+  if ("Ipred" %in% what && rep$inp$nindex > 1) warning("Mohn's rho will be calculated only for index 1.")
 
   getFullYearEstimates <- function(x, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
     res <- lapply(what, function(ww) {
-      if (ww == "Ipred") {
-        get.par("logIpred", x, exp = TRUE)[, 2]
+      if (ww == "Ipred" || ww == "Ipred1") {
+        if (x$inp$nindex == 1) {
+          get.par("logIpred", x, exp = TRUE)[, 2]
+        } else {
+          get.par("logIpred", x, exp = TRUE)[seq(length(x$inp$timeI[[1]])), 2]
+        }
+      } else if (startsWith(ww, prefix = "Ipred") || startsWith(ww, "logIpred")) {
+        idx <- as.numeric(sub("log", "", sub("Ipred", "", ww)))
+        if (idx > x$inp$nindex) stop("There are only ", x$inp$nindex, " indices in the model.")
+        start <- sum(sapply(x$inp$timeI[[seq.int(idx - 1)]], length)) + 1
+        len <- length(x$inp$timeI[[idx]])
+        get.par("logIpred", x, exp = TRUE)[seq.int(start, start + len - 1), 2]
       } else {
-        par <- paste0("log", ww)
-        indest <- head(x$inp$indest, -1)
+        par <- paste0("log", sub("log", "", ww))
+        if (!par %in% list.quantities(x)) stop(ww, " is not a reported quantity, use `list.quantities(rep)` to list all available ones.")
+        indest <- x$inp$indest
         time <- x$inp$time[indest]
-        tapply(get.par(par, x, exp = TRUE)[indest, 2], floor(time), annualfunc)
+        res <- annual(time, get.par(par, x, exp = TRUE)[, 2], annualfunc)
+        setNames(as.array(res$annvec), res$anntime)
       }
     })
     res <- do.call(cbind.data.frame, res)
