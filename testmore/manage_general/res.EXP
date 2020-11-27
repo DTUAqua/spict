@@ -185,12 +185,13 @@ Predictions
 
 
 4.4: Old summary function still works:
-Observed interval, index:  1967.00 - 1989.00
-Observed interval, catch:  1967.00 - 1990.00
+SPiCT timeline:
 
-Fishing mortality (F) prediction: 1995.00
-Biomass (B) prediction:           1995.00
-Catch (C) prediction interval:    1993.00 - 1995.00
+      Observations             Intermediate             Management        
+    1967.00 - 1990.00        1990.00 - 1993.00       1993.00 - 1995.00    
+ |-----------------------| ----------------------| ----------------------|
+
+Management evaluation: 1991.00
 
 Predictions
                       C_1993.00 B_1995.00 F_1995.00 B_1995.00/Bmsy
