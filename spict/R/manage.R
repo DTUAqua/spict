@@ -406,16 +406,19 @@ sumspict.manage <- function(rep, include.EBinf=FALSE, include.unc=TRUE, timeline
     colnames(dfrel) <- sub("B/Bmsy",BBn,colnames(dfrel))
     colnames(dfrel) <- sub("F/Fmsy",FFn,colnames(dfrel))
     # Set row names
-    rn <- suppressMessages(unlist(
-        plyr::revalue(scenarios, replace = list("currentCatch" = 'Keep current catch',
-                                                "currentF" = 'Keep current F',
-                                                "Fmsy" = 'Fish at Fmsy',
-                                                "noF" = 'No fishing',
-                                                "reduceF25" = 'Reduce F by 25%',
-                                                "increaseF25" = 'Increase F by 25%',
-                                                "msyHockeyStick" = 'MSY hockey-stick rule',
-                                                "ices" = 'ICES advice rule'))))
-    rn <- paste0(paste0(seq(length(rn)),". "),rn, "")
+    replacements <- c("currentCatch" = 'Keep current catch',
+                     "currentF" = 'Keep current F',
+                     "Fmsy" = 'Fish at Fmsy',
+                     "noF" = 'No fishing',
+                     "reduceF25" = 'Reduce F by 25%',
+                     "increaseF25" = 'Increase F by 25%',
+                     "msyHockeyStick" = 'MSY hockey-stick rule',
+                     "ices" = 'ICES advice rule')
+    others <- scenarios[!scenarios %in% names(replacements)]
+    levels <- c(names(replacements), others)
+    labels <- c(replacements, others)
+    rn <- as.character(factor(scenarios, labels = labels, levels = levels))
+    rn <- paste0(seq_along(rn), ". ", rn)
     rownames(df) <- rn
     rownames(dfrel) <- rn
     rownames(dfabs) <- rn
