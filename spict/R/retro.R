@@ -20,6 +20,7 @@
 #' @details A retrospective analysis consists of estimating the model with later data points removed sequentially one year at a time.
 #' @param rep A valid result from fit.spict.
 #' @param nretroyear Number of years of data to remove (this is also the total number of model runs).
+#' @param reduce_output_size logical, if \code{TRUE} (default) the retro is run with \code{getReportCovariance} and \code{getJointPrecision} set as \code{FALSE}
 #' @return A rep list with the added key retro containing the results of the retrospective analysis. Use plotspict.retro() to plot these results.
 #' @examples
 #' data(pol)
@@ -28,7 +29,9 @@
 #' rep <- retro(rep, nretroyear=6)
 #' plotspict.retro(rep)
 #' @export
-retro <- function(rep, nretroyear=5){
+retro <- function(rep, nretroyear=5, reduce_output_size = TRUE){
+    if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
+    if (rep$opt$convergence != 0) stop("The fitted object did not converged.")
     inp1 <- rep$inp
     inpall <- list()
     for (i in 1:nretroyear) {
@@ -52,6 +55,8 @@ retro <- function(rep, nretroyear=5){
             inpall[[i]]$timeI[[j]] <- inp1$timeI[[j]][indsI]
             inpall[[i]]$stdevfacI[[j]] <- inp1$stdevfacI[[j]][indsI]
         }
+        inpall[[i]]$getReportCovariance <- !reduce_output_size
+        inpall[[i]]$getJointPrecision <- !reduce_output_size
         inpall[[i]] <- check.inp(inpall[[i]])
     }
     asd <- try(parallel::mclapply(inpall, fit.spict))
@@ -61,6 +66,11 @@ retro <- function(rep, nretroyear=5){
     else {
         rep$retro <- asd
     }
+    ## Add the base run into the retro list
+    baserun <- rep
+    baserun$retro <- NULL
+    baserun$cov <- NA
+    rep$retro <- c(list(baserun), rep$retro)
     return(rep)
 }
 
@@ -80,21 +90,50 @@ retro <- function(rep, nretroyear=5){
 #' mohns_rho(rep)
 #' @export
 mohns_rho <- function(rep, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
+  if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
+  if (!"retro" %in% names(rep)) stop("No results of the retro function found. Please run the retrospective analysis using the `retro` function.")
+  if ("Ipred" %in% what && rep$inp$nindex > 1) warning("Mohn's rho will be calculated only for index 1.")
+
   getFullYearEstimates <- function(x, what = c("FFmsy", "BBmsy"), annualfunc = mean) {
     res <- lapply(what, function(ww) {
-      par <- paste0("log", ww)
-      indest <- x$inp$indest
-      time <- x$inp$time[indest]
-      tapply(get.par(par, x, exp = TRUE)[indest, 2], floor(time), annualfunc)
+      if (ww == "Ipred" || ww == "Ipred1") {
+        if (x$inp$nindex == 1) {
+          get.par("logIpred", x, exp = TRUE)[, 2]
+        } else {
+          get.par("logIpred", x, exp = TRUE)[seq(length(x$inp$timeI[[1]])), 2]
+        }
+      } else if (startsWith(ww, prefix = "Ipred") || startsWith(ww, "logIpred")) {
+        idx <- as.numeric(sub("log", "", sub("Ipred", "", ww)))
+        if (idx > x$inp$nindex) stop("There are only ", x$inp$nindex, " indices in the model.")
+        start <- sum(sapply(x$inp$timeI[[seq.int(idx - 1)]], length)) + 1
+        len <- length(x$inp$timeI[[idx]])
+        get.par("logIpred", x, exp = TRUE)[seq.int(start, start + len - 1), 2]
+      } else {
+        par <- paste0("log", sub("log", "", ww))
+        if (!par %in% list.quantities(x)) stop(ww, " is not a reported quantity, use `list.quantities(rep)` to list all available ones.")
+        indest <- x$inp$indest
+        time <- x$inp$time[indest]
+        res <- annual(time, get.par(par, x, exp = TRUE)[, 2], annualfunc)
+        setNames(as.array(res$annvec), res$anntime)
+      }
     })
     res <- do.call(cbind.data.frame, res)
     names(res) <- what
     setNames(do.call(cbind.data.frame, res), what)
   }
+  ## Exclude not converged runs
+  conv <- sapply(rep$retro, function(x) x$opt$convergence == 0)
+  nnotconv <- sum(!conv)
+  if (nnotconv > 0) {
+    message("Exluded ", nnotconv, " retrospective runs that ",
+            if (nnotconv == 1) "was" else "were" , " not converged: ",
+            paste(which(!conv) - 1, collapse = ", "))
+  }
+  rep$retro <- rep$retro[conv]
   ## Adapted from fishfollower/SAM/stockassessment package
-  ref <- getFullYearEstimates(rep, what = what, annualfunc = annualfunc)
   ret <- lapply(rep$retro, getFullYearEstimates, what = what, annualfunc = annualfunc)
-  bias <- lapply(ret, function(x) {
+  ref <- ret[[1]]
+  bias <- lapply(ret[-1], function(x) {
     y <- rownames(x)[nrow(x)]
     (x[rownames(x) == y, ] - ref[rownames(ref) == y, ]) / ref[rownames(ref) == y, ]
   })

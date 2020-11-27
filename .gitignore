@@ -27,3 +27,5 @@ vignette_*
 Rplots.pdf
 res.out
 *.Rcheck
+
+testmore/*/*.png
