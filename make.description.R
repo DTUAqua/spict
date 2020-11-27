@@ -39,6 +39,7 @@ Suggests:
     knitr,
     rmarkdown
 LazyData: true
+Encoding: UTF-8
 VignetteBuilder: knitr\n',
     file=fn)
 
