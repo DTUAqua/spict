@@ -4,7 +4,7 @@ tmpdir=$(mktemp -d)
 RED='\033[31m'
 
 ref="master"
-vignfn="spict/vignettes/vignette.Rmd"
+vignfn="spict/vignettes/spict_handbook.Rmd"
 
 while getopts ":r:v:" opt; do
   case $opt in
@@ -34,7 +34,7 @@ printmsg () {
 
 printmsg "Installing spict from github, reference:  $ref"
 echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_cran('ellipse', quiet = FALSE, repo = 'http://cran.rstudio.com')}, action=\"prefix\")" | R --slave
-echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_github('mawp/spict/spict', ref = '$ref', quiet = FALSE)}, action=\"prefix\")" | R --slave
+echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_github('DTUAqua/spict/spict', ref = '$ref', quiet = FALSE)}, action=\"prefix\")" | R --slave
 
 
 printmsg "Run vignette examples"
