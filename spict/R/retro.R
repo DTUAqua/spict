@@ -70,6 +70,7 @@ retro <- function(rep, nretroyear=5, reduce_output_size = TRUE){
     baserun <- rep
     baserun$retro <- NULL
     baserun$cov <- NA
+    baserun$man <- NULL
     rep$retro <- c(list(baserun), rep$retro)
     return(rep)
 }
