@@ -28,10 +28,11 @@ Description: Fits a surplus production model to fisheries catch and biomass inde
 License: GPL (>=3)
 Depends:
     R (>= 3.0),
-    TMB
+    TMB (>= 1.7.1)
 LinkingTo: TMB, RcppEigen
+Imports:
+    ellipse
 Suggests:
-    ellipse,
     parallel,
     mgcv,
     rjags,
@@ -50,7 +51,8 @@ branch <- system('git rev-parse --abbrev-ref HEAD', intern=TRUE)
 ##cat(paste('GithubRepo: spict\n'), file=fn, append=TRUE)
 ##cat(paste('GithubRef:', branch, '\n'), file=fn, append=TRUE)
 ##cat(paste('GithubSHA1:', sha, '\n'), file=fn, append=TRUE)
-v <- spict::get.version('roxygen2')
+pd <- utils::packageDescription('roxygen2')
+v <- paste0(pd$Package, "_v", pd$Version)
 v <- regmatches(v, regexpr("v(.*)$", v))
 v <- substr(v, 2, nchar(v))
 

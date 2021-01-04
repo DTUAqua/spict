@@ -2,7 +2,7 @@ Package: spict
 Type: Package
 Title: Stochastic surplus Production model in Continuous-Time (SPiCT)
 Version: 1.3.1
-Date: 2020-11-27 
+Date: 2021-01-04 
 Authors@R: c(person(given="Martin Waever",
                     family="Pedersen",
                     email="wpsgodd@gmail.com",
@@ -26,10 +26,11 @@ Description: Fits a surplus production model to fisheries catch and biomass inde
 License: GPL (>=3)
 Depends:
     R (>= 3.0),
-    TMB
+    TMB (>= 1.7.1)
 LinkingTo: TMB, RcppEigen
+Imports:
+    ellipse
 Suggests:
-    ellipse,
     parallel,
     mgcv,
     rjags,
