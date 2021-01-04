@@ -904,19 +904,11 @@ retape.spict <- function(rep, inp, verbose = FALSE, dbg = 0, mancheck=TRUE){
     ## Get updated sd report
     objt$fn(repin$opt$par)
     ## get updated sd report
-    verflag <- as.numeric(gsub('[.]', '', as.character(packageVersion('TMB')))) >= 171
-    if(verflag){
-        repout <- try(TMB::sdreport(objt,
-                                    getJointPrecision=repin$inp$getJointPrecision,
-                                    bias.correct=repin$inp$bias.correct,
-                                    bias.correct.control=repin$inp$bias.correct.control,
-                                    getReportCovariance=repin$inp$getReportCovariance),silent=TRUE)
-    }else{
-        repout <- try(TMB::sdreport(objt,
-                                    getJointPrecision=repin$inp$getJointPrecision,
-                                    bias.correct=repin$inp$bias.correct,
-                                    bias.correct.control=repin$inp$bias.correct.control),silent=TRUE)
-    }
+    repout <- try(TMB::sdreport(objt,
+                                getJointPrecision=repin$inp$getJointPrecision,
+                                bias.correct=repin$inp$bias.correct,
+                                bias.correct.control=repin$inp$bias.correct.control,
+                                getReportCovariance=repin$inp$getReportCovariance),silent=TRUE)
     if(class(repout) == 'try-error'){
         stop("Could not calculate the sdreport of the retaped model based on provided input list.")
     }else{
