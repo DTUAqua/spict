@@ -1,3 +1,16 @@
+spict v1.3.2
+============
+
+Minor changes:
+
+* `TMB` version 1.7.1 is required
+* Package `ellipse` is now imported
+* Removed `plyr` dependency
+
+Bug fixes:
+
+* Fixed `test.spict` to work with the management updates
+
 spict v1.3.1
 ============
 
