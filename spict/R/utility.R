@@ -151,9 +151,9 @@ test.spict <- function(dataset='albacore'){
     if (dataset=='albacore'){
         inp$ffac <- 0.8
         nopredcyears <- 3 # Number of years to predict catch
-        inp$dtpredc <- 1 # Time step when predicting catch
-        inp$timepredi <- tail(inp$timeC, 1) + nopredcyears
-        inp$timepredc <- tail(inp$timeC, 1) + nopredcyears
+        lastyear <- tail(inp$timeC, 1)
+        inp$maninterval <- c(lastyear + 1, lastyear + nopredcyears)
+        inp$maneval <- lastyear + nopredcyears
         inp$phases$logn <- -1
     }
     # Fit model
