@@ -290,7 +290,9 @@ manage <- function(rep, scenarios = 'all',
 #' @param timeline (default: FALSE)
 #' @param verbose Should detailed outputs be provided (default: TRUE).
 #'
-#' @return Data frame containing management summary.
+#' @return List with data frame containing management summary ('est') and data
+#'     frame containing uncertainty of management quantities ('unc') if
+#'     \code{include.unc = TRUE}.
 #'
 #' @examples
 #' \dontrun{
@@ -481,7 +483,12 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
         cat("^ This scenario assumes another management evaluation time. Thus, the states might not be comparable.\n")
     }
 
-    invisible(df)
+    ## return all results
+    res <- list()
+    res[["est"]] <- df
+    if (include.unc) res[["unc"]] <- dfunc
+
+    invisible(res)
 
 }
 
