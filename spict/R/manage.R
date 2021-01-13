@@ -154,45 +154,6 @@ manage <- function(rep, scenarios = 'all',
         if (1 %in% indscenarios){# 1. Keep current catch
             repc <- rep
 
-            ## if intermediate period, run scenario with ffac = 1 and use Cp for intermediatePeriodCatch
-            if(inttime > 0 && is.null(intermediatePeriodCatch) &&
-               is.null(intermediatePeriodCatchList)){
-                ny <- inttime * rep$inp$dteuler
-                dtclast <- rep$inp$dtc[length(rep$inp$dtc)]
-                ## in case intermediate period spans several years
-                cips <- list()
-                timecs <- list()
-                dtcs <- list()
-                while(ny > 0){
-                    if(length(cips) > 0){
-                        lasttimec <- timecs[[length(timecs)]][2]
-                        ipcList <- list(timeC = unlist(lapply(timecs,"[[",1)),
-                                        obsC = unlist(cips),
-                                        dtc = unlist(dtcs),
-                                        stdevfacC = rep(0.01,length(cips)))
-                    }else{
-                        lasttimec <- max(rep$inp$timeC + rep$inp$dtc)
-                        ipcList <- NULL
-                    }
-                    if(ny > dtclast){
-                        timeInt<- seq(lasttimec, min(rep$inp$maninterval),dtclast)[1:2]
-                    }else{
-                        timeInt <- c(lasttimec, min(rep$inp$maninterval))
-                    }
-                    cips[[length(cips)+1]] <- get.TAC(repc,
-                                                      intermediatePeriodCatchList = ipcList,
-                                                      maninterval = timeInt,
-                                                      ffac = 1.0, verbose = FALSE,
-                                                      mancheck = TRUE)
-                    timecs[[length(timecs)+1]] <- timeInt
-                    dtcs[[length(cips)+1]] <- diff(timeInt)
-                    ny = ny - dtclast
-                }
-                intermediatePeriodCatchList <- list(timeC = unlist(lapply(timecs,"[[",1)),
-                                                    obsC = unlist(cips),
-                                                    dtc = unlist(dtcs))
-            }
-
             ## Management scenario
             rep <- add.man.scenario(rep, scenarioTitle = "currentCatch",
                                     maninterval = maninterval,
@@ -200,7 +161,7 @@ manage <- function(rep, scenarios = 'all',
                                     intermediatePeriodCatch = intermediatePeriodCatch,
                                     intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
                                     intermediatePeriodCatchList = intermediatePeriodCatchList,
-                                    cfac = 1.0, csdfac = 1.0, verbose = FALSE, mancheck = FALSE)
+                                    cfac = 1.0, verbose = FALSE, mancheck = FALSE)
 
         }
         if (2 %in% indscenarios){
@@ -318,7 +279,7 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
 
     # Calculate percent difference
     get.pdelta <- function(parname, repman){
-        indstart <- which(repman$inp$time == min(repman$inp$maninterval))
+        indstart <- which(repman$inp$time == min(repman$inp$maninterval))-1
         indnext <- which(repman$inp$time == max(repman$inp$maninterval))
         val <- get.par(parname, repman, exp=TRUE)[indstart, 2]
         val1 <- get.par(parname, repman, exp=TRUE)[indnext, 2]
@@ -360,6 +321,7 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
     perc.dF <- numeric(nsc)
     EBinf <- numeric(nsc)
     cflag <- intflag <- evalflag <- numeric(nsc)
+
     for(i in 1:nsc){
         rp <- repman[[ scenarios[i] ]]
         EBinf[i] <- get.EBinf(rp)
@@ -374,10 +336,15 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
         Fnextyear[i, ] <- round(get.par('logF', rp, exp=TRUE)[indnext, 1:3], 2)
         BBnextyear[i, ] <- round(get.par('logBBmsy', rp, exp=TRUE)[indnext, 1:3], 2)
         FFnextyear[i, ] <- round(get.par('logFFmsy', rp, exp=TRUE)[indnext, 1:3], 2)
-        cflag[i] <- ifelse(!is.null(rp$inp$manfacs$cfac) && rp$inp$timerangeObs[2] < rp$inp$maninterval[1],"*","")
-        intflag[i] <- ifelse(!identical(rp$inp$maninterval, rep$inp$maninterval),"+","")
-        evalflag[i] <- ifelse(rp$inp$maneval != rep$inp$maneval,"^","")
-
+        cflag[i] <-     ifelse((!is.null(rp$inp$manfacs$cfac) || !is.null(rp$inp$manfacs$cabs)) &&
+           rp$inp$timerangeObs[2] != rep$inp$timerangeObs[2],"#","")
+        intflag[i] <- ifelse(!identical(rp$inp$maninterval, rep$inp$maninterval),"@","")
+        evalflag[i] <- ifelse(rp$inp$maneval != rep$inp$maneval,"$","")
+    }
+    if(nsc == 1){
+        cflag <- ""
+        intflag <- ""
+        evalflag <- ""
     }
     indnextCrep <- which((rp$inp$timeCpred+rp$inp$dtcp) == max(rp$inp$maninterval))
     FBtime <- fd(max(rp$inp$maninterval))
@@ -390,16 +357,16 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
         BBn <- paste0('B_', FBtime,"/Bmsy")
         FFn <- paste0('F_', FBtime,"/Fmsy")
     }
-    # Data frame with predictions
-    if(!mancheck$inter){
-        perc.dB <- rep(NaN,nsc)
-        perc.dF <- rep(NaN,nsc)
-    }
+    ## # Data frame with predictions
+    ## if(!mancheck$inter){
+    ##     perc.dB <- rep(NaN,nsc)
+    ##     perc.dF <- rep(NaN,nsc)
+    ## }
     ## predictions and uncertainty
     inds <- c(1,3)
     if(include.abs){
-        df <- cbind("C"=Cnextyear[, 2], "B/Bmsy"=BBnextyear[,2], "F/Fmsy"=FFnextyear[,2],
-                    "B"=Bnextyear[,2], "F"=Fnextyear[,2])
+        df <- cbind("C"=Cnextyear[, 2], "B/Bmsy" = BBnextyear[,2], "F/Fmsy" = FFnextyear[,2],
+                    "B"=Bnextyear[,2], "F" = Fnextyear[,2], "perc.dB" = perc.dB, "perc.dF" = perc.dF)
         dfunc <- cbind(BBnextyear[,inds,drop=FALSE], FFnextyear[,inds,drop=FALSE],
                        Bnextyear[,inds,drop=FALSE], Fnextyear[,inds,drop=FALSE])
     }else{
@@ -421,7 +388,9 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
                                                 "msyHockeyStick" = 'MSY hockey-stick rule',
                                                 "ices" = 'ICES advice rule'))))
     rn <- paste0(paste0(seq(length(rn)),". "),rn, "")
-    rn <- paste0(rn, cflag, intflag, evalflag)
+    notes <- paste0(" (",cflag,intflag,evalflag,")")
+    notes[which(notes == " ()")] <- ""
+    rn <- paste0(rn, notes)
     rownames(df) <- rn
     rownames(dfunc) <- rn
     #cat('Management summary\n')
@@ -473,14 +442,14 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
     ##         cat("\nThe assumptions of the intermediate period differ between the scenarios, e.g. continuing the F process vs. constant catch. The percentage differences cannot be displayed correctly and are omitted.\n")
     ##     }
     ## }
-    if(any(cflag == "*")){
-        cat("\n* This scenario is based on the last observed catch and might thus imply another catch in the intermediate year.\n")
+    if(any(cflag == "#")){
+        cat("\n(#) This scenario makes other assumptions about the intermediate year. Thus, the estimates might not be comparable to the other scenarios.\n")
     }
-    if(any(intflag == "+")){
-        cat("+ This scenario assumes another management period. Thus, the catch might not be comparable.\n")
+    if(any(intflag == "@")){
+        cat("(@) This scenario assumes another management period. Thus, the estimates might not be comparable to the other scenarios.\n")
     }
-    if(any(evalflag == "^")){
-        cat("^ This scenario assumes another management evaluation time. Thus, the states might not be comparable.\n")
+    if(any(evalflag == "$")){
+        cat("($) This scenario assumes another management evaluation time. Thus, the estimates might not be comparable to the other scenarios.\n")
     }
 
     ## return all results
@@ -680,10 +649,10 @@ check.catchList <- function(catchList, sdfac = 1){
 #' @param maneval Time at which to evaluate model states. Example: \code{maneval
 #'     = 2021.25}. Default: NULL.
 #' @param ffac Factor to multiply current fishing mortality by (default: NULL).
-#' @param cfac Factor to multiply current catch by (default: NULL). Please refer to
-#'     the details for more information.
-#' @param csdfac Factor for the multiplication of the standard deviation of the
-#'     catch (default: 1). Please refer to the details for more information.
+#' @param fabs Absolute fishing mortality for management period (default: NULL).
+#' @param cfac Factor to multiply current catch by (default: NULL). Please refer
+#'     to the details for more information.
+#' @param cabs Absolute catch for the management period (default: NULL).
 #' @param fractiles List defining the fractiles of the 3 distributions of
 #'     'catch', 'bbmsy', and 'ffmsy'. By default (0.5) median is used for all 3
 #'     quantities. Please refer to the details for more information.
@@ -705,9 +674,8 @@ check.catchList <- function(catchList, sdfac = 1){
 #'     period obtaining the elements 'obsC', 'timeC', and 'dtc' (optional
 #'     element 'stdevfacC' which is 1 if not provided). Please refer to the
 #'     details for more information.
-#' @param catchList List obtaining the elements 'obsC', 'timeC', and 'dtc'
-#'     (optional element 'stdevfacC' which is 1 if not provided). Please refer
-#'     to the details for more information.
+#' @param ctol Tolerance of \code{optimise} when finding F that leads to
+#'     provided target catch (via arguments \code{cfac} or \code{cabs})
 #' @param verbose Should detailed outputs be provided (default: TRUE).
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
 #' @param mancheck Should the time-dependent objects in \code{inp} be checked
@@ -722,15 +690,16 @@ make.man.inp <- function(rep, scenarioTitle = "",
                          maninterval = NULL,
                          maneval = NULL,
                          ffac = NULL,   ## if NULL default fishing at fmsy
+                         fabs = NULL,
                          cfac = NULL,
-                         csdfac = 1,
+                         cabs = NULL,
                          fractiles = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5),
                          breakpointB = 0,
                          safeguardB = list(limitB = 0, prob = 0.95),
                          intermediatePeriodCatch = NULL,
                          intermediatePeriodCatchSDFac = 1,
                          intermediatePeriodCatchList = NULL,
-                         catchList = NULL,
+                         ctol = 0.001,
                          verbose = TRUE,
                          dbg = 0,
                          mancheck = TRUE){
@@ -754,11 +723,18 @@ make.man.inp <- function(rep, scenarioTitle = "",
     ## check input variables
     stopifnot(all(unlist(fractiles) <= 0.5 && unlist(fractiles) > 0))
     stopifnot(cfac >= 0)
-    stopifnot(csdfac >= 0)
+    stopifnot(cabs >= 0)
     stopifnot(ffac >= 0)
+    stopifnot(fabs >= 0)
     stopifnot(breakpointB >= 0)
     if(is.numeric(ffac) && is.numeric(cfac))
         stop("Both 'ffac' and 'cfac' provided, please choose either or neither.")
+    if(is.numeric(fabs) && is.numeric(cabs))
+        stop("Both 'fabs' and 'cabs' provided, please choose either or neither.")
+    if(is.numeric(ffac) && is.numeric(fabs))
+        stop("Both 'ffac' and 'fabs' provided, please choose either or neither.")
+    if(is.numeric(cfac) && is.numeric(cabs))
+        stop("Both 'cfac' and 'cabs' provided, please choose either or neither.")
 
     ## copies
     repout <- reppa <- rep
@@ -795,7 +771,8 @@ make.man.inp <- function(rep, scenarioTitle = "",
             inpt$timeC <- c(inpt$timeC, intermediatePeriodCatchList$timeC)
             inpt$obsC <- c(inpt$obsC, intermediatePeriodCatchList$obsC)
             if(is.null(intermediatePeriodCatchList$stdevfacC)){
-                inpt$stdevfacC <- c(inpt$stdevfacC, rep(csdfac, length(intermediatePeriodCatchList$timeC)))
+                inpt$stdevfacC <- c(inpt$stdevfacC, rep(intermediatePeriodCatchSDFac,
+                                                        length(intermediatePeriodCatchList$timeC)))
             }else{
                 inpt$stdevfacC <- c(inpt$stdevfacC, intermediatePeriodCatchList$stdevfacC)
             }
@@ -806,14 +783,17 @@ make.man.inp <- function(rep, scenarioTitle = "",
         inpt$timerangeObs <- inp$timerangeObs
         if(reqRep){
             repout <- reppa <- rep <- retape.spict(rep, inpt, verbose = FALSE, mancheck=FALSE)
+        }else{
+            rep$inp <- inpt
+            repout <- reppa <- rep
         }
         inp <- inpt
     }
 
     ## ADVICE RULES
     ## ---------------
-    if(!is.numeric(cfac) || is.na(cfac)){
-        if(!is.numeric(ffac) || is.na(ffac)){
+    if((!is.numeric(cfac) || is.na(cfac)) && (!is.numeric(cabs) || is.na(cabs))){
+        if((!is.numeric(ffac) || is.na(ffac)) && (!is.numeric(fabs) || is.na(fabs))){
             ## Quantities
             fmanstart <- get.par('logFm', rep, exp=TRUE)[2]
             fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
@@ -859,54 +839,23 @@ make.man.inp <- function(rep, scenarioTitle = "",
                     }
                 }
             }
-        }
-        inpt <- make.ffacvec(inp, ffac)
+        }else if(!is.numeric(ffac) || is.na(ffac)){
+                ffac <- fabs / get.par('logFm', rep, exp=TRUE)[2]
+            }
     }else{
-        ## Fishing with provided catch or catch factor
-        inpt <- inp
-        if(is.null(catchList)){
-
-            ## get default catch for management period based on observations
+        if(!is.numeric(cabs) || is.na(cabs)){
             mantab <- get.manC(rep, inp)
-            nc <- nrow(mantab)
-            timec <- inp$timeCpred
-            Cpred <- get.par("logCpred", rep, exp=TRUE)[,2]
-            maninds <- which(timec >= min(inp$maninterval))
-
-            ## catch list variables for man period
-            timeCM <- as.numeric(mantab[,"mant"])
-            obsCM <- as.numeric(mantab[,"manc"]) * cfac
-            stdevM <- rep(csdfac, nc)
-            dtcM <- c(diff(as.numeric(mantab[,"mant"])),
-                      inp$maninterval[2] - as.numeric( mantab[nc,"mant"]))
-
-            ## if-clause for case that catch observations missing in the last year
-            if(inp$timerangeObs[2] > max(inp$timeC + inp$dtc)){
-                noCinds <- which(timec >= max(inp$timeC + inp$dtc))
-                inpt$timeC <- c(inpt$timeC, timec[noCinds], timeCM)
-                inpt$obsC <- c(inpt$obsC, Cpred[noCinds],obsCM)
-                inpt$stdevfacC <- c(inpt$stdevfacC, rep(1, length(noCinds)),stdevM)
-                inpt$dtc <- c(inpt$dtc, inp$dtcp[noCinds],dtcM)
-            }else{
-                inpt$timeC <- c(inpt$timeC, timeCM)
-                inpt$obsC <- c(inpt$obsC, obsCM)
-                inpt$stdevfacC <- c(inpt$stdevfacC, stdevM)
-                inpt$dtc <- c(inpt$dtc, dtcM)
-            }
-        } else {
-            ## specified catchList
-            check.catchList(catchList)
-            inpt$timeC <- c(inpt$timeC, catchList$timeC)
-            inpt$obsC <- c(inpt$obsC, catchList$obsC)
-            if(is.null(catchList$stdevfacC)){
-                inpt$stdevfacC <- c(inpt$stdevfacC, rep(csdfac, length(catchList$timeC)))
-            }else{
-                inpt$stdevfacC <- c(inpt$stdevfacC, catchList$stdevfacC)
-            }
-            inpt$dtc <- c(inpt$dtc, catchList$dtc)
+            cabs <- as.numeric(mantab[,"manc"]) * cfac
         }
-        inpt <- check.inp(inpt, verbose = FALSE, mancheck = FALSE)
+        if(length(cabs) > 1) cabs <- sum(cabs)
+        minme <- function(x) abs(get.TAC(rep, ffac = exp(x)) - cabs)
+        ffac <- exp(optimise(minme, c(-10,10), tol = ctol)$minimum)
+        if(verbose) writeLines(paste0("Provided target catch: ",round(cabs),
+                                      ". Realised target catch: ", round(get.TAC(rep, ffac = ffac))))
     }
+
+    ## adjust fishing mortality rate
+    inpt <- make.ffacvec(inp, ffac)
 
     ## return updated inp list
     return(inpt)
@@ -926,10 +875,10 @@ make.man.inp <- function(rep, scenarioTitle = "",
 #' @param maneval Time at which to evaluate model states. Example: \code{maneval
 #'     = 2021.25}. Default: NULL.
 #' @param ffac Factor to multiply current fishing mortality by (default: 1).
+#' @param fabs Absolute fishing mortality for management period (default: NULL).
 #' @param cfac Factor to multiply current catch by (default: 1). Please refer to
 #'     the details for more information.
-#' @param csdfac Factor for the multiplication of the standard deviation of the
-#'     catch (default: 1). Please refer to the details for more information.
+#' @param cabs Absolute catch for the management period (default: NULL).
 #' @param fractiles List defining the fractiles of the 3 distributions of
 #'     'catch', 'bbmsy', and 'ffmsy'. By default (0.5) median is used for all 3
 #'     quantities. Please refer to the details for more information.
@@ -951,9 +900,8 @@ make.man.inp <- function(rep, scenarioTitle = "",
 #'     period obtaining the elements 'obsC', 'timeC', and 'dtc' (optional
 #'     element 'stdevfacC' which is 1 if not provided). Please refer to the
 #'     details for more information.
-#' @param catchList List obtaining the elements 'obsC', 'timeC', and 'dtc'
-#'     (optional element 'stdevfacC' which is 1 if not provided). Please refer
-#'     to the details for more information.
+#' @param ctol Tolerance of \code{optimise} when finding F that leads to
+#'     provided target catch (via arguments \code{cfac} or \code{cabs})
 #' @param verbose Should detailed outputs be provided (default: TRUE).
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
 #' @param mancheck Should the time-dependent objects in \code{inp} be checked
@@ -961,20 +909,15 @@ make.man.inp <- function(rep, scenarioTitle = "",
 #'
 #' @details The constant catch scenario can be modified with the argument
 #'     \code{cfac}, which multiplies the respective previous catch with
-#'     \code{cfac}. By default, the respective previous catch corresponds to
-#'     that part of the previous year which corresponds to the management
+#'     \code{cfac}, or \code{cabs} which defines the absolute catch for the
+#'     management period. By default, the respective previous catch corresponds
+#'     to that part of the previous year which corresponds to the management
 #'     interval. For example, if the management period is \eqn{[1991,1992[}, the
 #'     whole catch from the year \eqn{[1990,1991[} is being used. If the
 #'     management period is \eqn{[1991.5,1991.75[}, the same interval from the
 #'     previous year \eqn{[1990.5,1990.75[} is being used. If the management
 #'     period spans several years, e.g. \eqn{[1991,1993[}, the whole catch from
-#'     the previous year \eqn{[1990,1991[} is being used two times. However, any
-#'     catch or vector of catches can be defined for different time intervals
-#'     wihtin the management period by means of the argument \code{catchList}.
-#'     This list contains the elements 'obsC', 'timeC', 'dtc', and the optional
-#'     element 'stdevfacC' (which is 1 if not provided). Be aware that in this
-#'     case the absolute catch specified in \code{catchList$obsC} is being used
-#'     without the multiplication with \code{cfac}.
+#'     the previous year \eqn{[1990,1991[} is being used two times.
 #'
 #' The combination of the arguments in the "fractiles", "breakpointB", and
 #'     "safeguardB" allow defining a number of different harvest control rules
@@ -1093,15 +1036,16 @@ add.man.scenario <- function(rep, scenarioTitle = "",
                              maninterval = NULL,
                              maneval = NULL,
                              ffac = NULL,   ## if NULL default fishing at fmsy
+                             fabs = NULL,
                              cfac = NULL,
-                             csdfac = 1,
+                             cabs = NULL,
                              fractiles = list(catch = 0.5, bbmsy =  0.5, ffmsy = 0.5),
                              breakpointB = 0,
                              safeguardB = list(limitB = 0, prob = 0.95),
                              intermediatePeriodCatch = NULL,
                              intermediatePeriodCatchSDFac = 1,
                              intermediatePeriodCatchList = NULL,
-                             catchList = NULL,
+                             ctol = 0.001,
                              verbose = TRUE,
                              dbg = 0,
                              mancheck = TRUE){
@@ -1131,8 +1075,11 @@ add.man.scenario <- function(rep, scenarioTitle = "",
                        " differs from existing scenarios in rep$man.\n"))
     }
     ## check if management time within model time
-    reqRep <- ((!is.numeric(cfac) || is.na(cfac)) && (!is.numeric(ffac) || is.na(ffac))) ||
-        (is.numeric(cfac) && is.null(catchList))
+    reqRep <- ((!is.numeric(cfac) || is.na(cfac)) &&
+               (!is.numeric(cabs) || is.na(cabs)) &&
+               (!is.numeric(ffac) || is.na(ffac)) &&
+               (!is.numeric(fabs) || is.na(fabs))) || (is.numeric(cfac) || is.numeric(cabs))
+
     if((!is.null(maninterval) || !is.null(maneval)) && mancheck){
         if(reqRep){
             rep <- check.man.time(rep, maninterval = maninterval, maneval = maneval,
@@ -1172,15 +1119,16 @@ add.man.scenario <- function(rep, scenarioTitle = "",
                          maninterval = maninterval,
                          maneval = maneval,
                          ffac = ffac,
+                         fabs = fabs,
                          cfac = cfac,
-                         csdfac = csdfac,
+                         cabs = cabs,
                          fractiles = fList,
                          breakpointB = breakpointB,
                          safeguardB = pList,
                          intermediatePeriodCatch = intermediatePeriodCatch,
                          intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
                          intermediatePeriodCatchList = intermediatePeriodCatchList,
-                         catchList = catchList,
+                         ctol = ctol,
                          verbose = verbose,
                          dbg = dbg,
                          mancheck = FALSE)
@@ -1550,10 +1498,10 @@ man.timeline <- function(x, verbose = TRUE, obsonly = FALSE){
 #' @param maneval Time at which to evaluate model states. Example: \code{maneval
 #'     = 2021.25}. Default: NULL.
 #' @param ffac Factor to multiply current fishing mortality by (default: 1).
+#' @param fabs Absolute fishing mortality for management period (default: NULL).
 #' @param cfac Factor to multiply current catch by (default: 1). Please refer to
 #'     the details for more information.
-#' @param csdfac Factor for the multiplication of the standard deviation of the
-#'     catch (default: 1). Please refer to the details for more information.
+#' @param cabs Absolute catch for the management period (default: NULL).
 #' @param fractiles List defining the fractiles of the 3 distributions of
 #'     'catch', 'bbmsy', and 'ffmsy'. By default (0.5) median is used for all 3
 #'     quantities. Please refer to the details for more information.
@@ -1575,9 +1523,8 @@ man.timeline <- function(x, verbose = TRUE, obsonly = FALSE){
 #'     period obtaining the elements 'obsC', 'timeC', and 'dtc' (optional
 #'     element 'stdevfacC' which is 1 if not provided). Please refer to the
 #'     details for more information.
-#' @param catchList List obtaining the elements 'obsC', 'timeC', and 'dtc'
-#'     (optional element 'stdevfacC' which is 1 if not provided). Please refer
-#'     to the details for more information.
+#' @param ctol Tolerance of \code{optimise} when finding F that leads to
+#'     provided target catch (via arguments \code{cfac} or \code{cabs})
 #' @param verbose Should detailed outputs be provided (default: TRUE).
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
 #' @param mancheck Should the time-dependent objects in \code{inp} be checked
@@ -1606,15 +1553,16 @@ get.TAC <- function(rep,
                     maninterval = NULL,
                     maneval = NULL,
                     ffac = NULL,   ## if NULL default fishing at fmsy
+                    fabs = NULL,
                     cfac = NULL,
-                    csdfac = 1,
+                    cabs = NULL,
                     fractiles = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5),
                     breakpointB = 0,
                     safeguardB = list(limitB = 0, prob = 0.95),
                     intermediatePeriodCatch = NULL,
                     intermediatePeriodCatchSDFac = 1,
                     intermediatePeriodCatchList = NULL,
-                    catchList = NULL,
+                    ctol = 0.001,
                     verbose = TRUE,
                     dbg = 0,
                     mancheck = TRUE){
@@ -1684,15 +1632,16 @@ get.TAC <- function(rep,
                          maninterval = maninterval,
                          maneval = maneval,
                          ffac = ffac,
+                         fabs = fabs,
                          cfac = cfac,
-                         csdfac = csdfac,
+                         cabs = cabs,
                          fractiles = fList,
                          breakpointB = breakpointB,
                          safeguardB = pList,
                          intermediatePeriodCatch = intermediatePeriodCatch,
                          intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
                          intermediatePeriodCatchList = intermediatePeriodCatchList,
-                         catchList = catchList,
+                         ctol = ctol,
                          verbose = verbose,
                          dbg = dbg,
                          mancheck = FALSE)

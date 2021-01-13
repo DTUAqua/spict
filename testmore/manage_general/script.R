@@ -213,9 +213,9 @@ test_this("4.4: Old summary function still works:",{
     mansummary(mana3)
 },cnsl=cnsl)
 
-out(sumspict.manage(tmp <- man.select(mana3,1)),cnsl=cnsl)
+out(sumspict.manage(tmp <- man.select(mana3,1))$est,cnsl=cnsl)
 
-out(sumspict.manage(tmp <- man.select(mana3,"noF")),cnsl=cnsl)
+out(sumspict.manage(tmp <- man.select(mana3,"noF"))$est,cnsl=cnsl)
 
 header("5: estimating TAC directly/indirectly")
 ######################################################

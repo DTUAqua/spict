@@ -7,7 +7,8 @@
 sumspict.manage(
   rep,
   include.EBinf = FALSE,
-  include.unc = TRUE,
+  include.unc = FALSE,
+  include.abs = FALSE,
   timeline = TRUE,
   verbose = TRUE
 )
@@ -24,7 +25,9 @@ sumspict.manage(
 \item{verbose}{Should detailed outputs be provided (default: TRUE).}
 }
 \value{
-Data frame containing management summary.
+List with data frame containing management summary ('est') and data
+    frame containing uncertainty of management quantities ('unc') if
+    \code{include.unc = TRUE}.
 }
 \description{
 Print management summary.
