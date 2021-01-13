@@ -3,7 +3,7 @@ date <- format(Sys.Date(), "%Y-%m-%d")
 cat('Package: spict
 Type: Package
 Title: Stochastic surplus Production model in Continuous-Time (SPiCT)
-Version: 1.3.0
+Version: 1.3.2
 Date:', date, '
 Authors@R: c(person(given="Martin Waever",
                     family="Pedersen",
@@ -28,10 +28,11 @@ Description: Fits a surplus production model to fisheries catch and biomass inde
 License: GPL (>=3)
 Depends:
     R (>= 3.0),
-    TMB
+    TMB (>= 1.7.1)
 LinkingTo: TMB, RcppEigen
+Imports:
+    ellipse
 Suggests:
-    ellipse,
     parallel,
     mgcv,
     rjags,
@@ -39,6 +40,7 @@ Suggests:
     knitr,
     rmarkdown
 LazyData: true
+Encoding: UTF-8
 VignetteBuilder: knitr\n',
     file=fn)
 
@@ -49,7 +51,8 @@ branch <- system('git rev-parse --abbrev-ref HEAD', intern=TRUE)
 ##cat(paste('GithubRepo: spict\n'), file=fn, append=TRUE)
 ##cat(paste('GithubRef:', branch, '\n'), file=fn, append=TRUE)
 ##cat(paste('GithubSHA1:', sha, '\n'), file=fn, append=TRUE)
-v <- spict::get.version('roxygen2')
+pd <- utils::packageDescription('roxygen2')
+v <- paste0(pd$Package, "_v", pd$Version)
 v <- regmatches(v, regexpr("v(.*)$", v))
 v <- substr(v, 2, nchar(v))
 

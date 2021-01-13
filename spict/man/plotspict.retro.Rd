@@ -2,9 +2,12 @@
 % Please edit documentation in R/plotting.R
 \name{plotspict.retro}
 \alias{plotspict.retro}
+\alias{plotspict.retro.fixed}
 \title{Plot results of retrospective analysis}
 \usage{
 plotspict.retro(rep, stamp = get.version(), add.mohn = TRUE)
+
+plotspict.retro.fixed(rep)
 }
 \arguments{
 \item{rep}{A valid result from fit.spict.}
@@ -14,8 +17,11 @@ plotspict.retro(rep, stamp = get.version(), add.mohn = TRUE)
 \item{add.mohn}{Adds Mohn's rho}
 }
 \value{
-Nothing
+Ivisible \code{NULL}. If \code{add.mohn} is \code{TRUE}, \code{plotspict.retro} returns the Mohn's rho for B/Bmsy and F/Fmsy.
 }
 \description{
 Plot results of retrospective analysis
+}
+\note{
+The retrospective runs that did not converge are excluded from the plots and from the calculation of Mohn's rho. A message is displayed in such a case.
 }

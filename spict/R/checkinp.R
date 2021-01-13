@@ -146,7 +146,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
                 for (i in 1:nnms){
                     tmpout[[nms[i]]] <- tmpin[[nms[i]]][-neg]
                 }
-                cat('Removing zero, negative, and NAs in ', nam, ' series ', j, ' \n')
+                if(verbose) cat('Removing zero, negative, and NAs in ', nam, ' series ', j, ' \n')
             }
             return(tmpout)
         }
@@ -235,7 +235,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
                 inp$dtc <- min(dtc)
             } else {
                 inp$dtc <- 1
-                cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 2. Assuming an interval of 1 year.\n'))
+                if(verbose) cat(paste('Catch interval (dtc) not specified and length of catch time series shorter than 2. Assuming an interval of 1 year.\n'))
             }
         }
         if (length(inp$dtc) == 1){
@@ -321,7 +321,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
             inp$dte <- min(dte)
         } else {
             inp$dte <- 1
-            cat(paste('Effort interval (dte) not specified and length of effort time series shorter than 2. Assuming an interval of 1 year.\n'))
+            if(verbose) cat(paste('Effort interval (dte) not specified and length of effort time series shorter than 2. Assuming an interval of 1 year.\n'))
         }
     }
     if (length(inp$dte) == 1){
@@ -477,7 +477,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     if ("dteuler" %in% names(inp)){
         if (inp$dteuler > 1){
             inp$dteuler <- 1
-            cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
+            if(verbose) cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
         }
     }
     if (FALSE){
@@ -588,7 +588,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     } else {
         if (inp$nobsE > 0){
             if (inp$timeprede < max(inp$timeE + inp$dte)){
-                cat('inp$timeprede:', inp$timeprede,
+                if(verbose) cat('inp$timeprede:', inp$timeprede,
                     ' must be equal to or later than last effort observation: ', max(inp$timeE + inp$dte), '!  \n')
             }
         }
@@ -599,7 +599,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
                 inp$dtprede <- max(inp$dte)
             } else {
                 inp$dtprede <- 1
-                cat('Assuming a 1 year prediction interval for effort.\n')
+                if(verbose) cat('Assuming a 1 year prediction interval for effort.\n')
             }
         } else {
             inp$dtprede <- numeric(0)
@@ -620,7 +620,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     if ("dteuler" %in% names(inp)){
         if (inp$dteuler > 1){
             inp$dteuler <- 1
-            cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
+            if(verbose) cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
         }
     }
     if (FALSE){
@@ -637,7 +637,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
             } else {
                 inp$dteuler <- alloweddteuler[ind]
             }
-            cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
+            if(verbose) cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
         }
     }
     # Euler types:
@@ -704,22 +704,22 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     if (!"ffac" %in% names(inp)) inp$ffac <- 1
     if ("ffac" %in% names(inp)){
         if (!is.numeric(inp$ffac)){
-            cat('Warning: ffac not numeric, which is not allowed, setting ffac = 1. \n')
+            if(verbose) cat('Warning: ffac not numeric, which is not allowed, setting ffac = 1. \n')
             inp$ffac <- 1
         }
         if (inp$ffac < 0){
-            cat('Warning: ffac < 0, which is not allowed, setting ffac = 0. \n')
+            if(verbose) cat('Warning: ffac < 0, which is not allowed, setting ffac = 0. \n')
             inp$ffac <- 0
         }
     }
     if (!"fcon" %in% names(inp)) inp$fcon <- 0
     if ("fcon" %in% names(inp)){
         if (!is.numeric(inp$fcon)){
-            cat('Warning: fcon not numeric, which is not allowed, setting fcon = 0. \n')
+            if(verbose) cat('Warning: fcon not numeric, which is not allowed, setting fcon = 0. \n')
             inp$fcon <- 0
         }
         if (inp$fcon < 0){
-            cat('Warning: fcon < 0, which is not allowed, setting fcon = 0. \n')
+            if(verbose) cat('Warning: fcon < 0, which is not allowed, setting fcon = 0. \n')
             inp$fcon <- 0
         }
     }

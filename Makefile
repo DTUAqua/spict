@@ -24,6 +24,7 @@ build-package:
 
 install:
 	make build-package
+	echo 'remotes::install_deps("spict")' | R --vanilla
 	R CMD INSTALL --preclean --no-multiarch $(TARBALL)
 	date
 

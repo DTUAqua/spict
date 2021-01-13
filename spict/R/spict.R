@@ -137,21 +137,11 @@ fit.spict <- function(inp, verbose=TRUE, dbg=0){
         } else {
             if (inp$do.sd.report){
                 # Calculate SD report
-                # Check if TMB version is higher than or equal to 1.7.1
-                # Versions below this don't have the getReportCovariance argument
-                verflag <- as.numeric(gsub('[.]', '', as.character(packageVersion('TMB')))) >= 171
-                if (verflag) {
-                    rep <- try(TMB::sdreport(obj,
-                                             getJointPrecision=inp$getJointPrecision,
-                                             bias.correct=inp$bias.correct,
-                                             bias.correct.control=inp$bias.correct.control,
-                                             getReportCovariance = inp$getReportCovariance))
-                } else {
-                    rep <- try(TMB::sdreport(obj,
-                                             getJointPrecision=inp$getJointPrecision,
-                                             bias.correct=inp$bias.correct,
-                                             bias.correct.control=inp$bias.correct.control))
-                }
+                rep <- try(TMB::sdreport(obj,
+                                         getJointPrecision=inp$getJointPrecision,
+                                         bias.correct=inp$bias.correct,
+                                         bias.correct.control=inp$bias.correct.control,
+                                         getReportCovariance = inp$getReportCovariance))
                 sdfailflag <- class(rep) == 'try-error'
                 if (sdfailflag){
                     warning('Could not calculate sdreport.\n')
