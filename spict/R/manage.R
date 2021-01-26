@@ -326,13 +326,13 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
 
     for(i in 1:nsc){
         rp <- repman[[ scenarios[i] ]]
-        EBinf[i] <- get.EBinf(rp)
         perc.dB[i] <- get.pdelta('logB',rp)
         perc.dF[i] <- get.pdelta('logF',rp)
         indnext <- which(rp$inp$time == rp$inp$maneval)
         ## indnextC <- which((rp$inp$timeCpred + rp$inp$dtcp) == max(rp$inp$maninterval))
         indnextC <- which(rp$inp$timeCpred == rp$inp$maninterval[1])
         logCp <- get.par('logCpred', rp, exp=FALSE)[indnextC,]
+        EBinf[i] <- round(get.EBinf(rp) / get.par('logBmsy', rp, exp = TRUE)[2], 1)
         Cnextyear[i, ] <- round(exp(qnorm(rp$inp$manFractiles$catch, logCp[2], logCp[4])), 1)
         Bnextyear[i, ] <- round(get.par('logB', rp, exp=TRUE)[indnext, 1:3], 1)
         Fnextyear[i, ] <- round(get.par('logF', rp, exp=TRUE)[indnext, 1:3], 2)
@@ -366,14 +366,15 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
     ## }
     ## predictions and uncertainty
     inds <- c(1,3)
-    if(include.abs){
-        df <- cbind("C"=Cnextyear[, 2], "B/Bmsy" = BBnextyear[,2], "F/Fmsy" = FFnextyear[,2],
-                    "B"=Bnextyear[,2], "F" = Fnextyear[,2], "perc.dB" = perc.dB, "perc.dF" = perc.dF)
-        dfunc <- cbind(BBnextyear[,inds,drop=FALSE], FFnextyear[,inds,drop=FALSE],
-                       Bnextyear[,inds,drop=FALSE], Fnextyear[,inds,drop=FALSE])
-    }else{
-        df <- cbind("C"=Cnextyear[, 2], "B/Bmsy"=BBnextyear[,2], "F/Fmsy"=FFnextyear[,2])
-        dfunc <- cbind(BBnextyear[,inds,drop=FALSE], FFnextyear[,inds,drop=FALSE])
+    df <- cbind("C" = Cnextyear[, 2], "B/Bmsy" = BBnextyear[,2], "F/Fmsy" = FFnextyear[,2])
+    dfunc <- cbind(BBnextyear[,inds,drop=FALSE], FFnextyear[,inds,drop=FALSE])
+    if (include.abs) {
+        df <- cbind(df,
+                    "B" = Bnextyear[,2], "F" = Fnextyear[,2], "perc.dB" = perc.dB, "perc.dF" = perc.dF)
+        dfunc <- cbind(dfunc, Bnextyear[,inds,drop=FALSE], Fnextyear[,inds,drop=FALSE])
+    }
+    if (include.EBinf) {
+        df <- cbind(df, "EBinf/Bmsy" = EBinf)
     }
     qinds <- grep('q', colnames(df))
     colnames(df)[qinds] <- sub('q', '/', colnames(df)[qinds]) # Replace q with /
