@@ -94,20 +94,15 @@ Define management scenario
 \details{
 The constant catch scenario can be modified with the argument
     \code{cfac}, which multiplies the respective previous catch with
-    \code{cfac}. By default, the respective previous catch corresponds to
-    that part of the previous year which corresponds to the management
+    \code{cfac}, or \code{cabs} which defines the absolute catch for the
+    management period. By default, the respective previous catch corresponds
+    to that part of the previous year which corresponds to the management
     interval. For example, if the management period is \eqn{[1991,1992[}, the
     whole catch from the year \eqn{[1990,1991[} is being used. If the
     management period is \eqn{[1991.5,1991.75[}, the same interval from the
     previous year \eqn{[1990.5,1990.75[} is being used. If the management
     period spans several years, e.g. \eqn{[1991,1993[}, the whole catch from
-    the previous year \eqn{[1990,1991[} is being used two times. However, any
-    catch or vector of catches can be defined for different time intervals
-    wihtin the management period by means of the argument \code{catchList}.
-    This list contains the elements 'obsC', 'timeC', 'dtc', and the optional
-    element 'stdevfacC' (which is 1 if not provided). Be aware that in this
-    case the absolute catch specified in \code{catchList$obsC} is being used
-    without the multiplication with \code{cfac}.
+    the previous year \eqn{[1990,1991[} is being used two times.
 
 The combination of the arguments in the "fractiles", "breakpointB", and
     "safeguardB" allow defining a number of different harvest control rules
