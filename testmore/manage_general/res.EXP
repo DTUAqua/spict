@@ -120,7 +120,7 @@ NULL
 
 4.1: Management periods do not match between scenarios
 $currentCatch
-[1] 25.24
+[1] 25.23
 
 $currentF
 [1] 24.74
@@ -133,7 +133,7 @@ $customScenario_1
 
 4.2: Scenario with continue F vs continue C in intermediate period
 $currentCatch
-[1] 25.24
+[1] 25.23
 
 $currentF
 [1] 24.74
@@ -168,7 +168,7 @@ $est
 
 4.4: Old summary function still works:
 SPiCT timeline:
-
+                                                                          
       Observations             Intermediate             Management        
     1967.00 - 1990.00        1990.00 - 1993.00       1993.00 - 1995.00    
  |-----------------------| ----------------------| ----------------------|
@@ -180,22 +180,11 @@ Predicted catch for management period and states at management evaluation time:
                              C B/Bmsy F/Fmsy
 1. Keep current catch (@) 50.5   0.89    1.2
 2. No fishing (@)          0.1   0.89    1.2
-
-95% confidence intervals for states:
-
-                          B/Bmsy.lo B/Bmsy.hi F/Fmsy.lo F/Fmsy.hi
-1. Keep current catch (@)      0.25       3.2      0.24      6.03
-2. No fishing (@)              0.25       3.2      0.24      6.03
 (@) This scenario assumes another management period. Thus, the estimates might not be comparable to the other scenarios.
 $est
                              C B/Bmsy F/Fmsy
 1. Keep current catch (@) 50.5   0.89    1.2
 2. No fishing (@)          0.1   0.89    1.2
-
-$unc
-                          B/Bmsy.lo B/Bmsy.hi F/Fmsy.lo F/Fmsy.hi
-1. Keep current catch (@)      0.25       3.2      0.24      6.03
-2. No fishing (@)              0.25       3.2      0.24      6.03
 
 
 
@@ -207,7 +196,7 @@ $unc
 
 5.1: TAC from all management scenarios in rep
 $currentCatch
-[1] 25.24
+[1] 25.23
 
 $currentF
 [1] 24.74
