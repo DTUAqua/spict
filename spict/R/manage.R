@@ -685,7 +685,7 @@ make.man.inp <- function(rep, scenarioTitle = "",
                          intermediatePeriodCatch = NULL,
                          intermediatePeriodCatchSDFac = 1,
                          intermediatePeriodCatchList = NULL,
-                         ctol = 0.001,
+                         ctol = 0.0001,
                          verbose = TRUE,
                          dbg = 0,
                          mancheck = TRUE){
@@ -833,18 +833,24 @@ make.man.inp <- function(rep, scenarioTitle = "",
             mantab <- get.manC(rep, inp)
             cabs <- as.numeric(mantab[,"manc"]) * cfac
         }
-        if(length(cabs) > 1) cabs <- sum(cabs)
-        relTargetC <- cabs / tail(rep$inp$obsC, 1)
-        searchRange <- c(relTargetC / 2, relTargetC * 2)
-        providedTAC <- NULL
-        minme <- function(x) {
-            providedTAC <<- get.TAC(rep, ffac = x)
-            (providedTAC - cabs)^2
-        }
-        ffac <- optimise(minme, searchRange, tol = ctol)$minimum
-        if (verbose && abs((cabs - providedTAC) / cabs) > 0.01) {
-            writeLines(paste0("Provided target catch: ", round(cabs),
-                              ". Realised target catch: ", round(providedTAC)))
+        if (length(cabs) > 1) cabs <- sum(cabs)
+        if (cabs == 0) {
+            realisedTAC <- get.TAC(rep, ffac = 0)
+            ffac <- 0
+        } else {
+            relTargetC <- cabs / tail(rep$inp$obsC, 1)
+            searchRange <- c(relTargetC / 2, relTargetC * 2)
+            realisedTAC <- NULL
+            minme <- function(x) {
+                realisedTAC <<- get.TAC(rep, ffac = x)
+                (realisedTAC - cabs)^2
+            }
+            ffac <- optimise(minme, searchRange, tol = ctol)$minimum
+            signifround <- function(x) if (x >= 1) round(x) else signif(x, 2)
+            if (verbose && abs((cabs - realisedTAC) / cabs) > 0.01) {
+                writeLines(paste0("Provided target catch: ", signifround(cabs),
+                                  ". Realised target catch: ", signifround(realisedTAC)))
+            }
         }
     }
 

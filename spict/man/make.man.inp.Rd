@@ -19,7 +19,7 @@ make.man.inp(
   intermediatePeriodCatch = NULL,
   intermediatePeriodCatchSDFac = 1,
   intermediatePeriodCatchList = NULL,
-  ctol = 0.001,
+  ctol = 1e-04,
   verbose = TRUE,
   dbg = 0,
   mancheck = TRUE
