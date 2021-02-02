@@ -43,6 +43,6 @@ Bmsy <- get.par('logBmsy', rep, exp=TRUE)
 ## Extract the exploitable biomass estimates
 Best <- get.par('logB', rep, exp=TRUE)
 
-## Extract the estimated caryting capacity
+## Extract the estimated carying capacity
 K <- get.par('logK', rep, exp=TRUE)
 }

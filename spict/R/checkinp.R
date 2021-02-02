@@ -221,6 +221,21 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
         return(apply(abs(outer(times, eulertimes, FUN='-')), 1, which.min))
     }
 
+    checkandadd <- function(name, default, cls) {
+        if (!name %in% names(inp)) {
+            out <- default
+        } else if (inherits(inp[[name]], cls)){
+            out <- inp[[name]]
+        } else{
+            stop("The element 'inp$", name, "' has to be a ", cls,
+                 " including any of the following elements: ",
+                 paste(names(default), collapse = ", "),
+                 "!", call. = FALSE)
+        }
+        inp[[name]] <- default[which(!names(default) %in% names(out))]
+        inp[[name]] <<- c(inp[[name]], out)
+    }
+
     # -- DATA --
     # Check catch observations
     if ('obsC' %in% names(inp)){
@@ -477,23 +492,6 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     if ("dteuler" %in% names(inp)){
         if (inp$dteuler > 1){
             inp$dteuler <- 1
-            if(verbose) cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
-        }
-    }
-    if (FALSE){
-        alloweddteuler <- 1/2^(6:0)
-        if (!inp$dteuler %in% alloweddteuler){ # Check if dteuler is among the alloweddteuler
-            ind <- cut(inp$dteuler, alloweddteuler, right=FALSE, labels=FALSE)
-            if (is.na(ind)){
-                if (inp$dteuler > max(alloweddteuler)){
-                    inp$dteuler <- max(alloweddteuler)
-                }
-                if (inp$dteuler < min(alloweddteuler)){
-                    inp$dteuler <- min(alloweddteuler)
-                }
-            } else {
-                inp$dteuler <- alloweddteuler[ind]
-            }
             if(verbose) cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
         }
     }
@@ -1181,6 +1179,18 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     ## timerange of original observations (required for intermediate catch)
     if(!"lastCatchObs" %in% names(inp)) inp$lastCatchObs <- max(inp$timeC + inp$dtc)
     if(!"timerangeObs" %in% names(inp)) inp$timerangeObs <- inp$timerange
+
+    ## fractiles used for management
+    checkandadd("manFractiles", list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5), "list")
+
+    ## biomass breakpoint used for management
+    if(!"manBreakpointB" %in% names(inp)) inp$manBreakpointB <- 0
+
+    ## biomass safeguard used for management
+    checkandadd("manSafeguardB", list(limitB = 0, prob = 0.95), "list")
+
+    ## cfac, ffac, bfac
+    checkandadd("manfacs", list(cfac = NULL, ffac = NULL, bfac = NULL), "list")
 
     # Reorder parameter list
     inp$parlist <- list(logm=inp$ini$logm,

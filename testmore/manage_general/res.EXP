@@ -120,7 +120,7 @@ NULL
 
 4.1: Management periods do not match between scenarios
 $currentCatch
-[1] 25.22
+[1] 25.23
 
 $currentF
 [1] 24.74
@@ -133,7 +133,7 @@ $customScenario_1
 
 4.2: Scenario with continue F vs continue C in intermediate period
 $currentCatch
-[1] 25.22
+[1] 25.23
 
 $currentF
 [1] 24.74
@@ -153,86 +153,50 @@ SPiCT timeline:
 
 Management evaluation: 1991.00
 
-Predictions
-                      C_1993.00 B_1995.00 F_1995.00 B_1995.00/Bmsy
-1. Keep current catch      25.2      46.1     0.535          0.758
-2. No fishing               0.1      96.2     0.000          1.584
-                      F_1995.00/Fmsy perc.dB perc.dF
-1. Keep current catch          1.439   -11.3    14.3
-2. No fishing                  0.001    85.4     0.1
+Predicted catch for management period and states at management evaluation time:
 
-95% CIs of absolute predictions
-                      C_1993.00.lo C_1993.00.hi B_1995.00.lo B_1995.00.hi
-1. Keep current catch         23.1         27.5         14.8        143.2
-2. No fishing                  0.0          0.2         58.5        158.2
-                      F_1995.00.lo F_1995.00.hi
-1. Keep current catch        0.173        1.656
-2. No fishing                0.000        0.003
+                             C B/Bmsy F/Fmsy
+1. Keep current catch (@) 50.5   0.89    1.2
+2. No fishing (@)          0.1   0.89    1.2
+(@) This scenario assumes another management period. Thus, the estimates might not be comparable to the other scenarios.
+$est
+                             C B/Bmsy F/Fmsy
+1. Keep current catch (@) 50.5   0.89    1.2
+2. No fishing (@)          0.1   0.89    1.2
 
-95% CIs of relative predictions
-                      B_1995.00/Bmsy.lo B_1995.00/Bmsy.hi F_1995.00/Fmsy.lo
-1. Keep current catch             0.111             5.174             0.178
-2. No fishing                     0.374             6.702             0.000
-                      F_1995.00/Fmsy.hi
-1. Keep current catch             11.63
-2. No fishing                      0.01
-                      C_1993.00 B_1995.00 F_1995.00 B_1995.00/Bmsy
-1. Keep current catch      25.2      46.1     0.535          0.758
-2. No fishing               0.1      96.2     0.000          1.584
-                      F_1995.00/Fmsy perc.dB perc.dF
-1. Keep current catch          1.439   -11.3    14.3
-2. No fishing                  0.001    85.4     0.1
 
 
 4.4: Old summary function still works:
 SPiCT timeline:
-
+                                                                          
       Observations             Intermediate             Management        
     1967.00 - 1990.00        1990.00 - 1993.00       1993.00 - 1995.00    
  |-----------------------| ----------------------| ----------------------|
 
 Management evaluation: 1991.00
 
-Predictions
-                      C_1993.00 B_1995.00 F_1995.00 B_1995.00/Bmsy
-1. Keep current catch      25.2      46.1     0.535          0.758
-2. No fishing               0.1      96.2     0.000          1.584
-                      F_1995.00/Fmsy perc.dB perc.dF
-1. Keep current catch          1.439   -11.3    14.3
-2. No fishing                  0.001    85.4     0.1
+Predicted catch for management period and states at management evaluation time:
 
-95% CIs of absolute predictions
-                      C_1993.00.lo C_1993.00.hi B_1995.00.lo B_1995.00.hi
-1. Keep current catch         23.1         27.5         14.8        143.2
-2. No fishing                  0.0          0.2         58.5        158.2
-                      F_1995.00.lo F_1995.00.hi
-1. Keep current catch        0.173        1.656
-2. No fishing                0.000        0.003
-
-95% CIs of relative predictions
-                      B_1995.00/Bmsy.lo B_1995.00/Bmsy.hi F_1995.00/Fmsy.lo
-1. Keep current catch             0.111             5.174             0.178
-2. No fishing                     0.374             6.702             0.000
-                      F_1995.00/Fmsy.hi
-1. Keep current catch             11.63
-2. No fishing                      0.01
-                      C_1993.00 B_1995.00 F_1995.00 B_1995.00/Bmsy
-1. Keep current catch      25.2      46.1     0.535          0.758
-2. No fishing               0.1      96.2     0.000          1.584
-                      F_1995.00/Fmsy perc.dB perc.dF
-1. Keep current catch          1.439   -11.3    14.3
-2. No fishing                  0.001    85.4     0.1
+                             C B/Bmsy F/Fmsy
+1. Keep current catch (@) 50.5   0.89    1.2
+2. No fishing (@)          0.1   0.89    1.2
+(@) This scenario assumes another management period. Thus, the estimates might not be comparable to the other scenarios.
+$est
+                             C B/Bmsy F/Fmsy
+1. Keep current catch (@) 50.5   0.89    1.2
+2. No fishing (@)          0.1   0.89    1.2
 
 
-25.246.10.5350.7581.439-11.314.3
-0.196.201.5840.00185.40.1
+
+50.50.891.2
+0.10.891.2
 
 5: estimating TAC directly/indirectly
 =====================================
 
 5.1: TAC from all management scenarios in rep
 $currentCatch
-[1] 25.22
+[1] 25.23
 
 $currentF
 [1] 24.74

@@ -10,15 +10,16 @@ get.TAC(
   maninterval = NULL,
   maneval = NULL,
   ffac = NULL,
+  fabs = NULL,
   cfac = NULL,
-  csdfac = 1,
+  cabs = NULL,
   fractiles = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5),
   breakpointB = 0,
   safeguardB = list(limitB = 0, prob = 0.95),
   intermediatePeriodCatch = NULL,
   intermediatePeriodCatchSDFac = 1,
   intermediatePeriodCatchList = NULL,
-  catchList = NULL,
+  ctol = 0.001,
   verbose = TRUE,
   dbg = 0,
   mancheck = TRUE
@@ -40,11 +41,12 @@ Default: NULL.}
 
 \item{ffac}{Factor to multiply current fishing mortality by (default: 1).}
 
+\item{fabs}{Absolute fishing mortality for management period (default: NULL).}
+
 \item{cfac}{Factor to multiply current catch by (default: 1). Please refer to
 the details for more information.}
 
-\item{csdfac}{Factor for the multiplication of the standard deviation of the
-catch (default: 1). Please refer to the details for more information.}
+\item{cabs}{Absolute catch for the management period (default: NULL).}
 
 \item{fractiles}{List defining the fractiles of the 3 distributions of
 'catch', 'bbmsy', and 'ffmsy'. By default (0.5) median is used for all 3
@@ -73,9 +75,8 @@ period obtaining the elements 'obsC', 'timeC', and 'dtc' (optional
 element 'stdevfacC' which is 1 if not provided). Please refer to the
 details for more information.}
 
-\item{catchList}{List obtaining the elements 'obsC', 'timeC', and 'dtc'
-(optional element 'stdevfacC' which is 1 if not provided). Please refer
-to the details for more information.}
+\item{ctol}{Tolerance of \code{optimise} when finding F that leads to
+provided target catch (via arguments \code{cfac} or \code{cabs})}
 
 \item{verbose}{Should detailed outputs be provided (default: TRUE).}
 

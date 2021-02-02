@@ -42,7 +42,7 @@ latex.figure <- function(figfile, reportfile, caption=''){
 make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryoutfile='summaryout.txt', keep.figurefiles=FALSE, keep.txtfiles=FALSE, keep.texfiles=FALSE){
     if(basename(reportfile) == "") reportfile <- 'report.tex'
     if(file.access(dirname(reportfile), mode=1) != 0)  reportfile <- file.path(getwd(), reportfile)
-    
+
     latexstart <- '\\documentclass[12pt]{article}\n\\usepackage{graphicx}\n\\usepackage{verbatim}\n\\begin{document}\n'
     latexend <- '\\end{document}\n'
 
@@ -57,7 +57,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     latex.figure(figfile1, reportfile, caption='Results.')
 
     # Summary
-    summaryoutfile <- file.path(dirname(reportfile),'summaryout.txt')    
+    summaryoutfile <- file.path(dirname(reportfile),'summaryout.txt')
     cat(reporttitle, '- report compiled', as.character(Sys.time()), '\n', file=summaryoutfile)
     summaryout <- capture.output(summary(rep), file=summaryoutfile, append=TRUE)
     cat('\\scriptsize\n', file=reportfile, append=TRUE)
@@ -67,11 +67,11 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
     if ('man' %in% names(rep)){
         mansummaryoutfile <- file.path(dirname(reportfile),'mansummaryout.txt')
         cat('Management results\n\n', file=mansummaryoutfile)
-        mansummaryout <- capture.output(mansummary(rep), file=mansummaryoutfile, append=TRUE)
+        mansummaryout <- capture.output(mansummary(rep)$est, file=mansummaryoutfile, append=TRUE)
         cat('\\scriptsize\n', file=reportfile, append=TRUE)
         cat(paste0('\\verbatiminput{', mansummaryoutfile, '}\n\\newpage'), file=reportfile, append=TRUE)
     }
-    
+
     # Retrospective analysis plot
     if ('retro' %in% names(rep)){
         figfile1b <- file.path(dirname(reportfile),'retro.pdf')
@@ -80,7 +80,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
         dev.off()
         latex.figure(figfile1b, reportfile, caption='Retrospective analysis.')
     }
-    
+
     # Diagnostic plot
     if ('osar' %in% names(rep)){
         figfile2 <- file.path(dirname(reportfile),'diag.pdf')
@@ -88,7 +88,7 @@ make.report <- function(rep, reporttitle='', reportfile='report.tex', summaryout
         plotspict.diagnostic(rep)
         dev.off()
         latex.figure(figfile2, reportfile, caption='Model diagnostics.')
-    }    
+    }
 
     # Data plot
     figfile3 <- file.path(dirname(reportfile),'data.pdf')

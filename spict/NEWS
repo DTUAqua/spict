@@ -1,3 +1,18 @@
+spict v1.3.3
+============
+
+Minor changes:
+
+* Extra arguments `sumspict.manage` control what is returned (uncertainty, absolute states)
+* `sumspict.manage` shows informative messages when scenarios are not comparable due to assumption differences
+* Management scenarios targeting absolute catch (`cabs`) or fishing mortality (`fabs`). Absolute catch scenarios are based on finding the fishing mortalirt (`ffac`) that leads to the target catch using a simple optimisation.
+* Management scenarios stored in the input object
+* Legend in most plots have transparent backgrounds
+
+Bug fixes:
+
+* Fixed previously ignored argument `include.Ebinf` in `sumspict.manage`
+
 spict v1.3.2
 ============
 

@@ -123,9 +123,9 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, v
         }
     }
     ## legend
-    nouse <- capture.output(nms <- rownames(sumspict.manage(rep, include.unc=FALSE, verbose=FALSE)))
+    nouse <- capture.output(nms <- rownames(sumspict.manage(rep, include.unc=FALSE, verbose=FALSE)$est))
     if (plot.legend){
-        legend('topleft', legend=nms, lty=1, col=man.cols()[1:nman], bg='white', cex=0.8)
+        legend('topleft', legend=nms, lty=1, col=man.cols()[1:nman], bg='transparent', cex=0.8)
     }
     ## Note
     if(errflag && verbose) cat(paste0("The management period of scenario(s): ",
@@ -1597,19 +1597,19 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
         if (plot.legend){
             if (nr > 1){
                 legend('topright', c('Current MSY', 'Previous MSY'), pch=3,
-                       col=c('black', 'magenta'), bg='white')
+                       col=c('black', 'magenta'), bg='transparent')
             } else {
                 if ('true' %in% names(inp)){
                     if (min(inp$dtc) < 1){
                         legend('topright', 'True', pch=25, pt.bg=true.col(), bg='white')
                     } else {
                         legend('topright', c(expression('E(B'[infinity]*')'), 'True'),
-                               pch=c(23, 25), pt.bg=c('gold', true.col()), bg='white')
+                               pch=c(23, 25), pt.bg=c('gold', true.col()), bg='transparent')
                     }
                 } else {
                     if (!min(inp$dtc) < 1){
                         legend('topright', expression('E(B'[infinity]*')'),
-                               pch=23, pt.bg='gold', bg='white')
+                               pch=23, pt.bg='gold', bg='transparent')
                     }
                 }
             }
@@ -2055,7 +2055,7 @@ plotspict.tc <- function(rep, main='Time to Bmsy', stamp=get.version()){
                     lgnplace <- 'topright'
                 }
                 legend(lgnplace, legend=paste('F =',facvec,'x Fmsy'), lty=1, col=cols[1:nFvec],
-                       lwd=rep(1.5,nFvec), bg='white')
+                       lwd=rep(1.5,nFvec), bg='transparent')
                 points(vt, rep(par('usr')[3], nFvec), col=cols[1:nFvec], pch=4)
                 box(lwd=1.5)
                 if (rep$opt$convergence != 0){
@@ -2164,7 +2164,7 @@ plotspict.btrend <- function(rep){
         lines(rep$inp$time, Bind[, 3], lty=2)
         lines(rep$inp$time[-1], diff(B[, 2]), col=4, lwd=1.5)
         abline(h=0, col='gray')
-        legend('topleft', legend=c('Expected', 'Observed'), lty=1, lwd=c(1, 1.5), col=c(1, 4))
+        legend('topleft', legend=c('Expected', 'Observed'), lty=1, lwd=c(1, 1.5), col=c(1, 4), bg="transparent")
         box(lwd=1.5)
         if (rep$opt$convergence != 0){
             warning.stamp()
@@ -2817,11 +2817,11 @@ plotspict.priors <- function(rep, do.plot=NULL, stamp=get.version(), automfrow=T
                         abline(v=exp(par[rr, 2]), lty=2, col=3, lwd=1.5)
                     }
                     legend('topright', legend=c('Prior', 'Post. Mean'), lty=1:2,
-                           col=c(1, 3), lwd=1.5)
+                           col=c(1, 3), lwd=1.5, bg="transparent")
                 } else {
                     lines(exp(xpo), posteriorvals, col=3, lwd=1.5)
                     legend('topright', legend=c('Prior', 'Post.'), lty=1,
-                           col=c(1, 3), lwd=1.5)
+                           col=c(1, 3), lwd=1.5, bg="transparent", box.lwd = 0)
                 }
                 box(lwd=1.5)
                 if (rep$opt$convergence != 0){

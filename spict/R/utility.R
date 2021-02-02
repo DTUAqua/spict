@@ -200,7 +200,7 @@ calc.gamma <- function(n) n^(n/(n-1)) / (n-1)
 #' ## Extract the exploitable biomass estimates
 #' Best <- get.par('logB', rep, exp=TRUE)
 #'
-#' ## Extract the estimated caryting capacity
+#' ## Extract the estimated carying capacity
 #' K <- get.par('logK', rep, exp=TRUE)
 get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE){
     if (!'sderr' %in% names(rep)){
