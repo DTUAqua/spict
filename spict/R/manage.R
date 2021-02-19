@@ -333,7 +333,8 @@ sumspict.manage <- function(rep, include.EBinf=FALSE,
         indnextC <- which(rp$inp$timeCpred == rp$inp$maninterval[1])
         logCp <- get.par('logCpred', rp, exp=FALSE)[indnextC,]
         EBinf[i] <- round(get.EBinf(rp) / get.par('logBmsy', rp, exp = TRUE)[2], 1)
-        Cnextyear[i, ] <- round(exp(qnorm(rp$inp$manFractiles$catch, logCp[2], logCp[4])), 1)
+##        Cnextyear[i, ] <- round(exp(qnorm(rp$inp$manFractiles$catch, logCp[2], logCp[4])), 1)
+        Cnextyear[i, ] <- round(get.par('logCpred', rp, exp=TRUE)[indnextC, 1:3], 1)
         Bnextyear[i, ] <- round(get.par('logB', rp, exp=TRUE)[indnext, 1:3], 1)
         Fnextyear[i, ] <- round(get.par('logF', rp, exp=TRUE)[indnext, 1:3], 2)
         BBnextyear[i, ] <- round(get.par('logBBmsy', rp, exp=TRUE)[indnext, 1:3], 2)
@@ -1141,6 +1142,23 @@ add.man.scenario <- function(rep, scenarioTitle = "",
     repman$inp$manBreakpointB <- breakpointB
     repman$inp$manSafeguardB <- pList
     repman$inp$manfacs <- list("cfac" = cfac, "ffac" = ffac, "bfac" = NULL)
+
+    ## account for catch fractile
+    if(fList$catch != 0.5){
+        inpc <- make.man.inp(rep=repman,
+                             scenarioTitle = scenarioTitle,
+                             maninterval = maninterval,
+                             maneval = maneval,
+                             cabs = calc.tac(repman, fractileCatch = fList$catch),
+                             intermediatePeriodCatch = intermediatePeriodCatch,
+                             intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
+                             intermediatePeriodCatchList = intermediatePeriodCatchList,
+                             ctol = ctol,
+                             verbose = verbose,
+                             dbg = dbg,
+                             mancheck = FALSE)
+        repman <- retape.spict(repman, inpc, verbose = FALSE, mancheck=FALSE)
+    }
 
     ## check if man already in repout
     if(!"man" %in% names(repout)){
