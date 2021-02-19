@@ -1,3 +1,13 @@
+spict v1.3.4
+============
+
+Minor changes:
+
+* Scenarios that use catch fractiles now retape the fitted spict object to
+  adjust ffac so that median catch yields chosen fractile of the previously
+  predicted catch
+
+
 spict v1.3.3
 ============
 
