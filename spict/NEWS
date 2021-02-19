@@ -1,6 +1,13 @@
 spict v1.3.4
 ============
 
+New features:
+
+* Option to set `Blim` in the hockey-stick HCR to anything else than 0, by
+  specifying two values in `breakpointB`, e.g. `breakpointB = c(0.3,0.5)`.
+* New argument to set time for the evaluation of the hockey-stick HCR:
+  `evalBreakpointB`.
+
 Minor changes:
 
 * Scenarios that use catch fractiles now retape the fitted spict object to
