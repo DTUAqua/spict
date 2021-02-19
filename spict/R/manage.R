@@ -1050,6 +1050,7 @@ add.man.scenario <- function(rep, scenarioTitle = "",
                              dbg = 0,
                              mancheck = TRUE){
     repout <- rep
+    rep$man <- NULL
 
     ## checks
     check.rep(rep, reportmode0 = FALSE)
