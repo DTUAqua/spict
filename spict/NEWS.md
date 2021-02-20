@@ -1,4 +1,4 @@
-spict v1.3.4
+spict v1.3.4 (2021-02-21)
 ============
 
 New features:
@@ -7,12 +7,17 @@ New features:
   specifying two values in `breakpointB`, e.g. `breakpointB = c(0.3,0.5)`.
 * New argument to set time for the evaluation of the hockey-stick HCR:
   `evalBreakpointB`.
+* New plotting function: `plotspict.hcr` that visualises management scenarios
+* See changes for each spict version using `news(package = "spict")`
+
+Bug fixes
+
+* Corrected biomass predictions for scenarios that use catch fractiles
 
 Minor changes:
 
-* Scenarios that use catch fractiles now retape the fitted spict object to
-  adjust ffac so that median catch yields chosen fractile of the previously
-  predicted catch
+* Updated documentation, vignettes and guidelines
+
 
 
 spict v1.3.3
@@ -65,7 +70,7 @@ Bug fixes:
 * Fixed bug in Mohn's rho calculation that included forecast period
 * Fixed shorten.inp for catch and effort
 
-spict v1.3.0 (Release date: 2020-10-23)
+spict v1.3.0 (2020-10-23)
 ============
 
 New features:
@@ -155,7 +160,7 @@ Bug fixes:
   this observation is not included anymore as it ranges beyond 'maxtime'.
 
 
-spict v1.2.8 (Release date: 2019-12-02)
+spict v1.2.8 (2019-12-02)
 ============
 
 New features:
@@ -189,7 +194,7 @@ Bug fixes:
 * Remove inverse gamma priors which were not fully functional
 
 
-spict v1.2.7 (Release date: 2019-04-03)
+spict v1.2.7 (2019-04-03)
 ============
 
 New features:
