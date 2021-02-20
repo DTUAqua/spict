@@ -129,8 +129,8 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE, v
     }
     ## Note
     if(errflag && verbose) cat(paste0("The management period of scenario(s): ",
-                                          paste0(names(rep$man)[errflag],collapse=", "),
-                                          " is shorter than 1 year. Thus, the catch cannot be displayed correctly in the annual catch plot.\n"))
+                                      paste0(names(rep$man)[errflag],collapse=", "),
+                                      " is shorter than 1 year. Thus, the catch cannot be displayed correctly in the annual catch plot.\n"))
 }
 
 
@@ -296,14 +296,14 @@ annual <- function(intime, vec, type='mean'){
     for (i in 1:nanntime){
         inds <- which(anntime[i]==floortime)
         if (is(type, "function")) {
-          annvec[i] <- type(vec[inds])
+            annvec[i] <- type(vec[inds])
         } else{
-          if (type=='mean'){
-            annvec[i] <- mean(vec[inds])
-          }
-          if (type=='sum'){
-            annvec[i] <- sum(vec[inds])
-          }
+            if (type=='mean'){
+                annvec[i] <- mean(vec[inds])
+            }
+            if (type=='sum'){
+                annvec[i] <- sum(vec[inds])
+            }
         }
     }
     return(list(anntime=anntime, annvec=annvec))
@@ -1351,7 +1351,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             lines(inp$time[indest], FFs[indest, 2], col=rgb(0, 0, 1, 0.4))
         }
         if(!manflag) abline(v=inp$time[which(inp$time == inp$timerange[2])],
-                                          col='gray')
+                            col='gray')
         if (plot.obs){
             Fmsyvec <- get.par('logFmsyvec', rep, exp=TRUE)
             ie <- cut(inp$timeE, inp$time, right=FALSE, labels=FALSE)
@@ -2590,56 +2590,56 @@ plotspict.retro <- function(rep, stamp=get.version(), add.mohn = TRUE) {
 #' @rdname plotspict.retro
 #' @export
 plotspict.retro.fixed <- function(rep) {
-  if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
-  if (!"retro" %in% names(rep)) stop("No results of the retro function found. Please run the retrospective analysis using the `retro` function.")
-  cols <- cols()
-  conv <- sapply(rep$retro, function(x) x$opt$convergence == 0)
-  nnotconv <- sum(!conv)
-  if (nnotconv > 0) {
-      message("Excluded ", nnotconv, " retrospective ",
-              if (nnotconv == 1) "run" else "runs" ," that ",
-              if (nnotconv == 1) "was" else "were" , " not converged: ",
-              paste(which(!conv) - 1, collapse = ", "))
-  }
-  s <- seq_along(rep$retro)
-  nms <- names(rep$par.fixed)
-  nnms <- length(nms)
-  nc <- ceiling(nnms/3)
-  nr <- ceiling(nnms/nc)
-  ## n <- ceiling(sqrt(length(nms)))
-  lbls <- c("All", ifelse(conv[-1], paste0("-", s[-length(s)]), ""))
-  opar <- par(mfrow = c(nr, nc), mar = c(3, 3, 1, 1), oma = c(3, 3, 1, 1))
-  on.exit(par(opar))
-  for (par in unique(nms)) {
-      nreps <- sum(nms == par)
-      rownames <- if (nreps == 1) par else paste0(par, seq(nreps))
-      ms <- lapply(rep$retro, function(x) {
-          if (x$opt$convergence == 0) {
-              p <- get.par(par, x, exp = TRUE)
-              rownames(p) <- rownames
-              p
-          } else {
-              matrix(NA, ncol = 5, nrow = nreps, dimnames = list(rownames, c("ll", "est", "ul", "sd", "cv")))
-          }
-      })
+    if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
+    if (!"retro" %in% names(rep)) stop("No results of the retro function found. Please run the retrospective analysis using the `retro` function.")
+    cols <- cols()
+    conv <- sapply(rep$retro, function(x) x$opt$convergence == 0)
+    nnotconv <- sum(!conv)
+    if (nnotconv > 0) {
+        message("Excluded ", nnotconv, " retrospective ",
+                if (nnotconv == 1) "run" else "runs" ," that ",
+                if (nnotconv == 1) "was" else "were" , " not converged: ",
+                paste(which(!conv) - 1, collapse = ", "))
+    }
+    s <- seq_along(rep$retro)
+    nms <- names(rep$par.fixed)
+    nnms <- length(nms)
+    nc <- ceiling(nnms/3)
+    nr <- ceiling(nnms/nc)
+    ## n <- ceiling(sqrt(length(nms)))
+    lbls <- c("All", ifelse(conv[-1], paste0("-", s[-length(s)]), ""))
+    opar <- par(mfrow = c(nr, nc), mar = c(3, 3, 1, 1), oma = c(3, 3, 1, 1))
+    on.exit(par(opar))
+    for (par in unique(nms)) {
+        nreps <- sum(nms == par)
+        rownames <- if (nreps == 1) par else paste0(par, seq(nreps))
+        ms <- lapply(rep$retro, function(x) {
+            if (x$opt$convergence == 0) {
+                p <- get.par(par, x, exp = TRUE)
+                rownames(p) <- rownames
+                p
+            } else {
+                matrix(NA, ncol = 5, nrow = nreps, dimnames = list(rownames, c("ll", "est", "ul", "sd", "cv")))
+            }
+        })
 
-      for (r in seq(nreps)) {
-          vals <- if (nreps == 1) do.call(rbind, ms) else t(sapply(ms, function(x) x[r, ]))
-          ylim <- range(vals[, 1:3], 0, na.rm = TRUE) * 1.05
-          plot(vals[, 2], ylim = ylim, axes = FALSE, ylab = "", xlab = "", yaxs = "i", pch = 20, col = cols, cex = 1.5)
-          arrows(s, vals[, 1], s, vals[, 3], angle = 90, length = 0.05, code = 3, lwd = 3, col = cols)
-          mtext(sub("log", "", rownames[r]), line = 0.2, cex = 1, font = 2)
-          axis(1, at = s, labels = lbls, las = 2)
-          if (nnotconv > 0) {
-              mtext(c("All", paste0("-", s[-length(s)]))[!conv], at = s[!conv], side = 1, las = 2, line = 1, col = 2, cex = 0.7)
-          }
-          axis(2)
-          box()
-      }
-  }
-  mtext("Parameter estimate", 2, 0.5, outer=TRUE, cex = 1.2)
-  mtext("Number of retrospective years", 1, 0.5, outer=TRUE, cex = 1.2)
-  invisible(NULL)
+        for (r in seq(nreps)) {
+            vals <- if (nreps == 1) do.call(rbind, ms) else t(sapply(ms, function(x) x[r, ]))
+            ylim <- range(vals[, 1:3], 0, na.rm = TRUE) * 1.05
+            plot(vals[, 2], ylim = ylim, axes = FALSE, ylab = "", xlab = "", yaxs = "i", pch = 20, col = cols, cex = 1.5)
+            arrows(s, vals[, 1], s, vals[, 3], angle = 90, length = 0.05, code = 3, lwd = 3, col = cols)
+            mtext(sub("log", "", rownames[r]), line = 0.2, cex = 1, font = 2)
+            axis(1, at = s, labels = lbls, las = 2)
+            if (nnotconv > 0) {
+                mtext(c("All", paste0("-", s[-length(s)]))[!conv], at = s[!conv], side = 1, las = 2, line = 1, col = 2, cex = 0.7)
+            }
+            axis(2)
+            box()
+        }
+    }
+    mtext("Parameter estimate", 2, 0.5, outer=TRUE, cex = 1.2)
+    mtext("Number of retrospective years", 1, 0.5, outer=TRUE, cex = 1.2)
+    invisible(NULL)
 }
 
 
@@ -2953,7 +2953,7 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=TRUE, stamp=
 #' @return Nothing.
 #' @export
 plotspict.growth <- function(rep, logax=FALSE, main='Time-varying growth', ylim=NULL,
-                            xlim=NULL, xlab='Time', plot.ci=TRUE, stamp=get.version()){
+                             xlim=NULL, xlab='Time', plot.ci=TRUE, stamp=get.version()){
     if (!'sderr' %in% names(rep) & rep$inp$timevaryinggrowth){
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
@@ -2997,7 +2997,7 @@ plotspict.growth <- function(rep, logax=FALSE, main='Time-varying growth', ylim=
 #' @name plot2
 #' @title Plot summarising spict results (alternative plot composition)
 #'
-#' @param x A result report as generated by running fit.spict.
+#' @param rep A result report as generated by running fit.spict.
 #' @param stamp Stamp plot with this character string.
 #' @param verbose Should detailed outputs be provided (default: TRUE).
 #' @param ... additional arguments affecting the summary produced.
@@ -3037,12 +3037,11 @@ plotspict.growth <- function(rep, logax=FALSE, main='Time-varying growth', ylim=
 #' plot2(rep)
 #'
 #' @export
-plot2 <- function(x, stamp=get.version(), verbose=TRUE,...){
-    check.rep(x)
-    rep <- x
+plot2 <- function(rep, stamp=get.version(), verbose=TRUE, ...){
+    check.rep(rep)
     logax <- FALSE # Take log of relevant axes? default: FALSE
     inp <- rep$inp
-    if (inp$reportall){
+    if (inp$reportall) {
         opar <- par(mfrow=c(2, 2), oma=c(0.2, 0.2, 0, 0), mar=c(5,4,2.5,3.5))
         on.exit(par(opar))
         # B/Bmsy
@@ -3053,7 +3052,69 @@ plot2 <- function(x, stamp=get.version(), verbose=TRUE,...){
         plotspict.catch(rep, qlegend=FALSE, stamp='',verbose=verbose)
         # F versus B
         plotspict.fb(rep, logax=logax, man.legend=FALSE, stamp='')
-
     }
     txt.stamp(stamp, do.flag=TRUE)
+}
+
+
+#' @name plotspict.hcr
+#' @title Comparison plot of aavailable management scenarios
+#' @description A comparison of all management scenarios in \code{rep$man}. For
+#' each scenario, the fishing mortality in the management period is shown against
+#' the relative biomass at the point of the harvest control rule (HCR) evaluation.
+#' @param rep A result report as generated by running \code{\link{fit.spict}}
+#' that contains management scenarios added by \code{\link{manage}} or
+#' \code{\link{add.man.scenario}}.
+#' @param xlim Numeric vector with the lower and upper x-axis limits
+#'
+#' @seealso \code{\link{manage}}
+#' @return Invisible \code{NULL}
+#' @export
+#'
+#' @examples
+#'
+#' rep <- fit.spict(pol$hake)
+#' rep <- manage(rep)
+#' plotspict.hcr(rep)
+#'
+plotspict.hcr <- function(rep, xlim = c(0, 3)) {
+    check.rep(rep)
+    lm <- length(rep$man)
+    if (lm == 0) stop("rep does not contain management scenarios, please run `manage` or `add.man.scenario`")
+    alltacs <- spict::man.tac(rep)
+    opar <- par(mfrow = get.mfrow(lm), mar = c(3.1, 3.1, 1.5, 3))
+    on.exit(par(opar))
+    for (i in seq(rep$man)) {
+        r <- rep$man[[i]]
+        nm <- names(rep$man)[i]
+        bbp <- r$inp$manBreakpointB
+        if (length(bbp) == 1) {
+            Btrig <- bbp
+            Blim <- 0
+        } else {
+            Btrig <- max(bbp)
+            Blim <- min(bbp)
+        }
+        Fmsy <- get.par("logFmsy", r, exp = TRUE)[2]
+        Fm <- get.par("logFm", r, exp = TRUE)[, 2]
+        BBmsy <- if (r$inp$manEvalBreakpointB == 0) {
+            get.par("logBmBmsy", r, exp = TRUE)[, 2]
+        } else {
+            get.par("logBpBmsy", r, exp = TRUE)[, 2]
+        }
+        Bs <- seq(0, max(xlim), 0.01)
+        sl <- (1 / (Btrig - Blim))
+        Fs <- sapply(Bs, function(b)  Fmsy * min(max(sl * b - sl * Blim, 0), 1))
+        ylim <- range(0, max(Fmsy, Fm) * 1.1)
+        plot(Bs, Fs, type = "n", xlab = "", ylab = "",
+             xlim = xlim, ylim = ylim, main = nm)
+        xlab <- if (r$inp$manEvalBreakpointB == 0) "Bm/Bmsy" else "Bp/Bmsy"
+        title(ylab = "Fishing mortality (F)", xlab = xlab, line = 2.1)
+        points(BBmsy, Fm, pch = 20, cex = 2)
+        text(BBmsy, Fm, labels = paste("TAC=", round(alltacs[[i]])), adj = -0.2)
+        abline(h = Fmsy, v = c(Blim, Btrig), col = "darkgray", lty = 2)
+        lines(Bs, Fs, type = "l", lwd = 2)
+        text(c("Fmsy"), x = max(xlim), y = Fmsy, las = 2, cex = 0.8, adj = c(1, -0.1))
+    }
+    invisible(NULL)
 }
