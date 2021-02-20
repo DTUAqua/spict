@@ -16,6 +16,16 @@
 <title>Guidelines for the stochastic production model in continuous time (SPiCT)</title>
 
 
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
 
 
 
@@ -214,7 +224,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Guidelines for the stochastic production model in continuous time (SPiCT)</h1>
 <h4 class="author">T.K. Mildenberger, A. Kokkalis, C.W. Berg</h4>
-<h4 class="date">23 November, 2020</h4>
+<h4 class="date">20 February, 2021</h4>
 
 
 
@@ -242,6 +252,11 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <td align="left">v 1.2</td>
 <td align="center">v 1.3.0</td>
 <td align="right">Adjusted to package update</td>
+</tr>
+<tr class="even">
+<td align="left">v 1.2</td>
+<td align="center">v 1.3.4</td>
+<td align="right">Adjusted after WKMSYSPICT and WKLIFEX</td>
 </tr>
 </tbody>
 </table>
@@ -336,6 +351,11 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </table>
 <p>Theoretically, any percentiles could be considered for the three quantities (<span class="math inline">\(C_{y+1}, \frac{B_{y+1}}{B_{MSY B_{trigger}}}, \frac{F_{y}}{F_{MSY}}\)</span>). In the simulation testing done during WKLIFE IX, the same percentile (p) was used for biomass and catch; for fishing mortality the percentile was equal to 100 - p. The results show that across all tested scenarios and harvest control rules, management with the MSY-35 rule leads to high levels of relative yield while retaining the risks at low levels. Higher percentiles than 35th show higher levels of risk while achieving similar levels of relative yield, while lower percentiles show a decrease in yield with small change in risk <span class="citation">(ICES 2019)</span>. It is important to mention that informative priors (lower standard deviations) potentially affect parameter estimates and credible intervals of SPiCT assessments, and therefore affecting the calculated TAC.</p>
 <p>TAC based on a SPiCT assessment can be calculated using the <code>get.TAC()</code> function within the spict package in R, where the function arguments allow to use any of the above described HCRs or combinations thereof. The hockey-stick MSY rule with the 35th percentile as recommended by <span class="citation">ICES (2019)</span> is included as scenario 8 (or ‘ices’) in the <code>manage</code> function, but can also be applied independently of the manage function by <code>get.TAC(rep, fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35), breakpointB=0.5)</code>.</p>
+</div>
+<div id="category-1-stocks" class="section level2">
+<h2>Category 1 stocks</h2>
+<p>During WKMSYSPICT (held online 15–19 February 2021), SPiCT was considered as the assessment model for several stocks. Stocks with accepted SPiCT assessments were raised to category 1. In accordance with basis for ICES adcvice <span class="citation">(<span class="citeproc-not-found" data-reference-id="ices"><strong>???</strong></span>)</span> stocks and the recommendations from WKLIFEX <span class="citation">(ICES 2019)</span>, the recommended management HCR includes a hockey-stick with <span class="math inline">\(B_{trigger} = B_{MSY} / 2\)</span> and <span class="math inline">\(B_{lim} = B_{MSY} / 3\)</span>. The TAC advice is the 35th percentile of the short term forecast of the catch distribution. This is achieved in <code>spict</code> using:</p>
+<p><code>rep &lt;- add.man.scenario(rep, &quot;ICES MSY&quot;, fractiles = list(catch = 0.35), breakpointB = c(1/3, 1/2))</code></p>
 </div>
 <div id="references" class="section level2 unnumbered">
 <h2>References</h2>

@@ -794,10 +794,10 @@ rep <- manage(rep)
 
 where `rep` is the result of `fit.spict()` from the code above. The `spictcls`
 object fitted in each scenario is stored in a list called `man` within `rep`.
-The argument `scenarios` allows you to limit the number of scenarios to be run
-by indicating scenario numbers, e.g. `scenarios = c(1,5,2,8)`, or scenario
-names, e.g. `scenarios = c("noF", "ices", "incrF25")`. The list of all possible
-management scenarios included in the `manage` function with index and name are:
+The argument `scenarios` controls which scenarios are included; it is a vector
+of scenario numbers, e.g. `scenarios = c(1,5,2,8)`, or scenario names, 
+e.g. `scenarios = c("noF", "ices", "incrF25")`. The list of the predefined
+management scenarios in the `manage` function with index and name are:
 
 \begin{enumerate}
    \item \textbf{currentCatch}: Keep the catch of the current year (i.e. the last observed catch).
@@ -847,6 +847,13 @@ to the previous plots, one can remove the management scenarios (see below) or
 assign the results of the `manage` function to a different object, e.g. `man <-
 manage(rep)` and have both plotting functionalities with `plot(rep)` and
 `plot(man)`.
+
+The function `plotspict.hcr` (spict version >= 1.3.4) provides a visual summary
+of the management scenarios.
+
+```{r, results='show', message=FALSE, warning=FALSE, fig.width=8, fig.height=7, fig.show='hold'}
+plotspict.hcr(rep)
+```
 
 #### Assessment and intermediate period
 Besides defining the assessment period in the input data as shown above, it can

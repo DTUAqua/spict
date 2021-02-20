@@ -26,11 +26,12 @@ This is a living document, be sure to check for the latest update
 is actively developed, check for the most recent package version and
 report problems at ([link](https://github.com/DTUAqua/spict/releases)).
 
-| Document version | SPiCT version | Comments                     |
-| :--------------- | :-----------: | ---------------------------: |
-|  v 1.0           | v 1.2.7       | Initial version (2019-09-23) |
-|  v 1.1           | v 1.2.8       | Management section added     |
-|  v 1.2           | v 1.3.0       | Adjusted to package update   |
+| Document version | SPiCT version | Comments                              |
+| :--------------- | :-----------: | ---------------------------:          |
+|  v 1.0           | v 1.2.7       | Initial version (2019-09-23)          |
+|  v 1.1           | v 1.2.8       | Management section added              |
+|  v 1.2           | v 1.3.0       | Adjusted to package update            |
+|  v 1.2           | v 1.3.4       | Adjusted after WKMSYSPICT and WKLIFEX |
 
 This document provides specific guidelines for the use of the stochastic
 production model in continuous time [SPiCT, @spict] and is divided into three
@@ -193,7 +194,8 @@ account for assessment uncertainty by (i) using a percentile lower than 50 (i.e.
 median) for relative biomass $\frac{B}{B_{MSY}}$ and catch $C_{y+1}$ and higher
 than 50 for relative fishing mortality $\frac{F}{F_{MSY}}$ [@wklifevii], (ii)
 adjusting F to meet the condition that the predicted biomass at the end of the
-advice year is equal or smaller than a specified risk level [e.g. 5%, @wklifeviii]. After comprehensive simulation testing, @wklifeix recommends to
+advice year is equal or smaller than a specified risk level [e.g. 5%, @wklifeviii]. 
+After comprehensive simulation testing, @wklifeix recommends to
 use the MSY hockey-stick rule with 35th percentiles for all three quantities:
 
 $$ C_{y+1} = q_C(p) $$
@@ -234,6 +236,19 @@ the 35th percentile as recommended by @wklifeix is included as scenario 8 (or
 'ices') in the `manage` function, but can also be applied independently of the
 manage function by `get.TAC(rep, fractiles = list(catch=0.35, bbmsy=0.35,
 ffmsy=0.35), breakpointB=0.5)`.
+
+
+## Category 1 stocks
+
+During WKMSYSPICT (held online 15--19 February 2021), SPiCT was considered as the 
+assessment model for several stocks. Stocks with accepted SPiCT assessments were 
+raised to category 1. In accordance with basis for ICES adcvice [@ices] stocks 
+and the recommendations from WKLIFEX [@wklifeix], the recommended management HCR 
+includes a hockey-stick with $B_{trigger} = B_{MSY} / 2$ and $B_{lim} = B_{MSY} / 3$. 
+The TAC advice is the 35th percentile of the short term forecast of the catch 
+distribution. This is achieved in `spict` using: 
+
+`rep <- add.man.scenario(rep, "ICES MSY", fractiles = list(catch = 0.35), breakpointB = c(1/3, 1/2))`
 
 
 ## References
