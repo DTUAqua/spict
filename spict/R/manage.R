@@ -221,14 +221,14 @@ manage <- function(rep, scenarios = 'all',
         }
         if (8 %in% indscenarios){
             # 8. Fish at Fmsy with hockey stick rule plus 35th percentile
-            #    (same as 7. with 35th percentile of the catch, BBmsy and FFmsy distributions.)
+            #    (same as 7. using the 35th percentile of the predicted catch distribution)
             rep <- add.man.scenario(rep, scenarioTitle = "ices",
                                     maninterval = maninterval,
                                     maneval = maneval,
                                     intermediatePeriodCatch = intermediatePeriodCatch,
                                     intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
-                                    breakpointB = 0.5,
-                                    fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35),
+                                    breakpointB = c(1/3, 1/2),
+                                    fractiles = list(catch = 0.35),
                                     verbose = FALSE, mancheck = FALSE)
         }
     }else{
@@ -1185,6 +1185,7 @@ add.man.scenario <- function(rep, scenarioTitle = "",
     ## save fractile and Co info in inp
     repman$inp$manFractiles <- fList
     repman$inp$manBreakpointB <- breakpointB
+    repman$inp$manEvalBreakpointB <- evalBreakpointB
     repman$inp$manSafeguardB <- pList
     repman$inp$manfacs <- list("cfac" = cfac, "ffac" = ffac, "bfac" = NULL)
 
@@ -1569,10 +1570,7 @@ get.TAC <- function(rep,
                     evalBreakpointB = 0,
                     verbose = TRUE,
                     dbg = 0,
-                    mancheck = TRUE){
-
-    repout <- rep
-
+                    mancheck = TRUE) {
     ## checks
     check.rep(rep, reportmode0 = FALSE)
 
