@@ -46,8 +46,8 @@ Print management summary.
 \dontrun{
 data(pol)
 rep <- fit.spict(pol$albacore)
-repman <- manage(rep, c(2,4,8))
-sumspict.manage(repman)
+rep <- manage(rep, c(2,4,8))
+sumspict.manage(rep)
 }
 
 }
