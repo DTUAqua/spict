@@ -27,8 +27,7 @@
 #' summary(rep)
 #' @export
 summary.spictcls <- function(object, ...){
-    #object <- x
-    if(!exists('digits')) digits <- 7
+    if (!"digits" %in% names(list(...))) digits <- 7
     ndigits <- digits # Present values with this number of digits after the dot.
     rep <- object
     cat(paste('Convergence: ', rep$opt$convergence, '  MSG: ', rep$opt$message, '\n', sep=''))
