@@ -12,7 +12,8 @@ plotspict.growth(
   xlim = NULL,
   xlab = "Time",
   plot.ci = TRUE,
-  stamp = get.version()
+  stamp = get.version(),
+  CI = 0.95
 )
 }
 \arguments{
@@ -31,6 +32,10 @@ plotspict.growth(
 \item{plot.ci}{If TRUE 95\% CIs are included.}
 
 \item{stamp}{Stamp plot with this character string.}
+
+\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90%
+confidence intervals. By default (CI = 0.95), the 95% confidence
+intervals are estimated.}
 }
 \value{
 Nothing.

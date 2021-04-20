@@ -4,16 +4,28 @@
 \alias{plotspict.priors}
 \title{Plot priors and posterior distribution.}
 \usage{
-plotspict.priors(rep, do.plot = NULL, stamp = get.version(), automfrow = TRUE)
+plotspict.priors(
+  rep,
+  do.plot = NULL,
+  stamp = get.version(),
+  automfrow = TRUE,
+  CI = 0.95
+)
 }
 \arguments{
 \item{rep}{A result from fit.spict.}
 
-\item{do.plot}{Optional integer defining maximum number of priors to plot. Set to NULL to plot all active priors. Default: NULL}
+\item{do.plot}{Optional integer defining maximum number of priors to plot.
+Set to NULL to plot all active priors. Default: NULL}
 
 \item{stamp}{Stamp plot with this character string.}
 
-\item{automfrow}{Automatically set 'mfrow' to see all priors in one plot? Not used if do.plot is set. Default: TRUE}
+\item{automfrow}{Automatically set 'mfrow' to see all priors in one plot? Not
+used if do.plot is set. Default: TRUE}
+
+\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90%
+confidence intervals. By default (CI = 0.95), the 95% confidence
+intervals are estimated.}
 }
 \value{
 Nothing

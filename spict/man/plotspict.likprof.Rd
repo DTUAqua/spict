@@ -4,7 +4,7 @@
 \alias{plotspict.likprof}
 \title{Plots result of likelihood profiling.}
 \usage{
-plotspict.likprof(input, logpar = FALSE, stamp = get.version())
+plotspict.likprof(input, logpar = FALSE, stamp = get.version(), CI = 0.95)
 }
 \arguments{
 \item{input}{Result of running likprof.spict().}
@@ -12,6 +12,10 @@ plotspict.likprof(input, logpar = FALSE, stamp = get.version())
 \item{logpar}{If TRUE log of parameters are shown.}
 
 \item{stamp}{Stamp plot with this character string.}
+
+\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90%
+confidence intervals. By default (CI = 0.95), the 95% confidence
+intervals are estimated.}
 }
 \value{
 Nothing but shows a plot.
