@@ -215,6 +215,7 @@ calc.gamma <- function(n) n^(n/(n-1)) / (n-1)
 #' ## Extract the estimated carying capacity
 #' K <- get.par('logK', rep, exp=TRUE)
 get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE, CI = 0.95){
+    if(CI > 1 || CI < 0) stop("CI has to be between 0 and 1!")
     zscore <- qnorm(CI + (1 - CI)/2)
     if (!'sderr' %in% names(rep)){
         indran <- which(names(rep$par.random)==parname)
