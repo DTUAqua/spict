@@ -16,7 +16,8 @@ plotspict.fb(
   labpos = c(1, 1),
   xlabel = NULL,
   stamp = get.version(),
-  verbose = TRUE
+  verbose = TRUE,
+  CI = 0.95
 )
 }
 \arguments{
@@ -43,6 +44,10 @@ plotspict.fb(
 \item{stamp}{Stamp plot with this character string.}
 
 \item{verbose}{Should detailed outputs be provided (default: TRUE).}
+
+\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90%
+confidence intervals. By default (CI = 0.95), the 95% confidence
+intervals are estimated.}
 }
 \value{
 Nothing.

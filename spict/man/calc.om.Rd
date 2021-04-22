@@ -2,23 +2,26 @@
 % Please edit documentation in R/utility.R
 \name{calc.om}
 \alias{calc.om}
-\title{Calculates the order of magnitude for the relative reference
-    levels B/Bmsy and F/Fmsy}
+\title{Calculates the order of magnitude for the relative reference levels
+    B/Bmsy and F/Fmsy}
 \usage{
-calc.om(rep)
+calc.om(rep, CI = 0.95)
 }
 \arguments{
 \item{rep}{Result of fit.spict().}
+
+\item{CI}{Confidence intervals to be used for CI range, e.g. 0.9 for the 90%
+confidence intervals. By default (CI = 0.95), the 95% confidence
+intervals are used for the CI range.}
 }
 \value{
-Matrix containing the order of magnitude for B/Bmsy and
-    F/Fmsy.
+Matrix containing the order of magnitude for B/Bmsy and F/Fmsy.
 }
 \description{
-Calculates the order of magnitude for the relative reference
-    levels B/Bmsy and F/Fmsy
+Calculates the order of magnitude for the relative reference levels
+    B/Bmsy and F/Fmsy
 }
 \details{
-The lower, upper values and the CI range are based on the
-    95% confidence interval (CI).
+The lower, upper values and the CI range are based on the 95%
+    confidence interval (CI; default).
 }

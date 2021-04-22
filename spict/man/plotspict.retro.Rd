@@ -5,9 +5,9 @@
 \alias{plotspict.retro.fixed}
 \title{Plot results of retrospective analysis}
 \usage{
-plotspict.retro(rep, stamp = get.version(), add.mohn = TRUE)
+plotspict.retro(rep, stamp = get.version(), add.mohn = TRUE, CI = 0.95)
 
-plotspict.retro.fixed(rep)
+plotspict.retro.fixed(rep, CI = 0.95)
 }
 \arguments{
 \item{rep}{A valid result from fit.spict.}
@@ -15,13 +15,20 @@ plotspict.retro.fixed(rep)
 \item{stamp}{Stamp plot with this character string.}
 
 \item{add.mohn}{Adds Mohn's rho}
+
+\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90%
+confidence intervals. By default (CI = 0.95), the 95% confidence
+intervals are estimated.}
 }
 \value{
-Ivisible \code{NULL}. If \code{add.mohn} is \code{TRUE}, \code{plotspict.retro} returns the Mohn's rho for B/Bmsy and F/Fmsy.
+Ivisible \code{NULL}. If \code{add.mohn} is \code{TRUE},
+    \code{plotspict.retro} returns the Mohn's rho for B/Bmsy and F/Fmsy.
 }
 \description{
 Plot results of retrospective analysis
 }
 \note{
-The retrospective runs that did not converge are excluded from the plots and from the calculation of Mohn's rho. A message is displayed in such a case.
+The retrospective runs that did not converge are excluded from the
+    plots and from the calculation of Mohn's rho. A message is displayed in
+    such a case.
 }

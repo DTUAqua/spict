@@ -8,7 +8,8 @@ plotspict.production(
   rep,
   n.plotyears = 40,
   main = "Production curve",
-  stamp = get.version()
+  stamp = get.version(),
+  CI = 0.95
 )
 }
 \arguments{
@@ -19,6 +20,10 @@ plotspict.production(
 \item{main}{Title of plot.}
 
 \item{stamp}{Stamp plot with this character string.}
+
+\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90%
+confidence intervals. By default (CI = 0.95), the 95% confidence
+intervals are estimated.}
 }
 \value{
 Nothing.
@@ -33,4 +38,5 @@ Plots the theoretical production curve (production as a function of biomass) as 
 data(pol)
 rep <- fit.spict(pol$albacore)
 plotspict.production(rep)
+
 }
