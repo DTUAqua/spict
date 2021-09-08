@@ -25,7 +25,7 @@ header("1: Changing prediction horizon", append = FALSE)
 
 rept <- spict:::retape.spict(rep, inp)
 test_this("1.1: providing input list without change",{
-    round(sumspict.predictions(rept),3)
+    round(sumspict.predictions(rept),2)
 })
 
 out(all(rep$inp$maninterval == rept$inp$maninterval))
@@ -41,7 +41,7 @@ inpx <- inp
 inpx$maninterval <- c(1991,1992)
 repx <- fit.spict(inpx)
 test_this("1.2: extending prediction horizon with maninterval",{
-    round(sumspict.predictions(rept),3)
+    round(sumspict.predictions(rept),2)
 })
 
 out(all(rep$inp$maninterval + 1 == rept$inp$maninterval))
@@ -57,7 +57,7 @@ inpx <- inp
 inpx$maneval <- 1996
 repx <- fit.spict(inpx)
 test_this("1.3: extending prediction horizon with maneval",{
-    round(sumspict.predictions(rept),3)
+    round(sumspict.predictions(rept),2)
 })
 
 out(all(rep$inp$maneval + 5 == rept$inp$maneval))
@@ -73,7 +73,7 @@ inpx <- inp
 inpx$maneval <- 1989
 repx <- fit.spict(inpx)
 test_this("1.3: Shortening prediction horizon",{
-    round(sumspict.predictions(rept),3)
+    round(sumspict.predictions(rept),2)
 })
 
 out(all(rep$inp$maneval - 2 == rept$inp$maneval))
@@ -90,7 +90,7 @@ inpx <- inp
 inpx$maninterval <- c(1990,1990.5)
 repx <- fit.spict(inpx)
 test_this("1.4: Half year management interval",{
-    round(sumspict.predictions(rept),3)
+    round(sumspict.predictions(rept),2)
 })
 
 out(get.par("logCp",rept,exp=TRUE)[2] < get.par("logCp",rep,exp=TRUE)[2])

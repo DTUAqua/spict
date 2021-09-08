@@ -1,3 +1,23 @@
+spict v1.3.5 (2021-09-07)
+============
+
+New features:
+
+* Use TMB simulation functionality to simulate data from fitted spict object.
+  Set argument `use.tmb = TRUE` in `sim.spict()` function to use TMB
+  `SIMULATE{}`.
+* All functions using `parallel::mclapply()` have the argument `mc.cores` to
+  specify the number of cores to be used. By default the function
+  `detectCores()-1` is used to define `mc.cores`.
+
+Minor changes:
+
+* More informative error messages and user-friendly functionality of
+  `sim.spict()`
+* The application of the retro function in the vignette was set to `mc.cores=1`
+  to circumvent multithread MKL and parallel problems.
+
+
 spict v1.3.4 (2021-02-21)
 ============
 

@@ -306,7 +306,7 @@ fit2 <- fit.spict(inp2)
 ## Cp differ:
 out(fit1$Cp != fit2$Cp)
 ## But values the same just timing different:
-out(fit2$Cp == get.par("logCpred",fit1,exp=TRUE)[which(inp1$timeCpred == inp2$timepredc),2])
+out(round(fit2$Cp,3) == round(get.par("logCpred",fit1,exp=TRUE)[which(inp1$timeCpred == inp2$timepredc),2],3))
 ## => Thus old functionality and independence between manstart and timepredc is maintained.
 
 ## missing one of the three required variables => error

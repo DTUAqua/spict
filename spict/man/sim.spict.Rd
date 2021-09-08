@@ -4,12 +4,18 @@
 \alias{sim.spict}
 \title{Simulate data from Pella-Tomlinson model}
 \usage{
-sim.spict(input, nobs = 100)
+sim.spict(input, nobs = 100, use.tmb = FALSE, verbose = TRUE)
 }
 \arguments{
-\item{input}{Either an inp list with an ini key (see ?check.inp) or a rep list where rep is the output of running fit.spict().}
+\item{input}{Either an inp list with an ini key (see ?check.inp) or a rep
+list where rep is the output of running fit.spict().}
 
 \item{nobs}{Optional specification of the number of simulated observations.}
+
+\item{use.tmb}{Should the TMB functionality be used for simulation? (Default:
+FALSE)}
+
+\item{verbose}{Should detailed outputs be provided? (Default: TRUE)}
 }
 \value{
 A list containing the simulated data.
@@ -20,8 +26,13 @@ Simulate data from Pella-Tomlinson model
 \details{
 Simulates data using either manually specified parameters values or parameters estimated by fit.spict().
 
-Manual specification:
-To specify parameters manually use the inp$ini format similar to when specifying initial values for running fit.spict(). Observations can be simulated at specific times using inp$timeC and inp$timeI. If these are not specified then the length of inp$obsC or inp$obsI is used to determine the number of observations of catches and indices respectively. If none of these are specified then nobs observations of catch and index will be simulated evenly distributed in time.
+Manual specification: To specify parameters manually use the inp$ini format
+similar to when specifying initial values for running fit.spict().
+Observations can be simulated at specific times using inp$timeC and
+inp$timeI. If these are not specified then the length of inp$obsC or inp$obsI
+is used to determine the number of observations of catches and indices
+respectively. If none of these are specified then nobs observations of catch
+and index will be simulated evenly distributed in time.
 
 Estimated parameters:
 Simply take the output from a fit.spict() run and use as input to sim.spict().

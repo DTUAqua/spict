@@ -110,6 +110,8 @@
 #'  \item{"inp$stdevfacE"}{ Factors to multiply the observation error standard deviation of each individual effort observation. Can be used if some observations are more uncertain than others. A list with vectors of same length as observation vectors. Default: 1.}
 #'  \item{"inp$mapsdi"}{ Vector of length equal to the number of index series specifying which indices that should use the same sdi. For example: in case of 3 index series use inp$mapsdi <- c(1, 1, 2) to have series 1 and 2 share sdi and have a separate sdi for series 3. Default: 1:nindex, where nindex is number of index series.}
 #'  \item{"inp$seasontype"}{ If set to 1 use the spline-based representation of seasonality. If set to 2 use the oscillatory SDE system (this is more unstable and difficult to fit, but also more flexible).}
+#'  \item{"inp$sim.random.effects"}{} ## HERE:
+#'  \item{"inp$sim.priors"}{}         ## HERE:
 #' }
 #'
 #' @return An updated list of input variables checked for consistency and with defaults added.
@@ -1192,6 +1194,14 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     ## cfac, ffac, bfac
     checkandadd("manfacs", list(cfac = NULL, ffac = NULL, bfac = NULL), "list")
 
+    ## Simulate random effects?
+    if(!"sim.random.effects" %in% names(inp)) inp$sim.random.effects <- 1
+
+    ## Noise ratios (for simulation of priors as random effects)
+    if(!"sim.priors" %in% names(inp)) inp$sim.priors <- 0
+    if(!"logalpha" %in% names(inp$ini)) inp$ini$logalpha <- log(1)
+    if(!"logbeta" %in% names(inp$ini)) inp$ini$logbeta <- log(1)
+
     # Reorder parameter list
     inp$parlist <- list(logm=inp$ini$logm,
                         mu=inp$ini$mu,
@@ -1219,7 +1229,9 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
                         logmre=inp$ini$logmre,
                         SARvec=inp$ini$SARvec,
                         logitSARphi=inp$ini$logitSARphi,
-                        logSdSAR=inp$ini$logSdSAR)
+                        logSdSAR=inp$ini$logSdSAR,
+                        logalpha=inp$ini$logalpha,
+                        logbeta=inp$ini$logbeta)
 
 
     # -- PRIORS --
@@ -1371,6 +1383,11 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
         }
     }
 
+    ## Use logn as random effect if prior used
+    if(inp$sim.priors && inp$priors$logn[3]){
+        inp$RE <- c(inp$RE, "logn")
+    }
+
     # ------------------------------
     # Determine fixed parameters
     forcefixpars <- c() # Parameters that are forced to be fixed.
@@ -1404,6 +1421,16 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     }
     if (!inp$timevaryinggrowth){
         forcefixpars <- c('logmre', 'logsdm', 'logpsi', forcefixpars)
+    }
+    if (inp$sim.priors && inp$priors$logalpha[3]){
+        inp$RE <- c(inp$RE, "logalpha")
+    }else{
+        forcefixpars <- c('logalpha', forcefixpars)
+    }
+    if (inp$sim.priors && inp$priors$logbeta[3]){
+        inp$RE <- c(inp$RE, "logbeta")
+    }else{
+        forcefixpars <- c('logbeta', forcefixpars)
     }
     # Determine phases
     if (!"phases" %in% names(inp)){

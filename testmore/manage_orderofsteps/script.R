@@ -13,6 +13,8 @@ source("../funcs.R")
 
 ## data
 inpori <- pol$albacore
+## increase speed of testmore
+inpori$dteuler <- 1/4
 
 ## Default assessment
 inp <- check.inp(inpori)

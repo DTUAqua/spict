@@ -4,23 +4,37 @@
 \alias{retro}
 \title{Conduct retrospective analysis}
 \usage{
-retro(rep, nretroyear = 5, reduce_output_size = TRUE)
+retro(
+  rep,
+  nretroyear = 5,
+  reduce_output_size = TRUE,
+  mc.cores = parallel::detectCores() - 1
+)
 }
 \arguments{
 \item{rep}{A valid result from fit.spict.}
 
-\item{nretroyear}{Number of years of data to remove (this is also the total number of model runs).}
+\item{nretroyear}{Number of years of data to remove (this is also the total
+number of model runs).}
 
-\item{reduce_output_size}{logical, if \code{TRUE} (default) the retro is run with \code{getReportCovariance} and \code{getJointPrecision} set as \code{FALSE}}
+\item{reduce_output_size}{logical, if \code{TRUE} (default) the retro is run
+with \code{getReportCovariance} and \code{getJointPrecision} set as
+\code{FALSE}}
+
+\item{mc.cores}{Number of cores for \code{parallel::mclapply} function. By
+default \code{parallel::detectCores() - 1} is used as the number of
+cores.}
 }
 \value{
-A rep list with the added key retro containing the results of the retrospective analysis. Use plotspict.retro() to plot these results.
+A rep list with the added key retro containing the results of the
+    retrospective analysis. Use plotspict.retro() to plot these results.
 }
 \description{
 Conduct retrospective analysis
 }
 \details{
-A retrospective analysis consists of estimating the model with later data points removed sequentially one year at a time.
+A retrospective analysis consists of estimating the model with later
+    data points removed sequentially one year at a time.
 }
 \examples{
 data(pol)

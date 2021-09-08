@@ -4,13 +4,18 @@
 \alias{calc.influence}
 \title{Calculates influence statistics of observations.}
 \usage{
-calc.influence(rep)
+calc.influence(rep, mc.cores = detectCores() - 1)
 }
 \arguments{
 \item{rep}{A valid result from fit.spict().}
+
+\item{mc.cores}{Number of cores for \code{parallel::mclapply} function. By
+default \code{parallel::detectCores() - 1} is used as the number of
+cores.}
 }
 \value{
-A list equal to the input with the added key "infl" containing influence statistics.
+A list equal to the input with the added key "infl" containing
+    influence statistics.
 }
 \description{
 Calculates influence statistics of observations.

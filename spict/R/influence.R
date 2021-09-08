@@ -19,9 +19,14 @@
 #' @title Calculates influence statistics of observations.
 #' @details TBA
 #' @param rep A valid result from fit.spict().
-#' @return A list equal to the input with the added key "infl" containing influence statistics.
+#' @param mc.cores Number of cores for \code{parallel::mclapply} function. By
+#'     default \code{parallel::detectCores() - 1} is used as the number of
+#'     cores.
+#' @return A list equal to the input with the added key "infl" containing
+#'     influence statistics.
+#' @importFrom parallel mclapply detectCores
 #' @export
-calc.influence <- function(rep){
+calc.influence <- function(rep, mc.cores = detectCores()-1){
     #parnams <- c('logFmsy', 'MSY', 'logCp', 'logBlBmsy')
     if (!'osar' %in% names(rep)){
         stop('Need to calculate one-step-ahead residuals before calculating influence statistics. Use the calc.osa.resid() function.')
@@ -118,10 +123,10 @@ calc.influence <- function(rep){
                 msg <- readBin(progfile, "double")
                 progress <- progress + as.numeric(msg)
                 cat(sprintf("Progress (multicore): %.2f%%\r", progress * 100))
-            } 
+            }
             #exit()
         }
-        res <- parallel::mclapply(1:nobs, multi.inflfun, inp, parnams, nobs, progfile, mc.cores=4)
+        res <- parallel::mclapply(1:nobs, multi.inflfun, inp, parnams, nobs, progfile, mc.cores=mc.cores)
         ## Close progress file
         close(progfile)
     }

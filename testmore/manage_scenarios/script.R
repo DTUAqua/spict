@@ -20,6 +20,8 @@ out("1.1: No intermediate year")
 inp <- pol$lobster
 inp$maninterval <- c(1991, 1992)
 inp$maneval <- 1992
+## increase speed
+inp$dteuler <- 1/4
 fit <- fit.spict(inp)
 man.timeline(fit)
 
@@ -147,7 +149,6 @@ test_this("1.3.8:", {
 
 header("2: Testing management scenarios with seasonal data")
 #####################################################################
-
 nt <- 50
 inp <- list(nseasons = 4, splineorder = 3)
 inp$timeC <- seq(0, nt - 1 / inp$nseasons, by = 1 / inp$nseasons)
@@ -155,6 +156,7 @@ inp$timeI <- seq(0.1, nt - 1 / inp$nseasons, by = 0.5)
 inp$ini <- list(logK = log(1000), logm=log(800), logq = log(1), logn = log(2),
                 logbkfrac = log(0.9), logsdf = log(0.3), logF0 = log(0.8),
                 logphi = log(c(0.3, 0.5, 1.8)))
+inp$dteuler <- 1/4
 inpsim <- sim.spict(inp)
 
 
@@ -253,7 +255,7 @@ test_this("2.2.7:", {
 
 header("3: Testing management scenarios with mixed data")
 #####################################################################
-
+set.seed(123)
 nt <- 50
 inp <- list(nseasons=4, splineorder=3)
 inp$timeC <- c(seq(0, nt/2-1, by=1),seq(nt/2, nt-1/inp$nseasons, by=1/inp$nseasons))
@@ -261,7 +263,9 @@ inp$timeI <- seq(0.1, nt-1/inp$nseasons, by=0.5)
 inp$ini <- list(logK=log(1000), logm=log(500), logq=log(1), logn=log(2),
                 logbkfrac=log(0.9), logsdf=log(0.3), logF0=log(1),
                 logphi=log(c(0.3, 0.5, 1.8)))
+inp$dteuler <- 1/4
 inpsim <- sim.spict(inp)
+
 
 
 out("3.1: standard advice")
@@ -270,6 +274,8 @@ inpsim$maneval <- nt+1
 inpsim$maninterval <- c(nt,nt+1)
 inp <- check.inp(inpsim)
 fit <- fit.spict(inp)
+
+
 
 out("Fishing at Fmsy")
 test_this("3.1.1:", {
@@ -302,7 +308,7 @@ test_this("4.1.6:", {
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
-plot(fit)
+
 
 out("3.2: in year advice")
 ###############################

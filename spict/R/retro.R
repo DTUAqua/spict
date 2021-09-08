@@ -17,11 +17,20 @@
 
 #' @name retro
 #' @title Conduct retrospective analysis
-#' @details A retrospective analysis consists of estimating the model with later data points removed sequentially one year at a time.
+#' @details A retrospective analysis consists of estimating the model with later
+#'     data points removed sequentially one year at a time.
 #' @param rep A valid result from fit.spict.
-#' @param nretroyear Number of years of data to remove (this is also the total number of model runs).
-#' @param reduce_output_size logical, if \code{TRUE} (default) the retro is run with \code{getReportCovariance} and \code{getJointPrecision} set as \code{FALSE}
-#' @return A rep list with the added key retro containing the results of the retrospective analysis. Use plotspict.retro() to plot these results.
+#' @param nretroyear Number of years of data to remove (this is also the total
+#'     number of model runs).
+#' @param reduce_output_size logical, if \code{TRUE} (default) the retro is run
+#'     with \code{getReportCovariance} and \code{getJointPrecision} set as
+#'     \code{FALSE}
+#' @param mc.cores Number of cores for \code{parallel::mclapply} function. By
+#'     default \code{parallel::detectCores() - 1} is used as the number of
+#'     cores.
+#' @return A rep list with the added key retro containing the results of the
+#'     retrospective analysis. Use plotspict.retro() to plot these results.
+#' @importFrom parallel mclapply detectCores
 #' @examples
 #' data(pol)
 #' inp <- pol$albacore
@@ -29,7 +38,7 @@
 #' rep <- retro(rep, nretroyear=6)
 #' plotspict.retro(rep)
 #' @export
-retro <- function(rep, nretroyear=5, reduce_output_size = TRUE){
+retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = parallel::detectCores()-1){
     if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
     if (rep$opt$convergence != 0) stop("The fitted object did not converged.")
     inp1 <- rep$inp
@@ -59,7 +68,8 @@ retro <- function(rep, nretroyear=5, reduce_output_size = TRUE){
         inpall[[i]]$getJointPrecision <- !reduce_output_size
         inpall[[i]] <- check.inp(inpall[[i]])
     }
-    asd <- try(parallel::mclapply(inpall, fit.spict))
+    asd <- try(parallel::mclapply(inpall, fit.spict,
+                                  mc.cores = mc.cores))
     if (class(asd) == "try-error") {
         rep$retro <- lapply(inpall, fit.spict)
     }

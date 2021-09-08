@@ -17,18 +17,27 @@
 
 #' @name likprof.spict
 #' @title Create profile likelihood
-#' @details The "likprof" list must containg the following keys:
-#' \itemize{
-#'   \item{"pars"}{ A character vector of length equal 1 or 2 containing the name(s) of the parameters to calculate the profile likelihood for.}
-#'   \item{"parrange"}{ A vector containing the parameter range(s) to profile over: parrange = c(min(par1), max(par1), min(par2), max(par2)).}
-#' }
-#' Optional:
-#' \itemize{
-#'   \item{"nogridpoints"}{ Number of grid points to evaluate the profile likelihood for each parameter. Default: 9. Note: with two parameters the calculation time increases quadratically when increasing the number of gridpoints.}
-#' }
-#' @param input A list containing observations and initial values for non profiled parameters (essentially an inp list) with the additional key "likprof" (see details for required keys). A valid result from fit.spict() containing an "inp" key with the described properties is also accepted.
+#' @details The "likprof" list must containg the following keys: \itemize{
+#'     \item{"pars"}{ A character vector of length equal 1 or 2 containing the
+#'     name(s) of the parameters to calculate the profile likelihood for.}
+#'     \item{"parrange"}{ A vector containing the parameter range(s) to profile
+#'     over: parrange = c(min(par1), max(par1), min(par2), max(par2)).} }
+#'     Optional: \itemize{ \item{"nogridpoints"}{ Number of grid points to
+#'     evaluate the profile likelihood for each parameter. Default: 9. Note:
+#'     with two parameters the calculation time increases quadratically when
+#'     increasing the number of gridpoints.} }
+#' @param input A list containing observations and initial values for non
+#'     profiled parameters (essentially an inp list) with the additional key
+#'     "likprof" (see details for required keys). A valid result from
+#'     fit.spict() containing an "inp" key with the described properties is also
+#'     accepted.
 #' @param verbose Print progress to screen.
-#' @return The output is the input with the likelihood profile information added to the likprof key of either inp or rep$inp.
+#' @param mc.cores Number of cores for \code{parallel::mclapply} function. By
+#'     default \code{parallel::detectCores() - 1} is used as the number of
+#'     cores.
+#' @return The output is the input with the likelihood profile information added
+#'     to the likprof key of either inp or rep$inp.
+#' @importFrom parallel mclapply detectCores
 #' @examples
 #' data(pol)
 #' inp <- pol$albacore
@@ -40,7 +49,7 @@
 #' rep <- likprof.spict(rep)
 #' plotspict.likprof(rep, logpar=TRUE)
 #' @export
-likprof.spict <- function(input, verbose=FALSE){
+likprof.spict <- function(input, verbose=FALSE, mc.cores = detectCores() - 1){
     if ('par.fixed' %in% names(input)){
         if (verbose) cat('Detected input as a SPiCT result, proceeding...\n')
         rep <- input
@@ -159,10 +168,10 @@ likprof.spict <- function(input, verbose=FALSE){
                 if (verbose){
                     cat(sprintf("Multicore profiling: %.2f%%\r", progress * 100))
                 }
-            } 
+            }
             #exit()
         }
-        likvals <- parallel::mclapply(1:ngrid, multi.do.grid, ngrid, progfile, mc.cores=4)
+        likvals <- parallel::mclapply(1:ngrid, multi.do.grid, ngrid, progfile, mc.cores=mc.cores)
         ## Close progress file
         close(progfile)
     }

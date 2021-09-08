@@ -481,6 +481,10 @@ sumspict.fixedpars <- function(rep, ndigits=8){
     if (!rep$inp$timevaryinggrowth){
         nms <- nms[-match(c('logsdm', 'logpsi'),  nms)]
     }
+    # Simulate priors option
+    if (!rep$inp$sim.priors){
+        nms <- nms[-match(c('logalpha', 'logbeta'),  nms)]
+    }
     nnms <- length(nms)
     if(nnms > 0){
         vals <- numeric(0)

@@ -123,7 +123,7 @@ inp$priors$logpsi=c(0,0,0)
 
 res9 <- fit.spict(inp, dbg=0)
 
-retr9<-retro(res9,5)
+retr9<-retro(res9,5,mc.cores=1)
 
 mvec2<-get.par("logMSYvec",res9,exp=TRUE)
 ##plot(res9$inp$time,mvec2[,2],type="l",lwd=2,ylim=c(0,120),xlab="Time",ylab="m")
