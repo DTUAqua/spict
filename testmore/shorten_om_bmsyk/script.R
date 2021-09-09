@@ -2,6 +2,8 @@
 ## T.K. Mildenberger <t.k.mildenberger@gmail.com>
 ## 26/11/2019
 
+dec.val <- 2
+
 ## set seed
 set.seed(123)
 
@@ -30,11 +32,11 @@ fit1 <- fit.spict(inp)
 out(fit1$opt$convergence)
 
 test_this("Test 1.1: calculate Bmsy/K ratio", {
-  round(calc.bmsyk(fit1), 3)
+  round(calc.bmsyk(fit1), dec.val)
 })
 
 test_this("Test 1.2: calculate order of magnitude", {
-  round(calc.om(fit1), 3)
+  round(calc.om(fit1), dec.val)
 })
 
 ## ## 1.3: shorten input
@@ -73,12 +75,12 @@ fit2 <- fit.spict(inpsim)
 out(fit2$opt$convergence)
 
 test_this("2.1: calculate Bmsy/K ratio", {
-  round(calc.bmsyk(fit2), 3)
+  round(calc.bmsyk(fit2), dec.val)
 })
 
 
 test_this("2.2: calculate order of magnitude", {
-  round(calc.om(fit2), 3)
+  round(calc.om(fit2), dec.val)
 })
 
 
@@ -105,11 +107,11 @@ fit3 <- fit.spict(inpsim)
 out(fit3$opt$convergence)
 
 test_this("3.1: calculate Bmsy/K ratio", {
-  round(calc.bmsyk(fit3), 3)
+  round(calc.bmsyk(fit3), dec.val)
 })
 
 test_this("3.2: calculate order of magnitude", {
-  round(calc.om(fit3), 3)
+  round(calc.om(fit3), dec.val)
 })
 
 

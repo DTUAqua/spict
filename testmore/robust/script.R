@@ -1,5 +1,7 @@
 ## Tests vectorized robflagi and plotspict.priors for list priors
 
+dec.val <- 2
+
 ## Also tests using the logngamma prior
 library(spict)
 
@@ -90,6 +92,6 @@ plotspict.priors(fit2)
 plot(fit2)
 
 sink("res.out")
-print(round(sumspict.parest(fit),2))
-print(round(sumspict.parest(fit2),2))
+print(round(sumspict.parest(fit),dec.val))
+print(round(sumspict.parest(fit2),dec.val))
 sink()
