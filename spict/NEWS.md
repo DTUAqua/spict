@@ -1,4 +1,4 @@
-spict v1.3.5 (2021-09-07)
+spict v1.3.5 (2021-09-09)
 ============
 
 New features:
@@ -14,6 +14,11 @@ Minor changes:
 
 * More informative error messages and user-friendly functionality of
   `sim.spict()`
+* Three new arguments in the inp list (created by `check.inp`):
+  `sim.random.effects` that allows to turn the simulation of random effects on
+  and off, `sim.priors` that allows to turn the simulation of priors on and off,
+  and `sim.fit` that allows to define whether the estimated parameters from the
+  last fit or initial values should be used for simulation.
 * The application of the retro function in the vignette was set to `mc.cores=1`
   to circumvent multithread MKL and parallel problems.
 

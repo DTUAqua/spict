@@ -234,8 +234,28 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
         inp <- check.inp(inp)
         pl <- rep$pl
         plin <- inp$ini
-        obj <- rep$obj
-        sim.pars <- obj$env$last.par
+        if(inp$sim.random.effects){
+            if ('logbkfrac' %in% names(inp$ini)){
+                pl$logB[1] <- log(exp(inp$ini$logbkfrac)*exp(pl$logK))
+            } else {
+                pl$logB[1] <- log(0.5*exp(pl$logK))
+            }
+            if ('logF0' %in% names(inp$ini)){
+                pl$logF[1] <- inp$ini$logF0
+            } else {
+                pl$logF[1] <- log(0.2*exp(inp$ini$logr))
+            }
+        }
+        ## Account for sim.priors and sim.random.effects (require retape)
+        obj <- make.obj(make.datin(inp), pl, inp, phase=1)
+        obj$retape()
+        ## OLD: obj <- rep$obj ## requires that sim.random.effects is used before fitting spict...
+        ## use ini or last fitted pars for simulation
+        if(inp$sim.fit){
+            sim.pars <- obj$env$last.par
+        }else{
+            sim.pars <- obj$env$par
+        }
     } else {
         if ('ini' %in% names(input)){
             #cat('Detected input as a SPiCT inp, proceeding...\n')
@@ -300,21 +320,20 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
             inp <- check.inp(inp)
             ## Parameters
             pl <- inp$parlist
-            ## for TMB
-            if(use.tmb){
+            if(inp$sim.random.effects){
                 if ('logbkfrac' %in% names(inp$ini)){
-                    pl$logB[1] <- inp$ini$logB[1] <- log(exp(inp$ini$logbkfrac)*exp(pl$logK))
+                    pl$logB[1] <- log(exp(inp$ini$logbkfrac)*exp(pl$logK))
                 } else {
-                    pl$logB[1] <- inp$ini$logB[1] <- log(0.5*exp(pl$logK))
+                    pl$logB[1] <- log(0.5*exp(pl$logK))
                 }
                 if ('logF0' %in% names(inp$ini)){
-                    pl$logF[1] <- inp$ini$logF[1] <- inp$ini$logF0
+                    pl$logF[1] <- inp$ini$logF0
                 } else {
-                    pl$logF[1] <- inp$ini$logF[1] <- log(0.2*exp(inp$ini$logr))
+                    pl$logF[1] <- log(0.2*exp(inp$ini$logr))
                 }
-                obj <- make.obj(datin = make.datin(inp), pl = pl, inp = inp)
-                sim.pars <- obj$env$par
             }
+            obj <- make.obj(datin = make.datin(inp), pl = pl, inp = inp)
+            sim.pars <- obj$env$par
         } else {
             stop('Invalid input! use either an inp list or a fit.spict() result.')
         }
@@ -403,14 +422,37 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
             }
         }
 
-
         ## true parameters and states
         inp$true <- pl
-        inp$true$logalpha <- inp$true$logsdi - inp$true$logsdb
-        inp$true$logbeta <- inp$true$logsdc - inp$true$logsdf
+        ## account for priors
+        inp$true$logn <- ifelse("logn" %in% names(simdat),
+                                simdat$logn,
+                                pl$logn)
+        if("logsdi" %in% names(simdat)){
+            inp$true$logsdi <- simdat$logsdi
+        }else{
+
+            inp$true$logsdi <- inp$true$logsdi
+        }
+        inp$true$logsdb <- ifelse("logsdb" %in% names(simdat),
+                                   simdat$logsdb,
+                                  inp$true$logsdb)
+        inp$true$logalpha <- ifelse("logalpha" %in% names(simdat),
+                                   simdat$logalpha,
+                                   inp$true$logsdi[1] - inp$true$logsdb)
+        inp$true$logsdc <- ifelse("logsdc" %in% names(simdat),
+                                   simdat$logsdc,
+                                  inp$true$logsdc)
+        inp$true$logsdf <- ifelse("logsdf" %in% names(simdat),
+                                   simdat$logsdf,
+                                   inp$true$logsdf)
+        inp$true$logbeta <- ifelse("logbeta" %in% names(simdat),
+                                   simdat$logbeta,
+                                   inp$true$logsdc - inp$true$logsdf)
         inp$true$dteuler <- inp$dteuler
         inp$true$splineorder <- inp$splineorder
         inp$true$time <- inp$time
+
 
         ## possible to get from TMB without errors?
         inp$true$C <- simdat$trueC[1:inp$nobsC]  ## includes forecast
@@ -516,17 +558,21 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
             F0 <- 0.2*exp(inp$ini$logr)
         }
         m <- exp(pl$logm)
-        n <- exp(pl$logn)
+        if(inp$sim.priors && inp$priors$logn[3]){
+            n <- exp(rnorm(1, inp$priors$logn[1], inp$priors$logn[2]))
+        }else{
+            n <- exp(pl$logn)
+        }
         gamma <- calc.gamma(n)
         K <- exp(pl$logK)
         q <- exp(pl$logq)
         qf <- exp(pl$logqf)
         logphi <- pl$logphi
-        sdb <- exp(pl$logsdb)
-        sdu <- exp(pl$logsdu)
-        sdf <- exp(pl$logsdf)
         sdi <- exp(pl$logsdi)
+        sdb <- exp(pl$logsdb)
+        sdf <- exp(pl$logsdf)
         sdc <- exp(pl$logsdc)
+        sdu <- exp(pl$logsdu)
         sde <- exp(pl$logsde)
         lambda <- exp(pl$loglambda)
         omega <- inp$omega
@@ -538,27 +584,34 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
         ## C[t] is the catch removed during the interval starting at time t.
         ## obsC[j] is the catch removed over the interval starting at time j, this will typically be the accumulated catch over the year.
 
-
-
-        if (inp$seasontype==1){ ## Use spline to generate season
+        if (inp$seasontype == 1 || inp$seasontype == 3){ ## Use spline to generate season
             seasonspline <- get.spline(pl$logphi, order=inp$splineorder, dtfine=dt)
             nseasonspline <- length(seasonspline)
         }
         flag <- TRUE
         recount <- 0
         while(flag){
+
             ## - Fishing mortality -
-            logFbase <- numeric(nt)
-            logFbase[1] <- log(F0)
-            e.f <- rnorm(nt-1, 0, sdf*sqrt(dt))
-            for (t in 2:nt){
-                logFbase[t] <- predict.logf(logFbase[t-1], dt, sdf, inp$efforttype) + e.f[t-1]
+            if(inp$sim.random.effects){
+                logFbase <- numeric(nt)
+                logFbase[1] <- log(F0)
+                e.f <- rnorm(nt-1, 0, sdf*sqrt(dt))
+                for (t in 2:nt){
+                    logFbase[t] <- predict.logf(logFbase[t-1], dt, sdf, inp$efforttype) + e.f[t-1]
+                }
+                ##ef <- arima.sim(inp$armalistF, nt-1) * sdf*sqrt(dt) ## Used to simulate other than white noise in F
+                ##logFbase <- c(log(F0), log(F0) + cumsum(ef)) ## Fishing mortality
+            }else{
+                ## non-seasonal F
+                ind <- which(names(sim.pars) == "logF")
+                logFbase <- as.numeric(sim.pars[ind])
+                e.f <- NA
             }
-            ##ef <- arima.sim(inp$armalistF, nt-1) * sdf*sqrt(dt) ## Used to simulate other than white noise in F
-            ##logFbase <- c(log(F0), log(F0) + cumsum(ef)) ## Fishing mortality
+
             ## Impose seasons
             season <- numeric(length(logFbase))
-            if (inp$seasontype == 1){ ## Spline-based seasonality
+            if (inp$seasontype == 1 || inp$seasontype == 3){ ## Spline-based seasonality
                 season <- seasonspline[inp$seasonindex+1]
             }
             if (inp$seasontype == 2){ ## This one should not be used yet!
@@ -570,17 +623,38 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
                 }
                 nu <- length(sdu)
                 for (j in 1:nu){
-                    u <- matrix(0, 2, inp$ns)
-                    sduana <- sqrt(sdu[j]^2/(2*lambda) * (1-exp(-2*lambda*dt)))
-                    u[, 1] <- c(0.1, 0) ## Set an initial state different from zero to get some action!
-                    omegain <- omega*j
-                    for (i in 2:inp$ns){
-                        u[, i] <- rnorm(2, expmosc(lambda, omegain, dt) %*% u[, i-1], sduana)
+                    if(inp$sim.random.effects){
+                        u <- matrix(0, 2, inp$ns)
+                        sduana <- sqrt(sdu[j]^2/(2*lambda) * (1-exp(-2*lambda*dt)))
+                        u[, 1] <- c(0.1, 0) ## Set an initial state different from zero to get some action!
+                        omegain <- omega*j
+                        for (i in 2:inp$ns){
+                            u[, i] <- rnorm(2, expmosc(lambda, omegain, dt) %*% u[, i-1], sduana)
+                        }
+                    }else{
+                        ind <- which(names(sim.pars) == "logsdu")
+                        logsdu <- as.numeric(sim.pars[ind])
+                        ind <- which(names(sim.pars) == "logu")
+                        u <- matrix(exp(sim.pars[ind]), 2*length(logsdu), inp$ns)
                     }
                     season <- season + u[1, ]
                 }
             }
+            if (inp$seasontype == 3){
+                if(inp$sim.random.effects){
+                    SARvec <- numeric(nt)
+
+                    ## TODO: implement seasontype = 3
+                    if(verbose) writeLines(paste0("inp$seasontype = 3 is not yet implemented, consider using use.tmb = TRUE. Using seasontype = 1 and moving on."))
+
+                }else{
+                    ind <- which(names(sim.pars) == "SARvec")
+                    SARvec <- as.numeric(sim.pars[ind])
+                }
+                season = season + SARvec[inp$seasonindex2]
+            }
             F <- exp(logFbase + season)
+
             ## - Growth (time-varying via RW) -
             ## Always run this even when timevaryinggrowth == FALSE to obtain same random numbers
             ##e.m <- matrix(0, inp$nstocks, nt-1)
@@ -596,12 +670,20 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
             ##if (inp$timevaryinggrowth){
             ##    mre <- exp(logmre) ## To be used in mres below
             ##}
+
             ## - Biomass -
-            B <- numeric(nt)
-            B[1] <- B0
-            e.b <- exp(rnorm(nt-1, 0, sdb*sqrt(dt)))
-            for (t in 2:nt){
-                B[t] <- predict.b(B[t-1], F[t-1], gamma, m[inp$ir[t]], K, n, dt, sdb, inp$btype) * e.b[t-1]
+            if(inp$sim.random.effects){
+                B <- numeric(nt)
+                B[1] <- B0
+                e.b <- exp(rnorm(nt-1, 0, sdb*sqrt(dt)))
+                for (t in 2:nt){
+                    B[t] <- predict.b(B[t-1], F[t-1], gamma, m[inp$ir[t]], K, n, dt, sdb, inp$btype) * e.b[t-1]
+                }
+            }else{
+                ## B
+                ind <- which(names(sim.pars) == "logB")
+                B <- as.numeric(exp(sim.pars[ind]))
+                e.b <- NA
             }
             flag <- any(B <= 0) ## Negative biomass not allowed
             recount <- recount+1
@@ -672,10 +754,10 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
                 obsI[[I]] <- rep(0, inp$nobsI[I])
                 errI[[I]] <- rep(0, inp$nobsI[I])
                 logItrue[[I]] <- numeric(inp$nobsI[I])
-                e.i[[I]] <- exp(rnorm(inp$nobsI[I], 0, sdi))
+                e.i[[I]] <- exp(rnorm(inp$nobsI[I], 0, sdi[I]))
                 if (inp$nobsI[[I]] > 0){
                     for (i in 1:inp$nobsI[I]){
-                        errI[[I]][i] <- rnorm(1, 0, sdi)
+                        errI[[I]][i] <- rnorm(1, 0, sdi[I])
                         logItrue[[I]][i] <- log(q[I]) + log(B[inp$ii[[I]][i]])
                         obsI[[I]][i] <- exp(logItrue[[I]][i]) * e.i[[I]][i]
                     }
@@ -694,7 +776,7 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
                         for (i in 1:inp$nindex){
                             inp$outliers$indsoutI[[i]] <- sample(1:inp$nobsI[i], inp$outliers$noutI[i])
                             obsI[[i]][inp$outliers$indsoutI[[i]]] <- exp(log(obsI[[i]][inp$outliers$indsoutI[[i]]]) +
-                                                                         rnorm(inp$outliers$noutI[i], 0, fac*sdi))
+                                                                         rnorm(inp$outliers$noutI[i], 0, fac*sdi[i]))
                         }
                     }
                 }

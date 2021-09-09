@@ -6,6 +6,12 @@
 ##   require significant more code)
 
 
+## TODO: remove sim.priors. keep in this branch and remove in sub-branch?
+## TODO: warning messages when priors used.
+## TODO: sim in R + sim.random.effects = FALSE: what is non-seasonal F when using random.effects? or what is Fs if logF is non-seaosnal F?? (in rep$value?)
+
+
+
 ## Load spict
 ## -------------------
 require(spict)
@@ -22,14 +28,16 @@ header("1: Simple tests", append = FALSE)
 
 inp <- pol$hake
 inp$dteuler <- 1/4
+inp$sim.random.effects <- TRUE
 set.seed(123)
 fit1 <- fit.spict(inp)
-
+fit1$inp$sim.random.effects
 
 set.seed(123)
 sim1a <- sim.spict(fit1, use.tmb = FALSE)
 set.seed(123)
 sim1b <- sim.spict(fit1, use.tmb = TRUE)
+
 
 test_this("Test 1.1: R simulated catch observations", {
   round(sim1a$obsC, 2)
@@ -47,6 +55,14 @@ test_this("Test 1.4: TMB simulated index observations", {
   round(sim1b$obsI[[1]], 2)
 })
 
+test_this("Test 1.5: R and TMB simulated catch observations the same?", {
+  all(round(sim1a$obsC,2) == round(sim1b$obsC,2))
+})
+
+test_this("Test 1.6: R and TMB simulated index observations the same?", {
+  all(round(sim1a$obsI[[1]],2) == round(sim1b$obsI[[1]],2))
+})
+
 
 
 
@@ -55,28 +71,70 @@ header("2: Testing sim.random.effects", append = TRUE)
 
 inp <- pol$hake
 inp$dteuler <- 1/4
-inp$sim.random.effects <- FALSE
+inp$sim.random.effects <- FALSE ## can be set before or after fitting
 set.seed(123)
 fit2 <- fit.spict(inp)
 set.seed(123)
-sim2 <- sim.spict(fit2, use.tmb = TRUE)
+sim2a <- sim.spict(fit2, use.tmb = FALSE)
+set.seed(123)
+sim2b <- sim.spict(fit2, use.tmb = TRUE)
 
-
-test_this("Test 2.1: Are simulated logB with and without sim.random.effects different (except first value)?", {
-  all(sim1b$true$B[-1] != sim2$true$B[-1])
+test_this("Test 2.0: Do R and TMB give the same values when sim.random.effects = FALSE?", {
+    all(round(sim2a$obsC,1) == round(sim2b$obsC,1))
 })
 
-test_this("Test 2.2: Do all B states correspond to estimate Bs with sim.random.effects == TRUE?", {
-  all(sim2$true$B == as.vector(get.par("logB",fit1, exp = TRUE)[,2]))
+test_this("Test 2.1: Are simulated logB with and without sim.random.effects different?", {
+  all(sim1a$true$B != sim2a$true$B)
 })
 
-test_this("Test 2.3: Are simulated logF with and without sim.random.effects different (except first value)?", {
-  all(sim1b$true$F[-1] != sim2$true$F[-1])
+test_this("Test 2.2: Are simulated logB with and without sim.random.effects different (TMB)?", {
+  all(sim1b$true$B != sim2b$true$B)
 })
 
-test_this("Test 2.4: Do all F states correspond to estimate Fs with sim.random.effects == TRUE?", {
-  all(sim2$true$F == as.vector(get.par("logF",fit1, exp = TRUE)[,2]))
+test_this("Test 2.3: Do all B states correspond to estimate Bs with sim.random.effects == TRUE?", {
+  all(sim2a$true$B == as.vector(get.par("logB",fit1, exp = TRUE)[,2]))
 })
+
+test_this("Test 2.4: Do all B states correspond to estimate Bs with sim.random.effects == TRUE (TMB)?", {
+  all(sim2b$true$B == as.vector(get.par("logB",fit1, exp = TRUE)[,2]))
+})
+
+test_this("Test 2.5: Are simulated logF with and without sim.random.effects different?", {
+  all(sim1a$true$F != sim2a$true$F)
+})
+
+test_this("Test 2.6: Are simulated logF with and without sim.random.effects different (TMB)?", {
+  all(sim1b$true$F != sim2b$true$F)
+})
+
+test_this("Test 2.7: Do all F states correspond to estimate Fs with sim.random.effects == TRUE?", {
+  all(sim2a$true$F == as.vector(get.par("logF",fit1, exp = TRUE)[,2]))
+})
+
+test_this("Test 2.8: Do all F states correspond to estimate Fs with sim.random.effects == TRUE (TMB)?", {
+  all(sim2b$true$F == as.vector(get.par("logF",fit1, exp = TRUE)[,2]))
+})
+
+
+## settting sim.random.effects after fitting.
+fit1$inp$sim.random.effects
+
+set.seed(123)
+fit1$inp$sim.random.effects <- FALSE
+sim2a2 <- sim.spict(fit1, use.tmb = FALSE)
+
+set.seed(123)
+fit1$inp$sim.random.effects <- FALSE
+sim2b2 <- sim.spict(fit1, use.tmb = TRUE)
+
+test_this("Test 2.9: Do all F states correspond to estimate Fs with sim.random.effects == TRUE (even when sim.random.effects is used after fitting)?", {
+    all(sim2a2$true$F == as.vector(get.par("logF",fit1, exp = TRUE)[,2]))
+})
+
+test_this("Test 2.10: Do all F states correspond to estimate Fs with sim.random.effects == TRUE (even when sim.random.effects is used after fitting, TMB)?", {
+    all(sim2b2$true$F == as.vector(get.par("logF",fit1, exp = TRUE)[,2]))
+})
+
 
 
 
@@ -120,18 +178,28 @@ inp$ini <- list(
     logm=log(900),
     logq = c(log(0.3),log(1)),
     logn = log(1.4),
+    logphi = log(c(0.05, 0.1, 1.8)),
     logbkfrac = log(0.9), logsdf = log(0.1),
     logF0 = log(0.01))
 inp$dteuler <- 1/4
 inp$seasontype <- 1
 ## simulate
-inp <- sim.spict(inp, use.tmb = TRUE)
-
+set.seed(123)
+inp4a1 <- sim.spict(inp, use.tmb = FALSE)
+set.seed(123)
+inp4b1 <- sim.spict(inp, use.tmb = TRUE)
 
 test_this("Test 4.1: Catch observations simulated with seasontype = 1", {
-  round(inp$obsC,2)
+    round(inp4a1$obsC,2)
 })
 
+test_this("Test 4.2: Catch observations simulated with seasontype = 1 (TMB)", {
+    round(inp4b1$obsC,2)
+})
+
+test_this("Test 4.3: R and TMB catches the same?", {
+    all(round(inp4a1$obsC,2) == round(inp4b1$obsC,2))
+})
 
 ## seasontype = 2
 ## -------------------------
@@ -153,18 +221,26 @@ inp$ini <- list(
 inp$dteuler <- 1/4
 inp$seasontype <- 2
 ## simulate
-inp <- sim.spict(inp, use.tmb = TRUE)
+set.seed(123)
+inp4a2 <- sim.spict(inp, use.tmb = FALSE)
+set.seed(123)
+inp4b2 <- sim.spict(inp, use.tmb = TRUE)
 
-test_this("Test 4.2: Catch observations simulated with seasontype = 2", {
-  round(inp$obsC,2)
+test_this("Test 4.3: Catch observations simulated with seasontype = 2", {
+  round(inp4a2$obsC,2)
 })
 
+test_this("Test 4.4: Catch observations simulated with seasontype = 2 (TMB)", {
+  round(inp4b2$obsC,2)
+})
+
+## Values are close but not exactly the same.
 
 
 ## seasontype = 3
 ## -------------------------
 set.seed(123)
-nt <- 40
+nt <- 100
 inp <- list(nseasons = 4)
 inp$timeC <- seq(0, nt - 1 / inp$nseasons, by = 1 / inp$nseasons)
 inp$timeI <- list(
@@ -177,15 +253,40 @@ inp$ini <- list(
     logq = c(log(0.3),log(1)),
     logn = log(1.4),
     logbkfrac = log(0.9), logsdf = log(0.1),
+    logphi = log(c(0.05, 0.1, 1.8)),
     logF0 = log(0.01))
 inp$dteuler <- 1/4
 inp$seasontype <- 3
 ## simulate
-inp <- sim.spict(inp, use.tmb = TRUE)
+set.seed(503)
+inp4a3 <- sim.spict(inp, use.tmb = FALSE)
+set.seed(503)
+inp4b3 <- sim.spict(inp, use.tmb = TRUE)
 
-test_this("Test 4.3: Catch observations simulated with seasontype = 3", {
-  round(inp$obsC,2)
+test_this("Test 4.5: Catch observations simulated with seasontype = 3", {
+  round(inp4a3$obsC,2)
 })
+
+test_this("Test 4.6: Catch observations simulated with seasontype = 3 (TMB)", {
+  round(inp4b3$obsC,2)
+})
+
+
+## from seasonal fitted object
+fit4 <- fit.spict(inp4b3)
+
+
+fit4$inp$sim.random.effects <- FALSE
+set.seed(123)
+inp4a4 <- sim.spict(fit4, use.tmb = FALSE)
+set.seed(123)
+inp4b4 <- sim.spict(fit4, use.tmb = TRUE)
+
+
+test_this("Test 4.7: R and TMB catch observations simulated with seasontype = 3 the same (with sim.random.effects = FALSE)?", {
+    all(round(inp4a4$obsC,2) == round(inp4b4$obsC,2))
+})
+
 
 
 header("5: Simulating effort data", append = TRUE)
@@ -199,8 +300,9 @@ inp$timeE <- seq(0, nt - 1 / inp$nseasons, by = 1 / inp$nseasons)
 inp$ini <- list(logK = log(1000), logm=log(100), logqf = log(0.3), logn = log(2),
                  logbkfrac = log(0.9), logsdf = log(0.3), logF0 = log(0.1))
 inp$dteuler <- 1/4
-
+set.seed(123)
 sim5a <- sim.spict(inp, use.tmb = FALSE)
+set.seed(123)
 sim5b <- sim.spict(inp, use.tmb = TRUE)
 
 test_this("Test 5.1: Simulated effort", {
@@ -243,10 +345,15 @@ inpI$ini <- list(logK = log(1000), logm=log(100),
                  logn = log(2),
                  logbkfrac = log(0.9), logsdf = log(0.3), logF0 = log(0.1))
 inpI$dteuler <- 1/4
-sim6a <- sim.spict(inpI, use.tmb = TRUE)
+sim6a <- sim.spict(inpI, use.tmb = FALSE)
+sim6b <- sim.spict(inpI, use.tmb = TRUE)
 
 test_this("Test 6.1: Four indices with four catchability coefficients.", {
     round(do.call(cbind, sim6a$obsI),2)
+})
+
+test_this("Test 6.2: Four indices with four catchability coefficients (TMB).", {
+    round(do.call(cbind, sim6b$obsI),2)
 })
 
 
