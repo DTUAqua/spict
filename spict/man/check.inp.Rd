@@ -108,7 +108,6 @@ Example: Biomass prior of 200 in 1985
  \item{"inp$mapsdi"}{ Vector of length equal to the number of index series specifying which indices that should use the same sdi. For example: in case of 3 index series use \code{inp$mapsdi <- c(1, 1, 2)} to have series 1 and 2 share sdi and have a separate sdi for series 3. Default: 1:nindex, where nindex is number of index series.}
  \item{"inp$seasontype"}{ If set to 1 use the spline-based representation of seasonality. If set to 2 use the oscillatory SDE system (this is more unstable and difficult to fit, but also more flexible).}
  \item{"inp$sim.random.effects"}{Should random effects (logB, logF, etc.) be simulated (default) or the same random effects be used (as specified in \code{inp$ini} or in an fitted spict object)?}
- \item{"inp$sim.priors"}{Should any priors be simulated or disregarded (default)? Note, that so far it is only possible to simulate the three default priors for \code{logn}, \code{logalpha}, and \code{logbeta}.}
  \item{"inp$sim.fit"}{Should the estimated parameters from the last fit of a fitted spict object be used for simulation (\code{env$last.par}, default) or the inital values (specified in \code{inp$ini})?. Note, that this only works if a fitted spict object is provided as input to \code{sim.spict}.}
 }
 }

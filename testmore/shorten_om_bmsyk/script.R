@@ -3,6 +3,7 @@
 ## 26/11/2019
 
 dec.val <- 2
+dteuler <- 1/4
 
 ## set seed
 set.seed(123)
@@ -11,22 +12,14 @@ set.seed(123)
 library(spict)
 
 ## Test functions
-out <- function(..., sep = "", append = TRUE)
-  cat(..., "\n", file = "res.out", append = append, sep = sep)
-get_nchar <- function(...)
-  nchar(paste(as.character(unlist(list(...))), collapse = " "))
-header <- function(..., append = TRUE)
-  out("\n", ..., "\n", rep("=", get_nchar(...)), "\n", append = append)
-test_this <- function(title, expression) {
-  out(title)
-  tryCatch(out(capture.output(eval(expression)), sep = "\n"),
-           error = function(e) out("Error:", e$message))
-}
+source("../funcs.R")
 
 
 header("1: annual data", append = FALSE)
+## ---------------
 
 inp <- pol$lobster
+inp$dteuler <- dteuler
 fit1 <- fit.spict(inp)
 
 out(fit1$opt$convergence)
@@ -61,7 +54,7 @@ test_this("Test 1.2: calculate order of magnitude", {
 
 
 header("2: seasonal data")
-
+## ---------------
 nt <- 50
 inp <- list(nseasons = 4, splineorder = 3)
 inp$timeC <- seq(0, nt - 1 / inp$nseasons, by = 1 / inp$nseasons)
@@ -69,6 +62,7 @@ inp$timeI <- seq(0.1, nt - 1 / inp$nseasons, by = 0.5)
 inp$ini <- list(logK = log(1000), logm=log(800), logq = log(1), logn = log(2),
                 logbkfrac = log(0.9), logsdf = log(0.3), logF0 = log(0.8),
                 logphi = log(c(0.3, 0.5, 1.8)))
+inp$dteuler <- dteuler
 inpsim <- sim.spict(inp)
 fit2 <- fit.spict(inpsim)
 
@@ -86,21 +80,15 @@ test_this("2.2: calculate order of magnitude", {
 
 
 header("3: Tests with mixed data")
-
+## ---------------
 nt <- 60
 inp <- list(nseasons=4, splineorder=3)
 inp$timeC <- c(seq(0, nt/2-1, by=1),seq(nt/2, nt-1/inp$nseasons, by=1/inp$nseasons))
-inp$timeI <- seq(0.1, nt-1/inp$nseasons, by=0.5)
-inp$ini <- list(logK=log(1000), logm=log(800), logq=log(1), logn=log(2),
-                logbkfrac=log(0.9), logsdf=log(0.3), logF0=log(0.8),
-                logphi=log(c(0.3, 0.5, 1.8)))
-inpsim <- sim.spict(inp)
-
-
-inp$timeI <- seq(0.6, 29.6, by = 1)
+inp$timeI <- seq(0.6, nt, by = 1)
 inp$ini <- list(logK = log(100), logm = log(60), logq = log(1),
                 logbkfrac = log(1), logsdf = log(0.3), logF0 = log(0.5),
                 logphi = log(c(0.05, 0.1, 1.8)))
+inp$dteuler <- dteuler
 inpsim <- sim.spict(inp)
 fit3 <- fit.spict(inpsim)
 

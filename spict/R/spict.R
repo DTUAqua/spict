@@ -292,7 +292,6 @@ make.datin <- function(inp, dbg=0){
                   simple=inp$simple,
                   reportmode=inp$reportmode,
                   simRandomEffects=inp$sim.random.effects,
-                  simPriors=inp$sim.priors,
                   dbg=dbg)
     return(datin)
 }

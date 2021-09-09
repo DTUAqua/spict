@@ -159,8 +159,6 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(dbg);            // Debug flag, if == 1 then print stuff.
   DATA_INTEGER(reportmode);    // If 1-5 only specific quantities are ADreported (increases speed, relevant for fitting within MSE)
   DATA_INTEGER(simRandomEffects); // flag turning simulation of random effects on/off
-  DATA_INTEGER(simPriors);         // flag turning simulation of priors as random effects on/off
-
 
   // PARAMETERS
   PARAMETER_VECTOR(logm);      // m following the Fletcher formulation (see Prager 2002)
@@ -190,9 +188,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(SARvec);    // Autoregressive deviations to seasonal spline
   PARAMETER(logitSARphi);      // AR coefficient for seasonal spline dev
   PARAMETER(logSdSAR);         // Standard deviation seasonal spline deviations
-  // noise ratios as random effects for simulation with priors
-  PARAMETER_VECTOR(logalpha);  // log(sdi(i)/sdb)
-  PARAMETER(logbeta);          // log(sdc/sdf)
+
 
   //std::cout << "expmosc: " << expmosc(lambda, omega, 0.1) << std::endl;
   if(dbg > 0){
@@ -300,72 +296,23 @@ Type objective_function<Type>::operator() ()
     mvec(i) = exp(logmc(i) + logmre(i));
   }
 
-  // Parameters with default priors are used in estimation of reference points
-  // Prior for logn
-  if(priorn(2) == 1){
-    ans -= dnorm(logn, priorn(0), priorn(1), 1);
-    if(simPriors == 1){
-      SIMULATE{
-        logn = rnorm(priorn(0), priorn(1));
-        REPORT(logn);
-      }
-    }
-  }
+  // Parameters with default priors
   Type n = exp(logn);
   Type gamma = pow(n, n/(n-1.0)) / (n-1.0);
-
   vector<Type> sdi = exp(logsdi);
   vector<Type> sdi2(nsdi);
   vector<Type> isdi2(nsdi);
-  // Prior for logalpha
-  if(simPriors == 1){
-    if(prioralpha(2) == 1){
-      for(int i=0; i<nsdi; i++){
-        ans -= dnorm(logalpha(i), prioralpha(0), prioralpha(1), 1);
-        SIMULATE{
-          logalpha(i) = rnorm(prioralpha(0), prioralpha(1));
-        }
-        ans -= dnorm(logalpha(i), logsdi(i) - logsdb, Type(0.001), 1);
-      }
-      SIMULATE{
-        REPORT(logalpha);
-      }
-    }
-  }else{
-    vector<Type> alpha = sdi/sdb;
-    logalpha = log(alpha);
-    if(prioralpha(2) == 1){
-      for(int i=0; i<nsdi; i++){
-        ans -= dnorm(logalpha(i), prioralpha(0), prioralpha(1), 1);
-      }
-    }
-  }
-
+  vector<Type> alpha = sdi/sdb;
+  vector<Type> logalpha = log(alpha);
   for(int i=0; i<nsdi; i++){
     sdi2(i) = sdi(i)*sdi(i);
     isdi2(i) = 1.0/sdi2(i);
   }
-
   Type sdc = exp(logsdc);
   Type sdc2 = sdc*sdc;
   Type isdc2 = 1.0/sdc2;
-  // Prior for logbeta
-  if(simPriors == 1){
-    if(priorbeta(2) == 1){
-      ans -= dnorm(logbeta, priorbeta(0), priorbeta(1), 1);
-      SIMULATE{
-        logbeta = rnorm(priorbeta(0), priorbeta(1));
-        REPORT(logbeta);
-      }
-      ans -= dnorm(logbeta, logsdc - logsdf(0), Type(0.001), 1);
-    }
-  }else{
-    Type beta = sdc/sdf(0);
-    logbeta = log(beta);
-    if(priorbeta(2) == 1){
-      ans -= dnorm(logbeta, priorbeta(0), priorbeta(1), 1);
-    }
-  }
+  Type beta = sdc/sdf(0);
+  Type logbeta = log(beta);
 
 
   Type p = n - 1.0;
@@ -573,6 +520,17 @@ Type objective_function<Type>::operator() ()
     ans-= dgamma(logn, priorngamma(0), 1.0/priorngamma(1), 1);
   }
   // Log-normal priors
+  if(priorn(2) == 1){
+    ans -= dnorm(logn, priorn(0), priorn(1), 1);
+  }
+  if(prioralpha(2) == 1){
+    for(int i=0; i<nsdi; i++){
+      ans -= dnorm(logalpha(i), prioralpha(0), prioralpha(1), 1);
+    }
+  }
+  if(priorbeta(2) == 1){
+    ans -= dnorm(logbeta, priorbeta(0), priorbeta(1), 1);
+  }
   if((priorr(2) == 1) & (nm == 1)){
     ans-= dnorm(logr(0), priorr(0), priorr(1), 1); // Prior for logr
   }

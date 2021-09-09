@@ -32,7 +32,7 @@ rep1 <- fit.spict(inp1)
 ## After check.inp
 inp2 <- inp
 inp2$maninterval <- c(1991,1992)
-inp2 <- check.inp(inp2)
+suppressWarnings(inp2 <- check.inp(inp2))
 rep2 <- fit.spict(inp2)
 
 ## With argument of new function on fitted object
@@ -76,7 +76,7 @@ rep1 <- fit.spict(inp1)
 ## After check.inp
 inp2 <- inp
 inp2$maneval <- 1992
-inp2 <- check.inp(inp2)
+suppressWarnings(inp2 <- check.inp(inp2))
 rep2 <- fit.spict(inp2)
 
 ## With argument of new function on fitted object

@@ -6,12 +6,6 @@
 ##   require significant more code)
 
 
-## TODO: remove sim.priors. keep in this branch and remove in sub-branch?
-## TODO: warning messages when priors used.
-## TODO: sim in R + sim.random.effects = FALSE: what is non-seasonal F when using random.effects? or what is Fs if logF is non-seaosnal F?? (in rep$value?)
-
-
-
 ## Load spict
 ## -------------------
 require(spict)
@@ -142,21 +136,23 @@ test_this("Test 2.10: Do all F states correspond to estimate Fs with sim.random.
 header("3: Testing sim.priors", append = TRUE)
 ## -------------------
 
-inp <- pol$hake
-inp$dteuler <- 1/4
-inp$sim.priors <- 1
-set.seed(123)
-fit3 <- fit.spict(inp)
-set.seed(123)
-sim3 <- sim.spict(fit3, use.tmb = TRUE)
+out("to come")
 
-test_this("Test 3.1: Are simulated logB with and without sim.priors different?", {
-  all(sim1b$true$B != sim3$true$B)
-})
+## inp <- pol$hake
+## inp$dteuler <- 1/4
+## inp$sim.priors <- 1
+## set.seed(123)
+## fit3 <- fit.spict(inp)
+## set.seed(123)
+## sim3 <- sim.spict(fit3, use.tmb = TRUE)
 
-test_this("Test 3.2: Are simulated logF with and without sim.priors different?", {
-  all(sim1b$true$F[-1] != sim3$true$F[-1])
-})
+## test_this("Test 3.1: Are simulated logB with and without sim.priors different?", {
+##   all(sim1b$true$B != sim3$true$B)
+## })
+
+## test_this("Test 3.2: Are simulated logF with and without sim.priors different?", {
+##   all(sim1b$true$F[-1] != sim3$true$F[-1])
+## })
 
 
 
@@ -373,10 +369,10 @@ inpI$ini <- list(logK = log(1000), logm=log(100),
                  logn = log(2),
                  logbkfrac = log(0.9), logsdf = log(0.3), logF0 = log(0.1))
 inpI$dteuler <- 1/4
-sim6b <- sim.spict(inpI, use.tmb = TRUE)
+sim6c <- sim.spict(inpI, use.tmb = TRUE)
 
 test_this("Test 6.2: Four indices with single catchability coefficients.", {
-    round(do.call(cbind, sim6b$obsI),2)
+    round(do.call(cbind, sim6c$obsI),2)
 })
 
 
@@ -385,14 +381,30 @@ test_this("Test 6.2: Four indices with single catchability coefficients.", {
 
 header("7: TMB's check consistency", append = TRUE)
 ## -------------------
-nrep <- 100
-checkcon <- TMB::checkConsistency(fit1$obj, n = nrep)
-tmp <- summary(checkcon, na.rm=TRUE)
+sim6b$priors$logn <- c(0,0,0)
+sim6b$priors$logalpha <- c(0,0,0)
+sim6b$priors$logbeta <- c(0,0,0)
+sim6b$simulate <- FALSE
+fit7 <- fit.spict(sim6b)
 
-test_this("Test 7.1: Summary of join likelihood", {
-    lapply(tmp$joint, function(x) round(x,2))
+
+nrep <- 100
+checkcon <- TMB::checkConsistency(fit7$obj, n = nrep)
+tmp <- summary(checkcon, na.rm=TRUE)
+tmp
+
+test_this("Test 7.1: Pvalue of joint likelihood", {
+    round(tmp$joint$p.value,3)
 })
 
-test_this("Test 7.2: Summary of marginal likelihood", {
-    lapply(tmp$marginal, function(x) round(x,2))
+test_this("Test 7.2: Biases of joint likelihood", {
+    sapply(tmp$joint$bias, function(x) round(x,3))
+})
+
+test_this("Test 7.3: Pvalue of marginal likelihood", {
+    round(tmp$marginal$p.value,3)
+})
+
+test_this("Test 7.4: Biases of marginal likelihood", {
+    sapply(tmp$marginal$bias, function(x) round(x,3))
 })

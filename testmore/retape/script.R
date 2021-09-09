@@ -44,7 +44,7 @@ rept <- spict:::retape.spict(rep, inpt)
 ## alternative way
 inpx <- inp
 inpx$maninterval <- c(1991,1992)
-repx <- fit.spict(inpx)
+suppressWarnings(repx <- fit.spict(inpx))
 test_this("1.2: extending prediction horizon with maninterval",{
     round(sumspict.predictions(rept),dec.val)
 })
@@ -60,7 +60,7 @@ rept <- spict:::retape.spict(rep, inpt)
 ## alternative way
 inpx <- inp
 inpx$maneval <- 1996
-repx <- fit.spict(inpx)
+suppressWarnings(repx <- fit.spict(inpx))
 test_this("1.3: extending prediction horizon with maneval",{
     round(sumspict.predictions(rept),dec.val)
 })

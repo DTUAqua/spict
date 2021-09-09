@@ -4,13 +4,13 @@
 
 0
 Test 1.1: calculate Bmsy/K ratio
-[1] 0.29
+[1] 0.3
 
 
 Test 1.2: calculate order of magnitude
        lower  est upper CI range order magnitude
-B/Bmsy  0.18 0.43  1.01     0.83               1
-F/Fmsy  0.83 1.76  3.74     2.91               1
+B/Bmsy  0.19 0.43  0.98     0.79               0
+F/Fmsy  0.86 1.77  3.67     2.81               1
 
 
 
@@ -19,28 +19,28 @@ F/Fmsy  0.83 1.76  3.74     2.91               1
 
 0
 2.1: calculate Bmsy/K ratio
-[1] 0.48
+[1] 0.64
 
 
 2.2: calculate order of magnitude
        lower  est upper CI range order magnitude
-B/Bmsy  0.79 1.07  1.44     0.65               1
-F/Fmsy  0.49 0.76  1.16     0.67               1
+B/Bmsy  0.95 1.91  3.81     2.85               1
+F/Fmsy  0.30 0.48  0.78     0.48               0
 
 
 
 3: Tests with mixed data
 ========================
 
-1
+0
 3.1: calculate Bmsy/K ratio
-[1] 0.46
+[1] 0.44
 
 
 3.2: calculate order of magnitude
        lower  est upper CI range order magnitude
-B/Bmsy  1.48 1.77  2.13     0.65               0
-F/Fmsy  0.12 0.18  0.27     0.14               0
+B/Bmsy  0.58 0.89  1.36     0.77               1
+F/Fmsy  1.11 1.89  3.20     2.09               0
 
 
 

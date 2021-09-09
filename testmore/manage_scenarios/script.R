@@ -17,6 +17,7 @@ header("1: Testing add.man.scenarios with annual data", append = FALSE)
 
 out("1.1: No intermediate year")
 #################################
+
 inp <- pol$lobster
 inp$maninterval <- c(1991, 1992)
 inp$maneval <- 1992
@@ -63,6 +64,7 @@ test_this("1.1.8:", {
 
 out("1.2: intermediate year with constant F")
 #################################
+
 inp$maninterval <- c(1992, 1993)
 inp$maneval <- 1993
 fit <- fit.spict(inp)
@@ -104,6 +106,7 @@ test_this("1.2.8:", {
 
 out("1.3: intermediate year with constant catch")
 #################################
+
 inp$maninterval <- c(1992, 1993)
 inp$maneval <- 1993
 fit <- fit.spict(inp)
@@ -149,6 +152,7 @@ test_this("1.3.8:", {
 
 header("2: Testing management scenarios with seasonal data")
 #####################################################################
+
 nt <- 50
 inp <- list(nseasons = 4, splineorder = 3)
 inp$timeC <- seq(0, nt - 1 / inp$nseasons, by = 1 / inp$nseasons)
@@ -162,6 +166,7 @@ inpsim <- sim.spict(inp)
 
 out("2.1: standard advice")
 ###############################
+
 inpsim$maneval <- nt+1
 inpsim$maninterval <- c(nt,nt+1)
 inp <- check.inp(inpsim)
@@ -210,6 +215,7 @@ test_this("2.1.10:", {
 
 out("2.2: in year advice")
 ###############################
+
 inpsim$maneval <- nt+1.5
 inpsim$maninterval <- c(nt+0.5,nt+1.5)
 inp <- check.inp(inpsim)
@@ -255,6 +261,7 @@ test_this("2.2.7:", {
 
 header("3: Testing management scenarios with mixed data")
 #####################################################################
+
 set.seed(123)
 nt <- 50
 inp <- list(nseasons=4, splineorder=3)
@@ -271,6 +278,7 @@ inpsim <- sim.spict(inp)
 
 out("3.1: standard advice")
 ###############################
+
 inpsim$maneval <- nt+1
 inpsim$maninterval <- c(nt,nt+1)
 inp <- check.inp(inpsim)

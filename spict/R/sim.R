@@ -246,7 +246,7 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
                 pl$logF[1] <- log(0.2*exp(inp$ini$logr))
             }
         }
-        ## Account for sim.priors and sim.random.effects (require retape)
+        ## Account for sim.random.effects (require retape)
         obj <- make.obj(make.datin(inp), pl, inp, phase=1)
         obj$retape()
         ## OLD: obj <- rep$obj ## requires that sim.random.effects is used before fitting spict...
@@ -340,41 +340,24 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
     }
 
 
+    ## Note if stabilise option used
+    if(inp$stabilise == 1){
+        writeLines(paste0("The stabilise option was used for fitting / ",
+                          "is specified in the input list (inp$stabilise). ",
+                          "This activates six very vague priors. ",
+                          "Acknolowdging these priors when simulating is not yet implemented. "))
+    }
+    ## Priors
+    activePriors <- names(inp$priors)[which(inp$priorsuseflags == 1)]
+    ## Note if any other prior used other than logn, logbeta or logalpha
+    if(length(activePriors) > 0){
+        writeLines(paste0("Additional priors were used for fitting / are specified in the input list (inp$priors): ",
+                          paste0(activePriors, collapse=", "),
+                          ". Acknolowdging these priors when simulating is not yet implemented. "))
+    }
+
     ## Use TMB for simulation
     if(use.tmb){
-
-
-        ## priors
-        if(inp$sim.priors){
-            activePriors <- names(inp$priors)[which(inp$priorsuseflags == 1)]
-
-            ## Note that logalpha/logbeta is used
-            if("logalpha" %in% activePriors || "logbeta" %in% activePriors){
-                writeLines(paste0("At least one prior for a hyper parameter is specified in the input list (",
-                                  paste0(c("logalpha","logbeta")[c("logalpha" %in% activePriors,
-                                                                   "logbeta" %in% activePriors)],
-                                         collapse=", "),
-                                  "). Acknolowdging these priors when simulating data is difficult. ",
-                                  "Please treat simulated data with caution."))
-            }
-
-            ## Note if any other prior used other than logn, logbeta or logalpha
-            otherPriors <- activePriors[-which(activePriors %in% c("logn","logalpha","logbeta"))]
-            if(length(otherPriors) > 0){
-                writeLines(paste0("Additional priors are specified in the input list (",
-                                  paste0(otherPriors, collapse=", "),
-                                  "). Acknolowdging these priors when simulating is not yet implemented. ",
-                                  "Please treat simulated data with caution."))
-            }
-
-            ## Note if stabilise option used
-            if(inp$stabilise == 1){
-                writeLines(paste0("The stabilise option is used. This activates six very vague priors. ",
-                                  "Acknolowdging these priors when simulating is not yet implemented. ",
-                                  "Please treat simulated data with caution."))
-            }
-        }
-
 
         ## simulate
         simdat <- obj$simulate(par = sim.pars, complete = TRUE)
@@ -558,11 +541,7 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
             F0 <- 0.2*exp(inp$ini$logr)
         }
         m <- exp(pl$logm)
-        if(inp$sim.priors && inp$priors$logn[3]){
-            n <- exp(rnorm(1, inp$priors$logn[1], inp$priors$logn[2]))
-        }else{
-            n <- exp(pl$logn)
-        }
+        n <- exp(pl$logn)
         gamma <- calc.gamma(n)
         K <- exp(pl$logK)
         q <- exp(pl$logq)

@@ -15,7 +15,7 @@ inp$dteuler <- 1/4
 inp <- shorten.inp(pol$albacore, maxtime = 1980)
 
 fit <- fit.spict(inp)
-fit <- retro(fit, nretroyear = 7, mc.cores = 1)
+suppressWarnings(fit <- retro(fit, nretroyear = 7, mc.cores = 1))
 
 test_this("1.1. Convergence of last two retros is not achieved", sapply(fit$retro, function(x) x$opt$convergence))
 
