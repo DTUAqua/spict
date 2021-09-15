@@ -135,7 +135,7 @@ manage <- function(rep, scenarios = 'all',
     }
 
     ## check if intermediate period catch used but no intermediate period
-    inttime <- rep$inp$dtpredcinds[1] - min(rep$inp$indpred)
+    inttime <- rep$inp$dtpredcinds[1] - min(rep$inp$indCpred)
     if(!is.null(intermediatePeriodCatch) || !is.null(intermediatePeriodCatchList)){
         if(inttime == 0 && verbose) cat("No intermediate period to apply the intermediatePeriodCatch to. Change mantinerval if you want to specify a catch in the intermediate period.\n")
     }
@@ -706,16 +706,16 @@ make.man.inp <- function(rep, scenarioTitle = "",
     pList <- c(pList,safeguardB)
 
     ## fixed catch in INTERMEDIATE YEAR
-    inttime <- inp$dtpredcinds[1] - min(inp$indpred)
+    inttime <- inp$dtpredcinds[1] - min(inp$indCpred)
     if(inttime > 0 && ((!is.null(intermediatePeriodCatch) &&
                         !is.na(intermediatePeriodCatch) && is.numeric(intermediatePeriodCatch)) ||
                        !is.null(intermediatePeriodCatchList))){
         inpt <- inp
-        dtcint <- (inp$dtpredcinds[1] - min(inp$indpred)) * inp$dteuler
+        dtcint <- (inp$dtpredcinds[1] - min(inp$indCpred)) * inp$dteuler
         if(verbose) writeLines(paste0("The intermediate time period is ",dtcint," year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.\n"))
         if(is.null(intermediatePeriodCatchList)){
             ## default catchList
-            inpt$timeC <- c(inpt$timeC, inp$time[min(inp$indpred)])
+            inpt$timeC <- c(inpt$timeC, inp$time[min(inp$indCpred)])
             inpt$obsC <- c(inpt$obsC, intermediatePeriodCatch)
             inpt$stdevfacC <- c(inpt$stdevfacC, intermediatePeriodCatchSDFac)
             inpt$dtc <- c(inpt$dtc, dtcint)
@@ -1138,7 +1138,7 @@ add.man.scenario <- function(rep, scenarioTitle = "",
     }
 
     ## check if intermediate period catch used but no intermediate period
-    inttime <- rep$inp$dtpredcinds[1] - min(rep$inp$indpred)
+    inttime <- rep$inp$dtpredcinds[1] - min(rep$inp$indCpred)
     if(!is.null(intermediatePeriodCatch) || !is.null(intermediatePeriodCatchList)){
         if(inttime == 0 && verbose) cat("No intermediate period to apply the intermediatePeriodCatch to. Change mantinerval if you want to specify a catch in the intermediate period.\n")
     }
@@ -1608,7 +1608,7 @@ get.TAC <- function(rep,
     }
 
     ## check if intermediate period catch used but no intermediate period
-    inttime <- rep$inp$dtpredcinds[1] - min(rep$inp$indpred)
+    inttime <- rep$inp$dtpredcinds[1] - min(rep$inp$indCpred)
     if(!is.null(intermediatePeriodCatch) || !is.null(intermediatePeriodCatchList)){
         if(inttime == 0 && verbose) cat("No intermediate period to apply the intermediatePeriodCatch to. Change mantinerval if you want to specify a catch in the intermediate period.\n")
     }
