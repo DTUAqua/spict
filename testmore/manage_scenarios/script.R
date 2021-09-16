@@ -117,7 +117,7 @@ test_this("1.3.1:", {
     round(get.TAC(fit, intermediatePeriodCatch = lastC),3)
 })
 test_this("1.3.2:", {
-    round(get.TAC(fit, fractiles = list(catch=0.2), catchintermediateYear = lastC),3)
+    round(get.TAC(fit, fractiles = list(catch=0.2), intermediatePeriodCatch = lastC),3)
 })
 
 out("Fishing at Fmsy with biomass safeguard")
@@ -356,3 +356,67 @@ test_this("4.2.6:", {
     round(get.TAC(fit, intermediatePeriodCatch = 40,
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
+
+
+
+header("4: Other special cases")
+#####################################################################
+
+set.seed(123)
+nt <- 50
+inp <- list(nseasons = 1, splineorder = 1)
+inp$timeC <- seq(0, nt - 1 / inp$nseasons, by = 1 / inp$nseasons)
+inp$timeI <- seq(0.375, nt - 1 / inp$nseasons, by = 1)
+inp$ini <- list(logK = log(1000), logm = log(200), logq = log(1), logn = log(2),
+                logbkfrac = log(0.9), logsdf = log(0.3), logF0 = log(0.4))
+inp$dteuler <- 1/4
+inpsim <- sim.spict(inp)
+## plotspict.data(inpsim)
+
+
+out("4.1: Last index observation inside intermediate year")
+###############################
+
+inp <- list()
+inp$obsC <- inpsim$obsC[-((nt-1):nt)]
+inp$timeC <- inpsim$timeC[-((nt-1):nt)]
+inp$obsI <- inpsim$obsI
+inp$timeI <- inpsim$timeI
+inp$maneval <- nt
+inp$maninterval <- c(nt-1,nt)
+inp <- check.inp(inp)
+
+man.timeline(inp)
+tail(inp$timeC + inp$dtc,1)
+tail(inp$timeI[[1]],1)
+
+## Fit spict
+fit <- fit.spict(inp)
+
+
+## Management scenarios
+fit <- add.man.scenario(fit)
+fit <- add.man.scenario(fit, ffac = 0)
+fit <- add.man.scenario(fit, ffac = 1)
+
+
+out("without intermediatePeriodCatch")
+test_this("4.1.1: Summary", {
+    sumspict.manage(fit)
+})
+
+plotspict.catch(fit)
+
+
+
+## Management scenarios with specified intermediate period catch
+fit <- add.man.scenario(fit, intermediatePeriodCatch = mean(inp$obsC))
+fit <- add.man.scenario(fit, ffac = 0, intermediatePeriodCatch = mean(inp$obsC))
+fit <- add.man.scenario(fit, ffac = 1, intermediatePeriodCatch = mean(inp$obsC))
+
+out("without intermediatePeriodCatch")
+test_this("4.1.4: Summary", {
+    sumspict.manage(fit)
+})
+
+plotspict.catch(fit)

@@ -10,6 +10,17 @@ New features:
   specify the number of cores to be used. By default the function
   `detectCores()-1` is used to define `mc.cores`.
 
+Bug fixes
+
+* Default labeling of management scenarios was not using increasing numbers, but
+  reused the label "cutsomScenario_1". This is corrected and increasing numbers
+  are now used, i.e. "customScenario_2", etc.
+* In the case there is an abundance index after the last catch interval inside
+  the intermediate period and the argument `intermediatePeriodCatch` in
+  `manage()` is used, the intermediate period was calculated incorrectly, using
+  the argument `inp$indpred` rather than `inp$indCpred`. This also led to an
+  error message in `plotspict.catch()` with these management scenarios.
+
 Minor changes:
 
 * More informative error messages and user-friendly functionality of
