@@ -2916,7 +2916,15 @@ plotspict.priors <- function(rep, do.plot=NULL, stamp=get.version(), automfrow=T
 #' @return Nothing
 #' @export
 plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=TRUE, stamp=get.version()){
+
+    ## Check if fitted spict object
+    isrep <- ifelse(inherits(inpin, "spictcls") && "opt" %in% names(inpin), 1, 0)
+    if(isrep){
+        inpin <- inpin$inp
+    }
     inp <- check.inp(inpin)
+
+
     #nseries <- inp$nindex + 1 + as.numeric(inp$nobsE > 0)
     nseries <- inp$nseries + as.numeric(inp$logmcovflag)
     if ('true' %in% names(inp)){
