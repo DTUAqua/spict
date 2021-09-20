@@ -384,7 +384,6 @@ header("7: TMB's check consistency", append = TRUE)
 sim6b$priors$logn <- c(0,0,0)
 sim6b$priors$logalpha <- c(0,0,0)
 sim6b$priors$logbeta <- c(0,0,0)
-sim6b$simulate <- FALSE
 fit7 <- fit.spict(sim6b)
 
 
