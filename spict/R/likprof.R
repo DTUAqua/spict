@@ -33,11 +33,9 @@
 #'     accepted.
 #' @param verbose Print progress to screen.
 #' @param mc.cores Number of cores for \code{parallel::mclapply} function. By
-#'     default \code{parallel::detectCores() - 1} is used as the number of
-#'     cores.
+#'     default 1.
 #' @return The output is the input with the likelihood profile information added
 #'     to the likprof key of either inp or rep$inp.
-#' @importFrom parallel mclapply detectCores
 #' @examples
 #' data(pol)
 #' inp <- pol$albacore
@@ -49,7 +47,7 @@
 #' rep <- likprof.spict(rep)
 #' plotspict.likprof(rep, logpar=TRUE)
 #' @export
-likprof.spict <- function(input, verbose=FALSE, mc.cores = detectCores() - 1){
+likprof.spict <- function(input, verbose=FALSE, mc.cores = 1){
     if ('par.fixed' %in% names(input)){
         if (verbose) cat('Detected input as a SPiCT result, proceeding...\n')
         rep <- input

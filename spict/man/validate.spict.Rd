@@ -15,7 +15,7 @@ validate.spict(
   type = "nobs",
   parnames = NULL,
   exp = NULL,
-  mc.cores = parallel::detectCores() - 1,
+  mc.cores = 1,
   model = "spict"
 )
 }
@@ -52,8 +52,7 @@ over which to loop.}
 \item{exp}{Should exp be taken of parameters?}
 
 \item{mc.cores}{Number of cores for \code{parallel::mclapply} function. By
-default \code{parallel::detectCores() - 1} is used as the number of
-cores.}
+default 1.}
 
 \item{model}{If 'spict' estimate using SPiCT. If 'meyermillar' estimate using
 the model of Meyer & Millar (1999), this requires rjags and coda

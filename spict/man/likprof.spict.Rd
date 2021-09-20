@@ -4,7 +4,7 @@
 \alias{likprof.spict}
 \title{Create profile likelihood}
 \usage{
-likprof.spict(input, verbose = FALSE, mc.cores = detectCores() - 1)
+likprof.spict(input, verbose = FALSE, mc.cores = 1)
 }
 \arguments{
 \item{input}{A list containing observations and initial values for non
@@ -16,8 +16,7 @@ accepted.}
 \item{verbose}{Print progress to screen.}
 
 \item{mc.cores}{Number of cores for \code{parallel::mclapply} function. By
-default \code{parallel::detectCores() - 1} is used as the number of
-cores.}
+default 1.}
 }
 \value{
 The output is the input with the likelihood profile information added

@@ -910,8 +910,7 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
 #' @param parnames Vector of parameter names to extract stats for.
 #' @param exp Should exp be taken of parameters?
 #' @param mc.cores Number of cores for \code{parallel::mclapply} function. By
-#'     default \code{parallel::detectCores() - 1} is used as the number of
-#'     cores.
+#'     default 1.
 #' @param model If 'spict' estimate using SPiCT. If 'meyermillar' estimate using
 #'     the model of Meyer & Millar (1999), this requires rjags and coda
 #'     packages.
@@ -921,7 +920,6 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
 #'     the true value of B/Fmsy was inside the 95\% confidence interval for the
 #'     estimate, otherwise FALSE} \item{"*msyciw"}{ Width of the 95\% confidence
 #'     interval of the estimate of Bmsy/Fmsy.} }
-#' @importFrom parallel mclapply detectCores
 #' @examples
 #' data(pol)
 #' rep0 <- fit.spict(pol$albacore)
@@ -932,7 +930,7 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
 #' @export
 validate.spict <- function(inp, nsim=50, invec=c(15, 60, 240), estinp=NULL, backup=NULL,
                            df.out=FALSE, summ.ex.file=NULL, type='nobs', parnames=NULL, exp=NULL,
-                           mc.cores=parallel::detectCores()-1, model='spict'){
+                           mc.cores=1, model='spict'){
     if (is.null(parnames)){
         parnames <- c('logFmsy', 'logBmsy', 'MSY', 'logBl', 'logBlBmsy',
                       'logFlFmsy', 'logsdb', 'logsdi')

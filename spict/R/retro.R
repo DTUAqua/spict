@@ -26,11 +26,9 @@
 #'     with \code{getReportCovariance} and \code{getJointPrecision} set as
 #'     \code{FALSE}
 #' @param mc.cores Number of cores for \code{parallel::mclapply} function. By
-#'     default \code{parallel::detectCores() - 1} is used as the number of
-#'     cores.
+#'     default 1.
 #' @return A rep list with the added key retro containing the results of the
 #'     retrospective analysis. Use plotspict.retro() to plot these results.
-#' @importFrom parallel mclapply detectCores
 #' @examples
 #' data(pol)
 #' inp <- pol$albacore
@@ -38,7 +36,7 @@
 #' rep <- retro(rep, nretroyear=6)
 #' plotspict.retro(rep)
 #' @export
-retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = parallel::detectCores()-1){
+retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = 1){
     if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
     if (rep$opt$convergence != 0) stop("The fitted object did not converged.")
     inp1 <- rep$inp

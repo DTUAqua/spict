@@ -4,12 +4,7 @@
 \alias{retro}
 \title{Conduct retrospective analysis}
 \usage{
-retro(
-  rep,
-  nretroyear = 5,
-  reduce_output_size = TRUE,
-  mc.cores = parallel::detectCores() - 1
-)
+retro(rep, nretroyear = 5, reduce_output_size = TRUE, mc.cores = 1)
 }
 \arguments{
 \item{rep}{A valid result from fit.spict.}
@@ -22,8 +17,7 @@ with \code{getReportCovariance} and \code{getJointPrecision} set as
 \code{FALSE}}
 
 \item{mc.cores}{Number of cores for \code{parallel::mclapply} function. By
-default \code{parallel::detectCores() - 1} is used as the number of
-cores.}
+default 1.}
 }
 \value{
 A rep list with the added key retro containing the results of the

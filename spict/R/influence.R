@@ -20,13 +20,11 @@
 #' @details TBA
 #' @param rep A valid result from fit.spict().
 #' @param mc.cores Number of cores for \code{parallel::mclapply} function. By
-#'     default \code{parallel::detectCores() - 1} is used as the number of
-#'     cores.
+#'     default 1.
 #' @return A list equal to the input with the added key "infl" containing
 #'     influence statistics.
-#' @importFrom parallel mclapply detectCores
 #' @export
-calc.influence <- function(rep, mc.cores = detectCores()-1){
+calc.influence <- function(rep, mc.cores = 1){
     #parnams <- c('logFmsy', 'MSY', 'logCp', 'logBlBmsy')
     if (!'osar' %in% names(rep)){
         stop('Need to calculate one-step-ahead residuals before calculating influence statistics. Use the calc.osa.resid() function.')
