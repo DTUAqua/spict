@@ -88,7 +88,11 @@ The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCat
 
 
 1.3.2:
-Error:unused argument (catchintermediateYear = lastC)
+The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
+
+[1] 1467.184
+
+
 Fishing at Fmsy with biomass safeguard
 1.3.3:
 The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
@@ -279,5 +283,64 @@ Fishing at Fmsy with TAC during assessment year
 The intermediate time period is 0.5 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
 [1] 332.211
+
+
+
+4: Other special cases
+======================
+
+4.1: Last index observation inside intermediate year
+without intermediatePeriodCatch
+4.1.1: Summary
+SPiCT timeline:
+                                                                          
+      Observations             Intermediate             Management        
+     0.00 - 48.00            48.00 - 49.00           49.00 - 50.00        
+ |-----------------------| ----------------------| ----------------------|
+
+Management evaluation: 50.00
+
+Predicted catch for management period and states at management evaluation time:
+
+                        C B/Bmsy F/Fmsy
+1. customScenario_1 172.6   0.91   1.00
+2. customScenario_2   0.0   1.39   0.00
+3. customScenario_3 160.3   0.95   0.91
+$est
+                        C B/Bmsy F/Fmsy
+1. customScenario_1 172.6   0.91   1.00
+2. customScenario_2   0.0   1.39   0.00
+3. customScenario_3 160.3   0.95   0.91
+
+
+
+without intermediatePeriodCatch
+4.1.4: Summary
+SPiCT timeline:
+                                                                          
+      Observations             Intermediate             Management        
+     0.00 - 48.00            48.00 - 49.00           49.00 - 50.00        
+ |-----------------------| ----------------------| ----------------------|
+
+Management evaluation: 50.00
+
+Predicted catch for management period and states at management evaluation time:
+
+                        C B/Bmsy F/Fmsy
+1. customScenario_1 172.6   0.91   1.00
+2. customScenario_2   0.0   1.39   0.00
+3. customScenario_3 160.3   0.95   0.91
+4. customScenario_4 168.1   0.89   1.00
+5. customScenario_5   0.0   1.37   0.00
+6. customScenario_6 170.7   0.89   1.02
+$est
+                        C B/Bmsy F/Fmsy
+1. customScenario_1 172.6   0.91   1.00
+2. customScenario_2   0.0   1.39   0.00
+3. customScenario_3 160.3   0.95   0.91
+4. customScenario_4 168.1   0.89   1.00
+5. customScenario_5   0.0   1.37   0.00
+6. customScenario_6 170.7   0.89   1.02
+
 
 
