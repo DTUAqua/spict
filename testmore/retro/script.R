@@ -15,7 +15,7 @@ inp$dteuler <- 1/4
 inp <- shorten.inp(pol$albacore, maxtime = 1980)
 
 fit <- fit.spict(inp)
-suppressWarnings(fit <- retro(fit, nretroyear = 7, mc.cores = 1))
+suppressWarnings(fit <- retro(fit, nretroyear = 7))
 
 test_this("1.1. Convergence of last two retros is not achieved", sapply(fit$retro, function(x) x$opt$convergence))
 
@@ -30,7 +30,7 @@ test_this("1.5. Plot fixed effects retro shows message with excluded runs", leng
 
 ## Expect error - not a fitted object
 header("2. Error expectations")
-test_this("2.1. No spictcls object produces an error", retro(pol$albacore, mc.cores = 1))
+test_this("2.1. No spictcls object produces an error", retro(pol$albacore))
 
 ## Expect error - not converged run
 set.seed(1234)
@@ -41,4 +41,4 @@ inp <- list(obsC = runif(10, 100, 1000),
 out("\n")
 
 suppressWarnings(fitnc <- fit.spict(inp))
-test_this("2.2. Not converged fitted object produces an error", retro(fitnc, mc.cores = 1))
+test_this("2.2. Not converged fitted object produces an error", retro(fitnc))
