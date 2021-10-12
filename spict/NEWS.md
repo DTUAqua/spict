@@ -7,8 +7,7 @@ New features:
   Set argument `use.tmb = TRUE` in `sim.spict()` function to use TMB
   `SIMULATE{}`.
 * All functions using `parallel::mclapply()` have the argument `mc.cores` to
-  specify the number of cores to be used. By default the function
-  `detectCores()-1` is used to define `mc.cores`.
+  specify the number of cores to be used. By default `mc.cores` is equal to 1.
 
 Bug fixes
 
