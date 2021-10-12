@@ -58,6 +58,7 @@ out(inpa$maninterval[1] == inpa$manstart)
 
 
 out("1.1.2: Seasonal data")
+
 ## defaults - v1.2.8 - seasonal
 timepredi.v128 <- 40
 timepredc.v128 <- 40
@@ -85,6 +86,7 @@ out("1.2: Changing maninterval - changes old variables & reverse")
 ## ---------------------------------------------------
 out("1.2.1: Annual data")
 out("1.2.1.1: From new to old")
+
 inp <- inpA
 inp$maninterval <- c(1991,1992)
 inp$maneval <- 1994
@@ -95,6 +97,7 @@ out(all.equal(inp$maninterval,c(inp$timepredc,inp$timepredc+inp$dtpredc)))
 out(inp$maninterval[1] == inp$manstart)
 
 out("1.2.1.2: From old to new")
+
 inp <- inpA
 inp$timepredc <- 1992
 inp$dtpredc <- 2
@@ -108,6 +111,7 @@ out(inp$maninterval[1] == inp$manstart)
 
 out("1.2.2: Seasonal data")
 out("1.2.1.1: From new to old")
+
 inp <- inpS
 inp$maninterval <- c(41,42)
 inp$maneval <- 44
@@ -118,6 +122,7 @@ out(all.equal(inp$maninterval,c(inp$timepredc,inp$timepredc+inp$dtpredc)))
 out(inp$maninterval[1] == inp$manstart)
 
 out("1.2.1.2: From old to new")
+
 inp <- inpS
 inp$timepredc <- 42
 inp$dtpredc <- 2
@@ -129,12 +134,13 @@ out(inp$maneval == inp$timepredi)
 out(all.equal(inp$maninterval,c(inp$timepredc,inp$timepredc+inp$dtpredc)))
 out(inp$maninterval[1] == inp$manstart)
 
+inp <- pol$albacore
+inp <- check.inp(inp)
+inp$maneval <- 1994
+suppressWarnings(inp <- check.inp(inp))
+fit <- fit.spict(inp)
+
 test_this("1.3: Adjust all time-dependent variables in check.inp",{
-    inp <- pol$albacore
-    inp <- check.inp(inp)
-    inp$maneval <- 1994
-    inp <- check.inp(inp)
-    fit <- fit.spict(inp)
     fit$opt$convergence
 })
 
@@ -232,66 +238,52 @@ test_this("5.2: TAC for one scenario",{
 header("6: Provoke warnings & errors & challenge functionality")
 ######################################################
 
-test_this("6.1: Message when manstart and maninterval used and not equal", {
-    inp <- inpA
-    inp$maninterval <- c(1992,1993)
-    inp$manstart <- 1991
-    inp <- check.inp(inp)
-    TRUE
-})
+out("6.1: Message when manstart and maninterval used and not equal")
+inp <- inpA
+inp$maninterval <- c(1992,1993)
+inp$manstart <- 1991
+inp <- check.inp(inp)
 
-test_this("6.2: Message when timepredc and maninterval used and not equal", {
-    inp <- inpA
-    inp$maninterval <- c(1992,1993)
-    inp$timepredc <- 1991
-    inp <- check.inp(inp)
-    TRUE
-})
+out("6.2: Message when timepredc and maninterval used and not equal")
+inp <- inpA
+inp$maninterval <- c(1992,1993)
+inp$timepredc <- 1991
+inp <- check.inp(inp)
 
-test_this("6.3: Message when timepredi and maneval used and not equal", {
-    inp <- inpA
-    inp$maneval <- 1992
-    inp$timepredi <- 1991
-    inp <- check.inp(inp)
-    TRUE
-})
+out("6.3: Message when timepredi and maneval used and not equal")
+inp <- inpA
+inp$maneval <- 1992
+inp$timepredi <- 1991
+inp <- check.inp(inp)
 
-test_this("6.4: Maninterval does not match dteuler time steps", {
-    inp <- inpA
-    inp$maninterval <- c(1991.573838,1992)
-    inp <- check.inp(inp)
-    TRUE
-})
+out("6.4: Maninterval does not match dteuler time steps")
+inp <- inpA
+inp$maninterval <- c(1991.573838,1992)
+inp <- check.inp(inp)
 
-test_this("6.5: Maninterval smaller than dteuler", {
-    inp <- inpA
-    inp$maninterval <- c(1991,1991.004)
-    inp <- check.inp(inp)
-    TRUE
-})
+out("6.5: Maninterval smaller than dteuler")
+inp <- inpA
+inp$maninterval <- c(1991,1991.004)
+suppressWarnings(inp <- check.inp(inp))
 
-test_this("6.6: Warning message when manstart larger than timepredc", {
-    inp <- inpA
-    inp$timepredc <- 1992
-    inp$dtpredc <- 2
-    inp$timepredi <- 1994
-    inp$manstart <- 1993
-    inp <- check.inp(inp)
-    TRUE
-})
+out("6.6: Warning message when manstart larger than timepredc")
+inp <- inpA
+inp$timepredc <- 1992
+inp$dtpredc <- 2
+inp$timepredi <- 1994
+inp$manstart <- 1993
+suppressWarnings(inp <- check.inp(inp))
 
-test_this("6.7: manstart smaller than timepredc", {
-    inp1 <- inpA
-    inp1$timepredi <- 1993
-    inp1$timepredc <- 1992
-    inp1$dtpredc <- 1
-    inp1$manstart <- 1991
-    inp1$ffac <- 0.2
-    inp1 <- check.inp(inp1)
-    set.seed(124)
-    fit1 <- fit.spict(inp1)
-    TRUE
-})
+out("6.7: manstart smaller than timepredc")
+inp1 <- inpA
+inp1$timepredi <- 1993
+inp1$timepredc <- 1992
+inp1$dtpredc <- 1
+inp1$manstart <- 1991
+inp1$ffac <- 0.2
+inp1 <- check.inp(inp1)
+set.seed(124)
+fit1 <- fit.spict(inp1)
 
 ## with Cp right after ffac applied
 inp2 <- inpA
@@ -306,7 +298,7 @@ fit2 <- fit.spict(inp2)
 ## Cp differ:
 out(fit1$Cp != fit2$Cp)
 ## But values the same just timing different:
-out(fit2$Cp == get.par("logCpred",fit1,exp=TRUE)[which(inp1$timeCpred == inp2$timepredc),2])
+out(round(fit2$Cp,3) == round(get.par("logCpred",fit1,exp=TRUE)[which(inp1$timeCpred == inp2$timepredc),2],3))
 ## => Thus old functionality and independence between manstart and timepredc is maintained.
 
 ## missing one of the three required variables => error

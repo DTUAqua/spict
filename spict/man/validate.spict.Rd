@@ -15,42 +15,56 @@ validate.spict(
   type = "nobs",
   parnames = NULL,
   exp = NULL,
-  mc.cores = 8,
+  mc.cores = 1,
   model = "spict"
 )
 }
 \arguments{
-\item{inp}{An inp list with an ini key (see ?check.inp). If you want to use estimated parameters for the simulation create the inp$ini from the pl key of a result of fit.spict().}
+\item{inp}{An inp list with an ini key (see ?check.inp). If you want to use
+estimated parameters for the simulation create the inp$ini from the pl
+key of a result of fit.spict().}
 
 \item{nsim}{Number of simulated data sets in each batch.}
 
-\item{invec}{Vector containing the number of simulated observations of each data set in each batch.}
+\item{invec}{Vector containing the number of simulated observations of each
+data set in each batch.}
 
-\item{estinp}{The estimation uses the true parameters as starting guess. Other initial values to be used for estimation can be specified in estinp$ini.}
+\item{estinp}{The estimation uses the true parameters as starting guess.
+Other initial values to be used for estimation can be specified in
+estinp$ini.}
 
-\item{backup}{Since this procedure can be slow a filename can be specified in backup where the most recent results will be available.}
+\item{backup}{Since this procedure can be slow a filename can be specified in
+backup where the most recent results will be available.}
 
 \item{df.out}{Output data frame instead of list.}
 
-\item{summ.ex.file}{Save a summary example to this file (to check that parameters have correct priors or are fixed).}
+\item{summ.ex.file}{Save a summary example to this file (to check that
+parameters have correct priors or are fixed).}
 
-\item{type}{Specify what type of information is contained in invec. If type == 'nobs' then invec is assumed to be a vector containing the number of simulated observations of each data set in each batch. If type == 'logsdc' then invec is assumed to be a vector containing values of logsdc over which to loop.}
+\item{type}{Specify what type of information is contained in invec. If type
+== 'nobs' then invec is assumed to be a vector containing the number of
+simulated observations of each data set in each batch. If type ==
+'logsdc' then invec is assumed to be a vector containing values of logsdc
+over which to loop.}
 
 \item{parnames}{Vector of parameter names to extract stats for.}
 
 \item{exp}{Should exp be taken of parameters?}
 
-\item{mc.cores}{Number of cores to use.}
+\item{mc.cores}{Number of cores for \code{parallel::mclapply} function. By
+default 1.}
 
-\item{model}{If 'spict' estimate using SPiCT. If 'meyermillar' estimate using the model of Meyer & Millar (1999), this requires rjags and coda packages.}
+\item{model}{If 'spict' estimate using SPiCT. If 'meyermillar' estimate using
+the model of Meyer & Millar (1999), this requires rjags and coda
+packages.}
 }
 \value{
-A list containing the results of the validation with the following keys:
-\itemize{
- \item{"osarpvals"}{ P-values of the Ljung-Box test for uncorrelated one-step-ahead residuals.}
- \item{"*msyci"}{Logical. TRUE if the true value of B/Fmsy was inside the 95\% confidence interval for the estimate, otherwise FALSE}
- \item{"*msyciw"}{ Width of the 95\% confidence interval of the estimate of Bmsy/Fmsy.}
-}
+A list containing the results of the validation with the following
+    keys: \itemize{ \item{"osarpvals"}{ P-values of the Ljung-Box test for
+    uncorrelated one-step-ahead residuals.} \item{"*msyci"}{Logical. TRUE if
+    the true value of B/Fmsy was inside the 95\% confidence interval for the
+    estimate, otherwise FALSE} \item{"*msyciw"}{ Width of the 95\% confidence
+    interval of the estimate of Bmsy/Fmsy.} }
 }
 \description{
 Simulate data and reestimate parameters
@@ -58,7 +72,8 @@ Simulate data and reestimate parameters
 \details{
 Given input parameters simulate a number of data sets. Then estimate the parameters from the simulated data and compare with the true values. Specifically, the one-step-ahead residuals are checked for autocorrelation and the confidence intervals of the estimated Fmsy and Bmsy are checked for consistency.
 
-WARNING: One should simulate at least 50 data sets and preferably more than 100 to obtain reliable results. This will take some time (potentially hours).
+WARNING: One should simulate at least 50 data sets and preferably more than
+100 to obtain reliable results. This will take some time (potentially hours).
 }
 \examples{
 data(pol)

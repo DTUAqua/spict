@@ -1218,7 +1218,7 @@ add.man.scenario <- function(rep, scenarioTitle = "",
         if(scenarioTitle == ""){  ## set customScenario name with counter
             custs <- strsplit(names(repout$man),"_")
             custind <- unlist(lapply(custs, function(x) "customScenario" %in% x))
-            custcount <- min(1,ifelse(any(custind),
+            custcount <- max(1,ifelse(any(custind),
                                       max(as.numeric(unlist(lapply(custs[custind],
                                                                    function(x) x[[2]])))) + 1,1))
             scenarioTitle <- paste0("customScenario_", custcount)

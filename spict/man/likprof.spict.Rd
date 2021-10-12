@@ -4,29 +4,37 @@
 \alias{likprof.spict}
 \title{Create profile likelihood}
 \usage{
-likprof.spict(input, verbose = FALSE)
+likprof.spict(input, verbose = FALSE, mc.cores = 1)
 }
 \arguments{
-\item{input}{A list containing observations and initial values for non profiled parameters (essentially an inp list) with the additional key "likprof" (see details for required keys). A valid result from fit.spict() containing an "inp" key with the described properties is also accepted.}
+\item{input}{A list containing observations and initial values for non
+profiled parameters (essentially an inp list) with the additional key
+"likprof" (see details for required keys). A valid result from
+fit.spict() containing an "inp" key with the described properties is also
+accepted.}
 
 \item{verbose}{Print progress to screen.}
+
+\item{mc.cores}{Number of cores for \code{parallel::mclapply} function. By
+default 1.}
 }
 \value{
-The output is the input with the likelihood profile information added to the likprof key of either inp or rep$inp.
+The output is the input with the likelihood profile information added
+    to the likprof key of either inp or rep$inp.
 }
 \description{
 Create profile likelihood
 }
 \details{
-The "likprof" list must containg the following keys:
-\itemize{
-  \item{"pars"}{ A character vector of length equal 1 or 2 containing the name(s) of the parameters to calculate the profile likelihood for.}
-  \item{"parrange"}{ A vector containing the parameter range(s) to profile over: parrange = c(min(par1), max(par1), min(par2), max(par2)).}
-}
-Optional:
-\itemize{
-  \item{"nogridpoints"}{ Number of grid points to evaluate the profile likelihood for each parameter. Default: 9. Note: with two parameters the calculation time increases quadratically when increasing the number of gridpoints.}
-}
+The "likprof" list must containg the following keys: \itemize{
+    \item{"pars"}{ A character vector of length equal 1 or 2 containing the
+    name(s) of the parameters to calculate the profile likelihood for.}
+    \item{"parrange"}{ A vector containing the parameter range(s) to profile
+    over: parrange = c(min(par1), max(par1), min(par2), max(par2)).} }
+    Optional: \itemize{ \item{"nogridpoints"}{ Number of grid points to
+    evaluate the profile likelihood for each parameter. Default: 9. Note:
+    with two parameters the calculation time increases quadratically when
+    increasing the number of gridpoints.} }
 }
 \examples{
 data(pol)

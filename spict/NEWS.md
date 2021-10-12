@@ -1,3 +1,37 @@
+spict v1.3.5 (2021-09-09)
+============
+
+New features:
+
+* Use TMB simulation functionality to simulate data from fitted spict object.
+  Set argument `use.tmb = TRUE` in `sim.spict()` function to use TMB
+  `SIMULATE{}`.
+* All functions using `parallel::mclapply()` have the argument `mc.cores` to
+  specify the number of cores to be used. By default `mc.cores` is equal to 1.
+
+Bug fixes
+
+* Default labeling of management scenarios was not using increasing numbers, but
+  reused the label "cutsomScenario_1". This is corrected and increasing numbers
+  are now used, i.e. "customScenario_2", etc.
+* In the case there is an abundance index after the last catch interval inside
+  the intermediate period and the argument `intermediatePeriodCatch` in
+  `manage()` is used, the intermediate period was calculated incorrectly, using
+  the argument `inp$indpred` rather than `inp$indCpred`. This also led to an
+  error message in `plotspict.catch()` with these management scenarios.
+
+Minor changes:
+
+* More informative error messages and user-friendly functionality of
+  `sim.spict()`
+* Three new arguments in the inp list (created by `check.inp`):
+  `sim.random.effects` that allows to turn the simulation of random effects on
+  and off, and `sim.fit` that allows to define whether the estimated parameters from the
+  last fit or initial values should be used for simulation.
+* The application of the retro function in the vignette was set to `mc.cores=1`
+  to circumvent multithread MKL and parallel problems.
+
+
 spict v1.3.4 (2021-02-21)
 ============
 
