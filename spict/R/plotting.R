@@ -2724,7 +2724,7 @@ plotspict.ci <- function(inp, stamp=get.version()){
         #time <- inp$timeC
         #y <- inp$obsC
         #z <- inp$obsI[[1]]
-        mfrow <- c(3, 2)
+        mfrow <- c(3, 3)
         if (class(c) == 'list'){ # A regression line could be fitted
             MSY <- c$MSY
             Emsy <- c$Emsy
@@ -2733,6 +2733,7 @@ plotspict.ci <- function(inp, stamp=get.version()){
             x <- c$x
             mod0 <- c$mod0
             xlim <- Re(polyroot(c(0, a, b)))
+            if(xlim[2]<0) xlim[2] <- max(x)*1.1
             xp <- data.frame('x'=seq(xlim[1], xlim[2], length=100))
             yp <- a*xp$x + b*xp$x^2 # Dome
             yp0 <- predict(mod0, xp)
@@ -2765,6 +2766,8 @@ plotspict.ci <- function(inp, stamp=get.version()){
             }
         }
         if (class(c) == 'list' & inp$nseasons == 1){
+            
+            plot.col(time,z,ylab="Catch/Index (E, effort proxy)",xlab="Year")
             #
             plot(x, z, typ='l', xlim=xlim, ylab='Index', xlab='Catch/Index (E, effort proxy)',
                  main=paste('R-squared:', round(summary(mod0)$r.squared, 3)), ylim=range(0, a, z))
