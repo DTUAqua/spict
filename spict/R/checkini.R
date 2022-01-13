@@ -44,8 +44,8 @@ check.ini <- function(input, ntrials=10, verbose=TRUE, numdigits=2){
         nms <- intersect( names(inp$ranges), names(rep$par.fixed) )
         inibasevec <- unlist(inp$ini[nms])
         resbasevec <- trans2real(rep$opt$par, names(rep$opt$par))
-        resmat <- matrix(nrow=ntrials, ncol=length(rep$par.fixed))
-        colnames(resmat) <- names(rep$par.fixed)
+        resmat <- matrix(nrow=ntrials, ncol=length(rep$par.fixed)+1)
+        colnames(resmat) <- c(names(rep$par.fixed),"objective_function_value")
         inimat <- matrix(nrow=ntrials, ncol=length(rep$par.fixed))
         colnames(inimat) <- names(rep$par.fixed) 
         propchng <- inimat
@@ -81,7 +81,8 @@ check.ini <- function(input, ntrials=10, verbose=TRUE, numdigits=2){
             repsens <- try(fit.spict(inpsens))
             if (class(repsens) != 'try-error' & 'opt' %in% names(repsens)){
                 if (repsens$opt$convergence == 0){
-                    resmat[i, ] <- trans2real(repsens$opt$par, names(repsens$opt$par))
+                    resmat[i, 1:(ncol(resmat)-1)] <- trans2real(repsens$opt$par, names(repsens$opt$par))
+                    resmat[i,ncol(resmat)]        <- repsens$opt$objective
                     resdist[i] <- calc.dist(resmat[i, ], resbasevec)
                     if(verbose){
                         cat(' model fitted!\n')
