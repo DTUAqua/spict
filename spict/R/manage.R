@@ -826,14 +826,18 @@ make.man.inp <- function(rep, scenarioTitle = "",
             realisedTAC <- get.TAC(rep, ffac = 0)
             ffac <- 0
         } else {
-            relTargetC <- cabs / tail(rep$inp$obsC, 1)
-            searchRange <- c(relTargetC / 2, relTargetC * 2)
+            relTargetC <- cabs / sum(tail(rep$inp$obsC, rep$inp$nseasons))
             realisedTAC <- NULL
             minme <- function(x) {
-                realisedTAC <<- get.TAC(rep, ffac = x)
+                realisedTAC <<- get.TAC(rep, ffac = exp(x))
                 (realisedTAC - cabs)^2
             }
-            ffac <- optimise(minme, searchRange, tol = ctol)$minimum
+            opt <- nlminb(1, minme,
+                          lower = log(relTargetC/1e3),
+                          upper = log(relTargetC*1e3),
+                          control = list(rel.tol = 0.01))
+            if(opt$convergence != 0) stop("The specified catch could not be approximated (mode not converged)!")
+            ffac <- exp(opt$par)
             signifround <- function(x) if (x >= 1) round(x) else signif(x, 2)
             if (verbose && abs((cabs - realisedTAC) / cabs) > 0.01) {
                 writeLines(paste0("Provided target catch: ", signifround(cabs),
@@ -1158,6 +1162,7 @@ add.man.scenario <- function(rep, scenarioTitle = "",
     default_safeguardB = list(limitB = 0, prob = 0.95)
     pList <- default_safeguardB[which(!names(default_safeguardB) %in% names(safeguardB))]
     pList <- c(pList,safeguardB)
+
 
     ## get inpt for retape
     ## get updated inp
