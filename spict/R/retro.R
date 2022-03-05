@@ -27,6 +27,9 @@
 #'     \code{FALSE}
 #' @param mc.cores Number of cores for \code{parallel::mclapply} function. By
 #'     default 1.
+#'
+#' @importFrom parallel mclapply
+#'
 #' @return A rep list with the added key retro containing the results of the
 #'     retrospective analysis. Use plotspict.retro() to plot these results.
 #' @examples
