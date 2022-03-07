@@ -345,7 +345,7 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
         writeLines(paste0("The stabilise option was used for fitting / ",
                           "is specified in the input list (inp$stabilise). ",
                           "This activates six very vague priors. ",
-                          "Acknolowdging these priors when simulating is not yet implemented. "))
+                          "Acknowledging these priors when simulating is not yet implemented. "))
     }
     ## Priors
     activePriors <- names(inp$priors)[which(inp$priorsuseflags == 1)]
@@ -353,7 +353,7 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
     if(length(activePriors) > 0){
         writeLines(paste0("Additional priors were used for fitting / are specified in the input list (inp$priors): ",
                           paste0(activePriors, collapse=", "),
-                          ". Acknolowdging these priors when simulating is not yet implemented. "))
+                          ". Acknowledging these priors when simulating is not yet implemented. "))
     }
 
     ## Use TMB for simulation
