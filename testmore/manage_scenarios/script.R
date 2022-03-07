@@ -15,7 +15,7 @@ source("../funcs.R")
 header("1: Testing add.man.scenarios with annual data", append = FALSE)
 ######################################################
 
-out("1.1: No intermediate year")
+header("1.1: No intermediate year")
 #################################
 
 inp <- pol$lobster
@@ -27,16 +27,14 @@ fit <- fit.spict(inp)
 man.timeline(fit)
 
 
-out("Fishing at Fmsy")
-test_this("1.1.1:", {
+test_this("1.1.1: Fishing at Fmsy", {
     round(get.TAC(fit),3)
 })
 test_this("1.1.2:", {
     round(get.TAC(fit, fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
-out("Fishing at Fmsy with PA buffer")
-test_this("1.1.3:", {
+test_this("1.1.3: Fishing at Fmsy with PA buffer", {
     round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.8)),3)
 })
 test_this("1.1.4:", {
@@ -44,16 +42,14 @@ test_this("1.1.4:", {
                                          fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
-out("MSY hockey-stick rule")
-test_this("1.1.5:", {
+test_this("1.1.5: MSY hockey-stick rule", {
     round(get.TAC(fit, breakpointB = 0.5),3)
 })
 test_this("1.1.6:", {
     round(get.TAC(fit, breakpointB = 0.5, fractiles = list(catch=0.2, ffmsy=0.1, bbmsy=0.1)),3)
 })
 
-out("MSY hockey-stick rule with PA buffer")
-test_this("1.1.7:", {
+test_this("1.1.7: MSY hockey-stick rule with PA buffer", {
     round(get.TAC(fit, breakpointB = 0.5, safeguardB = list(limitB=0.3, prob=0.9)),3)
 })
 test_this("1.1.8:", {
@@ -62,31 +58,28 @@ test_this("1.1.8:", {
 })
 
 
-out("1.2: intermediate year with constant F")
+header("1.2: intermediate year with constant F")
 #################################
 
 inp$maninterval <- c(1992, 1993)
 inp$maneval <- 1993
 fit <- fit.spict(inp)
 
-out("Fishing at Fmsy")
-test_this("1.2.1:", {
+test_this("1.2.1: Fishing at Fmsy", {
     round(get.TAC(fit),3)
 })
 test_this("1.2.2:", {
     round(get.TAC(fit, fractiles = list(catch=0.2)),3)
 })
 
-out("Fishing at Fmsy with biomass safeguard")
-test_this("1.2.3:", {
+test_this("1.2.3: Fishing at Fmsy with biomass safeguard", {
     round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.9)),3)
 })
 test_this("1.2.4:", {
     round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.6)),3)
 })
 
-out("MSY hockey-stick rule")
-test_this("1.2.5:", {
+test_this("1.2.5: MSY hockey-stick rule", {
     round(get.TAC(fit, breakpointB = 0.3),3)
 })
 test_this("1.2.6:", {
@@ -94,8 +87,7 @@ test_this("1.2.6:", {
                                         fractiles = list(catch=0.2, ffmsy=0.1, limitB=0.1)),3)
 })
 
-out("MSY hockey-stick rule with biomass safeguard")
-test_this("1.2.7:", {
+test_this("1.2.7: MSY hockey-stick rule with biomass safeguard", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.3, prob=0.8)),3)
 })
 test_this("1.2.8:", {
@@ -104,7 +96,7 @@ test_this("1.2.8:", {
 })
 
 
-out("1.3: intermediate year with constant catch")
+header("1.3: intermediate year with constant catch")
 #################################
 
 inp$maninterval <- c(1992, 1993)
@@ -112,24 +104,21 @@ inp$maneval <- 1993
 fit <- fit.spict(inp)
 lastC <- tail(inp$obsC,1)
 
-out("Fishing at Fmsy")
-test_this("1.3.1:", {
+test_this("1.3.1: Fishing at Fmsy", {
     round(get.TAC(fit, intermediatePeriodCatch = lastC),3)
 })
 test_this("1.3.2:", {
     round(get.TAC(fit, fractiles = list(catch=0.2), intermediatePeriodCatch = lastC),3)
 })
 
-out("Fishing at Fmsy with biomass safeguard")
-test_this("1.3.3:", {
+test_this("1.3.3: Fishing at Fmsy with biomass safeguard", {
     round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.9), intermediatePeriodCatch = lastC),3)
 })
 test_this("1.3.4:", {
     round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.6), intermediatePeriodCatch = lastC),3)
 })
 
-out("MSY hockey-stick rule")
-test_this("1.3.5:", {
+test_this("1.3.5: MSY hockey-stick rule", {
     round(get.TAC(fit, breakpointB = 0.3, intermediatePeriodCatch = lastC),3)
 })
 test_this("1.3.6:", {
@@ -138,8 +127,7 @@ test_this("1.3.6:", {
                                         intermediatePeriodCatch = lastC),3)
 })
 
-out("MSY hockey-stick rule with biomass safeguard")
-test_this("1.3.7:", {
+test_this("1.3.7: MSY hockey-stick rule with biomass safeguard", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.3, prob=0.8),
                                         intermediatePeriodCatch = lastC),3)
 })
@@ -164,7 +152,7 @@ inp$dteuler <- 1/4
 inpsim <- sim.spict(inp)
 
 
-out("2.1: standard advice")
+header("2.1: standard advice")
 ###############################
 
 inpsim$maneval <- nt+1
@@ -172,8 +160,7 @@ inpsim$maninterval <- c(nt,nt+1)
 inp <- check.inp(inpsim)
 fit <- fit.spict(inp)
 
-out("Fishing at Fmsy")
-test_this("2.1.1:", {
+test_this("2.1.1: Fishing at Fmsy", {
     round(get.TAC(fit),3)
 })
 test_this("2.1.2:", {
@@ -183,8 +170,7 @@ test_this("2.1.3:", {
     round(get.TAC(fit, fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
-out("Fishing at Fmsy with PA buffer")
-test_this("2.1.4:", {
+test_this("2.1.4: Fishing at Fmsy with PA buffer", {
     round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.8)),3)
 })
 test_this("2.1.5:", {
@@ -195,16 +181,14 @@ test_this("2.1.6:", {
                   fractiles = list(catch=0.2,ffmsy = 0.1)),3)
 })
 
-out("MSY hockey-stick rule")
-test_this("2.1.7:", {
+test_this("2.1.7: MSY hockey-stick rule", {
     round(get.TAC(fit, breakpointB = 0.3),3)
 })
 test_this("2.1.8:", {
     round(get.TAC(fit, breakpointB = 0.5, fractiles = list(catch=0.2, ffmsy=0.1, bbmsy=0.1)),3)
 })
 
-out("MSY hockey-stick rule with PA buffer")
-test_this("2.1.9:", {
+test_this("2.1.9: MSY hockey-stick rule with PA buffer", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.3, prob=0.8)),3)
 })
 test_this("2.1.10:", {
@@ -213,7 +197,7 @@ test_this("2.1.10:", {
 })
 
 
-out("2.2: in year advice")
+header("2.2: in year advice")
 ###############################
 
 inpsim$maneval <- nt+1.5
@@ -221,36 +205,31 @@ inpsim$maninterval <- c(nt+0.5,nt+1.5)
 inp <- check.inp(inpsim)
 fit <- fit.spict(inp)
 
-out("Fishing at Fmsy")
-test_this("2.2.1:", {
+test_this("2.2.1: Fishing at Fmsy", {
     round(get.TAC(fit),3)
 })
 test_this("2.2.2:", {
     round(get.TAC(fit, fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
-out("Fishing at Fmsy with PA buffer")
-test_this("2.2.3:", {
+test_this("2.2.3: Fishing at Fmsy with PA buffer", {
     round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.8)),3)
 })
 test_this("2.2.4:", {
     round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.65)),3)
 })
 
-out("MSY hockey-stick rule")
-test_this("2.2.5:", {
+test_this("2.2.5: MSY hockey-stick rule", {
     round(get.TAC(fit, breakpointB = 0.5, fractiles = list(catch=0.2, ffmsy=0.1)),3)
 })
 
 
-out("MSY hockey-stick rule with PA buffer")
-test_this("2.2.6:", {
+test_this("2.2.6: MSY hockey-stick rule with PA buffer", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.5, prob=0.9),
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
-out("Fishing at Fmsy with TAC during assessment year")
-test_this("2.2.7:", {
+test_this("2.2.7: Fishing at Fmsy with TAC during assessment year", {
     round(get.TAC(fit, intermediatePeriodCatch = 100,
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
@@ -276,7 +255,7 @@ inpsim <- sim.spict(inp)
 
 
 
-out("3.1: standard advice")
+header("3.1: standard advice")
 ###############################
 
 inpsim$maneval <- nt+1
@@ -285,74 +264,60 @@ inp <- check.inp(inpsim)
 fit <- fit.spict(inp)
 
 
-
-out("Fishing at Fmsy")
-test_this("3.1.1:", {
+test_this("3.1.1: Fishing at Fmsy", {
     round(get.TAC(fit),3)
 })
-test_this("3.1.2:", {
+test_this("3.1.2: Using catch and F/Fmsy fractiles", {
     round(get.TAC(fit, fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
-out("Fishing at Fmsy with PA buffer")
-test_this("3.1.3:", {
+test_this("3.1.3: Fishing at Fmsy with PA buffer", {
     round(get.TAC(fit, safeguardB = list(limitB=0.5, prob=0.65)),3)
 })
 
-out("MSY hockey-stick rule")
-test_this("3.1.4:", {
+test_this("3.1.4: MSY hockey-stick rule", {
     round(get.TAC(fit, breakpointB = 0.5, fractiles = list(catch=0.2, ffmsy=0.1)),3)
 })
 
-
-out("MSY hockey-stick rule with PA buffer")
-test_this("3.1.5:", {
+test_this("3.1.5: MSY hockey-stick rule with PA buffer", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.5, prob=0.9),
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
-out("Fishing at Fmsy with TAC during assessment year")
-test_this("4.1.6:", {
+test_this("3.1.6: Fishing at Fmsy with TAC during assessment year", {
     round(get.TAC(fit, intermediatePeriodCatch = 40,
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
-
-
-out("3.2: in year advice")
+header("3.2: in year advice")
 ###############################
 inpsim$maneval <- nt+1.5
 inpsim$maninterval <- c(nt+0.5,nt+1.5)
 inp <- check.inp(inpsim)
 fit <- fit.spict(inp)
 
-out("Fishing at Fmsy")
-test_this("4.2.1:", {
+test_this("3.2.1: Fishing at Fmsy", {
     round(get.TAC(fit),3)
 })
-test_this("4.2.2:", {
+test_this("3.2.2: Using catch and F/Fmsy fractiles", {
     round(get.TAC(fit, fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
-out("Fishing at Fmsy with PA buffer")
-test_this("4.2.3:", {
+test_this("3.2.3: Fishing at Fmsy with PA buffer", {
     round(get.TAC(fit, safeguardB = list(limitB=0.3, prob=0.9)),3)
 })
 
-out("MSY hockey-stick rule")
-test_this("4.2.4:", {
+test_this("3.2.4: MSY hockey-stick rule", {
     round(get.TAC(fit, breakpointB = 0.5, fractiles = list(catch=0.2, ffmsy=0.1)),3)
 })
 
 
-out("MSY hockey-stick rule with PA buffer")
-test_this("4.2.5:", {
+test_this("3.2.5: MSY hockey-stick rule with PA buffer", {
     round(get.TAC(fit, breakpointB = 0.3, safeguardB = list(limitB=0.5, prob=0.9),
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
-out("Fishing at Fmsy with TAC during assessment year")
-test_this("4.2.6:", {
+test_this("3.2.6: Fishing at Fmsy with TAC during assessment year", {
     round(get.TAC(fit, intermediatePeriodCatch = 40,
                   fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
@@ -374,7 +339,7 @@ inpsim <- sim.spict(inp)
 ## plotspict.data(inpsim)
 
 
-out("4.1: Last index observation inside intermediate year")
+header("4.1: Last index observation inside intermediate year")
 ###############################
 
 inp <- list()
@@ -400,8 +365,7 @@ fit <- add.man.scenario(fit, ffac = 0)
 fit <- add.man.scenario(fit, ffac = 1)
 
 
-out("without intermediatePeriodCatch")
-test_this("4.1.1: Summary", {
+test_this("4.1.1: Summary without intermediatePeriodCatch", {
     sumspict.manage(fit)
 })
 
@@ -414,8 +378,7 @@ fit <- add.man.scenario(fit, intermediatePeriodCatch = mean(inp$obsC))
 fit <- add.man.scenario(fit, ffac = 0, intermediatePeriodCatch = mean(inp$obsC))
 fit <- add.man.scenario(fit, ffac = 1, intermediatePeriodCatch = mean(inp$obsC))
 
-out("without intermediatePeriodCatch")
-test_this("4.1.4: Summary", {
+test_this("4.1.4: Summary with intermediatePeriodCatch", {
     sumspict.manage(fit)
 })
 

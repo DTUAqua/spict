@@ -2,9 +2,11 @@
 1: Testing add.man.scenarios with annual data
 =============================================
 
+
 1.1: No intermediate year
-Fishing at Fmsy
-1.1.1:
+=========================
+
+1.1.1: Fishing at Fmsy
 [1] 1636.462
 
 
@@ -12,8 +14,7 @@ Fishing at Fmsy
 [1] 894.115
 
 
-Fishing at Fmsy with PA buffer
-1.1.3:
+1.1.3: Fishing at Fmsy with PA buffer
 [1] 1636.462
 
 
@@ -22,8 +23,7 @@ Not possible even with zero F
 [1] 0.003
 
 
-MSY hockey-stick rule
-1.1.5:
+1.1.5: MSY hockey-stick rule
 [1] 1419.445
 
 
@@ -31,8 +31,7 @@ MSY hockey-stick rule
 [1] 445.334
 
 
-MSY hockey-stick rule with PA buffer
-1.1.7:
+1.1.7: MSY hockey-stick rule with PA buffer
 [1] 743.969
 
 
@@ -41,9 +40,11 @@ Not possible even with zero F
 [1] 0.003
 
 
+
 1.2: intermediate year with constant F
-Fishing at Fmsy
-1.2.1:
+======================================
+
+1.2.1: Fishing at Fmsy
 [1] 1682.849
 
 
@@ -51,8 +52,7 @@ Fishing at Fmsy
 [1] 1378.269
 
 
-Fishing at Fmsy with biomass safeguard
-1.2.3:
+1.2.3: Fishing at Fmsy with biomass safeguard
 [1] 451.345
 
 
@@ -60,8 +60,7 @@ Fishing at Fmsy with biomass safeguard
 [1] 586.187
 
 
-MSY hockey-stick rule
-1.2.5:
+1.2.5: MSY hockey-stick rule
 [1] 1682.849
 
 
@@ -69,8 +68,7 @@ MSY hockey-stick rule
 [1] 736.61
 
 
-MSY hockey-stick rule with biomass safeguard
-1.2.7:
+1.2.7: MSY hockey-stick rule with biomass safeguard
 [1] 1682.849
 
 
@@ -79,9 +77,11 @@ Not possible even with zero F
 [1] 0.003
 
 
+
 1.3: intermediate year with constant catch
-Fishing at Fmsy
-1.3.1:
+==========================================
+
+1.3.1: Fishing at Fmsy
 The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
 [1] 1677.677
@@ -93,8 +93,7 @@ The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCat
 [1] 1467.184
 
 
-Fishing at Fmsy with biomass safeguard
-1.3.3:
+1.3.3: Fishing at Fmsy with biomass safeguard
 The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
 [1] 919.078
@@ -106,8 +105,7 @@ The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCat
 [1] 693.033
 
 
-MSY hockey-stick rule
-1.3.5:
+1.3.5: MSY hockey-stick rule
 The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
 [1] 1677.677
@@ -119,8 +117,7 @@ The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCat
 [1] 781.709
 
 
-MSY hockey-stick rule with biomass safeguard
-1.3.7:
+1.3.7: MSY hockey-stick rule with biomass safeguard
 The intermediate time period is 1 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
 [1] 1677.677
@@ -137,9 +134,11 @@ Not possible even with zero F
 2: Testing management scenarios with seasonal data
 ==================================================
 
+
 2.1: standard advice
-Fishing at Fmsy
-2.1.1:
+====================
+
+2.1.1: Fishing at Fmsy
 [1] 1432.864
 
 
@@ -151,8 +150,7 @@ Fishing at Fmsy
 [1] 1008.888
 
 
-Fishing at Fmsy with PA buffer
-2.1.4:
+2.1.4: Fishing at Fmsy with PA buffer
 [1] 1432.864
 
 
@@ -164,8 +162,7 @@ Fishing at Fmsy with PA buffer
 [1] 1008.888
 
 
-MSY hockey-stick rule
-2.1.7:
+2.1.7: MSY hockey-stick rule
 [1] 1432.864
 
 
@@ -173,8 +170,7 @@ MSY hockey-stick rule
 [1] 1008.888
 
 
-MSY hockey-stick rule with PA buffer
-2.1.9:
+2.1.9: MSY hockey-stick rule with PA buffer
 [1] 1432.864
 
 
@@ -182,9 +178,11 @@ MSY hockey-stick rule with PA buffer
 [1] 1008.888
 
 
+
 2.2: in year advice
-Fishing at Fmsy
-2.2.1:
+===================
+
+2.2.1: Fishing at Fmsy
 [1] 961.838
 
 
@@ -192,8 +190,7 @@ Fishing at Fmsy
 [1] 581.063
 
 
-Fishing at Fmsy with PA buffer
-2.2.3:
+2.2.3: Fishing at Fmsy with PA buffer
 [1] 961.838
 
 
@@ -201,18 +198,15 @@ Fishing at Fmsy with PA buffer
 [1] 961.838
 
 
-MSY hockey-stick rule
-2.2.5:
+2.2.5: MSY hockey-stick rule
 [1] 581.063
 
 
-MSY hockey-stick rule with PA buffer
-2.2.6:
+2.2.6: MSY hockey-stick rule with PA buffer
 [1] 581.063
 
 
-Fishing at Fmsy with TAC during assessment year
-2.2.7:
+2.2.7: Fishing at Fmsy with TAC during assessment year
 The intermediate time period is 0.5 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
 [1] 620.938
@@ -222,64 +216,60 @@ The intermediate time period is 0.5 year(s) long. The catch 'intermediatePeriodC
 3: Testing management scenarios with mixed data
 ===============================================
 
+
 3.1: standard advice
-Fishing at Fmsy
-3.1.1:
+====================
+
+3.1.1: Fishing at Fmsy
 [1] 785.21
 
 
-3.1.2:
+3.1.2: Using catch and F/Fmsy fractiles
 [1] 531.3
 
 
-Fishing at Fmsy with PA buffer
-3.1.3:
+3.1.3: Fishing at Fmsy with PA buffer
 [1] 785.21
 
 
-MSY hockey-stick rule
-3.1.4:
+3.1.4: MSY hockey-stick rule
 [1] 531.3
 
 
-MSY hockey-stick rule with PA buffer
-3.1.5:
+3.1.5: MSY hockey-stick rule with PA buffer
 [1] 531.3
 
 
-Fishing at Fmsy with TAC during assessment year
-4.1.6:
+3.1.6: Fishing at Fmsy with TAC during assessment year
 No intermediate period to apply the intermediatePeriodCatch to. Change mantinerval if you want to specify a catch in the intermediate period.
 [1] 531.3
 
 
+
 3.2: in year advice
-Fishing at Fmsy
-4.2.1:
+===================
+
+3.2.1: Fishing at Fmsy
 [1] 553.454
 
 
-4.2.2:
+3.2.2: Using catch and F/Fmsy fractiles
 [1] 314.004
 
 
-Fishing at Fmsy with PA buffer
-4.2.3:
+3.2.3: Fishing at Fmsy with PA buffer
 [1] 553.454
 
 
-MSY hockey-stick rule
-4.2.4:
+3.2.4: MSY hockey-stick rule
 [1] 314.004
 
 
-MSY hockey-stick rule with PA buffer
-4.2.5:
+3.2.5: MSY hockey-stick rule with PA buffer
 [1] 314.004
 
 
-Fishing at Fmsy with TAC during assessment year
-4.2.6:
+3.2.6: Fishing at Fmsy with TAC during assessment year
 The intermediate time period is 0.5 year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.
 
 [1] 332.211
@@ -289,13 +279,15 @@ The intermediate time period is 0.5 year(s) long. The catch 'intermediatePeriodC
 4: Other special cases
 ======================
 
+
 4.1: Last index observation inside intermediate year
-without intermediatePeriodCatch
-4.1.1: Summary
+====================================================
+
+4.1.1: Summary without intermediatePeriodCatch
 SPiCT timeline:
-                                                                          
-      Observations             Intermediate             Management        
-     0.00 - 48.00            48.00 - 49.00           49.00 - 50.00        
+
+      Observations             Intermediate             Management
+     0.00 - 48.00            48.00 - 49.00           49.00 - 50.00
  |-----------------------| ----------------------| ----------------------|
 
 Management evaluation: 50.00
@@ -314,12 +306,11 @@ $est
 
 
 
-without intermediatePeriodCatch
-4.1.4: Summary
+4.1.4: Summary with intermediatePeriodCatch
 SPiCT timeline:
-                                                                          
-      Observations             Intermediate             Management        
-     0.00 - 48.00            48.00 - 49.00           49.00 - 50.00        
+
+      Observations             Intermediate             Management
+     0.00 - 48.00            48.00 - 49.00           49.00 - 50.00
  |-----------------------| ----------------------| ----------------------|
 
 Management evaluation: 50.00
