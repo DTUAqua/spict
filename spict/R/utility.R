@@ -814,6 +814,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
         inpout$true$MSYvec <- inpout$true$MSYvec[inpin$time %in% inpout$time]
         inpout$true$Fmsyvec <- inpout$true$Fmsyvec[inpin$time %in% inpout$time]
     }
+    inpout$timerangeObs <- NULL
     inpChecked <- check.inp(inpout, verbose = FALSE)
     inpChecked <- check.man.time(inpChecked, verbose = FALSE, printTimeline = FALSE)
     return(inpChecked)
