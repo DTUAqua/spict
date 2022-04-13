@@ -53,13 +53,13 @@ hindcast <- function(rep, nyears = 7, reduce.output.size = TRUE, mc.cores = 1){
     for (i in 1:nyears) {
         inpall[[i]] <- inpin
         ## Catch
-        indsC <- which(inpin$timeC <= inpin$timeC[inpin$nobsC] - i + 1)
+        indsC <- which(inpin$timeC <= lastyears[i]) ## inpin$timeC[inpin$nobsC] - i + 1)
         inpall[[i]]$obsC <- inpin$obsC[indsC]
         inpall[[i]]$timeC <- inpin$timeC[indsC]
         inpall[[i]]$stdevfacC <- inpin$stdevfacC[indsC]
         inpall[[i]]$dtc <- inpin$dtc[indsC]
         ## Effort
-        indsE <- which(inpin$timeE <= inpin$timeE[inpin$nobsE] - i + 1)
+        indsE <- which(inpin$timeE <= lastyears[i]) ## inpin$timeE[inpin$nobsE] - i + 1)
         inpall[[i]]$obsE <- inpin$obsE[indsE]
         inpall[[i]]$timeE <- inpin$timeE[indsE]
         inpall[[i]]$stdevfacE <- inpin$stdevfacE[indsE]
@@ -68,17 +68,19 @@ hindcast <- function(rep, nyears = 7, reduce.output.size = TRUE, mc.cores = 1){
         inpall[[i]]$obsI <- list()
         inpall[[i]]$timeI <- list()
         for (j in seq_len(inpin$nindex)) {
-            indsI <- which(inpin$timeI[[j]] <= inpin$timeI[[j]][inpin$nobsI[j]] - i + 1)
+            indsI <- which(inpin$timeI[[j]] <= lastyears[i] + 1) ## inpin$timeI[[j]][inpin$nobsI[j]] - i + 1)
             inpall[[i]]$obsI[[j]] <- inpin$obsI[[j]][indsI]
             inpall[[i]]$timeI[[j]] <- inpin$timeI[[j]][indsI]
             inpall[[i]]$stdevfacI[[j]] <- inpin$stdevfacI[[j]][indsI]
         }
         inpall[[i]]$getReportCovariance <- !reduce.output.size
         inpall[[i]]$getJointPrecision <- !reduce.output.size
+        ## Check
         inpall[[i]] <- check.inp(inpall[[i]])
         ## Flag out last index observations
         inpall[[i]]$iuse[cumsum(inpall[[i]]$nobsI)] <- !ceiling(sapply(inpall[[i]]$timeI, max)) >= lastyears[i]
     }
+
     asd <- try(parallel::mclapply(inpall, fit.spict, mc.cores = mc.cores))
     if (class(asd) == "try-error") {
         rep$hindcast <- lapply(inpall, fit.spict)
