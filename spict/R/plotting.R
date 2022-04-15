@@ -3264,7 +3264,7 @@ plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
 plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
                                          xlim = NULL, ylim = NULL, xlab = "Year", ylab = "Index",
                                          plot.log = TRUE,
-                                         stamp=get.version()){
+                               stamp=get.version()){
 
     check.rep(rep)
 
@@ -3293,19 +3293,19 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
         valid <- c(valid, ifelse(any(hindcastyears %in% floor(rep$inp$timeI[[i]])), TRUE, FALSE))
     }
     indices <- indices[valid]
-    nind <- length(indices)
+    nind.val <- length(indices)
 
     ## Error if no valid survey
     if(nind < 1) stop("The survey(s) do(es) not overlap with the hindcast years! Cannot perform hindcasting cross-validation based on the hindcasted runs!")
 
-    if(nind < 4){
-        mfrow <- c(1, nind)
-    }else if(nind < 9){
-        mfrow <- c(2, ceiling(nind/2))
-    }else if(nind < 16){
-        mfrow <- c(3, ceiling(nind/3))
+    if(nind.val < 4){
+        mfrow <- c(1, nind.val)
+    }else if(nind.val < 9){
+        mfrow <- c(2, ceiling(nind.val/2))
+    }else if(nind.val < 16){
+        mfrow <- c(3, ceiling(nind.val/3))
     }else{
-        mfrow <- c(4, ceiling(nind/4))
+        mfrow <- c(4, ceiling(nind.val/4))
     }
     opar <- par(mfrow = mfrow, mar = c(5.1, 4.3, 4.1, 2.1))
     on.exit(par(opar))
@@ -3314,6 +3314,7 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
     cols2 <- rgb(t(col2rgb(cols))/255, alpha=0.5)
 
     ## convergence
+    conv0 <- !as.logical(sapply(hindcast, function(x) x$opt$convergence))
     conv <- sapply(hindcast[-1], function(x) x$opt$convergence)
     conv <- ifelse(conv == 0, TRUE, FALSE)
     conv <- rev(conv)
@@ -3336,19 +3337,31 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
     for(i in 1:nind){
         if(valid[i]){
             ## Extract survey obs and preds from all hindcast runs
-            dat <- as.data.frame(
-                do.call(rbind,
-                        lapply(1:(nhindcast+1),
-                               function(x)
-                                   cbind(obs = hindcast[[x]]$inp$obsI[[i]],
-                                         pred = unname(get.par("logIpred",
-                                                               hindcast[[x]], exp = TRUE)[indI[[x]][[i]],2]),
-                                         lc = unname(get.par("logIpred",
-                                                             hindcast[[x]], exp = TRUE, CI = CI)[indI[[x]][[i]],1]),
-                                         uc = unname(get.par("logIpred",
-                                                             hindcast[[x]], exp = TRUE, CI = CI)[indI[[x]][[i]],3]),
-                                         year = floor(hindcast[[x]]$inp$timeI[[i]]),
-                                         run = x-1))))
+            ## dat <- as.data.frame(
+            ##     do.call(rbind,
+            ##             lapply(1:(nhindcast+1),
+            ##                    function(x)
+            ##                        cbind(obs = hindcast[[x]]$inp$obsI[[i]],
+            ##                              pred = unname(get.par("logIpred",
+            ##                                                    hindcast[[x]], exp = TRUE)[indI[[x]][[i]],2]),
+            ##                              lc = unname(get.par("logIpred",
+            ##                                                  hindcast[[x]], exp = TRUE, CI = CI)[indI[[x]][[i]],1]),
+            ##                              uc = unname(get.par("logIpred",
+            ##                                                  hindcast[[x]], exp = TRUE, CI = CI)[indI[[x]][[i]],3]),
+            ##                              year = floor(hindcast[[x]]$inp$timeI[[i]]),
+            ##                              run = x-1))))
+            tmp <- lapply(1:(nhindcast+1),
+                          function(x)
+                              cbind(obs = hindcast[[x]]$inp$obsI[[i]],
+                                    pred = unname(get.par("logIpred",
+                                                          hindcast[[x]], exp = TRUE)[indI[[x]][[i]],2]),
+                                    lc = unname(get.par("logIpred",
+                                                        hindcast[[x]], exp = TRUE, CI = CI)[indI[[x]][[i]],1]),
+                                    uc = unname(get.par("logIpred",
+                                                        hindcast[[x]], exp = TRUE, CI = CI)[indI[[x]][[i]],3]),
+                                    year = floor(hindcast[[x]]$inp$timeI[[i]]),
+                                    run = x-1))
+            dat <- as.data.frame(do.call(rbind, tmp[conv0]))
             if(plot.log){
                 dat[,c("obs","pred","lc","uc")] <- log(dat[,c("obs","pred","lc","uc")])
             }
@@ -3372,16 +3385,16 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
             if(is.null(xlim)){
                 xlimi <- range(years)
             }else if(inherits(xlim, "list")){
-                if(length(xlim) >= nind){
+                if(length(xlim) >= nind.val){
                     xlimi <- xlim[[i]]
                 }else{
                     xlimi <- xlim[[1]]
                 }
             }
             if(is.null(ylim)){
-                ylimi <- c(0.95,1.05) * range(dat[c("obs","pred","lc","uc")])
+                ylimi <- c(0.9,1.1) * range(dat[c("obs","pred","lc","uc")])
             }else if(inherits(ylim, "list")){
-                if(length(ylim) >= nind){
+                if(length(ylim) >= nind.val){
                     ylimi <- ylim[[i]]
                 }else{
                     ylimi <- ylim[[1]]
@@ -3442,7 +3455,7 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
             }
 
             ## Legend
-            if(i == nind){
+            if(i == nind.val){
                 legend("topright",
                        title = "Last year",
                        c("Ref",revhindcastyears,NA,"obs","pred"),
