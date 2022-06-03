@@ -3395,7 +3395,8 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
                  xlab = xlabi, ylab = ylabi)
             polygon(c(py,rev(py)),c(lc,rev(uc)), col = "lightgrey", border = NA)
             lines(py, pred, lwd = 2, col = 1)
-            points(py, obs, pch=21, cex=1.8, bg="white",lwd = 1.5)
+            points(py[1:(length(obs)-nhindcast)],
+                   obs[1:(length(obs)-nhindcast)], pch=21, cex=1.8, bg="white",lwd = 1.5)
             box(lwd=1.5)
 
             ## Naive diff
@@ -3415,13 +3416,11 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
             }
             isNAnaive <- is.na(naive)
 
-
             ## Observations to match predictions with
             points(hindcastyears[conv][!isNAnaive],
                    obsi[!isNAnaive],
                    pch = 21, cex = 1.8, lwd = 1.5,
-                   bg=rev(cols[1:length(hindcastyears[conv])])[!isNAnaive])
-
+                   bg = rev(cols[1:nhindcast])[conv][!isNAnaive])
 
             ## Predictions
             pred <- NULL
