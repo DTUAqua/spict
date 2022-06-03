@@ -3227,6 +3227,8 @@ plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
 #' @param ylim Limits for y-axis.
 #' @param xlab Label for x-axis, "Year" by default.
 #' @param ylab Label for y-axis, "Index" by default.
+#' @param legend.pos Legend position (default: "topright"). If NULL or NA, no
+#'     legend is plotted.
 #' @param stamp Stamp plot with this character string.
 #'
 #' @seealso \code{\link{hindcast}}
@@ -3262,8 +3264,8 @@ plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
 #'
 #'
 plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
-                                         xlim = NULL, ylim = NULL, xlab = "Year", ylab = "Index",
-                                         plot.log = TRUE,
+                               xlim = NULL, ylim = NULL, xlab = "Year", ylab = "Index",
+                               plot.log = TRUE, legend.pos = "topright",
                                stamp=get.version()){
 
     check.rep(rep)
@@ -3337,19 +3339,6 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
     for(i in 1:nind){
         if(valid[i]){
             ## Extract survey obs and preds from all hindcast runs
-            ## dat <- as.data.frame(
-            ##     do.call(rbind,
-            ##             lapply(1:(nhindcast+1),
-            ##                    function(x)
-            ##                        cbind(obs = hindcast[[x]]$inp$obsI[[i]],
-            ##                              pred = unname(get.par("logIpred",
-            ##                                                    hindcast[[x]], exp = TRUE)[indI[[x]][[i]],2]),
-            ##                              lc = unname(get.par("logIpred",
-            ##                                                  hindcast[[x]], exp = TRUE, CI = CI)[indI[[x]][[i]],1]),
-            ##                              uc = unname(get.par("logIpred",
-            ##                                                  hindcast[[x]], exp = TRUE, CI = CI)[indI[[x]][[i]],3]),
-            ##                              year = floor(hindcast[[x]]$inp$timeI[[i]]),
-            ##                              run = x-1))))
             tmp <- lapply(1:(nhindcast+1),
                           function(x)
                               cbind(obs = hindcast[[x]]$inp$obsI[[i]],
@@ -3456,16 +3445,18 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
 
             ## Legend
             if(i == nind.val){
-                legend("topright",
-                       title = "Last year",
-                       c("Ref",revhindcastyears,NA,"obs","pred"),
-                       col = c(1, cols[1:nhindcast],NA,1,1),
-                       pt.bg = "white",
-                       pt.cex = c(NA,rep(NA,nhindcast),NA,1.8, 1),
-                       lwd = c(2,rep(2,nhindcast), rep(NA,3)),
-                       pch = c(NA,rep(NA,nhindcast), NA, 21,21),
-                       pt.lwd = c(NA,rep(NA,nhindcast), NA, 1.5,1.5))
+                if(!is.null(legend.pos) && !is.na(legend.pos)){
+                    legend(legend.pos,
+                           title = "Last year",
+                           c("Ref",revhindcastyears,NA,"obs","pred"),
+                           col = c(1, cols[1:nhindcast],NA,1,1),
+                           pt.bg = "white",
+                           pt.cex = c(NA,rep(NA,nhindcast),NA,1.8, 1),
+                           lwd = c(2,rep(2,nhindcast), rep(NA,3)),
+                           pch = c(NA,rep(NA,nhindcast), NA, 21,21),
+                           pt.lwd = c(NA,rep(NA,nhindcast), NA, 1.5,1.5))
                 }
+            }
 
             ## MASE
             masei <- mean(abs(pred))/mean(abs(naive))

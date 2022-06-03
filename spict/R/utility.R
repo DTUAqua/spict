@@ -725,6 +725,8 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
         inpout$dtprede <- NULL
         inpout$manstart <- NULL
         inpout$timepredi <- NULL
+        inpout$lastCatchObs <- NULL
+        inpout$timerangeObs <- NULL
     }
 
     ## placeholder to create time vector

@@ -17,7 +17,7 @@ inp <- shorten.inp(pol$albacore, maxtime = 1980)
 fit <- fit.spict(inp)
 suppressWarnings(fit <- hindcast(fit, nyears = 8))
 
-test_this("1.1. Convergence of last two peels is not achieved",
+test_this("1.1. Convergence of last three peels is not achieved",
           sapply(fit$hindcast, function(x) x$opt$convergence))
 
 test_this("1.2. MASE is calculated correctly",
