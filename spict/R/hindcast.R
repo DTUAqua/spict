@@ -53,13 +53,13 @@ hindcast <- function(rep, nyears = 7, reduce.output.size = TRUE, mc.cores = 1){
     for (i in 1:nyears) {
         inpall[[i]] <- inpin
         ## Catch
-        indsC <- which(inpin$timeC <= lastyears[i])
+        indsC <- which(inpin$timeC < lastyears[i])
         inpall[[i]]$obsC <- inpin$obsC[indsC]
         inpall[[i]]$timeC <- inpin$timeC[indsC]
         inpall[[i]]$stdevfacC <- inpin$stdevfacC[indsC]
         inpall[[i]]$dtc <- inpin$dtc[indsC]
         ## Effort
-        indsE <- which(inpin$timeE <= lastyears[i])
+        indsE <- which(inpin$timeE < lastyears[i])
         inpall[[i]]$obsE <- inpin$obsE[indsE]
         inpall[[i]]$timeE <- inpin$timeE[indsE]
         inpall[[i]]$stdevfacE <- inpin$stdevfacE[indsE]
@@ -68,7 +68,7 @@ hindcast <- function(rep, nyears = 7, reduce.output.size = TRUE, mc.cores = 1){
         inpall[[i]]$obsI <- list()
         inpall[[i]]$timeI <- list()
         for (j in seq_len(inpin$nindex)) {
-            indsI <- which(inpin$timeI[[j]] <= lastyears[i] + 1)
+            indsI <- which(inpin$timeI[[j]] < lastyears[i] + 1)
             inpall[[i]]$obsI[[j]] <- inpin$obsI[[j]][indsI]
             inpall[[i]]$timeI[[j]] <- inpin$timeI[[j]][indsI]
             inpall[[i]]$stdevfacI[[j]] <- inpin$stdevfacI[[j]][indsI]
@@ -87,6 +87,7 @@ hindcast <- function(rep, nyears = 7, reduce.output.size = TRUE, mc.cores = 1){
     } else {
         rep$hindcast <- asd
     }
+
     ## Add the base run into the retro list
     baserun <- rep
     baserun$hindcast <- NULL
@@ -128,13 +129,14 @@ calc.mase <- function(rep, verbose = TRUE) {
     ## Hindcast
     hindcast <- rep$hindcast
     nhindcast <- length(hindcast) - 1
-    runs <- c(0, seq_len(nhindcast-1))
     runs <- seq_len(nhindcast)
 
     ## Time
     timeRangeSurv <- range(unlist(rep$inp$timeI))
     survYears <- seq(floor(timeRangeSurv[1]), floor(timeRangeSurv[2]),1)
-    hindcastyears <- survYears[(length(survYears)-nhindcast+1):length(survYears)]
+    hindcastyears <- rev(sapply(hindcast[-1], function(x) max(ceiling(c(x$inp$timeC + x$inp$dtc,
+                                                                        x$inp$timeE + x$inp$dte,
+                                                                        unlist(x$inp$timeI))))))
     revhindcastyears <- rev(hindcastyears)
 
     ## Indices
@@ -214,9 +216,7 @@ calc.mase <- function(rep, verbose = TRUE) {
             pred <- NULL
             for(j in 1:nhindcast){
                 if(revhindcastyears[j] %in% dat$year && rev(conv)[j]){
-                    x <- min(py):max(hindcastyears)
-                    x <- x[1:(length(x) - runs[j] + 1)]
-                    x <- x[x %in% years]
+                    x <- dat$year[dat$run == runs[j]]
                     n <- length(x)
                     y <- dat[dat$run == runs[j] & dat$year %in% x,]$pred
                     pred <- c(pred, log(y[n]) - log(obs[n]))

@@ -3277,13 +3277,14 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
     ## Hindcast
     hindcast <- rep$hindcast
     nhindcast <- length(hindcast) - 1
-    runs <- c(0, seq_len(nhindcast-1))
     runs <- seq_len(nhindcast)
 
     ## Time
     timeRangeSurv <- range(unlist(rep$inp$timeI))
     survYears <- seq(floor(timeRangeSurv[1]), floor(timeRangeSurv[2]),1)
-    hindcastyears <- survYears[(length(survYears)-nhindcast+1):length(survYears)]
+    hindcastyears <- rev(sapply(hindcast[-1], function(x) max(ceiling(c(x$inp$timeC + x$inp$dtc,
+                                                                x$inp$timeE + x$inp$dte,
+                                                                unlist(x$inp$timeI))))))
     revhindcastyears <- rev(hindcastyears)
 
     ## Indices
@@ -3292,7 +3293,8 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
     ## Check that surveys overlap with hindcast years
     valid <- NULL
     for(i in 1:nind){
-        valid <- c(valid, ifelse(any(hindcastyears %in% floor(rep$inp$timeI[[i]])), TRUE, FALSE))
+        valid <- c(valid, ifelse(any(hindcastyears %in% floor(rep$inp$timeI[[i]])),
+                                 TRUE, FALSE))
     }
     indices <- indices[valid]
     nind.val <- length(indices)
@@ -3416,6 +3418,8 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
             }
             isNAnaive <- is.na(naive)
 
+            if(length(hindcastyears[conv][!isNAnaive]) < 1) stop("Not enough converged naive predictions available, increase the number of peels and run again!")
+
             ## Observations to match predictions with
             points(hindcastyears[conv][!isNAnaive],
                    obsi[!isNAnaive],
@@ -3426,9 +3430,7 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
             pred <- NULL
             for(j in 1:nhindcast){
                 if(revhindcastyears[j] %in% dat$year && rev(conv)[j]){
-                    x <- min(py):max(hindcastyears)
-                    x <- x[1:(length(x) - runs[j] + 1)]
-                    x <- x[x %in% years]
+                    x <- dat$year[dat$run == runs[j]]
                     n <- length(x)
                     y <- dat[dat$run == runs[j] & dat$year %in% x,]$pred
                     if(plot.log){
