@@ -685,11 +685,13 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
         }
         ## - Catch observations -
         C <- rep(0, inp$nobsC)
+        dtc <- rep(0, inp$nobsC)
         obsC <- rep(0, inp$nobsC)
         e.c <- exp(rnorm(inp$nobsC, 0, sdc))
         if (inp$nobsC > 0){
             for (i in 1:inp$nobsC){
                 inds <- inp$ic[i]:(inp$ic[i] + inp$nc[i]-1)
+                dtc[i] <- length(inds) * dt
                 C[i] <- sum(Csub[inds])
                 obsC[i] <- C[i] * e.c[i]
             }
@@ -706,10 +708,12 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
         Esub <- F / qf * dt
         E <- numeric(inp$nobsE)
         obsE <- numeric(inp$nobsE)
+        dte <- numeric(inp$nobsE)
         e.e <- exp(rnorm(inp$nobsE, 0, sde))
         if (inp$nobsE > 0){
             for (i in 1:inp$nobsE){
                 inds <- inp$ie[i]:(inp$ie[i] + inp$ne[i]-1)
+                dte[i] <- length(inds) * dt
                 E[i] <- sum(Esub[inds])
                 obsE[i] <- E[i] * e.e[i]
             }
@@ -765,6 +769,7 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
         sim <- list()
         sim$obsC <- obsC
         sim$timeC <- inp$timeC
+        sim$dtc <- dtc
         ##sim$obsI <- obsI
         ##sim$timeI <- inp$timeI
         if (use.index.flag){
@@ -777,9 +782,11 @@ sim.spict <- function(input, nobs=100, use.tmb = FALSE, verbose = TRUE){
         if (use.effort.flag){
             sim$obsE <- obsE
             sim$timeE <- inp$timeE
+            sim$dte <- dte
         } else {
             sim$otherobs$obsE <- obsE
             sim$otherobs$timeE <- inp$timeE
+            sim$otherobs$dte <- dte
         }
 
         ## sim.comm.cpue
