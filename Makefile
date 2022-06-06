@@ -51,7 +51,6 @@ vignette:
 	mv spict/vignettes/*.pdf spict/inst/doc/
 	mv spict/vignettes/*.html spict/inst/doc/
 	cp spict/vignettes/*.Rmd spict/inst/doc/
-	rm -r spict/vignettes/*.tex
 
 .PHONY: testmoreseq testonemore testmore $(SUBDIRS)
 
