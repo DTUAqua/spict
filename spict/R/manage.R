@@ -787,9 +787,9 @@ check.catchList <- function(catchList, sdfac = 1){
 #' is equal to 1 if not provided).}}
 #' }
 #'
-#' \subsection{\code{make.man.inp}}
+#' \subsection{\code{make.man.inp}}{
 #' Internal function that creates the required input list for the specific HCR.
-#'
+#' }
 #' @return \code{add.man.scenario} returns the input object \code{rep} with the
 #' specified HCR added to the \code{man} list.
 #' \code{get.TAC} returns the total allowable catch (TAC) based on the
@@ -933,7 +933,6 @@ add.man.scenario <- function(rep, scenarioTitle = "",
     default_safeguardB = list(limitB = 0, prob = 0.95)
     pList <- default_safeguardB[which(!names(default_safeguardB) %in% names(safeguardB))]
     pList <- c(pList,safeguardB)
-
 
     ## get inpt for retape
     ## get updated inp
