@@ -1,3 +1,12 @@
+spict v1.3.6 (2021-06-06)
+============
+
+Bug fixes:
+
+* `sim.spict` saves the dtc (and dte) (closes #159)
+* Fixed optimisation of absolute catch management scenario
+* Fixed plotting of simulated data
+
 spict v1.3.5 (2021-09-09)
 ============
 
