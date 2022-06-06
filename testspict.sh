@@ -33,8 +33,8 @@ printmsg () {
 
 
 printmsg "Installing spict from github, reference:  $ref"
-echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_cran('ellipse', quiet = FALSE, repo = 'http://cran.rstudio.com')}, action=\"prefix\")" | R --slave
-echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_github('DTUAqua/spict/spict', ref = '$ref', quiet = FALSE)}, action=\"prefix\")" | R --slave
+echo "withr::with_libpaths(new = '$tmpdir', {remotes::install_cran('ellipse', quiet = FALSE, repo = 'http://cran.rstudio.com')}, action=\"prefix\")" | R --slave
+echo "withr::with_libpaths(new = '$tmpdir', {remotes::install_github('DTUAqua/spict/spict', ref = '$ref', quiet = FALSE)}, action=\"prefix\")" | R --slave
 
 
 printmsg "Run vignette examples"
@@ -44,7 +44,7 @@ printmsg "Run vignette examples"
 
 printmsg "Install local spict version"
 
-echo "withr::with_libpaths(new = '$tmpdir', {devtools::install_local('spict', quiet = TRUE)}, action=\"prefix\")" | R --slave
+echo "withr::with_libpaths(new = '$tmpdir', {remotes::install_local('spict', quiet = TRUE)}, action=\"prefix\")" | R --slave
 
 printmsg "Run vignette examples"
 
