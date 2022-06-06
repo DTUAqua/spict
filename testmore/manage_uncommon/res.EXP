@@ -1,0 +1,62 @@
+
+1: Testing add.man.scenarios with mixed data
+============================================
+
+
+1.1: long management period
+===========================
+
+1.1.1: Fmsy and Fmsy with 35th fractile on catch
+SPiCT timeline:
+                                                                          
+      Observations             Intermediate             Management        
+     0.00 - 50.00            50.00 - 51.00           51.00 - 55.00        
+ |-----------------------| ----------------------| ----------------------|
+
+Management evaluation: 55.00
+
+Predicted catch for management period and states at management evaluation time:
+
+                    C B/Bmsy F/Fmsy
+1. Fish at Fmsy 234.7   0.55   1.00
+2. C35          215.4   0.70   0.79
+$est
+                    C B/Bmsy F/Fmsy
+1. Fish at Fmsy 234.7   0.55   1.00
+2. C35          215.4   0.70   0.79
+
+
+
+
+2: Testing add.man.scenarios with mixed data - annual last
+==========================================================
+
+
+2.1: long management period
+===========================
+
+2.1.1: Fmsy and Fmsy with 35th fractile on catch
+SPiCT timeline:
+                                                  
+      Observations              Management        
+     0.00 - 50.00            50.00 - 55.00        
+ |-----------------------| ----------------------|
+
+Management evaluation: 55.00
+
+Predicted catch for management period and states at management evaluation time:
+
+                    C B/Bmsy F/Fmsy
+1. Fish at Fmsy 166.1   0.27   1.00
+2. C35          148.1   0.42   0.69
+3. All35        145.3   0.44   0.66
+4. FB35_noC     163.3   0.30   0.92
+$est
+                    C B/Bmsy F/Fmsy
+1. Fish at Fmsy 166.1   0.27   1.00
+2. C35          148.1   0.42   0.69
+3. All35        145.3   0.44   0.66
+4. FB35_noC     163.3   0.30   0.92
+
+
+

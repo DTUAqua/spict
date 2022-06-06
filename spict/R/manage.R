@@ -1628,15 +1628,17 @@ make.man.inp <- function(rep, scenarioTitle = "",
       realisedTAC <- get.TAC(rep, ffac = 0)
       ffac <- 0
     } else {
-      relTargetC <- cabs / sum(tail(rep$inp$obsC, rep$inp$nseasons))
+      ## Make initial ffac guess
+      take <- sum(cumsum(rev(rep$inp$dtc)) < diff(rep$inp$maninterval)) + 1
+      relTargetC <- cabs / (sum(tail(rep$inp$obsC, take)) )
       realisedTAC <- NULL
       minme <- function(x) {
         realisedTAC <<- get.TAC(rep, ffac = exp(x))
         (realisedTAC - cabs)^2
       }
-      opt <- nlminb(1, minme,
-                    lower = log(relTargetC/1e3),
-                    upper = log(relTargetC*1e3),
+      opt <- nlminb(log(relTargetC), minme,
+                    lower = log(relTargetC/3),
+                    upper = log(relTargetC*3),
                     control = list(rel.tol = ctol))
       if(opt$convergence != 0) stop("The specified catch could not be approximated (mode not converged)!")
       ffac <- exp(opt$par)
