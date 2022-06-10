@@ -10,7 +10,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: install spict
-        run: R_LIBS_USER="./library" mkdir library && make install
+        run: R_LIBS="~/github/spict/spict/library" mkdir library && make install
       
       - name: test spict
-        run: R_LIBS_USER="./library" make testmore
+        run: R_LIBS="~/github/spict/spict/library" make testmore
