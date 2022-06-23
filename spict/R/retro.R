@@ -40,24 +40,29 @@ retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = 1){
     if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
     if (rep$opt$convergence != 0) stop("The fitted object did not converged.")
     inp1 <- rep$inp
+
+    lastyears <- max(inp1$timerangeObs) - 1:nretroyear
+
     inpall <- list()
     for (i in 1:nretroyear) {
         inpall[[i]] <- inp1
-        indsC <- which(inp1$timeC <= inp1$timeC[inp1$nobsC] - i)
-        indsE <- which(inp1$timeE <= inp1$timeE[inp1$nobsE] - i)
+        ## catch
+        indsC <- which(inp1$timeC < lastyears[i]) ## which(inp1$timeC <= inp1$timeC[inp1$nobsC] - i)
         inpall[[i]]$obsC <- inp1$obsC[indsC]
         inpall[[i]]$timeC <- inp1$timeC[indsC]
         inpall[[i]]$stdevfacC <- inp1$stdevfacC[indsC]
         inpall[[i]]$dtc <- inp1$dtc[indsC]
-        inpall[[i]]$dte <- inp1$dte[indsE]
-        indsE <- which(inp1$timeE <= inp1$timeE[inp1$nobsE] - i)
+        ## effort
+        indsE <- which(inp1$timeE < lastyears[i]) ## which(inp1$timeE <= inp1$timeE[inp1$nobsE] - i)
         inpall[[i]]$obsE <- inp1$obsE[indsE]
         inpall[[i]]$timeE <- inp1$timeE[indsE]
         inpall[[i]]$stdevfacE <- inp1$stdevfacE[indsE]
+        inpall[[i]]$dte <- inp1$dte[indsE]
+        ## indices
         inpall[[i]]$obsI <- list()
         inpall[[i]]$timeI <- list()
         for (j in seq_len(inp1$nindex)) {
-            indsI <- which(inp1$timeI[[j]] <= inp1$timeI[[j]][inp1$nobsI[j]] - i)
+            indsI <- which(inp1$timeI[[j]] < lastyears[i] + 1) ## which(inp1$timeI[[j]] <= inp1$timeI[[j]][inp1$nobsI[j]] - i)
             inpall[[i]]$obsI[[j]] <- inp1$obsI[[j]][indsI]
             inpall[[i]]$timeI[[j]] <- inp1$timeI[[j]][indsI]
             inpall[[i]]$stdevfacI[[j]] <- inp1$stdevfacI[[j]][indsI]

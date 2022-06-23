@@ -263,8 +263,9 @@ elements 'obsC', 'timeC', 'dtc' and the optional element 'stdevfacC' (which
 is equal to 1 if not provided).}}
 }
 
-\subsection{\code{make.man.inp}}
+\subsection{\code{make.man.inp}}{
 Internal function that creates the required input list for the specific HCR.
+}
 }
 \examples{
 data(pol)

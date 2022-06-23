@@ -649,9 +649,10 @@ calc.om <- function(rep, CI = 0.95){
 #'
 #' ## Keep years until 1985
 #' shorten.inp(inp, maxtime = 1985)
-#'
+#' \dontrun{
 #' ## Empty data set gives an error
 #' shorten.inp(inp, mintime = 1910, maxtime = 1930)
+#' }
 #' @export
 shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
     inpin <- check.inp(inp)
@@ -814,6 +815,7 @@ shorten.inp <- function(inp, mintime = NULL, maxtime = NULL){
         inpout$true$MSYvec <- inpout$true$MSYvec[inpin$time %in% inpout$time]
         inpout$true$Fmsyvec <- inpout$true$Fmsyvec[inpin$time %in% inpout$time]
     }
+    inpout$timerangeObs <- NULL
     inpChecked <- check.inp(inpout, verbose = FALSE)
     inpChecked <- check.man.time(inpChecked, verbose = FALSE, printTimeline = FALSE)
     return(inpChecked)
