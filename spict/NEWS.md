@@ -1,3 +1,9 @@
+spict v1.3.7-pre (not released yet)
+============
+
+Bug fixes:
+* fixed retro when last year's observations where missing
+
 spict v1.3.6 (2021-06-06)
 ============
 
