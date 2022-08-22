@@ -86,6 +86,7 @@
 #' - Settings/Options/Preferences
 #'
 #' \itemize{
+#' \item{"inp$nspinup"}{Number of time steps used for spin-up (burn-in) period. Default: 0. }
 #' \item{"inp$maninterval"}{ Start and end time of management period. Default: One year interval starting at the beginning of the new year after the last observation. Example: inp$maninterval <- c(2020.25,2021.25)}
 #' \item{"inp$maneval"}{ Time for the estimation of predicted model states (biomass and fishing mortality), which can be used to evaluate the implications of management scenarios. Default: At the end of the management interval \code{inp$maninterval[2]}. Example: inp$maneval <- 2021.25}
 #'  \item{"inp$timepredc"}{ Deprecated: Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default depends on \code{inp$maninterval}.}
@@ -390,6 +391,8 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     if ("mapqf" %in% names(inp)) inp$nqf <- length(unique(inp$mapqf))
     # Catch related
     if (!"catchunit" %in% names(inp)) inp$catchunit <- ''
+    # Spin-up
+    if (!"nspinup" %in% names(inp)) inp$nspinup <- 0
     # Reporting
     if (!"reportall" %in% names(inp)) inp$reportall <- TRUE
     if (!"reportRel" %in% names(inp)) inp$reportRel <- FALSE
@@ -654,25 +657,27 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
         if (inp$eulertype == 'hard'){
             # Hard Euler discretisation
             if (inp$start.in.first.data.point){
-                time <- seq(min(timeobsall), max(inp$timepredi, inp$timepredc+inp$dtpredc),
-                            by=inp$dteuler)
+                time <- seq(min(timeobsall)-inp$nspinup*inp$dteuler, max(inp$timepredi, inp$timepredc+inp$dtpredc),
+                             by=inp$dteuler)
             } else {
                 # Here we take floor of time of first data point
                 # This can sometimes cause problems when estimating the random effect
                 # prior to the first data point, because of no data support
-                time <- seq(floor(min(timeobsall)), max(inp$timepredi, inp$timepredc+inp$dtpredc),
-                            by=inp$dteuler)
+                time <- seq(floor(min(timeobsall))-inp$nspinup*inp$dteuler, max(inp$timepredi, inp$timepredc+inp$dtpredc),
+                             by=inp$dteuler)
             }
             inp$time <- time
         }
         if (inp$eulertype == 'soft'){
             # Include times of observations (including dtc)
-            time <- seq(ceiling(min(timeobsall)), max(inp$timepredi, inp$timepredc+inp$dtpredc), by=inp$dteuler)
+            time <- seq(ceiling(min(timeobsall))-inp$nspinup*inp$dteuler, max(inp$timepredi, inp$timepredc+inp$dtpredc), by=inp$dteuler)
             inp$time <- sort(unique(c(timeobsall, time)))
         }
         if (!inp$eulertype %in% c('soft', 'hard'))
             stop('inp$eulertype must be either "soft" or "hard"!')
     }
+    inp$isspinup <- inp$time < min(timeobsall)
+    inp$timens <- inp$time[!inp$isspinup]
     # Calculate time steps
     inp$dt <- c(diff(inp$time), inp$dteuler)
     inp$ns <- length(inp$time)
@@ -682,6 +687,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     inp$indlastobs <- cut(max(c(inp$timeC + inp$dtc - inp$dteuler, unlist(inp$timeI),
                                 inp$timeE + inp$dte - inp$dteuler)),
                           inp$time, right=FALSE, labels=FALSE)
+    inp$indfirstobs <- cut(min(c(inp$timeC, unlist(inp$timeI), inp$timeE)), inp$time, right=FALSE, labels=FALSE)
     inp$indest <- which(inp$time <= inp$timerange[2])
     inp$indpred <- which(inp$time >= inp$timerange[2])
     inp$indCpred <- which(inp$time >= max(inp$timeC + inp$dtc))
@@ -1104,10 +1110,10 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
         inp$ini$logm <- log(1)
     }
     # Fill in unspecified (more rarely user defined) model parameter values
-    inp$ini <- set.default(inp$ini, 'logpsi', log(1e-8))
+    inp$ini <- set.default(inp$ini, 'logpsi', log(1e-2))
     inp$ini <- set.default(inp$ini, 'mu', 0)
     if (!"loglambda" %in% names(inp$ini)) inp$ini$loglambda <- log(0.1)
-    if (!"logdelta" %in% names(inp$ini)) inp$ini$logdelta <- log(1e-8) # Strength of mean reversion of OU for F
+    if (!"logdelta" %in% names(inp$ini)) inp$ini$logdelta <- ifelse(inp$effortmodel=="RW",log(1e-18), log(1e-2)) # Strength of mean reversion of OU for F
     if (!"logeta" %in% names(inp$ini)) inp$ini$logeta <- log(0.2) # Mean of OU for F
     if ("logphi" %in% names(inp$ini)){
         if (length(inp$ini$logphi)+1 != dim(inp$splinemat)[2]){
