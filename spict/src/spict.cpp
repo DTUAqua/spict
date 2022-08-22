@@ -87,6 +87,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(dtpredeinds);    // Indices of predictions in F state vector
   DATA_INTEGER(dtpredensteps); // Number of sub time step for prediction
   DATA_INTEGER(indlastobs);    // Index of B and F corresponding to the last observation.
+  DATA_INTEGER(indfirstobs);   // Index of B and F corresponding to the first observation.
   DATA_VECTOR(obssrt);         // Catch and index observations sorted in time (to enable osar)
   DATA_VECTOR_INDICATOR(keep, obssrt); // This one is required to calculate OSA residuals
   DATA_VECTOR(stdevfacc);      // Factors to scale stdev of catch observation error
@@ -117,6 +118,7 @@ Type objective_function<Type>::operator() ()
   DATA_SCALAR(omega);          // Period time of seasonal SDEs (2*pi = 1 year period)
   DATA_INTEGER(seasontype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
   DATA_INTEGER(efforttype);     // Variable indicating whether to use 1=spline, 2=coupled SDEs
+  DATA_INTEGER(effortmodel);    // 1 = Random walk, 2=OU process
   DATA_INTEGER(timevaryinggrowth); //  Flag indicating whether REs are used for growth
   DATA_INTEGER(logmcovflag);   // Flag indicating whether covariate information is available
   DATA_VECTOR(ffacvec);        // Management factor each year multiply the predicted F with ffac
@@ -651,6 +653,12 @@ Type objective_function<Type>::operator() ()
     }
     // Diffusion component of F
     int iisdf;
+    if(effortmodel==2){ //initial distribution of OU process
+       ans -= dnorm(logF(0), logeta, sdf(0)/sqrt(2.0*delta), 1);
+       SIMULATE{
+        if(simRandomEffects == 1) logF(0) = rnorm(logeta, sdf(0)/sqrt(2.0*delta));
+       }
+    }
     for(int i=1; i<ns; i++){
       Type Fpredtmp = 0.0;
       iisdf = CppAD::Integer(isdf(i)) - 1;
@@ -848,6 +856,21 @@ Type objective_function<Type>::operator() ()
   }
   if(simple==1){ logFs(ns-1) = logFs(ns-2);}
 
+  if(effortmodel==2 && priorbkfrac(2)!=1 && indfirstobs>10){
+    // Under certain conditions (see Bordet and Rivest 2014) initial biomass has a stationary distribution,
+    // which most importantly sets an upper limit on B0 (for F=0).
+    // Here an approximation to the mean of that distribution is applied (to achieve faster convergence to the real stationary distribution with the spin-up method).
+       Type nm1 = n - Type(1);
+       Type logEB0 = logK + log(Type(1)-nm1/n*exp(logeta)/exp(logFmsy[0]))*(Type(1)/(nm1));
+       ans -= dnorm(logB(0),logEB0,Type(0.2),1);
+       SIMULATE{
+	 if(simRandomEffects == 1){
+	   logB(0) = rnorm(logEB0, Type(0.2));
+	   B(0) = exp(logB(0));
+	 }
+       }
+  }
+  
   // CATCH PREDICTIONS
   vector<Type> Cpredsub(ns);
   if(simple==0){

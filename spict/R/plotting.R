@@ -151,7 +151,7 @@ get.manlimits <- function(rep, par, CI = 0.95){
     for (i in 1:nman){
         rp <- rep$man[[ scenarios[i] ]]
         if (par == 'time'){
-            lims[[i]] <- range(c(rp$inp$time, tail(rp$inp$time, 1) + 0.5))
+            lims[[i]] <- range(c(rp$inp$timens, tail(rp$inp$time, 1) + 0.5))
         }else{
             lims[[i]] <- get.par(par, rp, exp=TRUE)[, 2]
             if(par == "logCpred"){
@@ -560,15 +560,16 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             repmax <- rep
             indxmax <- which(inp$time ==  max(inp$time))
         }
+        indxmin <- which.min(!inp$isspinup)
 
         # Biomass plot
-        Best <- get.par('logB', rep, exp=TRUE, CI = CI)[(1:indxmax),]
+        Best <- get.par('logB', rep, exp=TRUE, CI = CI)[(indxmin:indxmax),]
         ns <- dim(Best)[1]
         Kest <- get.par('logK', rep, exp=TRUE, CI = CI)
         Bmsy <- get.par('logBmsy', repmax, exp=TRUE, CI = CI)
-        Bmsyvec <- get.msyvec(repmax$inp, Bmsy)[(1:indxmax)]
+        Bmsyvec <- get.msyvec(repmax$inp, Bmsy)[(indxmin:indxmax)]
         qest <- get.par('logq', rep, exp=TRUE, CI = CI)
-        BB <- get.par('logBBmsy', rep, exp=TRUE, CI = CI)[(1:indxmax),]
+        BB <- get.par('logBBmsy', rep, exp=TRUE, CI = CI)[(indxmin:indxmax),]
         Bp <- get.par('logBp', rep, exp=TRUE, CI = CI)
         if(!is.null(nrow(Bmsy))) Bmsy <- Bmsy[1,] ## time-varying m leads to several (identical) Bmsy values, drop them
         scal <- 1
@@ -584,8 +585,8 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]
         }
         cvCheck <- ifelse(any(Best[,5] <= 5),5,min(Best[,5]))
-        fininds <- which(Best[, 5] <= cvCheck) # Use CV to check for large uncertainties
-        BBfininds <- unname(which(is.finite(BB[, 1]) & is.finite(BB[, 3]))) # Use CV to check for large uncertainties
+        fininds <- which(Best[, 5] <= cvCheck & !inp$isspinup) # Use CV to check for large uncertainties
+        BBfininds <- unname(which(is.finite(BB[, 1]) & is.finite(BB[, 3]) & !inp$isspinup)) # Use CV to check for large uncertainties
         if (!ylimflag){
             if (length(ylim)!=2){
                 ylim <- range(BB[BBfininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2],
@@ -593,14 +594,14 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             }
             ylim[2] <- min(c(ylim[2], 3*max(Best[fininds, 2], unlist(obsI)))) # Limit upper limit
         }
-        xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
+        xlim <- range(c(inp$timens, tail(inp$time, 1) + 0.5))
         if(manflag) xlim <- get.manlimits(rep,"time")
         #if (main==-1) main <- 'Absolute biomass'
         if (ylabflag){
             ylab <- expression(B[t])
             ylab <- add.catchunit(ylab, inp$catchunit)
         }
-        plot(inp$time[1:indxmax], Best[,2]/scal, typ='n', xlab=xlab, ylab=ylab, main=main, ylim=ylim,
+        plot(inp$time[indxmin:indxmax], Best[,2]/scal, typ='n', xlab=xlab, ylab=ylab, main=main, ylim=ylim,
              xlim=xlim, log=log)
         if (rel.axes){
             axis(4, labels=pretty(ylim/Bmsy[2]), at=pretty(ylim/Bmsy[2])*Bmsy[2])
@@ -732,6 +733,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
         log <- ifelse(logax, 'y', '')
         inp <- rep$inp
         indxmax <- which(inp$time == ifelse(manflag, inp$timerange[2], max(inp$time)))
+        indxmin <- which.min(!inp$isspinup)
         ylimflag <- !is.null(ylim)
         # Biomass plot
         Kest <- get.par('logK', rep, exp=TRUE, fixed=TRUE, CI = CI)
@@ -739,7 +741,7 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
         Bmsyvec <- get.msyvec(inp, Bmsy)
         if (!all(is.na(Bmsyvec$msy))){ # Don't plot if all are NA
             qest <- get.par('logq', rep, fixed=TRUE, exp=TRUE, CI = CI)
-            BB <- get.par('logBBmsy', rep, exp=TRUE, CI = CI)[1:indxmax,]
+            BB <- get.par('logBBmsy', rep, exp=TRUE, CI = CI)[indxmin:indxmax,]
             ns <- dim(BB)[1]
             cicol <- 'lightgray'
             if (inp$nindex == 0){
@@ -752,17 +754,17 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
                     obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]/Bmsy[1,2]
                 }
             }
-            fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
-            BBfininds <- which(is.finite(BB[, 1]) & is.finite(BB[, 3]))
+            fininds <- which(apply(BB, 1, function(x) all(is.finite(x))) & !inp$isspinup)
+            BBfininds <- which(is.finite(BB[, 1]) & is.finite(BB[, 3]) & !inp$isspinup)
             if (!ylimflag){
                 if (length(ylim) != 2){
                     ylim <- range(c(lineat, BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
                 }
                 ylim[2] <- min(c(ylim[2], 3*max(BB[fininds, 2], unlist(obsI)))) # Limit upper limit
             }
-            xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
+            xlim <- range(c(inp$timens, tail(inp$time, 1) + 0.5))
             if(manflag) xlim <- get.manlimits(rep,"time")
-            plot(inp$time[1:indxmax], BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]),
+            plot(inp$time[indxmin:indxmax], BB[,2], typ='n', xlab=xlab, ylab=expression(B[t]/B[MSY]),
                  ylim=ylim, xlim=xlim, log=log,
                  main=main)
             cicol2 <- rgb(0, 0, 1, 0.1)
@@ -1187,19 +1189,19 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         # Check whether nan values are present in CI limits
         absflag <- length(cu)==0 | all(!is.finite(cu))
         if (absflag){ # if problems with NaN in absolute
-            fininds <- which(is.finite(Ff))
+            fininds <- which(is.finite(Ff) & !inp$isspinup)
             if (!ylimflag){
                 ylim <- range(c(Ff, Fmsy, tail(Fest[, 2],1)), na.rm=TRUE)
             }
         } else { # No problems
-            fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))))
+            fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))) & !inp$isspinup[inp$indest])
             if (!ylimflag){
                 ylim <- range(c(cl[fininds], cu[fininds], tail(Fest[, 2],1)), na.rm=TRUE)
             }
         }
         relflag <-  length(cuf)==0 | all(!is.finite(cuf)) | nlevels(rep$inp$MSYregime)>1
         if (relflag){ # Problems
-            relfininds <- which(is.finite(cuf))
+            relfininds <- which(is.finite(cuf) & !inp$isspinup)
             if (!ylimflag){
                 ylim <- range(ylim, Ff, Fmsy, tail(Fest[, 2],1), na.rm=TRUE)
             }
@@ -1212,7 +1214,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         if (!ylimflag){
             ylim[2] <- min(c(ylim[2], 3*max(Ff[fininds]))) # Limit upper limit
         }
-        xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
+        xlim <- range(c(inp$timens, tail(inp$time, 1) + 0.5))
         if(manflag) xlim <- get.manlimits(rep,"time")
         #if (main==-1) main <- 'Absolute fishing mortality'
         if (ylabflag){
@@ -1350,7 +1352,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         flag <- length(cu) == 0 | all(!is.finite(cu))
         if (flag){
             # CIs don't exist or are not finite
-            fininds <- which(is.finite(Ff))
+            fininds <- which(is.finite(Ff) & !inp$isspinup)
             ys <- c(lineat, Ff[fininds])
         } else {
             fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
@@ -1363,9 +1365,9 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             # Ensure that lineat is included in ylim
             ylim <- c(min(ylim[1], lineat), max(ylim[2], lineat))
         }
-        xlim <- range(c(inp$time, tail(inp$time, 1) + 0.5))
+        xlim <- range(c(inp$timens, tail(inp$time, 1) + 0.5))
         if(manflag) xlim <- get.manlimits(rep,"time")
-        plot(timef, Ff, typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]),
+        plot(timef[!inp$isspinup], Ff[!inp$isspinup], typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]),
              xlab=xlab, xlim=xlim, log=log)
         cicol2 <- rgb(0, 0, 1, 0.1)
         if (!flag){
@@ -1515,17 +1517,18 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
             cl <- matrix(c(log(Bmsy[2]), log(Fmsy[2])), 1, 2)
         }
         if (min(inp$dtc) < 1){ # Quarterly
-            alb <- annual(inp$time, logBest[, 2])
-            alf <- annual(inp$time, logFest[, 2])
+            alb <- annual(inp$time[!inp$isspinup], logBest[, 2])
+            alf <- annual(inp$time[!inp$isspinup], logFest[, 2])
             aind <- which(inp$time[inp$dtprediind] == alb$anntime)
             bbb <- exp(alb$annvec)/bscal
             fff <- exp(alf$annvec)/fscal
             fbtime <- alb$anntime
         } else {
-            fff <- Fest[inp$indest, 2]/fscal
-            bbb <- Best[inp$indest, 2]/bscal
+            ii <- intersect(inp$indest,which(!inp$isspinup))
+            fff <- Fest[ii, 2]/fscal
+            bbb <- Best[ii, 2]/bscal
             pind <- rep$inp$dtprediind
-            fbtime <- inp$time[inp$indest]
+            fbtime <- inp$time[ii]
         }
         Fl <- tail(unname(fff), 1)
         Bl <- tail(unname(bbb), 1)
@@ -1561,7 +1564,7 @@ plotspict.fb <- function(rep, logax=FALSE, plot.legend=TRUE, man.legend=TRUE, ex
         if (!is.null(xlabel)){
             xlab <- xlabel
         }
-        plot(Bmsy[2]/bscal, Fmsy[2]/fscal, typ='n', xlim=xlim, xlab=xlab, ylab=ylab, ylim=ylim, log=log)
+        plot(Bmsy[2][!inp$isspinup]/bscal, Fmsy[2][!inp$isspinup]/fscal, typ='n', xlim=xlim, xlab=xlab, ylab=ylab, ylim=ylim, log=log)
         if (ext){
             if (logax){
                 expx <- pretty(log10(xlim/Bmsy[2]))
@@ -1830,7 +1833,7 @@ plotspict.catch <- function(rep, main='Catch', ylim=NULL, qlegend=TRUE, lcol='bl
             if(manflag) ylim <- range(ylim,get.manlimits(rep,"logCpred"))
             ylim[2] <- min(c(ylim[2], 3*max(obs))) # Limit upper limit
         }
-        xlim <- range(c(inp$time, tail(inp$time,1)))
+        xlim <- range(c(inp$timens, tail(inp$time,1)))
         if(manflag) xlim <- get.manlimits(rep,"time")
         #if (main==-1) main <- 'Catch'
         if (ylabflag){
@@ -1953,7 +1956,7 @@ plotspict.production <- function(rep, n.plotyears=40, main='Production curve',
         ylim <- c(0, max(unlist(Pst)/Pstscal, na.rm=TRUE))
         if (inp$reportall){
             Best <- get.par('logB', rep, exp=TRUE, CI = CI)
-            Bplot <- seq(0.5*min(c(1e-8, Best[, 2])), 1*max(c(Kest[2], Best[, 2])), length=nBplot)
+            Bplot <- seq(0.5*min(c(1e-8, Best[!inp$isspinup, 2])), 1*max(c(Kest[2], Best[!inp$isspinup, 2])), length=nBplot)
             for (i in 1:nr){
                 Pst[[i]] <- pfun(gamma[2], mest[i,2], Kest[2], n[2], Bplot)
             }
@@ -2214,7 +2217,7 @@ plotspict.btrend <- function(rep, CI = 0.95){
     if (!'sderr' %in% names(rep)){
         Bind <- get.par('Bind', rep, CI = CI)
         B <- get.par('logB', rep, exp=TRUE, CI = CI)
-        plot(rep$inp$time, Bind[, 2], typ='l', ylim=c(-2, 2), xlab='Time', ylab='B trend')
+        plot(rep$inp$time[!inp$isspinup], Bind[!inp$isspinup,2], typ='l', ylim=c(-2, 2), xlab='Time', ylab='B trend')
         lines(rep$inp$time, Bind[, 1], lty=2)
         lines(rep$inp$time, Bind[, 3], lty=2)
         lines(rep$inp$time[-1], diff(B[, 2]), col=4, lwd=1.5)
