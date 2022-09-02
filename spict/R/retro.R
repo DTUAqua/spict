@@ -82,6 +82,7 @@ retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = 1){
     baserun$retro <- NULL
     baserun$cov <- NA
     baserun$man <- NULL
+    baserun$hindcast <- NULL
     rep$retro <- c(list(baserun), rep$retro)
     return(rep)
 }
