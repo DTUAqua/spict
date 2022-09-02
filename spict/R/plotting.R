@@ -3282,9 +3282,7 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
     ## Time
     timeRangeSurv <- range(unlist(rep$inp$timeI))
     survYears <- seq(floor(timeRangeSurv[1]), floor(timeRangeSurv[2]),1)
-    hindcastyears <- rev(sapply(hindcast[-1], function(x) max(ceiling(c(x$inp$timeC + x$inp$dtc,
-                                                                x$inp$timeE + x$inp$dte,
-                                                                unlist(x$inp$timeI))))))
+    hindcastyears <- ceiling(max(rep$inp$timerangeObs) - 1:nhindcast)
     revhindcastyears <- rev(hindcastyears)
 
     ## Indices
@@ -3351,6 +3349,7 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
                                     uc = unname(get.par("logIpred",
                                                         hindcast[[x]], exp = TRUE, CI = CI)[indI[[x]][[i]],3]),
                                     year = floor(hindcast[[x]]$inp$timeI[[i]]),
+                                    year.cont = hindcast[[x]]$inp$timeI[[i]],
                                     run = x-1))
             dat <- as.data.frame(do.call(rbind, tmp[conv0]))
             if(plot.log){
@@ -3358,9 +3357,9 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
             }
 
             ## Variables
-            years <- sort(unique(dat$year))
+            years <- sort(unique(dat$year)) ## TODO: don't like that this has another order than res of dat! CHECK:
             ind <- dat$run == min(dat$run)
-            py <- dat$year[ind]
+            py <- dat$year.cont[ind]
             obs <- dat$obs[ind]
             pred <- dat$pred[ind]
             lc <- dat$lc[ind]
@@ -3374,7 +3373,7 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
 
             ## Plotting ranges
             if(is.null(xlim)){
-                xlimi <- range(years)
+                xlimi <- range(dat$year.cont)
             }else if(inherits(xlim, "list")){
                 if(length(xlim) >= nind.val){
                     xlimi <- xlim[[i]]
@@ -3392,6 +3391,7 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
                 }
             }
 
+
             ## Plot
             plot(0, type = "n", xlim = xlimi, ylim = ylimi,
                  xlab = xlabi, ylab = ylabi)
@@ -3402,13 +3402,14 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
             box(lwd=1.5)
 
             ## Naive diff
-            ind <- which(hindcastyears %in% years & conv)
+            ind <- which(hindcastyears %in% dat$year & conv)
             npe <- length(ind)
             ## Missing values on the bounds okay, but if in middle of vector -> unequal spacing! -> Warning
             if(verbose && !all(seq(min(ind), max(ind), 1) %in% ind))
                 cat('Warning: Unequal spacing of naive predictions residuals may influence the interpretation of MASE. \n')
             obsi <- rep(NA, length(hindcastyears))
-            obsi[hindcastyears %in% years] <- dat$obs[dat$run == min(dat$run)][years %in% hindcastyears]
+            obsi[hindcastyears %in% dat$year] <- dat$obs[dat$run == min(dat$run) & dat$year %in% hindcastyears]
+            year.obsi <- dat$year.cont[dat$run == min(dat$run) & dat$year %in% hindcastyears]
             obsi <- obsi[conv]
             isNAobs <- is.na(obsi)
             if(plot.log){
@@ -3421,18 +3422,19 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
             if(length(hindcastyears[conv][!isNAnaive]) < 1) stop("Not enough converged naive predictions available, increase the number of peels and run again!")
 
             ## Observations to match predictions with
-            points(hindcastyears[conv][!isNAnaive],
+            points(year.obsi[conv][!isNAnaive],
                    obsi[!isNAnaive],
                    pch = 21, cex = 1.8, lwd = 1.5,
                    bg = rev(cols[1:nhindcast])[conv][!isNAnaive])
+
 
             ## Predictions
             pred <- NULL
             for(j in 1:nhindcast){
                 if(revhindcastyears[j] %in% dat$year && rev(conv)[j]){
-                    x <- dat$year[dat$run == runs[j]]
+                    x <- dat$year.cont[dat$run == runs[j]]
                     n <- length(x)
-                    y <- dat[dat$run == runs[j] & dat$year %in% x,]$pred
+                    y <- dat[dat$run == runs[j] & dat$year.cont %in% x,]$pred
                     if(plot.log){
                         pred <- c(pred, y[n] - obs[n])
                     }else{
@@ -3449,7 +3451,7 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
                 if(!is.null(legend.pos) && !is.na(legend.pos)){
                     legend(legend.pos,
                            title = "Last year",
-                           c("Ref",revhindcastyears,NA,"obs","pred"),
+                           c("Ref",hindcastyears,NA,"obs","pred"),
                            col = c(1, cols[1:nhindcast],NA,1,1),
                            pt.bg = "white",
                            pt.cex = c(NA,rep(NA,nhindcast),NA,1.8, 1),

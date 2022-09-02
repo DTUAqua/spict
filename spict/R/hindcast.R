@@ -53,13 +53,13 @@ hindcast <- function(rep, nyears = 7, reduce.output.size = TRUE, mc.cores = 1){
     for (i in 1:nyears) {
         inpall[[i]] <- inpin
         ## Catch
-        indsC <- which(inpin$timeC < lastyears[i])
+        indsC <- which(inpin$timeC < lastyears[i] + 1)
         inpall[[i]]$obsC <- inpin$obsC[indsC]
         inpall[[i]]$timeC <- inpin$timeC[indsC]
         inpall[[i]]$stdevfacC <- inpin$stdevfacC[indsC]
         inpall[[i]]$dtc <- inpin$dtc[indsC]
         ## Effort
-        indsE <- which(inpin$timeE < lastyears[i])
+        indsE <- which(inpin$timeE < lastyears[i] + 1)
         inpall[[i]]$obsE <- inpin$obsE[indsE]
         inpall[[i]]$timeE <- inpin$timeE[indsE]
         inpall[[i]]$stdevfacE <- inpin$stdevfacE[indsE]
@@ -68,7 +68,11 @@ hindcast <- function(rep, nyears = 7, reduce.output.size = TRUE, mc.cores = 1){
         inpall[[i]]$obsI <- list()
         inpall[[i]]$timeI <- list()
         for (j in seq_len(inpin$nindex)) {
-            indsI <- which(inpin$timeI[[j]] < lastyears[i] + 1)
+            if(inpin$timerangeObs[2] > inpin$lastCatchObs){
+                indsI <- which(inpin$timeI[[j]] <= lastyears[i] + 1)
+            }else{
+                indsI <- which(inpin$timeI[[j]] < lastyears[i] + 1)
+            }
             inpall[[i]]$obsI[[j]] <- inpin$obsI[[j]][indsI]
             inpall[[i]]$timeI[[j]] <- inpin$timeI[[j]][indsI]
             inpall[[i]]$stdevfacI[[j]] <- inpin$stdevfacI[[j]][indsI]
@@ -82,9 +86,9 @@ hindcast <- function(rep, nyears = 7, reduce.output.size = TRUE, mc.cores = 1){
     }
 
     asd <- try(parallel::mclapply(inpall, fit.spict, mc.cores = mc.cores))
-    if (class(asd) == "try-error") {
+    if(inherits(asd, "try-error")){
         rep$hindcast <- lapply(inpall, fit.spict)
-    } else {
+    }else{
         rep$hindcast <- asd
     }
 
@@ -93,6 +97,7 @@ hindcast <- function(rep, nyears = 7, reduce.output.size = TRUE, mc.cores = 1){
     baserun$hindcast <- NULL
     baserun$cov <- NA
     baserun$man <- NULL
+    baserun$retro <- NULL
     rep$hindcast <- c(list(baserun), rep$hindcast)
     return(rep)
 }
@@ -134,9 +139,10 @@ calc.mase <- function(rep, verbose = TRUE) {
     ## Time
     timeRangeSurv <- range(unlist(rep$inp$timeI))
     survYears <- seq(floor(timeRangeSurv[1]), floor(timeRangeSurv[2]),1)
-    hindcastyears <- rev(sapply(hindcast[-1], function(x) max(ceiling(c(x$inp$timeC + x$inp$dtc,
-                                                                        x$inp$timeE + x$inp$dte,
-                                                                        unlist(x$inp$timeI))))))
+    ## hindcastyears <- rev(sapply(hindcast[-1], function(x) max(ceiling(c(x$inp$timeC + x$inp$dtc,
+    ##                                                                     x$inp$timeE + x$inp$dte,
+    ##                                                                     unlist(x$inp$timeI))))))
+    hindcastyears <- ceiling(max(rep$inp$timerangeObs) - 1:nhindcast)
     revhindcastyears <- rev(hindcastyears)
 
     ## Indices
@@ -188,6 +194,7 @@ calc.mase <- function(rep, verbose = TRUE) {
                                          uc = unname(get.par("logIpred",
                                                              hindcast[[x]], exp = TRUE)[indI[[x]][[i]],3]),
                                          year = floor(hindcast[[x]]$inp$timeI[[i]]),
+                                         year.cont = hindcast[[x]]$inp$timeI[[i]],
                                          run = x-1))))
 
             ## Variables
@@ -200,7 +207,7 @@ calc.mase <- function(rep, verbose = TRUE) {
             uc <- dat$uc[ind]
 
             ## Naive diff
-            ind <- which(hindcastyears %in% years & conv)
+            ind <- which(hindcastyears %in% dat$year & conv)
             npe <- length(ind)
             ## Missing values on the bounds okay, but if in middle of vector -> unequal spacing! -> Warning
             if(verbose && !all(seq(min(ind), max(ind), 1) %in% ind))
