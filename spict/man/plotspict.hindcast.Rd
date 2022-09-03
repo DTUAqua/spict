@@ -12,8 +12,14 @@ plotspict.hindcast(
   xlim = NULL,
   ylim = NULL,
   xlab = "Year",
-  ylab = "Index",
+  ylab = NA,
   plot.log = TRUE,
+  mfrow = NULL,
+  mar = c(2, 2, 3, 1) + 0.1,
+  oma = c(3, 3, 1, 1),
+  legend.title = NULL,
+  legend.pos = "topright",
+  legend.ncol = 1,
   stamp = get.version()
 )
 }
@@ -38,6 +44,23 @@ intervals are estimated.}
 
 \item{ylab}{Label for y-axis, "Index" by default.}
 
+\item{mfrow}{A vector of the form ‘c(nr, nc)’. Subsequent figures will be
+drawn in an ‘nr’-by-‘nc’ array on the device by _rows_. Default: NULL.}
+
+\item{mar}{A numerical vector of the form ‘c(bottom, left, top, right)’ which
+gives the number of lines of margin to be specified on the four sides of
+the plot. The default is ‘c(2, 2, 3, 1) + 0.1’.}
+
+\item{oma}{A vector of the form ‘c(bottom, left, top, right)’ giving the size
+of the outer margins in lines of text.}
+
+\item{legend.title}{Legend title. By default no title is used: "".}
+
+\item{legend.pos}{Legend position (default: "topright"). If NULL or NA, no
+legend is plotted.}
+
+\item{legend.ncol}{Legend number of columns (default: 1).}
+
 \item{stamp}{Stamp plot with this character string.}
 }
 \value{
@@ -54,7 +77,7 @@ This function plots the results of the hindcasting cross validation
 data(pol)
 inp <- pol$albacore
 rep <- fit.spict(inp)
-rep <- hindcast(rep, nyears = 5)
+rep <- hindcast(rep, npeels = 5)
 plotspict.hindcast(rep)
 
 }

@@ -3227,8 +3227,17 @@ plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
 #' @param ylim Limits for y-axis.
 #' @param xlab Label for x-axis, "Year" by default.
 #' @param ylab Label for y-axis, "Index" by default.
+#' @param mfrow A vector of the form ‘c(nr, nc)’. Subsequent figures will be
+#'     drawn in an ‘nr’-by-‘nc’ array on the device by _rows_. Default: NULL.
+#' @param mar A numerical vector of the form ‘c(bottom, left, top, right)’ which
+#'     gives the number of lines of margin to be specified on the four sides of
+#'     the plot. The default is ‘c(2, 2, 3, 1) + 0.1’.
+#' @param oma A vector of the form ‘c(bottom, left, top, right)’ giving the size
+#'     of the outer margins in lines of text.
+#' @param legend.title Legend title. By default no title is used: "".
 #' @param legend.pos Legend position (default: "topright"). If NULL or NA, no
 #'     legend is plotted.
+#' @param legend.ncol Legend number of columns (default: 1).
 #' @param stamp Stamp plot with this character string.
 #'
 #' @seealso \code{\link{hindcast}}
@@ -3239,7 +3248,7 @@ plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
 #' data(pol)
 #' inp <- pol$albacore
 #' rep <- fit.spict(inp)
-#' rep <- hindcast(rep, nyears = 5)
+#' rep <- hindcast(rep, npeels = 5)
 #' plotspict.hindcast(rep)
 #'
 #' @export
@@ -3264,226 +3273,165 @@ plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
 #'
 #'
 plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
-                               xlim = NULL, ylim = NULL, xlab = "Year", ylab = "Index",
-                               plot.log = TRUE, legend.pos = "topright",
-                               stamp=get.version()){
+                               xlim = NULL, ylim = NULL, xlab = "Year", ylab = NA,
+                               plot.log = TRUE,
+                               mfrow = NULL, mar = c(2, 2, 3, 1) + 0.1, oma = c(3, 3, 1, 1),
+                               legend.title = NULL,
+                               legend.pos = "topright", legend.ncol = 1,
+                               stamp = get.version()){
 
-    check.rep(rep)
-
-    ## Check that hindcast has been run
-    if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
-    if (!"hindcast" %in% names(rep)) stop("No results of the hindcast function found. Please run hindcasting using the `hindcast` function.")
-
-    ## Hindcast
+    hcInfo <- extract.hindcast.info(rep, CI = CI, verbose = verbose)
     hindcast <- rep$hindcast
-    nhindcast <- length(hindcast) - 1
-    runs <- seq_len(nhindcast)
-
-    ## Time
-    timeRangeSurv <- range(unlist(rep$inp$timeI))
-    survYears <- seq(floor(timeRangeSurv[1]), floor(timeRangeSurv[2]),1)
-    hindcastyears <- ceiling(max(rep$inp$timerangeObs) - 1:nhindcast)
-    revhindcastyears <- rev(hindcastyears)
-
-    ## Indices
-    nind <- length(rep$inp$timeI)
-    indices <- seq_len(nind)
-    ## Check that surveys overlap with hindcast years
-    valid <- NULL
-    for(i in 1:nind){
-        valid <- c(valid, ifelse(any(hindcastyears %in% floor(rep$inp$timeI[[i]])),
-                                 TRUE, FALSE))
-    }
-    indices <- indices[valid]
-    nind.val <- length(indices)
-
-    ## Error if no valid survey
-    if(nind < 1) stop("The survey(s) do(es) not overlap with the hindcast years! Cannot perform hindcasting cross-validation based on the hindcasted runs!")
-
-    if(nind.val < 4){
-        mfrow <- c(1, nind.val)
-    }else if(nind.val < 9){
-        mfrow <- c(2, ceiling(nind.val/2))
-    }else if(nind.val < 16){
-        mfrow <- c(3, ceiling(nind.val/3))
+    inpin <- rep$inp
+    npeels <- length(rep$hindcast) - 1
+    peels <- seq_len(npeels)
+    ## Account for interpretation of cont time
+    if(max(unlist(inpin$timeI)) == inpin$lastCatchObs){
+        peeling <- 0:(npeels-1)
     }else{
-        mfrow <- c(4, ceiling(nind.val/4))
+        peeling <- 1:npeels
     }
-    opar <- par(mfrow = mfrow, mar = c(5.1, 4.3, 4.1, 2.1))
+    ## If latest obs is midyear index than first diff could be < 1
+    peel.dtc <- ifelse(length(which(abs(diff(
+        sapply(hindcast[-1], function(x) max(c(x$inp$timeC + x$inp$dtc,
+                                               x$inp$timeE + x$inp$dte))))) < 1)) >= 2, 1, 0)
+    if(peel.dtc){
+        tmp <- seq(floor(inpin$timerange[1]), ceiling(inpin$timerange[2] + 100), tail(inpin$dtc,1))
+        hindcastTimes <- tmp[as.integer(cut(inpin$timerangeObs[2],tmp,right = FALSE)) + 1] -
+            cumsum(rev(inpin$dtc))[peeling]
+    }else{
+        hindcastTimes  <- ceiling(inpin$timerangeObs[2]) - peeling
+    }
+    conv <- sapply(rep$hindcast[-1], function(x) x$opt$convergence)
+    conv <- rev(ifelse(conv == 0, TRUE, FALSE))
+    npeels.conv <- npeels - sum(!conv)
+    nind.val <- length(hcInfo$index)
+
+    if(is.null(mfrow) || is.na(mfrow)){
+        if(nind.val < 4){
+            mfrow <- c(1, nind.val)
+        }else if(nind.val < 9){
+            mfrow <- c(2, ceiling(nind.val/2))
+        }else if(nind.val < 16){
+            mfrow <- c(3, ceiling(nind.val/3))
+        }else{
+            mfrow <- c(4, ceiling(nind.val/4))
+        }
+    }
+    opar <- par(mfrow = mfrow, mar = mar, oma = oma)
     on.exit(par(opar))
 
-    cols <- cols()[-1]
-    cols2 <- rgb(t(col2rgb(cols))/255, alpha=0.5)
+    cols <- cols()[-1][1:npeels]
+    cols2 <- rgb(t(col2rgb(cols))/255, alpha=0.2)
 
-    ## convergence
-    conv0 <- !as.logical(sapply(hindcast, function(x) x$opt$convergence))
-    conv <- sapply(hindcast[-1], function(x) x$opt$convergence)
-    conv <- ifelse(conv == 0, TRUE, FALSE)
-    conv <- rev(conv)
+    ind.used <- NULL
+    for(i in 1:nind.val){
+        dat <- hcInfo$index[[i]]$dat
+        if(!plot.log){
+            dat[,c("obs","pred","lc","uc")] <- exp(dat[,c("obs","pred","lc","uc")])
+        }
+        dat0 <- dat[dat$peel == min(dat$peel),]
 
-    ## for extracting logIpred
-    nobsI <- lapply(hindcast, function(x) x$inp$nobsI)
-    indI <- list()
-    for(i in 1:length(nobsI)){
-        indI[[i]] <- list()
-        for(j in 1:length(nobsI[[i]])){
-            if(j == 1){
-                indI[[i]][[j]] <- seq_len(nobsI[[i]][j])
+        ## Lables
+        tmp <- c(1, mfrow[2] * seq_len(mfrow[1]-1) + 1)
+        if(is.na(ylab)){
+            ylab <- ifelse(plot.log, "log(Index)", "Index")
+        }
+        ylabi <- ifelse(i %in% tmp, ylab, "")
+        tmp <- rev(rev(seq_len(mfrow[1] * mfrow[2]))[1:mfrow[2]])
+        xlabi <- ifelse(i %in% tmp, xlab, "")
+
+        ## Plotting ranges
+        if(is.null(xlim)){
+            xlimi <- range(dat$time)
+        }else if(inherits(xlim, "list")){
+            if(length(xlim) >= nind.val){
+                xlimi <- xlim[[i]]
             }else{
-                indI[[i]][[j]] <- seq(nobsI[[i]][j-1]+1, nobsI[[i]][j-1] + nobsI[[i]][j], 1)
+                xlimi <- xlim[[1]]
             }
         }
-    }
-
-    mase <- NULL
-    for(i in 1:nind){
-        if(valid[i]){
-            ## Extract survey obs and preds from all hindcast runs
-            tmp <- lapply(1:(nhindcast+1),
-                          function(x)
-                              cbind(obs = hindcast[[x]]$inp$obsI[[i]],
-                                    pred = unname(get.par("logIpred",
-                                                          hindcast[[x]], exp = TRUE)[indI[[x]][[i]],2]),
-                                    lc = unname(get.par("logIpred",
-                                                        hindcast[[x]], exp = TRUE, CI = CI)[indI[[x]][[i]],1]),
-                                    uc = unname(get.par("logIpred",
-                                                        hindcast[[x]], exp = TRUE, CI = CI)[indI[[x]][[i]],3]),
-                                    year = floor(hindcast[[x]]$inp$timeI[[i]]),
-                                    year.cont = hindcast[[x]]$inp$timeI[[i]],
-                                    run = x-1))
-            dat <- as.data.frame(do.call(rbind, tmp[conv0]))
-            if(plot.log){
-                dat[,c("obs","pred","lc","uc")] <- log(dat[,c("obs","pred","lc","uc")])
-            }
-
-            ## Variables
-            years <- sort(unique(dat$year)) ## TODO: don't like that this has another order than res of dat! CHECK:
-            ind <- dat$run == min(dat$run)
-            py <- dat$year.cont[ind]
-            obs <- dat$obs[ind]
-            pred <- dat$pred[ind]
-            lc <- dat$lc[ind]
-            uc <- dat$uc[ind]
-
-            ## Lables
-            tmp <- c(1, mfrow[2] * seq_len(mfrow[1]-1) + 1)
-            ylabi <- ifelse(i %in% tmp, ylab, "")
-            tmp <- rev(rev(seq_len(mfrow[1] * mfrow[2]))[1:mfrow[2]])
-            xlabi <- ifelse(i %in% tmp, xlab, "")
-
-            ## Plotting ranges
-            if(is.null(xlim)){
-                xlimi <- range(dat$year.cont)
-            }else if(inherits(xlim, "list")){
-                if(length(xlim) >= nind.val){
-                    xlimi <- xlim[[i]]
-                }else{
-                    xlimi <- xlim[[1]]
-                }
-            }
-            if(is.null(ylim)){
-                ylimi <- c(0.9,1.1) * range(dat[c("obs","pred","lc","uc")])
-            }else if(inherits(ylim, "list")){
-                if(length(ylim) >= nind.val){
-                    ylimi <- ylim[[i]]
-                }else{
-                    ylimi <- ylim[[1]]
-                }
-            }
-
-
-            ## Plot
-            plot(0, type = "n", xlim = xlimi, ylim = ylimi,
-                 xlab = xlabi, ylab = ylabi)
-            polygon(c(py,rev(py)),c(lc,rev(uc)), col = "lightgrey", border = NA)
-            lines(py, pred, lwd = 2, col = 1)
-            points(py[1:(length(obs)-nhindcast)],
-                   obs[1:(length(obs)-nhindcast)], pch=21, cex=1.8, bg="white",lwd = 1.5)
-            box(lwd=1.5)
-
-            ## Naive diff
-            ind <- which(hindcastyears %in% dat$year & conv)
-            npe <- length(ind)
-            ## Missing values on the bounds okay, but if in middle of vector -> unequal spacing! -> Warning
-            if(verbose && !all(seq(min(ind), max(ind), 1) %in% ind))
-                cat('Warning: Unequal spacing of naive predictions residuals may influence the interpretation of MASE. \n')
-            obsi <- rep(NA, length(hindcastyears))
-            obsi[hindcastyears %in% dat$year] <- dat$obs[dat$run == min(dat$run) & dat$year %in% hindcastyears]
-            year.obsi <- dat$year.cont[dat$run == min(dat$run) & dat$year %in% hindcastyears]
-            obsi <- obsi[conv]
-            isNAobs <- is.na(obsi)
-            if(plot.log){
-                naive <- obsi[!isNAobs][-length(obsi[!isNAobs])] - obsi[!isNAobs][-1]
+        if(is.null(ylim)){
+            mini <- min(dat[c("obs","pred","lc","uc")])
+            maxi <- max(dat[c("obs","pred","lc","uc")])
+            ylimi <- c(ifelse(mini < 0, 1.1, 0.9), ifelse(maxi < 0, 0.9, 1.1)) * c(mini, maxi)
+        }else if(inherits(ylim, "list")){
+            if(length(ylim) >= nind.val){
+                ylimi <- ylim[[i]]
             }else{
-                naive <- log(obsi[!isNAobs][-length(obsi[!isNAobs])]) - log(obsi[!isNAobs][-1])
+                ylimi <- ylim[[1]]
             }
-            isNAnaive <- is.na(naive)
+        }
 
-            if(length(hindcastyears[conv][!isNAnaive]) < 1) stop("Not enough converged naive predictions available, increase the number of peels and run again!")
-
-            ## Observations to match predictions with
-            points(year.obsi[conv][!isNAnaive],
-                   obsi[!isNAnaive],
+        ## Plot
+        plot(0, type = "n", xlim = xlimi, ylim = ylimi,
+             xlab = "", ylab = "")
+        polygon(c(dat0$time,rev(dat0$time)),c(dat0$lc,rev(dat0$uc)), col = "lightgrey", border = NA)
+        lines(dat0$time, dat0$pred, lwd = 2, col = 1)
+        ## Predictions lines
+        for(j in 1:npeels){
+            dati <- dat[dat$peel == peels[j],]
+            coli <- cols[which(hindcastTimes <= tail(dati$time,1))[1]]
+            ## only if index was peeled in that peel
+            if(tail(dati$iuse,1) == 0 && rev(conv)[j]){
+                nd <- nrow(dati)
+                lines(dati$time, dati$pred, lwd = 2, col = coli)
+                lines(dati$time[(nd-1):nd], dati$pred[(nd-1):nd], lwd = 2, col = "grey30", lty = 3)
+            }
+        }
+        ## Observations
+        ind <- which(dat0$time < min(hindcastTimes))
+        tmp <- dat0[ind,]
+        points(tmp$time, tmp$obs, pch=21, cex=1.8, bg="white",lwd = 1.5)
+        ## Observations during hindcast period
+        ind <- which(dat0$time >= min(hindcastTimes))
+        tmp <- dat0[ind,]
+        ind.cols <- sapply(tmp$time[conv], function(x) which(hindcastTimes <= x)[1])
+        ind.used <- c(ind.used, ind.cols)
+        points(tmp$time[conv], tmp$obs[conv],
+               pch = 21, cex = 1.8, lwd = 1.5,
+               bg = cols[ind.cols])
+        if(any(!conv)){
+            points(tmp$time[!conv], tmp$obs[!conv],
                    pch = 21, cex = 1.8, lwd = 1.5,
-                   bg = rev(cols[1:nhindcast])[conv][!isNAnaive])
-
-
-            ## Predictions
-            pred <- NULL
-            for(j in 1:nhindcast){
-                if(revhindcastyears[j] %in% dat$year && rev(conv)[j]){
-                    x <- dat$year.cont[dat$run == runs[j]]
-                    n <- length(x)
-                    y <- dat[dat$run == runs[j] & dat$year.cont %in% x,]$pred
-                    if(plot.log){
-                        pred <- c(pred, y[n] - obs[n])
-                    }else{
-                        pred <- c(pred, log(y[n]) - log(obs[n]))
-                    }
-                    lines(x, y, lwd = 2, col = cols[j])
-                    lines(x[(n-1):n], y[(n-1):n], lwd = 2, col = "grey30", lty = 3)
-                    points(x[n], y[n], pch = 21, bg = cols[j], col = 1, lwd = 1.5)
-                }
-            }
-
-            ## Legend
-            if(i == nind.val){
-                if(!is.null(legend.pos) && !is.na(legend.pos)){
-                    legend(legend.pos,
-                           title = "Last year",
-                           c("Ref",hindcastyears,NA,"obs","pred"),
-                           col = c(1, cols[1:nhindcast],NA,1,1),
-                           pt.bg = "white",
-                           pt.cex = c(NA,rep(NA,nhindcast),NA,1.8, 1),
-                           lwd = c(2,rep(2,nhindcast), rep(NA,3)),
-                           pch = c(NA,rep(NA,nhindcast), NA, 21,21),
-                           pt.lwd = c(NA,rep(NA,nhindcast), NA, 1.5,1.5))
-                }
-            }
-
-            ## MASE
-            masei <- mean(abs(pred))/mean(abs(naive))
-            mase <- rbind(mase, data.frame(Index = i,
-                                           MASE = masei,
-                                           nruns = npe))
-            if(add.mase) mtext(paste0("Index ", i, ": MASE = ", round(masei,2)), 3, 0.1)
-
-        }else{
-            cat(paste0("\n","No observations in evaluation years to compute prediction residuals for Index ",i),"\n")
-            mase <- rbind(mase, data.frame(Index = i,
-                                           MASE = NA,
-                                           nruns = 0))
+                   bg = "white")
         }
-    }
+        ## Predictions points
+        for(j in 1:npeels){
+            dati <- dat[dat$peel == peels[j],]
+            coli <- cols[which(hindcastTimes <= tail(dati$time,1))[1]]
+            ## only if index was peeled in that peel
+            if(tail(dati$iuse,1) == 0 && rev(conv)[j]){
+                nd <- nrow(dati)
+                points(dati$time[nd], dati$pred[nd], pch = 21, bg = coli, col = 1, lwd = 1.5)
+            }
+        }
 
-    nnotconv <- sum(!conv)
-    if(nnotconv > 0){
-        message("Excluded ", nnotconv, " hindcasted runs that ",
-                if (nnotconv == 1) "was" else "were" , " not converged: ",
-                paste(which(!rev(conv)), collapse = ", "))
+        ## Legend and axis labels
+        if(i == nind.val){
+            mtext(xlabi, 1, 1, outer = TRUE)
+            mtext(ylabi, 2, 1, outer = TRUE)
+            ind.leg <- sort(unique(ind.used[!is.na(ind.used)]))
+            nleg <- length(ind.leg)
+            nas <- rep(NA,floor((floor((nleg+1)/legend.ncol)-2)/2))
+            if(!is.null(legend.pos) && !is.na(legend.pos)){
+                legend(legend.pos,
+                       title = legend.title,
+                       ncol = legend.ncol + 1,
+                       c("Ref",hindcastTimes[ind.leg],nas,"obs","pred",nas),
+                       col = c(1,cols[ind.leg],nas,1,1,nas),
+                       pt.bg = "white",
+                       pt.cex = c(NA,rep(NA,nleg),nas,1.8,1,nas),
+                       lwd = c(2.5,rep(2.5,nleg),nas,rep(NA,2.5),nas),
+                       pch = c(NA,rep(NA,nleg),nas,21,21,nas),
+                       pt.lwd = c(NA,rep(NA,nleg),nas,1.8,1.8,nas))
+            }
+        }
+        ## MASE
+        if(add.mase) mtext(paste0("Index ", i, ": MASE = ", signif(hcInfo$mase[i,2],3)), 3, 0.3, font = 2)
+        box(lwd=1.5)
     }
-
     txt.stamp(stamp, do.flag=TRUE)
 
-    if(add.mase) mase else invisible(NULL)
+    invisible(NULL)
 }
