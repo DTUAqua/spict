@@ -40,8 +40,8 @@
 #' plotspict.retro(rep)
 #' @export
 retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = 1){
-    if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
-    if (rep$opt$convergence != 0) stop("The fitted object did not converged.")
+    check.rep(rep)
+    if(rep$opt$convergence != 0) stop("The fitted object did not converge.")
     inp1 <- rep$inp
     inpall <- list()
     for (i in 1:nretroyear) {
@@ -78,12 +78,7 @@ retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = 1){
         rep$retro <- asd
     }
     ## Add the base run into the retro list
-    baserun <- rep
-    baserun$retro <- NULL
-    baserun$cov <- NA
-    baserun$man <- NULL
-    baserun$hindcast <- NULL
-    rep$retro <- c(list(baserun), rep$retro)
+    rep$retro <- c(list(prune.baserun(rep)), rep$retro)
     return(rep)
 }
 
