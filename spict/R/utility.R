@@ -277,7 +277,7 @@ get.par <- function(parname, rep=rep, exp=FALSE, random=FALSE, fixed=FALSE, CI =
         }
         if (exp==TRUE){
             # This is the CV of a log-normally distributed random variable
-            # see https://en.wikipedia.org/wiki/Log-normal_distribution
+            # see https:/ /en.wikipedia.org/wiki/Log-normal_distribution
             cv <- sqrt(exp(sd^2) - 1)
             ll <- exp(ll)
             ul <- exp(ul)
@@ -947,4 +947,17 @@ retape.spict <- function(rep, inp, verbose = FALSE, dbg = 0, mancheck=TRUE){
         class(repout) <- "spictcls"
     }
     return(repout)
+}
+
+
+##' @name prune.baserun
+##' @title Prune a fitted spict object to the core elements
+##' @param rep Result of fit.spict().
+##' @return Fitted spict core object.
+prune.baserun <- function(rep){
+    rep$cov <- NA
+    rep$man <- NULL
+    rep$retro <- NULL
+    rep$hindcast <- NULL
+    return(rep)
 }
