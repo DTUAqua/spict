@@ -3166,8 +3166,6 @@ plot2 <- function(rep, stamp=get.version(), verbose=TRUE, CI = 0.95, ...){
 #'
 plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
 
-    get.box <- function(label) sapply(nchar(label), function(n) paste(, collapse=""))
-
     check.rep(rep)
     lm <- length(rep$man)
     if (lm == 0) stop("rep does not contain management scenarios, please run `manage` or `add.man.scenario`")
