@@ -3309,13 +3309,13 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
 
     if(is.null(mfrow) || is.na(mfrow)){
         if(nind.val < 4){
-            mfrow <- c(1, nind.val)
+            mfrow <- c(nind.val, 1)
         }else if(nind.val < 9){
-            mfrow <- c(2, ceiling(nind.val/2))
+            mfrow <- c(ceiling(nind.val/2), 2)
         }else if(nind.val < 16){
-            mfrow <- c(3, ceiling(nind.val/3))
+            mfrow <- c(ceiling(nind.val/3), 3)
         }else{
-            mfrow <- c(4, ceiling(nind.val/4))
+            mfrow <- c(ceiling(nind.val/4), 4)
         }
     }
     opar <- par(mfrow = mfrow, mar = mar, oma = oma)
@@ -3420,6 +3420,7 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
                        ncol = legend.ncol + 1,
                        c("Ref",hindcastTimes[ind.leg],nas,"obs","pred",nas),
                        col = c(1,cols[ind.leg],nas,1,1,nas),
+                       bg = "white",
                        pt.bg = "white",
                        pt.cex = c(NA,rep(NA,nleg),nas,1.8,1,nas),
                        lwd = c(2.5,rep(2.5,nleg),nas,rep(NA,2.5),nas),
