@@ -12,7 +12,7 @@ source("../funcs.R")
 
 header("Check hindcasting functionality", append = FALSE)
 
-header("1 Expected basic functionality")
+header("1. Expected basic functionality")
 
 header("1.1 Default albacore data set and model")
 inp <- pol$albacore
@@ -28,7 +28,7 @@ test_this("1.1.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.1.3 Difference corresponds to number of indices removed each year:",
+test_this("1.1.3 Difference difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -36,7 +36,18 @@ test_this("1.1.4 MASE:",
           signif(calc.mase(fit)[,2],4)
           )
 
+test_this("1.1.5 First peel have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
+          )
+
 plotspict.hindcast(fit)
+
+
+suppressWarnings(fit2 <- hindcast(fit, npeels = 5, peel.dtc = TRUE))
+
+test_this("1.1.6 For an annual model MASE with peel.dtc = TRUE should be the same",
+          signif(calc.mase(fit)[,2],4) == signif(calc.mase(fit2)[,2],4)
+          )
 
 
 header("1.2 Albacore data set assuming midyear index")
@@ -54,7 +65,7 @@ test_this("1.2.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.2.3 Difference corresponds to number of indices removed each year:",
+test_this("1.2.3 Difference difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -62,7 +73,19 @@ test_this("1.2.4 MASE:",
           signif(calc.mase(fit)[,2],4)
           )
 
+test_this("1.2.5 First peel have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
+          )
+
 plotspict.hindcast(fit)
+
+suppressWarnings(fit2 <- hindcast(fit, npeels = 5, peel.dtc = TRUE))
+
+test_this("1.2.6 For an annual model MASE with peel.dtc = TRUE should be the same",
+          signif(calc.mase(fit)[,2],4) == signif(calc.mase(fit2)[,2],4)
+          )
+
+
 
 
 header("1.3 Albacore data set assuming midyear index and last catch missing")
@@ -82,7 +105,7 @@ test_this("1.3.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.3.3 Difference corresponds to number of indices removed each year:",
+test_this("1.3.3 Difference difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -90,7 +113,19 @@ test_this("1.3.4 MASE:",
           signif(calc.mase(fit)[,2],4)
           )
 
+test_this("1.3.5 First two peels have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
+          )
+
 plotspict.hindcast(fit)
+
+suppressWarnings(fit2 <- hindcast(fit, npeels = 5, peel.dtc = TRUE))
+
+test_this("1.3.6 For an annual model MASE with peel.dtc = TRUE should be the same",
+          signif(calc.mase(fit)[,2],4) == signif(calc.mase(fit2)[,2],4)
+          )
+
+
 
 
 header("1.4 Albacore data set assuming midyear index and last indices missing")
@@ -110,7 +145,7 @@ test_this("1.4.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.4.3 Difference corresponds to number of indices removed each year:",
+test_this("1.4.3 Difference difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -118,7 +153,18 @@ test_this("1.4.4 MASE:",
           signif(calc.mase(fit)[,2],4)
           )
 
+test_this("1.4.5 First peel have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
+          )
+
 plotspict.hindcast(fit)
+
+suppressWarnings(fit2 <- hindcast(fit, npeels = 7, peel.dtc = TRUE))
+
+test_this("1.4.6 For an annual model MASE with peel.dtc = TRUE should be the same",
+          signif(calc.mase(fit)[,2],4) == signif(calc.mase(fit2)[,2],4)
+          )
+
 
 
 header("1.5 Albacore data set assuming midyear index and intermediate indices missing")
@@ -138,7 +184,7 @@ test_this("1.5.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.5.3 Difference corresponds to number of indices removed each year:",
+test_this("1.5.3 Difference difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -146,7 +192,18 @@ test_this("1.5.4 MASE:",
           signif(calc.mase(fit)[,2],4)
           )
 
+test_this("1.5.5 First peel have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
+          )
+
 plotspict.hindcast(fit)
+
+suppressWarnings(fit2 <- hindcast(fit, npeels = 7, peel.dtc = TRUE))
+
+test_this("1.5.6 For an annual model MASE with peel.dtc = TRUE should be the same",
+          signif(calc.mase(fit)[,2],4) == signif(calc.mase(fit2)[,2],4)
+          )
+
 
 
 header("1.6 Albacore data set and last index is exactly at end of last catch interval")
@@ -165,7 +222,7 @@ test_this("1.6.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.6.3 Difference corresponds to number of indices removed each year:",
+test_this("1.6.3 Difference difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -173,7 +230,19 @@ test_this("1.6.4 MASE:",
           signif(calc.mase(fit)[,2],4)
           )
 
+test_this("1.6.5 First two peels have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
+          )
+
 plotspict.hindcast(fit)
+
+suppressWarnings(fit2 <- hindcast(fit, npeels = 5, peel.dtc = TRUE))
+
+test_this("1.6.6 For an annual model MASE with peel.dtc = TRUE should be the same",
+          signif(calc.mase(fit)[,2],4) == signif(calc.mase(fit2)[,2],4)
+          )
+
+
 
 
 header("1.7 Default hake data set (4 peels)")
@@ -190,12 +259,16 @@ test_this("1.7.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.7.3 Difference corresponds to number of indices removed each year:",
+test_this("1.7.3 Difference difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
 test_this("1.7.4 MASE:",
           signif(calc.mase(fit)[,2],4)
+          )
+
+test_this("1.7.5 First peel have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
           )
 
 plotspict.hindcast(fit)
@@ -215,12 +288,16 @@ test_this("1.8.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.8.3 Difference corresponds to number of indices removed each year:",
+test_this("1.8.3 Difference difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
 test_this("1.8.4 MASE:",
           signif(calc.mase(fit)[,2],4)
+          )
+
+test_this("1.8.5 First peel have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
           )
 
 plotspict.hindcast(fit)
@@ -246,7 +323,7 @@ test_this("1.9.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.9.3 Difference corresponds to number of indices removed each year:",
+test_this("1.9.3 Difference difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -254,11 +331,15 @@ test_this("1.9.4 MASE:",
           signif(calc.mase(fit)[,2],4)
           )
 
+test_this("1.9.5 First peel have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
+          )
+
 plotspict.hindcast(fit)
 
 
 
-header("2 Multiple indices with different lengths")
+header("2. Multiple indices with different lengths")
 set.seed(12345)
 nt <- 50
 inp <- list(nseasons = 1)
@@ -292,10 +373,12 @@ test_this("2.4 MASE:",
 
 plotspict.hindcast(fit, legend.pos = "bottomright")
 
+test_this("2.5 First peel have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
+          )
 
 
-
-header("3 Missing index observations at end of time series")
+header("3. Missing index observations at end of time series")
 set.seed(12345)
 nt <- 40
 inp <- list(nseasons = 1)
@@ -328,8 +411,12 @@ test_this("3.4 MASE:",
 
 plotspict.hindcast(fit)
 
+test_this("3.5 First peel have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
+          )
 
-header("4 Missing index observations in middle of time series")
+
+header("4. Missing index observations in middle of time series")
 set.seed(123456)
 nt <- 50
 inp <- list(nseasons = 1)
@@ -368,9 +455,13 @@ test_this("4.6 Plot is shown correctly plus warning about unequal spacing",
           capture.output(plotspict.hindcast(fit), type = "message")
           )
 
+test_this("4.7 First peel have the same number of catch obs as baserun, then cont. decreasing",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
+          )
 
 
-header("5 Hindcasts exclude not converged runs")
+
+header("5. Hindcasts exclude not converged runs")
 inp <- pol$albacore
 inp$dteuler <- 1/4
 inp <- shorten.inp(pol$albacore, maxtime = 1978)
@@ -394,9 +485,8 @@ msg <- capture.output(plotspict.hindcast(fit), type = "message")
 test_this("5.5 Plot shows message with excluded runs", length(msg) != 0)
 
 
-
 ## Expect error - not a fitted object
-header("6 Error expectations")
+header("6. Error expectations")
 test_this("6.1 No spictcls object produces an error", hindcast(pol$albacore))
 
 ## Expect error - not converged run
@@ -412,7 +502,7 @@ test_this("6.2 Not converged fitted object produces an error", hindcast(fitnc))
 
 
 
-header("7 Seasonal data with multiple indices with various time series lengths")
+header("7. Seasonal data with multiple indices with various time series lengths plus catch in last half year is missing")
 set.seed(1234)
 nt <- 50
 inp <- list(nseasons = 4)
@@ -444,7 +534,7 @@ test_this("7.1.3 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("7.1.4 Except for first year (ref), difference corresponds to number of indices in this year:",
+test_this("7.1.4 Except for first year (ref), difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -453,7 +543,11 @@ test_this("7.1.5 MASE is calculated correctly plus message that one index is out
           )
 
 test_this("7.1.6 Plot is shown correctly plus message that one index is outside of peels",
-          capture.output(plotspict.hindcast(fit), type = "message")
+          capture.output(plotspict.hindcast(fit, legend.ncol = 2), type = "message")
+          )
+
+test_this("7.1.7 First peel have the same number of catch obs as baserun, then cont. decreasing (first 2 seasons, then 4 seasons)",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
           )
 
 
@@ -474,7 +568,7 @@ test_this("7.2.3 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("7.2.4 Except for first year (ref), difference corresponds to number of indices in this year:",
+test_this("7.2.4 Except for first year (ref), difference corresponds to number of index obs removed in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -483,5 +577,9 @@ test_this("7.5 MASE is calculated correctly plus message that one index is outsi
           )
 
 test_this("7.2.6 Plot is shown correctly plus message that one index is outside of peels",
-          capture.output(plotspict.hindcast(fit), type = "message")
+          capture.output(plotspict.hindcast(fit, legend.ncol = 4), type = "message")
+          )
+
+test_this("7.2.7 First three peels have the same number of catch obs as baserun, then cont. decreasing ",
+          sapply(fit$hindcast, function(x) length(x$inp$timeC))
           )

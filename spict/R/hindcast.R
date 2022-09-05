@@ -97,8 +97,13 @@ hindcast <- function(rep, npeels = 7, reduce.output.size = TRUE, mc.cores = 1, p
     ## thus indices subsequently rather than all at once.
     if(peel.dtc){
         tmp <- seq(floor(inpin$timerange[1]), ceiling(inpin$timerange[2] + 100), tail(inpin$dtc,1))
-        hindcastTimes <- tmp[as.integer(cut(inpin$timerangeObs[2],tmp,right = FALSE)) + 1] -
-            cumsum(rev(inpin$dtc))[peeling]
+        if(inpin$timerangeObs[2] == inpin$lastCatchObs){
+            hindcastTimes <- tmp[as.integer(cut(inpin$timerangeObs[2],tmp,right = FALSE))] -
+                c(0,cumsum(rev(inpin$dtc)))[peeling+1]
+        }else{
+            hindcastTimes <- tmp[as.integer(cut(inpin$timerangeObs[2],tmp,right = FALSE)) + 1] -
+                c(0,cumsum(rev(inpin$dtc)))[peeling+1]
+        }
         extraTime <- rev(inpin$dtc)[1:npeels]
     }else{
         hindcastTimes <- ceiling(inpin$timerangeObs[2]) - peeling
@@ -109,13 +114,13 @@ hindcast <- function(rep, npeels = 7, reduce.output.size = TRUE, mc.cores = 1, p
     for (i in 1:npeels) {
         inpall[[i]] <- inpin
         ## Catch
-        indsC <- which(inpin$timeC + inpin$dtc <= hindcastTimes[i])
+        indsC <- which(inpin$timeC + inpin$dtc <= hindcastTimes[i] + extraTime[i])
         inpall[[i]]$obsC <- inpin$obsC[indsC]
         inpall[[i]]$timeC <- inpin$timeC[indsC]
         inpall[[i]]$stdevfacC <- inpin$stdevfacC[indsC]
         inpall[[i]]$dtc <- inpin$dtc[indsC]
         ## Effort
-        indsE <- which(inpin$timeE + inpin$dte <= hindcastTimes[i])
+        indsE <- which(inpin$timeE + inpin$dte <= hindcastTimes[i] + extraTime[i])
         inpall[[i]]$obsE <- inpin$obsE[indsE]
         inpall[[i]]$timeE <- inpin$timeE[indsE]
         inpall[[i]]$stdevfacE <- inpin$stdevfacE[indsE]
