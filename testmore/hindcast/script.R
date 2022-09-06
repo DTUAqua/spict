@@ -28,7 +28,7 @@ test_this("1.1.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.1.3 Difference difference corresponds to number of index obs remove in given year",
+test_this("1.1.3 Difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -65,7 +65,7 @@ test_this("1.2.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.2.3 Difference difference corresponds to number of index obs remove in given year",
+test_this("1.2.3 Difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -105,7 +105,7 @@ test_this("1.3.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.3.3 Difference difference corresponds to number of index obs remove in given year",
+test_this("1.3.3 Difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -145,7 +145,7 @@ test_this("1.4.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.4.3 Difference difference corresponds to number of index obs remove in given year",
+test_this("1.4.3 Difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -184,7 +184,7 @@ test_this("1.5.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.5.3 Difference difference corresponds to number of index obs remove in given year",
+test_this("1.5.3 Difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -222,7 +222,7 @@ test_this("1.6.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.6.3 Difference difference corresponds to number of index obs remove in given year",
+test_this("1.6.3 Difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -259,7 +259,7 @@ test_this("1.7.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.7.3 Difference difference corresponds to number of index obs remove in given year",
+test_this("1.7.3 Difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -288,7 +288,7 @@ test_this("1.8.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.8.3 Difference difference corresponds to number of index obs remove in given year",
+test_this("1.8.3 Difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 
@@ -323,7 +323,7 @@ test_this("1.9.2 Decreasing length of index use indicator",
           (nobsiind <- sapply(fit$hindcast[-1], function(x) length(which(x$inp$iuse == TRUE))))
           )
 
-test_this("1.9.3 Difference difference corresponds to number of index obs remove in given year",
+test_this("1.9.3 Difference corresponds to number of index obs remove in given year",
           cumsum(nobsi - nobsiind)
           )
 

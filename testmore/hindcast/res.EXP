@@ -18,7 +18,7 @@ Check hindcasting functionality
 [1] 22 21 20 19 18
 
 
-1.1.3 Difference difference corresponds to number of index obs remove in given year
+1.1.3 Difference corresponds to number of index obs remove in given year
 [1] 1 2 3 4 5
 
 
@@ -46,7 +46,7 @@ Check hindcasting functionality
 [1] 22 21 20 19 18
 
 
-1.2.3 Difference difference corresponds to number of index obs remove in given year
+1.2.3 Difference corresponds to number of index obs remove in given year
 [1] 1 2 3 4 5
 
 
@@ -74,7 +74,7 @@ Check hindcasting functionality
 [1] 22 21 20 19 18
 
 
-1.3.3 Difference difference corresponds to number of index obs remove in given year
+1.3.3 Difference corresponds to number of index obs remove in given year
 [1] 1 2 3 4 5
 
 
@@ -102,7 +102,7 @@ Check hindcasting functionality
 [1] 20 20 20 19 18 17 16
 
 
-1.4.3 Difference difference corresponds to number of index obs remove in given year
+1.4.3 Difference corresponds to number of index obs remove in given year
 [1] 0 0 0 1 2 3 4
 
 
@@ -130,7 +130,7 @@ Check hindcasting functionality
 [1] 19 18 18 18 18 17 16
 
 
-1.5.3 Difference difference corresponds to number of index obs remove in given year
+1.5.3 Difference corresponds to number of index obs remove in given year
 [1] 1 2 2 2 2 3 4
 
 
@@ -161,7 +161,7 @@ Warning: The observations of Index 1 are not constant in time and vary by more t
 [1] 18 17 16 15 14
 
 
-1.6.3 Difference difference corresponds to number of index obs remove in given year
+1.6.3 Difference corresponds to number of index obs remove in given year
 [1] 1 2 3 4 5
 
 
@@ -189,7 +189,7 @@ Warning: The observations of Index 1 are not constant in time and vary by more t
 [1] 23 22 21 20
 
 
-1.7.3 Difference difference corresponds to number of index obs remove in given year
+1.7.3 Difference corresponds to number of index obs remove in given year
 [1] 1 2 3 4
 
 
@@ -213,7 +213,7 @@ Warning: The observations of Index 1 are not constant in time and vary by more t
 [1] 23 22 21 20 19 18 17
 
 
-1.8.3 Difference difference corresponds to number of index obs remove in given year
+1.8.3 Difference corresponds to number of index obs remove in given year
 [1] 1 2 3 4 5 6 7
 
 
@@ -237,7 +237,7 @@ Warning: The observations of Index 1 are not constant in time and vary by more t
 [1] 23 22 21 20 19 18 17
 
 
-1.9.3 Difference difference corresponds to number of index obs remove in given year
+1.9.3 Difference corresponds to number of index obs remove in given year
 [1] 1 2 3 4 5 6 7
 
 
