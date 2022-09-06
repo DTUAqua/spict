@@ -3,7 +3,7 @@ date <- format(Sys.Date(), "%Y-%m-%d")
 cat('Package: spict
 Type: Package
 Title: Stochastic surplus Production model in Continuous-Time (SPiCT)
-Version: 1.3.5
+Version: 1.3.7
 Date:', date, '
 Authors@R: c(person(given="Martin Waever",
                     family="Pedersen",
