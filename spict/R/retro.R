@@ -27,6 +27,9 @@
 #'     \code{FALSE}
 #' @param mc.cores Number of cores for \code{parallel::mclapply} function. By
 #'     default 1.
+#'
+#' @importFrom parallel mclapply
+#'
 #' @return A rep list with the added key retro containing the results of the
 #'     retrospective analysis. Use plotspict.retro() to plot these results.
 #' @examples
@@ -37,8 +40,8 @@
 #' plotspict.retro(rep)
 #' @export
 retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = 1){
-    if (!"spictcls" %in% class(rep)) stop("This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.")
-    if (rep$opt$convergence != 0) stop("The fitted object did not converged.")
+    check.rep(rep)
+    if(rep$opt$convergence != 0) stop("The fitted object did not converge.")
     inp1 <- rep$inp
 
     lastyears <- max(inp1$timerangeObs) - 1:nretroyear
@@ -80,11 +83,7 @@ retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = 1){
         rep$retro <- asd
     }
     ## Add the base run into the retro list
-    baserun <- rep
-    baserun$retro <- NULL
-    baserun$cov <- NA
-    baserun$man <- NULL
-    rep$retro <- c(list(baserun), rep$retro)
+    rep$retro <- c(list(prune.baserun(rep)), rep$retro)
     return(rep)
 }
 

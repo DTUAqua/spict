@@ -1,0 +1,442 @@
+
+Check hindcasting functionality
+===============================
+
+
+1. Expected basic functionality
+===============================
+
+
+1.1 Default albacore data set and model
+=======================================
+
+1.1.1 Decreasing length of index observations
+[1] 23 22 21 20 19
+
+
+1.1.2 Decreasing length of index use indicator
+[1] 22 21 20 19 18
+
+
+1.1.3 Difference corresponds to number of index obs remove in given year
+[1] 1 2 3 4 5
+
+
+1.1.4 MASE:
+[1] 1.62
+
+
+1.1.5 First peel have the same number of catch obs as baserun, then cont. decreasing
+[1] 23 23 22 21 20 19
+
+
+1.1.6 For an annual model MASE with peel.dtc = TRUE should be the same
+[1] TRUE
+
+
+
+1.2 Albacore data set assuming midyear index
+============================================
+
+1.2.1 Decreasing length of index observations
+[1] 23 22 21 20 19
+
+
+1.2.2 Decreasing length of index use indicator
+[1] 22 21 20 19 18
+
+
+1.2.3 Difference corresponds to number of index obs remove in given year
+[1] 1 2 3 4 5
+
+
+1.2.4 MASE:
+[1] 1.667
+
+
+1.2.5 First peel have the same number of catch obs as baserun, then cont. decreasing
+[1] 23 23 22 21 20 19
+
+
+1.2.6 For an annual model MASE with peel.dtc = TRUE should be the same
+[1] TRUE
+
+
+
+1.3 Albacore data set assuming midyear index and last catch missing
+===================================================================
+
+1.3.1 Decreasing length of index observations
+[1] 23 22 21 20 19
+
+
+1.3.2 Decreasing length of index use indicator
+[1] 22 21 20 19 18
+
+
+1.3.3 Difference corresponds to number of index obs remove in given year
+[1] 1 2 3 4 5
+
+
+1.3.4 MASE:
+[1] 1.641
+
+
+1.3.5 First two peels have the same number of catch obs as baserun, then cont. decreasing
+[1] 22 22 22 21 20 19
+
+
+1.3.6 For an annual model MASE with peel.dtc = TRUE should be the same
+[1] TRUE
+
+
+
+1.4 Albacore data set assuming midyear index and last indices missing
+=====================================================================
+
+1.4.1 Decreasing length of index observations
+[1] 20 20 20 20 19 18 17
+
+
+1.4.2 Decreasing length of index use indicator
+[1] 20 20 20 19 18 17 16
+
+
+1.4.3 Difference corresponds to number of index obs remove in given year
+[1] 0 0 0 1 2 3 4
+
+
+1.4.4 MASE:
+[1] 2.69
+
+
+1.4.5 First peel have the same number of catch obs as baserun, then cont. decreasing
+[1] 23 23 22 21 20 19 18 17
+
+
+1.4.6 For an annual model MASE with peel.dtc = TRUE should be the same
+[1] TRUE
+
+
+
+1.5 Albacore data set assuming midyear index and intermediate indices missing
+=============================================================================
+
+1.5.1 Decreasing length of index observations
+[1] 20 19 18 18 18 18 17
+
+
+1.5.2 Decreasing length of index use indicator
+[1] 19 18 18 18 18 17 16
+
+
+1.5.3 Difference corresponds to number of index obs remove in given year
+[1] 1 2 2 2 2 3 4
+
+
+1.5.4 MASE:
+Warning: The observations of Index 1 are not constant in time and vary by more than a month, because of variable timing of index observations, missing observations in intermediate years, or non-converged peels. This might affect the interpretation of MASE. 
+[1] 3.556
+
+
+1.5.5 First peel have the same number of catch obs as baserun, then cont. decreasing
+[1] 23 23 22 21 20 19 18 17
+
+
+1.5.6 For an annual model MASE with peel.dtc = TRUE should be the same
+Warning: The observations of Index 1 are not constant in time and vary by more than a month, because of variable timing of index observations, missing observations in intermediate years, or non-converged peels. This might affect the interpretation of MASE. 
+Warning: The observations of Index 1 are not constant in time and vary by more than a month, because of variable timing of index observations, missing observations in intermediate years, or non-converged peels. This might affect the interpretation of MASE. 
+[1] TRUE
+
+
+
+1.6 Albacore data set and last index is exactly at end of last catch interval
+=============================================================================
+
+1.6.1 Decreasing length of index observations
+[1] 19 18 17 16 15
+
+
+1.6.2 Decreasing length of index use indicator
+[1] 18 17 16 15 14
+
+
+1.6.3 Difference corresponds to number of index obs remove in given year
+[1] 1 2 3 4 5
+
+
+1.6.4 MASE:
+[1] 0.7556
+
+
+1.6.5 First two peels have the same number of catch obs as baserun, then cont. decreasing
+[1] 18 18 18 17 16 15
+
+
+1.6.6 For an annual model MASE with peel.dtc = TRUE should be the same
+[1] TRUE
+
+
+
+1.7 Default hake data set (4 peels)
+===================================
+
+1.7.1 Decreasing length of index observations
+[1] 24 23 22 21
+
+
+1.7.2 Decreasing length of index use indicator
+[1] 23 22 21 20
+
+
+1.7.3 Difference corresponds to number of index obs remove in given year
+[1] 1 2 3 4
+
+
+1.7.4 MASE:
+[1] 1.83
+
+
+1.7.5 First peel have the same number of catch obs as baserun, then cont. decreasing
+[1] 24 24 23 22 21
+
+
+
+1.8 Default hake data set (7 peels)
+===================================
+
+1.8.1 Decreasing length of index observations
+[1] 24 23 22 21 20 19 18
+
+
+1.8.2 Decreasing length of index use indicator
+[1] 23 22 21 20 19 18 17
+
+
+1.8.3 Difference corresponds to number of index obs remove in given year
+[1] 1 2 3 4 5 6 7
+
+
+1.8.4 MASE:
+[1] 1.545
+
+
+1.8.5 First peel have the same number of catch obs as baserun, then cont. decreasing
+[1] 24 24 23 22 21 20 19 18
+
+
+
+1.9 Hake data set and more stable model (7 peels)
+=================================================
+
+1.9.1 Decreasing length of index observations
+[1] 24 23 22 21 20 19 18
+
+
+1.9.2 Decreasing length of index use indicator
+[1] 23 22 21 20 19 18 17
+
+
+1.9.3 Difference corresponds to number of index obs remove in given year
+[1] 1 2 3 4 5 6 7
+
+
+1.9.4 MASE:
+[1] 1.202
+
+
+1.9.5 First peel have the same number of catch obs as baserun, then cont. decreasing
+[1] 24 24 23 22 21 20 19 18
+
+
+
+2. Multiple indices with different lengths
+==========================================
+
+2.1 Decreasing length of index observations
+[1] 97 96 95 94 92 90 88
+
+
+2.2 Decreasing length of index use indicator
+[1] 96 95 94 92 90 88 86
+
+
+2.3 Two indices removed each year:
+[1]  1  2  3  5  7  9 11
+
+
+2.4 MASE:
+[1] 0.5990 0.5867
+
+
+2.5 First peel have the same number of catch obs as baserun, then cont. decreasing
+[1] 50 50 49 48 47 46 45 44
+
+
+
+3. Missing index observations at end of time series
+===================================================
+
+3.1 Decreasing length of index observations
+[1] 72 72 72 72 72 70 68
+
+
+3.2 Decreasing length of index use indicator
+[1] 72 72 72 72 70 68 66
+
+
+3.3 Last 4 yars, no indices, then two per year removed:
+[1] 0 0 0 0 2 4 6
+
+
+3.4 MASE:
+[1] 2.546 1.075
+
+
+3.5 First peel have the same number of catch obs as baserun, then cont. decreasing
+[1] 40 40 39 38 37 36 35 34
+
+
+
+4. Missing index observations in middle of time series
+======================================================
+
+4.1 All peels converged:
+[1] 0 0 0 0 0 0
+
+
+4.2 Decreasing length of index observations
+[1] 48 47 46 46 46
+
+
+4.3 Decreasing length of index use indicator
+[1] 47 46 46 46 45
+
+
+4.4 Except for first year (ref), difference corresponds to number of indices in this year:
+[1] 1 2 2 2 3
+
+
+4.5 MASE is calculated correctly plus warning about unequal spacing
+Warning: The observations of Index 1 are not constant in time and vary by more than a month, because of variable timing of index observations, missing observations in intermediate years, or non-converged peels. This might affect the interpretation of MASE. 
+[1] 0.4492
+character(0)
+
+
+4.6 Plot is shown correctly plus warning about unequal spacing
+Warning: The observations of Index 1 are not constant in time and vary by more than a month, because of variable timing of index observations, missing observations in intermediate years, or non-converged peels. This might affect the interpretation of MASE. 
+character(0)
+
+
+4.7 First peel have the same number of catch obs as baserun, then cont. decreasing
+[1] 50 50 49 48 47 46
+
+
+
+5. Hindcasts exclude not converged runs
+=======================================
+
+5.1 Convergence of last 3 peels is not achieved
+[1] 0 0 0 1 1 1
+
+
+5.2 MASE is calculated correctly
+[1] 3.092
+[1] "3 peels corresponding to the year(s) 1975, 1974, 1973 did not converge."
+
+
+5.3 Plot is shown correctly
+[1] "3 peels corresponding to the year(s) 1975, 1974, 1973 did not converge."
+
+
+5.5 Plot shows message with excluded runs
+[1] TRUE
+
+
+
+6. Error expectations
+=====================
+
+6.1 No spictcls object produces an error
+Error:The argument 'rep' needs to be a fitted spict object. Use 'fit.spict()' to fit a spict model!
+
+
+6.2 Not converged fitted object produces an error
+Error:The fitted object did not converge.
+
+7. Seasonal data with multiple indices with various time series lengths plus catch in last half year is missing
+===============================================================================================================
+
+
+7.1 Annual peels
+================
+
+7.1.1 All peels converged:
+[1] 0 0 0 0 0 0 0 0
+
+
+7.1.2 Decreasing length of index observations
+[1] 177 176 174 171 168 165 162
+
+
+7.1.3 Decreasing length of index use indicator
+[1] 176 174 171 168 165 162 159
+
+
+7.1.4 Except for first year (ref), difference corresponds to number of index obs remove in given year
+[1]  1  3  6  9 12 15 18
+
+
+7.1.5 MASE is calculated correctly plus message that one index is outside of peels
+No observations in evaluation years to compute prediction residuals for Index 3 
+[1] 0.6134 0.3873 0.6628
+character(0)
+
+
+7.1.6 Plot is shown correctly plus message that one index is outside of peels
+No observations in evaluation years to compute prediction residuals for Index 3 
+character(0)
+
+
+7.1.7 First peel have the same number of catch obs as baserun, then cont. decreasing (first 2 seasons, then 4 seasons)
+[1] 198 198 196 192 188 184 180 176
+
+
+
+7.2 Seasonal peels
+==================
+
+7.2.1 All peels converged:
+ [1] 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+
+7.2.2 Decreasing length of index observations
+ [1] 177 176 176 176 176 175 175 174 174 173 173 172 171 170 170 169 168 167 167
+[20] 166
+
+
+7.2.3 Decreasing length of index use indicator
+ [1] 176 176 176 176 175 175 174 174 173 173 172 171 170 170 169 168 167 167 166
+[20] 165
+
+
+7.2.4 Except for first year (ref), difference corresponds to number of index obs removed in given year
+ [1]  1  1  1  1  2  2  3  3  4  4  5  6  7  7  8  9 10 10 11 12
+
+
+7.5 MASE is calculated correctly plus message that one index is outside of peels
+No observations in evaluation years to compute prediction residuals for Index 3 
+[1] 0.5151 0.3996 0.2628
+character(0)
+
+
+7.2.6 Plot is shown correctly plus message that one index is outside of peels
+No observations in evaluation years to compute prediction residuals for Index 3 
+character(0)
+
+
+7.2.7 First three peels have the same number of catch obs as baserun, then cont. decreasing 
+ [1] 198 198 198 198 197 196 195 194 193 192 191 190 189 188 187 186 185 184 183
+[20] 182 181
+
+

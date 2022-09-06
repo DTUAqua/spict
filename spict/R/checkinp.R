@@ -1200,6 +1200,12 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     ## Simulate using fitted object (env$last.par)?
     if(!"sim.fit" %in% names(inp)) inp$sim.fit <- TRUE
 
+    ##
+    if(!"iuse" %in% names(inp) || length(inp$iuse) != length(unlist(inp$obsI)))
+        inp$iuse <- rep(TRUE, length(unlist(inp$obsI)))
+
+
+
     # Reorder parameter list
     inp$parlist <- list(logm=inp$ini$logm,
                         mu=inp$ini$mu,

@@ -128,6 +128,7 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(stabilise);     // If 1 stabilise optimisation using uninformative priors
   //DATA_SCALAR(effortflag);     // If effortflag == 1 use effort data, else use index data
   DATA_FACTOR(MSYregime);      // factor mapping each time step to an m-regime
+  DATA_VECTOR(iuse);
 
   // Priors
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
@@ -985,7 +986,7 @@ Type objective_function<Type>::operator() ()
         logobsI(i) = rnorm(logIpred(i), stdevfaci(i) * sdi(indsdi));
       }
     }
-    ans-= keep(inds) * likval;
+    ans-= keep(inds) * likval * iuse(i);
     // DEBUGGING
     if(dbg>1){
       std::cout << "-- i: " << i << " -  ind: " << ind << " -  indq: " << indq << " -  indsdi: " << indsdi << " -  inds: " << inds << " -   logobsI(i): " << logobsI(i) << "  logIpred(i): " << logIpred(i) << "  stdevfaci(i): " << stdevfaci(i) << "  likval: " << likval << "  sdi: " << sdi << "  ans:" << ans << std::endl;

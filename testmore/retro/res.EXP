@@ -31,8 +31,8 @@ Check retrospective analysis functionality
 =====================
 
 2.1. No spictcls object produces an error
-Error:This function only works with a fitted spict object (class 'spictcls'). Please run `fit.spict` first.
+Error:The argument 'rep' needs to be a fitted spict object. Use 'fit.spict()' to fit a spict model!
 
 
 2.2. Not converged fitted object produces an error
-Error:The fitted object did not converged.
+Error:The fitted object did not converge.

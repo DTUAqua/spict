@@ -1,7 +1,13 @@
-spict v1.3.7-pre (not released yet)
-============
+spict v1.3.7 (2021-08-12)
+
+New features
+
+* Added functionality for performing and plotting hindcast analysis 
+  introducing the functions `hindcast()` and `plotspict.hindcast`.
 
 Bug fixes:
+
+
 * fixed retro when last year's observations where missing
 
 spict v1.3.6 (2021-06-06)
