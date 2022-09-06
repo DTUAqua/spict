@@ -1,0 +1,16 @@
+name: run-testmore
+on: 
+  push:
+  workflow_dispatch:
+jobs:
+  run-testmore:
+    runs-on: self-hosted
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+
+      - name: install spict
+        run: mkdir library && R_LIBS="~/github/spict/spict/library" make install
+      
+      - name: test spict
+        run: R_LIBS="~/github/spict/spict/library" make testmore

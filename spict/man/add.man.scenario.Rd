@@ -2,6 +2,8 @@
 % Please edit documentation in R/manage.R
 \name{add.man.scenario}
 \alias{add.man.scenario}
+\alias{get.TAC,}
+\alias{make.man.inp}
 \alias{get.TAC}
 \title{Define management scenario}
 \usage{
@@ -28,6 +30,28 @@ add.man.scenario(
 )
 
 get.TAC(
+  rep,
+  scenarioTitle = "",
+  maninterval = NULL,
+  maneval = NULL,
+  ffac = NULL,
+  fabs = NULL,
+  cfac = NULL,
+  cabs = NULL,
+  fractiles = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5),
+  breakpointB = 0,
+  safeguardB = list(limitB = 0, prob = 0.95),
+  intermediatePeriodCatch = NULL,
+  intermediatePeriodCatchSDFac = 1,
+  intermediatePeriodCatchList = NULL,
+  ctol = 0.001,
+  evalBreakpointB = 0,
+  verbose = TRUE,
+  dbg = 0,
+  mancheck = TRUE
+)
+
+make.man.inp(
   rep,
   scenarioTitle = "",
   maninterval = NULL,
@@ -106,11 +130,11 @@ period obtaining the elements 'obsC', 'timeC', and 'dtc' (optional
 element 'stdevfacC' which is 1 if not provided). Please refer to the
 details for more information.}
 
-\item{ctol}{Tolerance of \code{optimise} when finding F that leads to
+\item{ctol}{Tolerance of \code{nlminb} when finding F that leads to
 provided target catch (via arguments \code{cfac} or \code{cabs})}
 
 \item{evalBreakpointB}{Time for the evaluation of the hockey-stick component
-of the HCR: 0 indicating start of the mangement period and 1 indicating
+of the HCR: 0 indicating start of the management period and 1 indicating
 the end of the management period (default: 0).}
 
 \item{verbose}{Should detailed outputs be provided (default: TRUE).}
@@ -125,6 +149,7 @@ against the management time and corrected if necessary? (Default: TRUE)}
 specified HCR added to the \code{man} list.
 \code{get.TAC} returns the total allowable catch (TAC) based on the
 specified scenario.
+\code{make.man.inp} returns the updated \code{inp} list based on specified HCR.
 }
 \description{
 Define management scenario
@@ -236,6 +261,10 @@ intermediate period. The argument \code{intermediatePeriodCatchList} allows
 to define a list with catches and their intervals. It is a list with the
 elements 'obsC', 'timeC', 'dtc' and the optional element 'stdevfacC' (which
 is equal to 1 if not provided).}}
+}
+
+\subsection{\code{make.man.inp}}{
+Internal function that creates the required input list for the specific HCR.
 }
 }
 \examples{

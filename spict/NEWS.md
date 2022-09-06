@@ -1,5 +1,4 @@
 spict v1.3.7 (2021-08-12)
-============
 
 New features
 
@@ -7,6 +6,7 @@ New features
   introducing the functions `hindcast()` and `plotspict.hindcast`.
 
 Bug fixes:
+
 
 * fixed retro when last year's observations where missing
 

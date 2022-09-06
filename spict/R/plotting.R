@@ -2947,15 +2947,15 @@ plotspict.data <- function(inpin, MSY=NULL, one.index=NULL, qlegend=TRUE, stamp=
     # Plot simulated biomass and fishing mortality
     if ('true' %in% names(inp)){
         if (inp$timevaryinggrowth){
-            plot(inp$time, inp$true$mre, typ='l', xlim=xlim, xlab='Time', ylab='m',
+            plot(inp$true$time, inp$true$mre, typ='l', xlim=xlim, xlab='Time', ylab='m',
                  lwd=1.5, col=true.col(), main='True MSY')
             box(lwd=1.5)
         }
-        plot(inp$time, inp$true$F, typ='l', col=true.col(), xlim=xlim, xlab='Time',
-             ylab=expression(F[t]), lwd=1.5, main='True F')
+      plot(inp$true$time, inp$true$F, typ='l', col=true.col(), xlim=xlim, xlab='Time',
+           ylab=expression(F[t]), lwd=1.5, main='True F')
         box(lwd=1.5)
         ylab <- add.catchunit(expression(B[t]), inp$catchunit)
-        plot(inp$time, inp$true$B, typ='l', xlim=xlim, xlab='Time', ylab=ylab,
+        plot(inp$true$time, inp$true$B, typ='l', xlim=xlim, xlab='Time', ylab=ylab,
              lwd=1.5, col=true.col(), main='True biomass')
         box(lwd=1.5)
     }

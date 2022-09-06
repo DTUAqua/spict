@@ -621,239 +621,10 @@ check.catchList <- function(catchList, sdfac = 1){
     return(catchList)
 }
 
-#' @name make.man.inp
-#' @title Get updated inp list based on specific HCR
-#'
-#' @inheritParams add.man.scenario
-#'
-#' @details Internal function that creates the required input list for the
-#'     specific HCR. For detailed information, please refer to
-#'     \code{\link{add.man.scenario}}.
-#'
-#' @return The updated inp list based on specified HCR.
-make.man.inp <- function(rep, scenarioTitle = "",
-                         maninterval = NULL,
-                         maneval = NULL,
-                         ffac = NULL,   ## if NULL default fishing at fmsy
-                         fabs = NULL,
-                         cfac = NULL,
-                         cabs = NULL,
-                         fractiles = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5),
-                         breakpointB = 0,
-                         safeguardB = list(limitB = 0, prob = 0.95),
-                         intermediatePeriodCatch = NULL,
-                         intermediatePeriodCatchSDFac = 1,
-                         intermediatePeriodCatchList = NULL,
-                         ctol = 0.001,
-                         evalBreakpointB = 0,
-                         verbose = TRUE,
-                         dbg = 0,
-                         mancheck = TRUE){
-
-    ## check rep class
-    check.rep(rep, reportmode0 = FALSE)
-
-    ## check if management time within model time
-    reqRep <- (!is.numeric(cfac) || is.na(cfac)) && (!is.numeric(ffac) || is.na(ffac))
-    if((!is.null(maninterval) || !is.null(maneval)) && mancheck){
-        if(reqRep){
-            rep <- check.man.time(rep, maninterval = maninterval, maneval = maneval,
-                                  verbose = FALSE, mancheck = mancheck)
-            inp <- rep$inp
-        }else{
-            inp <- check.man.time(rep$inp, maninterval = maninterval, maneval = maneval,
-                                  verbose = FALSE, mancheck = mancheck)
-        }
-    }else inp <- rep$inp
-
-    ## check input variables
-    stopifnot(all(unlist(fractiles) <= 0.5 && unlist(fractiles) > 0))
-    stopifnot(cfac >= 0)
-    stopifnot(cabs >= 0)
-    stopifnot(ffac >= 0)
-    stopifnot(fabs >= 0)
-    stopifnot(all(breakpointB >= 0))
-    if(is.numeric(ffac) && is.numeric(cfac))
-        stop("Both 'ffac' and 'cfac' provided, please choose either or neither.")
-    if(is.numeric(fabs) && is.numeric(cabs))
-        stop("Both 'fabs' and 'cabs' provided, please choose either or neither.")
-    if(is.numeric(ffac) && is.numeric(fabs))
-        stop("Both 'ffac' and 'fabs' provided, please choose either or neither.")
-    if(is.numeric(cfac) && is.numeric(cabs))
-        stop("Both 'cfac' and 'cabs' provided, please choose either or neither.")
-    breakpointB <- sort(breakpointB)
-    if(length(breakpointB) > 1){
-        blim <- breakpointB[1]
-        btrigger <- breakpointB[2]
-    }else{
-        blim <- 0
-        btrigger <- breakpointB[1]
-    }
-
-    ## copies
-    repout <- reppa <- rep
-
-    ## FRACTILES
-    if(!is.list(fractiles)) stop("Please provide 'fractiles' with the arguments: 'catch', 'bbmsy', and 'ffmsy'!")
-    default_fractiles = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5)
-    fList <- default_fractiles[which(!names(default_fractiles) %in% names(fractiles))]
-    fList <- c(fList,fractiles)
-
-    ## BIOMASS SAFEGUARD
-    if(!is.list(safeguardB)) stop("Please provide 'safeguardB' with the arguments: 'limitB' and 'prob'!")
-    default_safeguardB = list(limitB = 0, prob = 0.95)
-    pList <- default_safeguardB[which(!names(default_safeguardB) %in% names(safeguardB))]
-    pList <- c(pList,safeguardB)
-
-    ## fixed catch in INTERMEDIATE YEAR
-    inttime <- inp$dtpredcinds[1] - min(inp$indCpred)
-    if(inttime > 0 && ((!is.null(intermediatePeriodCatch) &&
-                        !is.na(intermediatePeriodCatch) && is.numeric(intermediatePeriodCatch)) ||
-                       !is.null(intermediatePeriodCatchList))){
-        inpt <- inp
-        dtcint <- (inp$dtpredcinds[1] - min(inp$indCpred)) * inp$dteuler
-        if(verbose) writeLines(paste0("The intermediate time period is ",dtcint," year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.\n"))
-        if(is.null(intermediatePeriodCatchList)){
-            ## default catchList
-            inpt$timeC <- c(inpt$timeC, inp$time[min(inp$indCpred)])
-            inpt$obsC <- c(inpt$obsC, intermediatePeriodCatch)
-            inpt$stdevfacC <- c(inpt$stdevfacC, intermediatePeriodCatchSDFac)
-            inpt$dtc <- c(inpt$dtc, dtcint)
-        }else{
-            ## specified catchList
-            check.catchList(intermediatePeriodCatchList)
-            inpt$timeC <- c(inpt$timeC, intermediatePeriodCatchList$timeC)
-            inpt$obsC <- c(inpt$obsC, intermediatePeriodCatchList$obsC)
-            if(is.null(intermediatePeriodCatchList$stdevfacC)){
-                inpt$stdevfacC <- c(inpt$stdevfacC, rep(intermediatePeriodCatchSDFac,
-                                                        length(intermediatePeriodCatchList$timeC)))
-            }else{
-                inpt$stdevfacC <- c(inpt$stdevfacC, intermediatePeriodCatchList$stdevfacC)
-            }
-            inpt$dtc <- c(inpt$dtc, intermediatePeriodCatchList$dtc)
-        }
-        inpt <- check.inp(inpt, verbose = FALSE, mancheck=FALSE)
-        inpt$lastCatchObs <- inp$lastCatchObs
-        inpt$timerangeObs <- inp$timerangeObs
-        if(reqRep){
-            repout <- reppa <- rep <- retape.spict(rep, inpt, verbose = FALSE, mancheck=FALSE)
-        }else{
-            rep$inp <- inpt
-            repout <- reppa <- rep
-        }
-        inp <- inpt
-    }
-
-    ## ADVICE RULES
-    ## ---------------
-    if((!is.numeric(cfac) || is.na(cfac)) && (!is.numeric(cabs) || is.na(cabs))){
-        if((!is.numeric(ffac) || is.na(ffac)) && (!is.numeric(fabs) || is.na(fabs))){
-            ## Quantities
-            fmanstart <- get.par('logFm', rep, exp=TRUE)[2]
-            fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
-            bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
-            logFpFmsy <- get.par("logFpFmsynotS", rep)
-            logBpBmsy <- get.par("logBpBmsy", rep)
-            logFmFmsy <- get.par("logFmFmsynotS", rep)
-            logBmBmsy <- get.par("logBmBmsy", rep)
-            ## FFmsy component
-            fi <- 1 - fList$ffmsy
-            fmfmsyi <- exp(qnorm(fi, logFmFmsy[2], logFmFmsy[4]))
-            fmfmsy5 <- exp(qnorm(0.5, logFmFmsy[2], logFmFmsy[4]))
-            fred <- fmfmsy5 / fmfmsyi
-            ## BBmsy component (hockey stick HCR)
-            if(!is.na(btrigger) && is.numeric(btrigger) && btrigger != 0){
-                if(evalBreakpointB == 0){
-                    ## evaluated at the start of maninterval
-                    hsSlope <- 1/(btrigger-blim)
-                    hsIntercept <- - hsSlope * blim
-                    bmbmsyi <- hsSlope * exp(qnorm(fList$bbmsy, logBmBmsy[2], logBmBmsy[4])) + hsIntercept
-                    fred <- fred * min(1, max(0,bmbmsyi))
-                }else{
-                    ## evaluated at the end of maninterval
-                    ffac <- (fred + 1e-8) * fmsy / fmanstart
-                    inppa <- make.ffacvec(inp, ffac)
-                    inppa$reportmode <- 1
-                    reppa <- try(retape.spict(reppa, inppa, verbose=verbose, mancheck=FALSE), silent=TRUE)
-                    if(inherits(reppa,"try-error")){
-                        if(verbose) cat("The hockey-stick rule applied at the end of the management interval caused problems: The model could not be retaped. Omitting the hockey-stick component ('breakpointB') from the scenario!\n")
-                    }else{
-                        logBpBmsy2 <- get.par("logBpBmsy", reppa)
-                        hsSlope <- 1/(btrigger-blim)
-                        hsIntercept <- - hsSlope * blim
-                        bpbmsyi <- hsSlope * exp(qnorm(fList$bbmsy, logBpBmsy2[2], logBpBmsy2[4])) + hsIntercept
-                        fred <- fred * min(1, max(0,bpbmsyi))
-                    }
-                }
-            }
-            ## F reduction factor
-            ffac <- (fred + 1e-8) * fmsy / fmanstart
-            ## PA component
-            if(!is.na(pList$limitB) && is.numeric(pList$limitB) && pList$limitB != 0){
-                inppa <- make.ffacvec(inp, ffac)
-                inppa$reportmode <- 1
-                reppa <- try(retape.spict(reppa, inppa, verbose=verbose, mancheck=FALSE), silent=TRUE)
-                if(inherits(reppa,"try-error")){
-                    if(verbose) cat("The fishing mortality multiplication factor 'ffac' could not be estimated with this management scenario due to an error when retaping the updated spict model. 'ffac' is set to 1, which assumes no change in the fishing mortality. \n")
-                    ffac <- 1
-                }else{
-                    logBpBmsyPA <- get.par("logBpBmsy", reppa)
-                    probi <- 1 - pList$prob
-                    bpbmsyiPA <- exp(qnorm(probi, logBpBmsyPA[2], logBpBmsyPA[4]))
-                    if((bpbmsyiPA - pList$limitB) < -1e-3){
-                        ffac <- try(get.ffac(reppa, ref=pList$limitB,
-                                             problevel=pList$prob,
-                                             var="logBpBmsy",
-                                             reportmode = 1), silent=TRUE)
-                        if(inherits(ffac,"try-error")){
-                            if(verbose) cat("The fishing mortality multiplication factor 'ffac' could not be estimated with this management scenario due to an error when optimising the risk aversion probability over F. 'ffac' is set to 1, which assumes no change in the fishing mortality. \n")
-                            ffac <- 1
-                        }
-
-                    }
-                }
-            }
-        }else if(!is.numeric(ffac) || is.na(ffac)){
-            ffac <- fabs / get.par('logFm', rep, exp=TRUE)[2]
-        }
-    }else{
-        if(!is.numeric(cabs) || is.na(cabs)){
-            mantab <- get.manC(rep, inp)
-            cabs <- as.numeric(mantab[,"manc"]) * cfac
-        }
-        if (length(cabs) > 1) cabs <- sum(cabs)
-        if (cabs == 0) {
-            realisedTAC <- get.TAC(rep, ffac = 0)
-            ffac <- 0
-        } else {
-            relTargetC <- cabs / tail(rep$inp$obsC, 1)
-            searchRange <- c(relTargetC / 2, relTargetC * 2)
-            realisedTAC <- NULL
-            minme <- function(x) {
-                realisedTAC <<- get.TAC(rep, ffac = x)
-                (realisedTAC - cabs)^2
-            }
-            ffac <- optimise(minme, searchRange, tol = ctol)$minimum
-            signifround <- function(x) if (x >= 1) round(x) else signif(x, 2)
-            if (verbose && abs((cabs - realisedTAC) / cabs) > 0.01) {
-                writeLines(paste0("Provided target catch: ", signifround(cabs),
-                                  ". Realised target catch: ", signifround(realisedTAC)))
-            }
-        }
-    }
-
-    ## adjust fishing mortality rate
-    inpt <- make.ffacvec(inp, ffac)
-
-    ## return updated inp list
-    return(inpt)
-}
-
-
 #' @name add.man.scenario
 #' @title Define management scenario
 #'
-#' @aliases get.TAC
+#' @aliases get.TAC, make.man.inp
 #'
 #' @param rep A result report as generated by running \code{fit.spict}.
 #' @param scenarioTitle Title of scenario (default: \code{'customScenario_X'},
@@ -897,10 +668,10 @@ make.man.inp <- function(rep, scenarioTitle = "",
 #'     period obtaining the elements 'obsC', 'timeC', and 'dtc' (optional
 #'     element 'stdevfacC' which is 1 if not provided). Please refer to the
 #'     details for more information.
-#' @param ctol Tolerance of \code{optimise} when finding F that leads to
+#' @param ctol Tolerance of \code{nlminb} when finding F that leads to
 #'     provided target catch (via arguments \code{cfac} or \code{cabs})
 #' @param evalBreakpointB Time for the evaluation of the hockey-stick component
-#'     of the HCR: 0 indicating start of the mangement period and 1 indicating
+#'     of the HCR: 0 indicating start of the management period and 1 indicating
 #'     the end of the management period (default: 0).
 #' @param verbose Should detailed outputs be provided (default: TRUE).
 #' @param dbg Debug flag, dbg=1 some output, dbg=2 more output.
@@ -1016,10 +787,14 @@ make.man.inp <- function(rep, scenarioTitle = "",
 #' is equal to 1 if not provided).}}
 #' }
 #'
+#' \subsection{\code{make.man.inp}}{
+#' Internal function that creates the required input list for the specific HCR.
+#' }
 #' @return \code{add.man.scenario} returns the input object \code{rep} with the
 #' specified HCR added to the \code{man} list.
 #' \code{get.TAC} returns the total allowable catch (TAC) based on the
 #' specified scenario.
+#' \code{make.man.inp} returns the updated \code{inp} list based on specified HCR.
 #'
 #' @references
 #' ICES. 2017. Report of the Workshop on the Development of the ICES
@@ -1656,7 +1431,230 @@ get.TAC <- function(rep,
     return(tac)
 }
 
+#' @rdname add.man.scenario
+make.man.inp <- function(rep, scenarioTitle = "",
+                         maninterval = NULL,
+                         maneval = NULL,
+                         ffac = NULL,   ## if NULL default fishing at fmsy
+                         fabs = NULL,
+                         cfac = NULL,
+                         cabs = NULL,
+                         fractiles = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5),
+                         breakpointB = 0,
+                         safeguardB = list(limitB = 0, prob = 0.95),
+                         intermediatePeriodCatch = NULL,
+                         intermediatePeriodCatchSDFac = 1,
+                         intermediatePeriodCatchList = NULL,
+                         ctol = 0.001,
+                         evalBreakpointB = 0,
+                         verbose = TRUE,
+                         dbg = 0,
+                         mancheck = TRUE){
 
+  ## check rep class
+  check.rep(rep, reportmode0 = FALSE)
+
+  ## check if management time within model time
+  reqRep <- (!is.numeric(cfac) || is.na(cfac)) && (!is.numeric(ffac) || is.na(ffac))
+  if((!is.null(maninterval) || !is.null(maneval)) && mancheck){
+    if(reqRep){
+      rep <- check.man.time(rep, maninterval = maninterval, maneval = maneval,
+                            verbose = FALSE, mancheck = mancheck)
+      inp <- rep$inp
+    }else{
+      inp <- check.man.time(rep$inp, maninterval = maninterval, maneval = maneval,
+                            verbose = FALSE, mancheck = mancheck)
+    }
+  }else inp <- rep$inp
+
+  ## check input variables
+  stopifnot(all(unlist(fractiles) <= 0.5 && unlist(fractiles) > 0))
+  stopifnot(cfac >= 0)
+  stopifnot(cabs >= 0)
+  stopifnot(ffac >= 0)
+  stopifnot(fabs >= 0)
+  stopifnot(all(breakpointB >= 0))
+  if(is.numeric(ffac) && is.numeric(cfac))
+    stop("Both 'ffac' and 'cfac' provided, please choose either or neither.")
+  if(is.numeric(fabs) && is.numeric(cabs))
+    stop("Both 'fabs' and 'cabs' provided, please choose either or neither.")
+  if(is.numeric(ffac) && is.numeric(fabs))
+    stop("Both 'ffac' and 'fabs' provided, please choose either or neither.")
+  if(is.numeric(cfac) && is.numeric(cabs))
+    stop("Both 'cfac' and 'cabs' provided, please choose either or neither.")
+  breakpointB <- sort(breakpointB)
+  if(length(breakpointB) > 1){
+    blim <- breakpointB[1]
+    btrigger <- breakpointB[2]
+  }else{
+    blim <- 0
+    btrigger <- breakpointB[1]
+  }
+
+  ## copies
+  repout <- reppa <- rep
+
+  ## FRACTILES
+  if(!is.list(fractiles)) stop("Please provide 'fractiles' with the arguments: 'catch', 'bbmsy', and 'ffmsy'!")
+  default_fractiles = list(catch = 0.5, bbmsy = 0.5, ffmsy = 0.5)
+  fList <- default_fractiles[which(!names(default_fractiles) %in% names(fractiles))]
+  fList <- c(fList,fractiles)
+
+  ## BIOMASS SAFEGUARD
+  if(!is.list(safeguardB)) stop("Please provide 'safeguardB' with the arguments: 'limitB' and 'prob'!")
+  default_safeguardB = list(limitB = 0, prob = 0.95)
+  pList <- default_safeguardB[which(!names(default_safeguardB) %in% names(safeguardB))]
+  pList <- c(pList,safeguardB)
+
+  ## fixed catch in INTERMEDIATE YEAR
+  inttime <- inp$dtpredcinds[1] - min(inp$indCpred)
+  if(inttime > 0 && ((!is.null(intermediatePeriodCatch) &&
+                      !is.na(intermediatePeriodCatch) && is.numeric(intermediatePeriodCatch)) ||
+                     !is.null(intermediatePeriodCatchList))){
+    inpt <- inp
+    dtcint <- (inp$dtpredcinds[1] - min(inp$indCpred)) * inp$dteuler
+    if(verbose) writeLines(paste0("The intermediate time period is ",dtcint," year(s) long. The catch 'intermediatePeriodCatch' should be representative of that period.\n"))
+    if(is.null(intermediatePeriodCatchList)){
+      ## default catchList
+      inpt$timeC <- c(inpt$timeC, inp$time[min(inp$indCpred)])
+      inpt$obsC <- c(inpt$obsC, intermediatePeriodCatch)
+      inpt$stdevfacC <- c(inpt$stdevfacC, intermediatePeriodCatchSDFac)
+      inpt$dtc <- c(inpt$dtc, dtcint)
+    }else{
+      ## specified catchList
+      check.catchList(intermediatePeriodCatchList)
+      inpt$timeC <- c(inpt$timeC, intermediatePeriodCatchList$timeC)
+      inpt$obsC <- c(inpt$obsC, intermediatePeriodCatchList$obsC)
+      if(is.null(intermediatePeriodCatchList$stdevfacC)){
+        inpt$stdevfacC <- c(inpt$stdevfacC, rep(intermediatePeriodCatchSDFac,
+                                                length(intermediatePeriodCatchList$timeC)))
+      }else{
+        inpt$stdevfacC <- c(inpt$stdevfacC, intermediatePeriodCatchList$stdevfacC)
+      }
+      inpt$dtc <- c(inpt$dtc, intermediatePeriodCatchList$dtc)
+    }
+    inpt <- check.inp(inpt, verbose = FALSE, mancheck=FALSE)
+    inpt$lastCatchObs <- inp$lastCatchObs
+    inpt$timerangeObs <- inp$timerangeObs
+    if(reqRep){
+      repout <- reppa <- rep <- retape.spict(rep, inpt, verbose = FALSE, mancheck=FALSE)
+    }else{
+      rep$inp <- inpt
+      repout <- reppa <- rep
+    }
+    inp <- inpt
+  }
+
+  ## ADVICE RULES
+  ## ---------------
+  if((!is.numeric(cfac) || is.na(cfac)) && (!is.numeric(cabs) || is.na(cabs))){
+    if((!is.numeric(ffac) || is.na(ffac)) && (!is.numeric(fabs) || is.na(fabs))){
+      ## Quantities
+      fmanstart <- get.par('logFm', rep, exp=TRUE)[2]
+      fmsy <- get.par('logFmsy', rep, exp=TRUE)[2]
+      bmsy <- get.par('logBmsy', rep, exp=TRUE)[2]
+      logFpFmsy <- get.par("logFpFmsynotS", rep)
+      logBpBmsy <- get.par("logBpBmsy", rep)
+      logFmFmsy <- get.par("logFmFmsynotS", rep)
+      logBmBmsy <- get.par("logBmBmsy", rep)
+      ## FFmsy component
+      fi <- 1 - fList$ffmsy
+      fmfmsyi <- exp(qnorm(fi, logFmFmsy[2], logFmFmsy[4]))
+      fmfmsy5 <- exp(qnorm(0.5, logFmFmsy[2], logFmFmsy[4]))
+      fred <- fmfmsy5 / fmfmsyi
+      ## BBmsy component (hockey stick HCR)
+      if(!is.na(btrigger) && is.numeric(btrigger) && btrigger != 0){
+        if(evalBreakpointB == 0){
+          ## evaluated at the start of maninterval
+          hsSlope <- 1/(btrigger-blim)
+          hsIntercept <- - hsSlope * blim
+          bmbmsyi <- hsSlope * exp(qnorm(fList$bbmsy, logBmBmsy[2], logBmBmsy[4])) + hsIntercept
+          fred <- fred * min(1, max(0,bmbmsyi))
+        }else{
+          ## evaluated at the end of maninterval
+          ffac <- (fred + 1e-8) * fmsy / fmanstart
+          inppa <- make.ffacvec(inp, ffac)
+          inppa$reportmode <- 1
+          reppa <- try(retape.spict(reppa, inppa, verbose=verbose, mancheck=FALSE), silent=TRUE)
+          if(inherits(reppa,"try-error")){
+            if(verbose) cat("The hockey-stick rule applied at the end of the management interval caused problems: The model could not be retaped. Omitting the hockey-stick component ('breakpointB') from the scenario!\n")
+          }else{
+            logBpBmsy2 <- get.par("logBpBmsy", reppa)
+            hsSlope <- 1/(btrigger-blim)
+            hsIntercept <- - hsSlope * blim
+            bpbmsyi <- hsSlope * exp(qnorm(fList$bbmsy, logBpBmsy2[2], logBpBmsy2[4])) + hsIntercept
+            fred <- fred * min(1, max(0,bpbmsyi))
+          }
+        }
+      }
+      ## F reduction factor
+      ffac <- (fred + 1e-8) * fmsy / fmanstart
+      ## PA component
+      if(!is.na(pList$limitB) && is.numeric(pList$limitB) && pList$limitB != 0){
+        inppa <- make.ffacvec(inp, ffac)
+        inppa$reportmode <- 1
+        reppa <- try(retape.spict(reppa, inppa, verbose=verbose, mancheck=FALSE), silent=TRUE)
+        if(inherits(reppa,"try-error")){
+          if(verbose) cat("The fishing mortality multiplication factor 'ffac' could not be estimated with this management scenario due to an error when retaping the updated spict model. 'ffac' is set to 1, which assumes no change in the fishing mortality. \n")
+          ffac <- 1
+        }else{
+          logBpBmsyPA <- get.par("logBpBmsy", reppa)
+          probi <- 1 - pList$prob
+          bpbmsyiPA <- exp(qnorm(probi, logBpBmsyPA[2], logBpBmsyPA[4]))
+          if((bpbmsyiPA - pList$limitB) < -1e-3){
+            ffac <- try(get.ffac(reppa, ref=pList$limitB,
+                                 problevel=pList$prob,
+                                 var="logBpBmsy",
+                                 reportmode = 1), silent=TRUE)
+            if(inherits(ffac,"try-error")){
+              if(verbose) cat("The fishing mortality multiplication factor 'ffac' could not be estimated with this management scenario due to an error when optimising the risk aversion probability over F. 'ffac' is set to 1, which assumes no change in the fishing mortality. \n")
+              ffac <- 1
+            }
+
+          }
+        }
+      }
+    }else if(!is.numeric(ffac) || is.na(ffac)){
+      ffac <- fabs / get.par('logFm', rep, exp=TRUE)[2]
+    }
+  }else{
+    if(!is.numeric(cabs) || is.na(cabs)){
+      mantab <- get.manC(rep, inp)
+      cabs <- as.numeric(mantab[,"manc"]) * cfac
+    }
+    if (length(cabs) > 1) cabs <- sum(cabs)
+    if (cabs == 0) {
+      realisedTAC <- get.TAC(rep, ffac = 0)
+      ffac <- 0
+    } else {
+      ## Make initial ffac guess
+      take <- sum(cumsum(rev(rep$inp$dtc)) < diff(rep$inp$maninterval)) + 1
+      relTargetC <- cabs / (sum(tail(rep$inp$obsC, take)) )
+      realisedTAC <- NULL
+      minme <- function(x) {
+        realisedTAC <<- get.TAC(rep, ffac = exp(x))
+        (realisedTAC - cabs)^2
+      }
+      opt <- nlminb(log(relTargetC), minme,
+                    lower = log(relTargetC/3),
+                    upper = log(relTargetC*3),
+                    control = list(rel.tol = ctol))
+      if(opt$convergence != 0) stop("The specified catch could not be approximated (mode not converged)!")
+      ffac <- exp(opt$par)
+      signifround <- function(x) if (x >= 1) round(x) else signif(x, 2)
+      if (verbose && abs((cabs - realisedTAC) / cabs) > 0.01) {
+        writeLines(paste0("Provided target catch: ", signifround(cabs),
+                          ". Realised target catch: ", signifround(realisedTAC)))
+      }
+    }
+  }
+
+  ## adjust fishing mortality rate
+  inpt <- make.ffacvec(inp, ffac)
+
+  ## return updated inp list
+  return(inpt)
+}
 
 #' @name check.man
 #' @title Check the consistency of management scenarios in rep
