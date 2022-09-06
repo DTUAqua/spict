@@ -1,4 +1,5 @@
-spict v1.3.7 (2021-08-12)
+spict v1.3.7 (2022-09-06)
+============
 
 New features
 
@@ -7,10 +8,9 @@ New features
 
 Bug fixes:
 
-
 * fixed retro when last year's observations where missing
 
-spict v1.3.6 (2021-06-06)
+spict v1.3.6 (2022-06-06)
 ============
 
 Bug fixes:
