@@ -20,6 +20,7 @@ plotspict.hindcast(
   legend.title = NULL,
   legend.pos = "topright",
   legend.ncol = 1,
+  asp = 2,
   stamp = get.version()
 )
 }
@@ -60,6 +61,9 @@ of the outer margins in lines of text.}
 legend is plotted.}
 
 \item{legend.ncol}{Legend number of columns (default: 1).}
+
+\item{asp}{positive number; the target aspect ratio (columns / rows) in the
+graphical output. Default: 2.}
 
 \item{stamp}{Stamp plot with this character string.}
 }
