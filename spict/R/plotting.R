@@ -3238,6 +3238,8 @@ plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
 #' @param legend.pos Legend position (default: "topright"). If NULL or NA, no
 #'     legend is plotted.
 #' @param legend.ncol Legend number of columns (default: 1).
+#' @param asp positive number; the target aspect ratio (columns / rows) in the
+#'     graphical output. Default: 2.
 #' @param stamp Stamp plot with this character string.
 #'
 #' @seealso \code{\link{hindcast}}
@@ -3278,6 +3280,7 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
                                mfrow = NULL, mar = c(2, 2, 3, 1) + 0.1, oma = c(3, 3, 1, 1),
                                legend.title = NULL,
                                legend.pos = "topright", legend.ncol = 1,
+                               asp = 2,
                                stamp = get.version()){
 
     hcInfo <- extract.hindcast.info(rep, CI = CI, verbose = verbose)
@@ -3308,15 +3311,7 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
     nind.val <- length(hcInfo$index)
 
     if(is.null(mfrow) || is.na(mfrow)){
-        if(nind.val < 4){
-            mfrow <- c(nind.val, 1)
-        }else if(nind.val < 9){
-            mfrow <- c(ceiling(nind.val/2), 2)
-        }else if(nind.val < 16){
-            mfrow <- c(ceiling(nind.val/3), 3)
-        }else{
-            mfrow <- c(ceiling(nind.val/4), 4)
-        }
+        mfrow <- n2mfrow(nind.val, asp = asp)
     }
     opar <- par(mfrow = mfrow, mar = mar, oma = oma)
     on.exit(par(opar))
@@ -3352,8 +3347,8 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
             }
         }
         if(is.null(ylim)){
-            mini <- min(dat[c("obs","pred","lc","uc")])
-            maxi <- max(dat[c("obs","pred","lc","uc")])
+            mini <- min(dat[c("obs","pred","lc","uc")], na.rm = TRUE)
+            maxi <- max(dat[c("obs","pred","lc","uc")], na.rm = TRUE)
             ylimi <- c(ifelse(mini < 0, 1.1, 0.9), ifelse(maxi < 0, 0.9, 1.1)) * c(mini, maxi)
         }else if(inherits(ylim, "list")){
             if(length(ylim) >= nind.val){
