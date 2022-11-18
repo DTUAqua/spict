@@ -3563,7 +3563,7 @@ plotspict.compare.one <- function(rep, ...,
             ylab <- paste(ylab, "(normalised)")
         }else{
             yscallist <- lapply(1:nrep, function(x) list(rep(1, length(bindslist[[x]]))))
-            catchunit <- lapply(replist, function(x) inp$catchunit)
+            catchunit <- lapply(replist, function(x) x$inp$catchunit)
             if(any(!is.null(catchunit))) ylab <- spict:::add.catchunit(ylab,
                                                                        paste(unique(unlist(catchunit)),
                                                                              collapse = " | "))
@@ -3650,7 +3650,7 @@ plotspict.compare.one <- function(rep, ...,
             ann.catch <- lapply(replist, get.annual.catch)
             xlist <- lapply(ann.catch, "[[", 1)
             ylist <- lapply(ann.catch, "[[", 2)
-            catchunit <- lapply(replist, function(x) inp$catchunit)
+            catchunit <- lapply(replist, function(x) x$inp$catchunit)
             if(any(!is.null(catchunit))) ylab <- spict:::add.catchunit(ylab,
                                                                        paste(unique(unlist(catchunit)),
                                                                              collapse = " | "))
