@@ -1,3 +1,18 @@
+spict v1.3.8 (2022-11-18)
+============
+
+New features
+
+* Added function `plotspict.compare` that shows estimates from multiple 
+  fits, of B, F, catch, F/Fmsy, B/Bmsy and the production curve on the same plot. The 
+  fits can be given separately, like `plotspict.compare(fit1, fit2)` or in a list, like
+  `plotspict.compare(list(fit1, fit2))`.
+
+Bug fixes
+
+* `make.man.inp` now checks all fractiles to be between 0 and 0.5 (closes #167)
+* `add.manlines` correctly reports shorter management periods than 1 year (closes #168)
+
 spict v1.3.7 (2022-09-06)
 ============
 
