@@ -383,3 +383,15 @@ test_this("4.1.4: Summary with intermediatePeriodCatch", {
 })
 
 plotspict.catch(fit)
+
+header("4.2: Check fractiles are between 0 and 0.5")
+fit4.2 <- fit.spict(c(pol$hake, dteuler = 1/2))
+test_this("4.2.1 Catch factile > 0.5 gives error", {fit4.2 <- add.man.scenario(fit4.2, scenarioTitle = "Wrong catch fractile", fractiles = list(catch = 0.6))})
+test_this("4.2.2 Negative catch factile gives error", {fit4.2 <- add.man.scenario(fit4.2, scenarioTitle = "Wrong catch fractile, neg", fractiles = list(catch = - 1))})
+
+test_this("4.2.3 B factile > 0.5 gives error", {fit4.2 <- add.man.scenario(fit4.2, scenarioTitle = "Wrong B fractile", fractiles = list(bbmsy = 0.6))})
+test_this("4.2.4 Negative B factile gives error", {fit4.2 <- add.man.scenario(fit4.2, scenarioTitle = "Wrong B fractile, neg", fractiles = list(bbmsy = - 1))})
+
+test_this("4.2.5 F factile > 0.5 gives error", {fit4.2 <- add.man.scenario(fit4.2, scenarioTitle = "Wrong F fractile", fractiles = list(ffmsy = 0.6))})
+test_this("4.2.6 Negative F factile gives error", {fit4.2 <- add.man.scenario(fit4.2, scenarioTitle = "Wrong F fractile, neg", fractiles = list(ffmsy = - 1))})
+
