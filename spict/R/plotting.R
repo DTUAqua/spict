@@ -129,9 +129,9 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE,
         legend('topleft', legend=nms, lty=1, col=man.cols()[1:nman], bg='transparent', cex=0.8)
     }
     ## Note
-    if(errflag && verbose) cat(paste0("The management period of scenario(s): ",
-                                      paste0(names(rep$man)[errflag],collapse=", "),
-                                      " is shorter than 1 year. Thus, the catch cannot be displayed correctly in the annual catch plot.\n"))
+    if (any(errflag) && verbose) cat(paste0("The management period of scenario(s): ",
+                                            paste0(names(rep$man)[errflag],collapse=", "),
+                                            " is shorter than 1 year. Thus, the catch cannot be displayed correctly in the annual catch plot.\n"))
 }
 
 
