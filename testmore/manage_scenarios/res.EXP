@@ -335,3 +335,19 @@ $est
 
 
 
+
+4.2: Check fractiles are between 0 and 0.5
+==========================================
+
+4.2.1 Catch factile > 0.5 gives error
+Error:all(unlist(fractiles) <= 0.5 & unlist(fractiles) > 0) is not TRUE
+4.2.2 Negative catch factile gives error
+Error:all(unlist(fractiles) <= 0.5 & unlist(fractiles) > 0) is not TRUE
+4.2.3 B factile > 0.5 gives error
+Error:all(unlist(fractiles) <= 0.5 & unlist(fractiles) > 0) is not TRUE
+4.2.4 Negative B factile gives error
+Error:all(unlist(fractiles) <= 0.5 & unlist(fractiles) > 0) is not TRUE
+4.2.5 F factile > 0.5 gives error
+Error:all(unlist(fractiles) <= 0.5 & unlist(fractiles) > 0) is not TRUE
+4.2.6 Negative F factile gives error
+Error:all(unlist(fractiles) <= 0.5 & unlist(fractiles) > 0) is not TRUE
