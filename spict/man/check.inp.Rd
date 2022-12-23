@@ -40,6 +40,7 @@ Optional inputs:
  \item{"inp$dtc"}{ Time interval for catches, e.g. for annual catches inp$dtc=1, for quarterly catches inp$dtc=0.25. Can be given as a scalar, which is then used for all catch observations. Can also be given as a vector specifying the catch interval of each catch observation. Default: min(diff(inp$timeC)). }
  \item{"inp$dte"}{ Time interval for effort observations. For annual effort inp$dte=1, for quarterly effort inp$dte=0.25. Default: min(diff(inp$timeE)). }
  \item{"inp$nseasons"}{ Number of within-year seasons in data. If inp$nseasons > 1 then a seasonal pattern is used in F. Valid values of inp$nseasons are 1, 2 or 4. Default: number of unique within-year time points present in data.}
+ \item{"start.in.first.data.point"} {Logical. If \code{TRUE} (default), modelling time starts at the first available data point, otherwise it starts in the beginning of that year.}
 }
 
 - Initial parameter values
