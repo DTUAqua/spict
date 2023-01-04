@@ -3501,37 +3501,21 @@ plotspict.compare.one <- function(rep, ...,
     colsTrans2 <- adjustcolor(cols, alpha = 0.4)
 
     ## Default headers
-    if(varname == "B"){
-        if(is.null(main)) main <- "Absolute biomass"
-        if(is.null(ylab)) ylab <- ifelse(exp, expression(B[t]), expression("log("*B[t]*")"))
-        if(is.null(xlab)) xlab <- expression("Time")
-        par <- "logB"
-    }else if(varname == "F"){
-        if(is.null(main)) main <- "Absolute fishing mortality"
-        if(is.null(ylab)) ylab <- ifelse(exp, expression(F[t]), expression("log("*F[t]*")"))
-        if(is.null(xlab)) xlab <- expression("Time")
-        par <- "logFnotS"
-    }else if(varname == "C"){
-        if(is.null(main)) main <- "Catch"
-        if(is.null(ylab)) ylab <- ifelse(exp, expression("Catch"), expression("log(Catch)"))
-        if(is.null(xlab)) xlab <- expression("Time")
-        par <- "logCpred"
-    }else if(varname == "BBmsy"){
-        if(is.null(main)) main <- "Relative biomass"
-        if(is.null(ylab)) ylab <- ifelse(exp, expression(B[t]*"/"*B[MSY]), expression("log("*B[t]*"/"*B[MSY]*")"))
-        if(is.null(xlab)) xlab <- expression("Time")
-        par <- "logBBmsy"
-    }else if(varname == "FFmsy"){
-        if(is.null(main)) main <- "Relative fishing mortality"
-        if(is.null(ylab)) ylab <- ifelse(exp, expression(F[t]*"/"*F[MSY]), expression("log("*F[t]*"/"*F[MSY]*")"))
-        if(is.null(xlab)) xlab <- expression("Time")
-        par <- "logFFmsynotS"
-    }else if(varname == "P"){
-        if(is.null(main)) main <- "Production curve"
-        if(is.null(ylab)) ylab <- expression(P[t])
-        if(is.null(xlab)) xlab <- expression(B[t]*"/K")
-        par <- "P"
-    }
+    defs <- data.frame(varname = c("B","F","C","BBmsy","FFmsy","P"),
+                       main = c("Absolute biomass", "Absolute fishing mortality",
+                                "Catch", "Relative biomass",
+                                "Relative fishing mortality","Production curve"),
+                       ylab = c("B[t]", "F[t]", "Catch",
+                                "B[t] / B[MSY]", "F[t]/F[MSY]", "P[t]"),
+                       xlab = c(rep("Time", 5), "B[t]/K"),
+                       par = c("logB", "logFnotS", "logCpred",
+                               "logBBmsy", "logFFmsynotS", "P"))
+    opts <- defs[defs$varname == varname, ]
+    if (is.null(main)) main <- opts$main
+    if (is.null(xlab)) xlab <- parse(text = opts$xlab)
+    if (! exp) opts$ylab <- paste0("log(", opts$ylab, ")")
+    if (is.null(ylab)) ylab <- parse(text = opts$ylab)
+    par <- opts$par
 
     if(par == "P"){
         tvgflags <- sapply(replist, function(x) x$inp$timevaryinggrowth || x$inp$logmcovflag)
@@ -3657,7 +3641,7 @@ plotspict.compare.one <- function(rep, ...,
         ## plot
         plot(xlist[[1]], ylist[[1]][,2], ty = "n",
              xlim = xlim, ylim = ylim,
-             xlab = "Time", ylab = ylab)
+             xlab = xlab, ylab = ylab)
         for(i in 1:nrep){
             if(as.integer(plot.unc) == 2){
                 polygon(c(xlist[[i]],rev(xlist[[i]])),
