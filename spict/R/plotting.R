@@ -277,37 +277,29 @@ arrow.line <- function(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"
 #' @name annual
 #' @title Convert from quarterly (or other sub-annual) data to annual means, sums or a custom function.
 #' @param intime A time vector corresponding to the values in vec.
-#' @param vec The vector of values to convert to annual means
-#' @param type If type='mean' then annual mean is calculated, if type='sum' then annual sum is calculated. If type is a function, that function is used.
-#' @return A list containing the annual means and a corresponding time vector.
+#' @param vec The vector of values to convert to annual means.
+#' @param type item to match as function: symbol or string, see \code{\link{match.fun}} for details.
+#' @return A list containing the annual means \code{$annvec} and a corresponding time vector \code{$anntime}.
 #' @export
-annual <- function(intime, vec, type='mean'){
-    anntime <- intime[which(intime %% 1 == 0)]
+annual <- function(intime, vec, type = 'mean') {
+    fun <- match.fun(type)
+    anntime <- unique(floor(intime))
     nanntime <- length(anntime)
     nstepvec <- rep(0, nanntime)
     floortime <- floor(intime)
-    for (i in 1:nanntime){
-        nstepvec[i] <- sum(anntime[i]==floortime)
+    for (i in seq(nanntime)) {
+        nstepvec[i] <- sum(anntime[i] == floortime)
     }
     nsteps <- max(nstepvec)
     # Remove years that are not full
-    anntime <- anntime[which(nstepvec==max(nstepvec))]
+    anntime <- anntime[which(nstepvec == max(nstepvec))]
     nanntime <- length(anntime)
     annvec <- rep(0, nanntime)
-    for (i in 1:nanntime){
-        inds <- which(anntime[i]==floortime)
-        if (is(type, "function")) {
-            annvec[i] <- type(vec[inds])
-        } else{
-            if (type=='mean'){
-                annvec[i] <- mean(vec[inds])
-            }
-            if (type=='sum'){
-                annvec[i] <- sum(vec[inds])
-            }
-        }
+    for (i in seq(nanntime)) {
+        inds <- which(anntime[i] == floortime)
+        annvec[i] <- fun(vec[inds])
     }
-    return(list(anntime=anntime, annvec=annvec))
+    return(list(anntime = anntime, annvec = annvec))
 }
 
 
