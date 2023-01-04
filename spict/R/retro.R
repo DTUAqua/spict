@@ -74,16 +74,18 @@ retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = 1){
         inpall[[i]]$getJointPrecision <- !reduce_output_size
         inpall[[i]] <- check.inp(inpall[[i]])
     }
-    asd <- try(parallel::mclapply(inpall, fit.spict,
-                                  mc.cores = mc.cores))
-    if (class(asd) == "try-error") {
+    retroruns <- try(parallel::mclapply(inpall, fit.spict,
+                                        mc.cores = mc.cores))
+    if (class(retroruns) == "try-error") {
         rep$retro <- lapply(inpall, fit.spict)
     }
     else {
-        rep$retro <- asd
+        rep$retro <- retroruns
     }
     ## Add the base run into the retro list
     rep$retro <- c(list(prune.baserun(rep)), rep$retro)
+    names(rep$retro) <- c("Baseline", paste("-", seq(nretroyear)))
+
     return(rep)
 }
 
