@@ -9,12 +9,12 @@ annual(intime, vec, type = "mean")
 \arguments{
 \item{intime}{A time vector corresponding to the values in vec.}
 
-\item{vec}{The vector of values to convert to annual means}
+\item{vec}{The vector of values to convert to annual means.}
 
-\item{type}{If type='mean' then annual mean is calculated, if type='sum' then annual sum is calculated. If type is a function, that function is used.}
+\item{type}{item to match as function: symbol or string, see \code{\link{match.fun}} for details.}
 }
 \value{
-A list containing the annual means and a corresponding time vector.
+A list containing the annual means \code{$annvec} and a corresponding time vector \code{$anntime}.
 }
 \description{
 Convert from quarterly (or other sub-annual) data to annual means, sums or a custom function.
