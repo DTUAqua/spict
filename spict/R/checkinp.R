@@ -1204,6 +1204,8 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     if(!"iuse" %in% names(inp) || length(inp$iuse) != length(unlist(inp$obsI)))
         inp$iuse <- rep(TRUE, length(unlist(inp$obsI)))
 
+    ## ADreport of residB and residF
+    if(!"residFlag" %in% names(inp)) inp$residFlag <- FALSE
 
 
     # Reorder parameter list

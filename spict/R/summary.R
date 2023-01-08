@@ -609,7 +609,7 @@ sumspict.diagnostics <- function(rep, ndigits=8) {
       stop("rep should be a spictcls object as it is returned by fit.spict")
     }
     if (is.null(rep$diagn)) {
-      stop("rep does not contain diagnostics, calculate them using calc.osa.resid.")
+      stop("rep does not contain diagnostics, calculate them using calc.osa.resid and/or calc.process.resid.")
     }
     # Diagnostics matrix
     diagn <- rep$diagn
@@ -625,9 +625,18 @@ sumspict.diagnostics <- function(rep, ndigits=8) {
     nms <- names(diagn)
     tests <- unique(substr(nms, 1, 3))
     ntests <- length(tests)
-    testnames <- sub('C.p', '', nms[1:ntests])
+    if(any(names(rep) == "process.resid") && any(names(rep) == "osar")){
+        nseries <- rep$inp$nseries + 2
+        testnames <- sub('C.p', '', nms[grep("C.p", nms)])
+    }else if(any(names(rep) == "process.resid")){
+        nseries <- 2
+        testnames <- sub('F.p', '', nms[grep("F.p", nms)])
+    }else{
+        nseries <- rep$inp$nseries
+        testnames <- sub('C.p', '', nms[grep("C.p", nms)])
+    }
     seriesnames <- sub('.p', '', sub(testnames[1], '', grep(testnames[1], nms, value=TRUE)))
-    diagnmat <- matrix(round(unlist(diagn), ndigits), rep$inp$nseries, ntests, byrow=TRUE)
+    diagnmat <- matrix(round(unlist(diagn), ndigits), nseries, ntests, byrow=TRUE)
     colnames(diagnmat) <- testnames
     rownames(diagnmat) <- seriesnames
     # Stars

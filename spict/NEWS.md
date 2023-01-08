@@ -1,10 +1,22 @@
+spict v1.3.9 (2023-01-08)
+============
+
+New features
+
+* Added function `calc.process.resid()` that calculates the process residuals for
+  the biomass and fishing mortality processes. The residuals are added to the
+  fitted spict object in the data frame called `rep$process.resid`. The
+  residuals can be summarised with the function `sumspict.diagnostics()` and
+  visualised with the function `plotspict.diagnostic.process()`. Note, that the
+  process residuals have mainly for scenarios without seasonal fishing patterns.
+
 spict v1.3.8 (2022-11-18)
 ============
 
 New features
 
-* Added function `plotspict.compare` that shows estimates from multiple 
-  fits, of B, F, catch, F/Fmsy, B/Bmsy and the production curve on the same plot. The 
+* Added function `plotspict.compare` that shows estimates from multiple
+  fits, of B, F, catch, F/Fmsy, B/Bmsy and the production curve on the same plot. The
   fits can be given separately, like `plotspict.compare(fit1, fit2)` or in a list, like
   `plotspict.compare(list(fit1, fit2))`.
 
@@ -18,7 +30,7 @@ spict v1.3.7 (2022-09-06)
 
 New features
 
-* Added functionality for performing and plotting hindcast analysis 
+* Added functionality for performing and plotting hindcast analysis
   introducing the functions `hindcast()` and `plotspict.hindcast`.
 
 Bug fixes:
