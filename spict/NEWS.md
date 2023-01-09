@@ -8,7 +8,7 @@ New features
   fitted spict object in the data frame called `rep$process.resid`. The
   residuals can be summarised with the function `sumspict.diagnostics()` and
   visualised with the function `plotspict.diagnostic.process()`. Note, that the
-  process residuals have mainly for scenarios without seasonal fishing patterns.
+  process residuals have mainly been tested for scenarios without seasonal fishing patterns.
 
 
 * Added function `plotspict.compare` that shows estimates from multiple
