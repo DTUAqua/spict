@@ -29,3 +29,4 @@ res.out
 *.Rcheck
 
 testmore/*/*.png
+testmore/*/Makefile

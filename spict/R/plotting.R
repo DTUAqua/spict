@@ -277,37 +277,29 @@ arrow.line <- function(x, y, length = 0.25, angle = 30, code = 2, col = par("fg"
 #' @name annual
 #' @title Convert from quarterly (or other sub-annual) data to annual means, sums or a custom function.
 #' @param intime A time vector corresponding to the values in vec.
-#' @param vec The vector of values to convert to annual means
-#' @param type If type='mean' then annual mean is calculated, if type='sum' then annual sum is calculated. If type is a function, that function is used.
-#' @return A list containing the annual means and a corresponding time vector.
+#' @param vec The vector of values to convert to annual means.
+#' @param type item to match as function: symbol or string, see \code{\link{match.fun}} for details.
+#' @return A list containing the annual means \code{$annvec} and a corresponding time vector \code{$anntime}.
 #' @export
-annual <- function(intime, vec, type='mean'){
-    anntime <- intime[which(intime %% 1 == 0)]
+annual <- function(intime, vec, type = 'mean') {
+    fun <- match.fun(type)
+    anntime <- unique(floor(intime))
     nanntime <- length(anntime)
     nstepvec <- rep(0, nanntime)
     floortime <- floor(intime)
-    for (i in 1:nanntime){
-        nstepvec[i] <- sum(anntime[i]==floortime)
+    for (i in seq(nanntime)) {
+        nstepvec[i] <- sum(anntime[i] == floortime)
     }
     nsteps <- max(nstepvec)
     # Remove years that are not full
-    anntime <- anntime[which(nstepvec==max(nstepvec))]
+    anntime <- anntime[which(nstepvec == max(nstepvec))]
     nanntime <- length(anntime)
     annvec <- rep(0, nanntime)
-    for (i in 1:nanntime){
-        inds <- which(anntime[i]==floortime)
-        if (is(type, "function")) {
-            annvec[i] <- type(vec[inds])
-        } else{
-            if (type=='mean'){
-                annvec[i] <- mean(vec[inds])
-            }
-            if (type=='sum'){
-                annvec[i] <- sum(vec[inds])
-            }
-        }
+    for (i in seq(nanntime)) {
+        inds <- which(anntime[i] == floortime)
+        annvec[i] <- fun(vec[inds])
     }
-    return(list(anntime=anntime, annvec=annvec))
+    return(list(anntime = anntime, annvec = annvec))
 }
 
 
@@ -3525,37 +3517,21 @@ plotspict.compare.one <- function(rep, ...,
     colsTrans2 <- adjustcolor(cols, alpha = 0.4)
 
     ## Default headers
-    if(varname == "B"){
-        if(is.null(main)) main <- "Absolute biomass"
-        if(is.null(ylab)) ylab <- ifelse(exp, expression(B[t]), expression("log("*B[t]*")"))
-        if(is.null(xlab)) xlab <- expression("Time")
-        par <- "logB"
-    }else if(varname == "F"){
-        if(is.null(main)) main <- "Absolute fishing mortality"
-        if(is.null(ylab)) ylab <- ifelse(exp, expression(F[t]), expression("log("*F[t]*")"))
-        if(is.null(xlab)) xlab <- expression("Time")
-        par <- "logFnotS"
-    }else if(varname == "C"){
-        if(is.null(main)) main <- "Catch"
-        if(is.null(ylab)) ylab <- ifelse(exp, expression("Catch"), expression("log(Catch)"))
-        if(is.null(xlab)) xlab <- expression("Time")
-        par <- "logCpred"
-    }else if(varname == "BBmsy"){
-        if(is.null(main)) main <- "Relative biomass"
-        if(is.null(ylab)) ylab <- ifelse(exp, expression(B[t]*"/"*B[MSY]), expression("log("*B[t]*"/"*B[MSY]*")"))
-        if(is.null(xlab)) xlab <- expression("Time")
-        par <- "logBBmsy"
-    }else if(varname == "FFmsy"){
-        if(is.null(main)) main <- "Relative fishing mortality"
-        if(is.null(ylab)) ylab <- ifelse(exp, expression(F[t]*"/"*F[MSY]), expression("log("*F[t]*"/"*F[MSY]*")"))
-        if(is.null(xlab)) xlab <- expression("Time")
-        par <- "logFFmsynotS"
-    }else if(varname == "P"){
-        if(is.null(main)) main <- "Production curve"
-        if(is.null(ylab)) ylab <- expression(P[t])
-        if(is.null(xlab)) xlab <- expression(B[t]*"/K")
-        par <- "P"
-    }
+    defs <- data.frame(varname = c("B","F","C","BBmsy","FFmsy","P"),
+                       main = c("Absolute biomass", "Absolute fishing mortality",
+                                "Catch", "Relative biomass",
+                                "Relative fishing mortality","Production curve"),
+                       ylab = c("B[t]", "F[t]", "Catch",
+                                "B[t] / B[MSY]", "F[t]/F[MSY]", "P[t]"),
+                       xlab = c(rep("Time", 5), "B[t]/K"),
+                       par = c("logB", "logFnotS", "logCpred",
+                               "logBBmsy", "logFFmsynotS", "P"))
+    opts <- defs[defs$varname == varname, ]
+    if (is.null(main)) main <- opts$main
+    if (is.null(xlab)) xlab <- parse(text = opts$xlab)
+    if (! exp) opts$ylab <- paste0("log(", opts$ylab, ")")
+    if (is.null(ylab)) ylab <- parse(text = opts$ylab)
+    par <- opts$par
 
     if(par == "P"){
         tvgflags <- sapply(replist, function(x) x$inp$timevaryinggrowth || x$inp$logmcovflag)
@@ -3682,6 +3658,8 @@ plotspict.compare.one <- function(rep, ...,
         plot(xlist[[1]], ylist[[1]][,2], ty = "n",
              xlim = xlim, ylim = ylim,
              xlab = "Time", ylab = ylab)
+             xlab = xlab, ylab = ylab)
+
         for(i in 1:nrep){
             if(as.integer(plot.unc) == 2){
                 polygon(c(xlist[[i]],rev(xlist[[i]])),
