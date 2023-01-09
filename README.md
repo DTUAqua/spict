@@ -29,11 +29,18 @@ The package requires [`TMB`](http://www.tmb-project.org) to be installed. TMB is
 
 ## Installing the spict package
 
-To install spict from GitHub use
+There are two main options installing spict: 
+
+* installing from the master branch that includes features that are thoroughly tested:
 
 ```
-library(remotes)
-install_github("DTUAqua/spict/spict")            # master branch
+remotes::install_github("DTUAqua/spict/spict")               # master branch
+```
+
+* installing from the development branch that includes more recent developments, and proposed bug fixes, but is less tested: 
+
+```
+remotes::install_github("DTUAqua/spict/spict", ref = "dev")  # development branch
 ```
 
 Windows
