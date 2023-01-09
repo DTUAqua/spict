@@ -3657,7 +3657,6 @@ plotspict.compare.one <- function(rep, ...,
         ## plot
         plot(xlist[[1]], ylist[[1]][,2], ty = "n",
              xlim = xlim, ylim = ylim,
-             xlab = "Time", ylab = ylab)
              xlab = xlab, ylab = ylab)
 
         for(i in 1:nrep){
