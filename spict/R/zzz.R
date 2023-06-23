@@ -23,5 +23,22 @@
 .onAttach <- function(lib, pkg) {
     #ver <- utils::packageVersion('spict')
     ver <- get.version('spict')
+    checkTMBversion()
     packageStartupMessage(paste0('Welcome to ', ver))
+}
+
+## Code adapted from TMB package
+checkTMBversion <- function() {
+  file <- file.path(system.file(package = "spict"), "TMB-version")
+  cur.TMB.version <- get.version("TMB")
+  if (!file.exists(file)) {
+    writeLines(cur.TMB.version, con = file)
+  }
+  spict.TMB.version <- readLines(file)
+  if (!identical(spict.TMB.version, cur.TMB.version)) {
+    warning("Package version inconsistency detected.\n",
+            "spict was built with TMB version ", spict.TMB.version,
+            "\n", "Current TMB version is ", cur.TMB.version,
+            "\n", "Please re-install 'spict' from source using remotes::install_github('DTUAqua/spict/spict')")
+  }
 }
