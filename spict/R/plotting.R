@@ -3165,11 +3165,12 @@ plot2 <- function(rep, stamp=get.version(), verbose=TRUE, CI = 0.95, ...){
 #' plotspict.hcr(rep)
 #'
 plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
+
     check.rep(rep)
     lm <- length(rep$man)
     if (lm == 0) stop("rep does not contain management scenarios, please run `manage` or `add.man.scenario`")
     alltacs <- spict::man.tac(rep)
-    opar <- par(mfrow = get.mfrow(lm), mar = c(3.1, 3.1, 1.5, 3))
+    opar <- par(mfrow = get.mfrow(lm), mar = c(5.1, 5.1, 2, 3))
     on.exit(par(opar))
     for (i in seq(rep$man)) {
         r <- rep$man[[i]]
@@ -3189,19 +3190,40 @@ plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
         } else {
             get.par("logBpBmsy", r, exp = TRUE, CI = CI)[, 2]
         }
+        BBmsyBlim <- if (r$inp$manEvalBlim == 0) {
+            get.par("logBmBmsy", r, exp = TRUE, CI = CI)[, 2] * 1/Blim
+        } else {
+            get.par("logBpBmsy", r, exp = TRUE, CI = CI)[, 2] * 1/Blim
+        }
         Bs <- seq(0, max(xlim), 0.01)
-        sl <- (1 / (Btrig - Blim))
-        Fs <- sapply(Bs, function(b)  Fmsy * min(max(sl * b - sl * Blim, 0), 1))
-        ylim <- range(0, max(Fmsy, Fm) * 1.1)
+        sl <- (1 / (Btrig))
+        Fs <- sapply(Bs, function(b)  ifelse(b < Blim, 0, Fmsy * min(max(sl * b, 0), 1)))
+        ylim <- range(0, max(Fmsy, Fm) * 1.15)
         plot(Bs, Fs, type = "n", xlab = "", ylab = "",
-             xlim = xlim, ylim = ylim, main = nm)
-        xlab <- if (r$inp$manEvalBreakpointB == 0) "Bm/Bmsy" else "Bp/Bmsy"
-        title(ylab = "Fishing mortality (F)", xlab = xlab, line = 2.1)
-        points(BBmsy, Fm, pch = 20, cex = 2)
-        text(BBmsy, Fm, labels = paste("TAC=", round(alltacs[[i]])), adj = -0.2)
+             xlim = xlim, ylim = ylim)
+        xlab <- if (r$inp$manEvalBreakpointB == 0) bquote(B[m]*"/"*B[MSY]) else bquote(B[p]*"/"*B[MSY])
+        if(i == length(rep$man)) mtext("Fishing mortality (F)", 2, -2, outer = TRUE)
+        mtext(xlab, 1, 2.8)
+        mtext(nm, 3, 0.5, font = 2)
         abline(h = Fmsy, v = c(Blim, Btrig), col = "darkgray", lty = 2)
-        lines(Bs, Fs, type = "l", lwd = 2)
-        text(c("Fmsy"), x = max(xlim), y = Fmsy, las = 2, cex = 0.8, adj = c(1, -0.1))
+        lines(Bs, Fs, lwd = 2, col = "grey60")
+        text(c("Fmsy"), x = max(xlim), y = Fmsy, las = 2, adj = c(1, -0.5))
+        points(BBmsy, Fm, pch = 20, cex = 2)
+        leg.text <- c(bquote("F = " ~ .(ifelse(Fm < 1e-6, 0, signif(Fm,3)))),
+                      bquote(.(xlab) ~ " = " ~ .(signif(BBmsy,3))))
+        if(r$inp$manEvalBlim != r$inp$manEvalBreakpointB && Blim != 0){
+            labi <- if (r$inp$manEvalBlim == 0) bquote(B[m]) else bquote(B[p])
+            leg.text <- c(leg.text,
+                          bquote(.(labi) *"/"* B[lim] ~ "= " ~ .(signif(BBmsyBlim,2))))
+        }
+        leg.text <- c(leg.text,
+                      bquote("TAC = " ~. (round(alltacs[[i]]))))
+        legend("bottomright",
+               legend = as.expression(leg.text),
+               y.intersp = 1.1,
+               x.intersp = 0.0,
+               bg = "white", pch = NA)
+        box(lwd=1.5)
     }
     invisible(NULL)
 }
