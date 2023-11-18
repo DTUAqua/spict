@@ -1,3 +1,10 @@
+development version
+============
+
+Bug fixes:
+
+* Fixed `make.man.inp` check that all fractiles are between 0 and 0.5
+
 spict v1.3.7 (2022-09-06)
 ============
 

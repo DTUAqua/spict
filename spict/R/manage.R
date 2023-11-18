@@ -1468,7 +1468,7 @@ make.man.inp <- function(rep, scenarioTitle = "",
   }else inp <- rep$inp
 
   ## check input variables
-  stopifnot(all(unlist(fractiles) <= 0.5 && unlist(fractiles) > 0))
+  stopifnot(all(unlist(fractiles) <= 0.5) && all(unlist(fractiles) > 0))
   stopifnot(cfac >= 0)
   stopifnot(cabs >= 0)
   stopifnot(ffac >= 0)
