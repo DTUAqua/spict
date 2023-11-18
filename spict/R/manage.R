@@ -1173,9 +1173,9 @@ man.select <- function(rep, scenarios = "all", spictcls = FALSE, verbose = TRUE)
                                      " outside of range of possible scenarios (length(rep$man)): ",
                                      length(scenariosAll),"\n")
         scenarios <- scenariosAll[scenarios[ind]]
-    }else if(!is.null(scenarios) && !is.na(scenarios) && scenarios[1] == "all"){
+    }else if(!is.null(scenarios) && any(!is.na(scenarios)) && scenarios[1] == "all"){
         scenarios <- scenariosAll
-    }else if(is.null(scenarios) || is.na(scenarios)){
+    }else if(is.null(scenarios) || any(is.na(scenarios))){
         scenarios <- "none"
     }
     scenarios <- as.character(scenarios)
