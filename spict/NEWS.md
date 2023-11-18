@@ -4,6 +4,7 @@ development version
 Bug fixes:
 
 * Fixed `make.man.inp` check that all fractiles are between 0 and 0.5
+* Fixed `add.manlines` check of errflag for multiple management scenarios
 
 spict v1.3.7 (2022-09-06)
 ============
