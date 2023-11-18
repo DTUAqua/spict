@@ -689,7 +689,7 @@ check.catchList <- function(catchList, sdfac = 1){
 #' \subsection{Catch scenarios}{
 #' Management scenarios can be defined based on a desired catch during the
 #' management period. Common examples include scenarios like "increase catch by
-#' 25%", "keep current catch", or "zero catch". The catch can be relative to the
+#' 25\%", "keep current catch", or "zero catch". The catch can be relative to the
 #' predicted "previous catch", using the multiplier \code{cfac}, or in absolute
 #' terms using \code{cabs} catch in the same units as the input data. By default,
 #' the respective previous catch corresponds to that part of the previous
@@ -715,7 +715,7 @@ check.catchList <- function(catchList, sdfac = 1){
 #' \item{MSY (hockey-stick) rule with additional precautionary buffer: As long
 #'     as the probability of the predicted biomass relative to a reference
 #'     biomass level (e.g. 0.3 B_{MSY}, defined by \code{safeguardB$limitB}) is smaller or
-#'     equal to a specified risk aversion probability (e.g. 95%, defined by
+#'     equal to a specified risk aversion probability (e.g. 95\%, defined by
 #'     \code{safeguardB$prob}), fishing at F_{MSY} or following the hockey-stick rule
 #'     (if \code{breakpoint != 0}), otherwise reduce fishing mortality to meet
 #'     specified risk aversion probability (\code{safeguardB$prob}) as introduced in
@@ -753,7 +753,7 @@ check.catchList <- function(catchList, sdfac = 1){
 #' \item{limitB - Reference level for the evaluation of the predicted biomass
 #'   defined as fraction of \eqn{B/B_{MSY}}. By default (\code{safeguardB$limitB
 #'   == 0}) the PA buffer is not used. Theoretically, any value smaller than 1
-#'   is meaningful, but an ICES recommended value would be 30%
+#'   is meaningful, but an ICES recommended value would be 30\%
 #'   \code{safeguardB$limitB = 0.3} (ICES, 2018).}
 #' \item{prob - Risk aversion probability of the predicted biomass relative to
 #'   specified reference level (\code{safeguardB$limitB}) for all rules with PA
