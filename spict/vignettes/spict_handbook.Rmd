@@ -28,7 +28,7 @@ This vignette explains basic and more advanced functions of the `spict` package.
 ```{r, eval=FALSE}
 devtools::install_github("DTUAqua/spict/spict")
 ```
-installs the stable version of `spict`. When loading the package the user is greeted and the the installed version is shown:
+installs the stable version of `spict`. When loading the package the user is greeted and the installed version is shown:
 
 ```{r}
 library(spict)

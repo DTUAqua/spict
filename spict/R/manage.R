@@ -1150,7 +1150,7 @@ calc.tac <- function(rep, inp = NULL, fractileCatch = 0.5, exp = TRUE){
 #'
 #' ## based on names
 #' names(rep$man)
-#' rep1 <- man.select(rep, c("curentF","noF"))
+#' rep1 <- man.select(rep, c("currentF","noF"))
 #'
 #' ## based on indices
 #' length(rep$man)
