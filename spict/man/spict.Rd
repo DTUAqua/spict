@@ -3,12 +3,15 @@
 \docType{package}
 \name{spict}
 \alias{spict}
-\title{Fits a continuous-time surplus production model to data}
+\title{Stochastic surplus Production model in Continuous-Time (SPiCT)}
+\description{
+Fits a continuous-time surplus production model to data.
+}
 \examples{
 rep <- test.spict()
 }
 \references{
-\url{https://github.com/mawp/spict/}
+\url{https://github.com/DTUAqua/spict}
 }
 \seealso{
 \code{\link{test.spict}}
