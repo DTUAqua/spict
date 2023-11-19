@@ -22,6 +22,8 @@ make.report(
 \item{reportfile}{A \link{connection}, or a character string naming the file ('.tex' file) to print
 to. If not a connection, \code{make.report} prints to the working directory (default).}
 
+\item{summaryoutfile}{Summary output filename.}
+
 \item{keep.figurefiles}{If TRUE generated figure files will not be cleaned up.}
 
 \item{keep.txtfiles}{If TRUE generated txt files will not be cleaned up.}

@@ -45,6 +45,8 @@ intervals are estimated.}
 
 \item{ylab}{Label for y-axis, "Index" by default.}
 
+\item{plot.log}{Should values be plotted on the log scale (default: TRUE).}
+
 \item{mfrow}{A vector of the form ‘c(nr, nc)’. Subsequent figures will be
 drawn in an ‘nr’-by-‘nc’ array on the device by _rows_. Default: NULL.}
 
