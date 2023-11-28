@@ -10,8 +10,8 @@ extract.hindcast.info(rep, CI = 0.95, verbose = TRUE)
 \item{rep}{Result of \code{\link{fit.spict}} that contains hindcasted runs
 added by \code{\link{hindcast}}.}
 
-\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90%
-confidence intervals. By default (CI = 0.95), the 95% confidence
+\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90\%
+confidence intervals. By default (CI = 0.95), the 95\% confidence
 intervals are estimated.}
 
 \item{verbose}{Should detailed outputs be provided (default: TRUE).}

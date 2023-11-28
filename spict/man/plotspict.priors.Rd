@@ -23,8 +23,8 @@ Set to NULL to plot all active priors. Default: NULL}
 \item{automfrow}{Automatically set 'mfrow' to see all priors in one plot? Not
 used if do.plot is set. Default: TRUE}
 
-\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90%
-confidence intervals. By default (CI = 0.95), the 95% confidence
+\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90\%
+confidence intervals. By default (CI = 0.95), the 95\% confidence
 intervals are estimated.}
 }
 \value{

@@ -150,7 +150,7 @@ plot.priors <- function(nm, priorsin, add=TRUE, ...){
         val <- dlnorm(vec, mu, sd)
     }
     if (nm == 'iq'){
-        require(pscl) # for densigamma
+        #require(pscl) # for densigamma
         qshape <- priorsin$iq[1]
         qrate <- priorsin$iq[2]
         vec <- seq(0.1, 100, length=1000)
@@ -159,7 +159,7 @@ plot.priors <- function(nm, priorsin, add=TRUE, ...){
         #vec <- 1/vec
     }
     if (nm == 'isigma2'){
-        require(pscl) # for densigamma
+        #require(pscl) # for densigamma
         sigmashape <- priorsin$isigma2[1]
         sigmarate <- priorsin$isigma2[2]
         vec <- seq(1, 500, length=200)
@@ -168,7 +168,7 @@ plot.priors <- function(nm, priorsin, add=TRUE, ...){
         val <- dgamma(vec, sigmashape, sigmarate)
     }
     if (nm == 'itau2'){
-        require(pscl) # for densigamma
+        #require(pscl) # for densigamma
         taushape <- priorsin$itau2[1]
         taurate <- priorsin$itau2[2]
         vec <- seq(1, 500, length=200)

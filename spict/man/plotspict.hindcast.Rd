@@ -31,8 +31,8 @@ that contains hindcasted runs added by \code{\link{hindcast}}.}
 \item{add.mase}{Calculate Mean Absolute Scaled Error (MASE) and add it to the
 plots.}
 
-\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90%
-confidence intervals. By default (CI = 0.95), the 95% confidence
+\item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90\%
+confidence intervals. By default (CI = 0.95), the 95\% confidence
 intervals are estimated.}
 
 \item{verbose}{Should detailed outputs be provided (default: TRUE).}
@@ -44,6 +44,8 @@ intervals are estimated.}
 \item{xlab}{Label for x-axis, "Year" by default.}
 
 \item{ylab}{Label for y-axis, "Index" by default.}
+
+\item{plot.log}{Should values be plotted on the log scale (default: TRUE).}
 
 \item{mfrow}{A vector of the form ‘c(nr, nc)’. Subsequent figures will be
 drawn in an ‘nr’-by-‘nc’ array on the device by _rows_. Default: NULL.}
