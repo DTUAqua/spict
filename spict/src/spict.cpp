@@ -129,6 +129,7 @@ Type objective_function<Type>::operator() ()
   //DATA_SCALAR(effortflag);     // If effortflag == 1 use effort data, else use index data
   DATA_FACTOR(MSYregime);      // factor mapping each time step to an m-regime
   DATA_VECTOR(iuse);
+  DATA_INTEGER(residFlag);
 
   // Priors
   DATA_VECTOR(priorn);         // Prior vector for n, [log(mean), stdev in log, useflag]
@@ -642,6 +643,8 @@ Type objective_function<Type>::operator() ()
   //vector<Type> logFs = logF
   vector<Type> logS(ns);
   vector<Type> logFpred(ns);
+  vector<Type> logSpred(ns);
+  int iisdf;
   if(simple==0){
     if(dbg>0){
       std::cout << "--- DEBUG: F loop start --- ans: " << ans << std::endl;
@@ -678,6 +681,7 @@ Type objective_function<Type>::operator() ()
     // Seasonal component
     if(dbg>0){ std::cout << "-- seasontype: " << seasontype << std::endl; }
     for(int i=0; i<ns; i++) logS(i) = 0.0; // Initialise
+    for(int i=0; i<ns; i++) logSpred(i) = 0.0; // Initialise
     if(seasontype == 1 || seasontype == 3 ){
       // Spline
       int ind2, ind3;
@@ -686,8 +690,12 @@ Type objective_function<Type>::operator() ()
         ind3 = CppAD::Integer(seasonindex2(i));
         //logFs(i) += seasonspline(ind2);
         logS(i) += seasonspline(ind2);
+        logSpred(i) += seasonspline(ind2);
 
-        if(seasontype == 3) logS(i) += SARvec(ind3-1);
+        if(seasontype == 3){
+          logS(i) += SARvec(ind3-1);
+          logSpred(i) += SARvec(ind3-1);
+        }
         // DEBUGGING
         if(dbg>1){
           //std::cout << "-- i: " << i << " -   logF(i): " << logF(i) << " logFs(i): " << logFs(i) << " ind2: " << ind2 << " seasonspline(ind2): " << seasonspline(ind2) << std::endl;
@@ -697,6 +705,7 @@ Type objective_function<Type>::operator() ()
     }
     if(seasontype == 2){
       // Coupled SDEs
+      vector<Type> logupred(2);
       for(int j=0; j<nsdu; j++){
         Type per = j+1.0;
         if(dbg>0){ std::cout << "-- j:" << j << "- per:" << per << "- omega:" << omega << std::endl; }
@@ -718,7 +727,7 @@ Type objective_function<Type>::operator() ()
           sublogum(0) = sublogumF(2*j);
           sublogum(1) = sublogumF(2*j+1);
           if(dbg>0){ std::cout << "-- sublogumF: " << sublogumF << "-- sublogum: " << sublogum << std::endl; }
-          vector<Type> logupred = expmAt * sublogum;
+          logupred = expmAt * sublogum;
           if(dbg>0){ std::cout << "-- logupred: " << logupred << std::endl; }
           likval = 0.0;
           for(int k=0; k<logupred.size(); k++){
@@ -735,7 +744,10 @@ Type objective_function<Type>::operator() ()
           }
         }
         //for(int i=0; i<ns; i++) logFs(i) += logu(2*j, i); // Sum diffusion and seasonal component
-        for(int i=0; i<ns; i++) logS(i) += logu(2*j, i); // Sum diffusion and seasonal component
+        for(int i=0; i<ns; i++){
+          logS(i) += logu(2*j, i); // Sum diffusion and seasonal component
+          logSpred(i) += logupred(0);
+        }
       }
     }
     SIMULATE{
@@ -743,10 +755,20 @@ Type objective_function<Type>::operator() ()
     }
 
   } else {
-    for(int i=0; i<ns; i++) logS(i) = -30; // If using simple set fishing mortality to something small.
+    for(int i=0; i<ns; i++){
+      logS(i) = -30; // If using simple set fishing mortality to something small.
+      logSpred(i) = -30;
+    }
   }
   vector<Type> F = exp(logS + logF); // This is the fishing mortality used to calculate catch
   vector<Type> logFs = log(F);
+
+  // Calculate F residuals (incl. seasonality)
+  vector<Type> residF(ns-1);
+  for(int i=1; i<ns; i++){
+    iisdf = CppAD::Integer(isdf(i)) - 1;
+    residF(i-1) = (logFs(i) - (logFpred(i) + logSpred(i))) / (sqrt(dt(i-1)) * sdf(iisdf));
+  }
 
   SIMULATE{
     REPORT(logS);
@@ -792,6 +814,7 @@ Type objective_function<Type>::operator() ()
     std::cout << "--- DEBUG: B loop start --- ans: " << ans << std::endl;
   }
   vector<Type> logBpred(ns);
+  vector<Type> residB(ns-1);
   for(int i=0; i<(ns-1); i++){
     // To predict B(i) use dt(i-1), which is the time interval from t_i-1 to t_i
     if(simple==0){
@@ -805,6 +828,7 @@ Type objective_function<Type>::operator() ()
       logFs(i) = logobsC(i) - logB(i); // Calculate fishing mortality
     }
     likval = dnorm(logBpred(i+1), logB(i+1), sqrt(dt(i))*sdb, 1);
+    residB(i) = (logB(i+1) - logBpred(i+1)) / (sqrt(dt(i))*sdb);
     SIMULATE{
       if(simRandomEffects == 1){
         logB(i+1) = rnorm(logBpred(i+1), sqrt(dt(i)) * sdb);
@@ -1274,6 +1298,11 @@ Type objective_function<Type>::operator() ()
   // REPORT(logFFmsy);
   // REPORT(logB);
   // REPORT(logF);
+
+  if(residFlag){
+    ADREPORT(residB);
+    ADREPORT(residF);
+  }
 
   return ans;
 }

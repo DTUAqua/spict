@@ -43,6 +43,7 @@
 #'  \item{"inp$dtc"}{ Time interval for catches, e.g. for annual catches inp$dtc=1, for quarterly catches inp$dtc=0.25. Can be given as a scalar, which is then used for all catch observations. Can also be given as a vector specifying the catch interval of each catch observation. Default: min(diff(inp$timeC)). }
 #'  \item{"inp$dte"}{ Time interval for effort observations. For annual effort inp$dte=1, for quarterly effort inp$dte=0.25. Default: min(diff(inp$timeE)). }
 #'  \item{"inp$nseasons"}{ Number of within-year seasons in data. If inp$nseasons > 1 then a seasonal pattern is used in F. Valid values of inp$nseasons are 1, 2 or 4. Default: number of unique within-year time points present in data.}
+#'  \item{"start.in.first.data.point"} {Logical. If \code{TRUE} (default), modelling time starts at the first available data point, otherwise it starts in the beginning of that year.}
 #' }
 #'
 #' - Initial parameter values
@@ -487,15 +488,33 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
         }
     }
 
+    # Numerical Euler discretisation time used by SDE solver
     # Euler time step
     if (!"dteuler" %in% names(inp)){
-        inp$dteuler <- 1/16
+      inp$dteuler <- 1/16
     }
     if ("dteuler" %in% names(inp)){
-        if (inp$dteuler > 1){
-            inp$dteuler <- 1
-            if(verbose) cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
+      if (inp$dteuler > 1){
+        inp$dteuler <- 1
+        if(verbose) cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
+      }
+    }
+    if (FALSE){
+      alloweddteuler <- 1/2^(6:0)
+      if (!inp$dteuler %in% alloweddteuler){ # Check if dteuler is among the alloweddteuler
+        ind <- cut(inp$dteuler, alloweddteuler, right=FALSE, labels=FALSE)
+        if (is.na(ind)){
+          if (inp$dteuler > max(alloweddteuler)){
+            inp$dteuler <- max(alloweddteuler)
+          }
+          if (inp$dteuler < min(alloweddteuler)){
+            inp$dteuler <- min(alloweddteuler)
+          }
+        } else {
+          inp$dteuler <- alloweddteuler[ind]
         }
+        if(verbose) cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
+      }
     }
 
     # - Prediction horizons -
@@ -612,34 +631,6 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
         }
     }
 
-    # Numerical Euler discretisation time used by SDE solver
-    # Euler time step
-    if (!"dteuler" %in% names(inp)){
-        inp$dteuler <- 1/16
-    }
-    if ("dteuler" %in% names(inp)){
-        if (inp$dteuler > 1){
-            inp$dteuler <- 1
-            if(verbose) cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
-        }
-    }
-    if (FALSE){
-        alloweddteuler <- 1/2^(6:0)
-        if (!inp$dteuler %in% alloweddteuler){ # Check if dteuler is among the alloweddteuler
-            ind <- cut(inp$dteuler, alloweddteuler, right=FALSE, labels=FALSE)
-            if (is.na(ind)){
-                if (inp$dteuler > max(alloweddteuler)){
-                    inp$dteuler <- max(alloweddteuler)
-                }
-                if (inp$dteuler < min(alloweddteuler)){
-                    inp$dteuler <- min(alloweddteuler)
-                }
-            } else {
-                inp$dteuler <- alloweddteuler[ind]
-            }
-            if(verbose) cat('The dteuler used is not allowed! using inp$dteuler:', inp$dteuler, '\n')
-        }
-    }
     # Euler types:
     # hard: time discretisation is equidistant with step length = dteuler. Observations are assigned to intervals
     # soft: time discretisation is equidistant with step length = dteuler, but with time points of observations inserted such that they can be assigned accurately to a time point instead of an interval.
@@ -991,7 +982,7 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
         #    inp$ini$logr <- log(-r)
         #}
     }
-    if(length(inp$ini$logm)!=inp$noms) inp$ini$logm <- rep(inp$ini$logm,noms)
+    if(length(inp$ini$logm)!=inp$noms) inp$ini$logm <- rep(inp$ini$logm,inp$noms)
 
 
     if ('logr' %in% names(inp$ini)){
@@ -1204,6 +1195,8 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
     if(!"iuse" %in% names(inp) || length(inp$iuse) != length(unlist(inp$obsI)))
         inp$iuse <- rep(TRUE, length(unlist(inp$obsI)))
 
+    ## ADreport of residB and residF
+    if(!"residFlag" %in% names(inp)) inp$residFlag <- FALSE
 
 
     # Reorder parameter list

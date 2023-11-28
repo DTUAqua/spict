@@ -8,13 +8,15 @@ output:
     toc: yes
   pdf_document:
     number_sections: false
-    toc: false
+    toc: yes
     keep_tex: false
 bibliography: bibliography.bib
 vignette: >
   %\VignetteIndexEntry{SPiCT Handbook}
-  %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r, echo = FALSE}
@@ -285,6 +287,18 @@ The first column of the plot contains information related to catch data and the 
 
 This data did not have any significant violations of the assumptions, which increases confidence in the results. For a discussion of possible violations and remedies the reader is referred to @spict.
 
+### Process residuals
+
+The function `calc.process.resid()` calculates and adds the process residuals as a `data.frame`. It takes
+the fitted object and `dt` as arguments. `dt` has by default the same resolution as the input data, i.e. `1/inp$nseasons`.
+
+Function `plotspict.diagnostic.process()` plots the process residuals for the the biomass and fishing mortality processes. The plot is similar to that produced by `plotspict.diagnostic`, see above for the description.
+
+```{r plotspict.diagnostic.process, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=7, fig.show='hold'}
+res <- calc.process.resid(res)
+plotspict.diagnostic.process(res)
+```
+
 ## Extracting parameter estimates
 
 To extract an estimated quantity, here `logBmsy` use
@@ -327,7 +341,7 @@ For this data most parameters are well separated, i.e. relatively low correlatio
 
 The covariance between random effects (biomass and fishing mortality) is not reported automatically, but can be obtained by setting `inp$getJointPrecision` to `TRUE` (this entails longer computation time and memory requirement).
 
-The covariance between sdported values (i.e. the values reported in `res$value`) are given in `res$cov`. As this matrix is typically large, the function `get.cov()` can be used to extract the covariance between two scalar quantities
+The covariance between sdreported values (i.e. the values reported in `res$value`) are given in `res$cov`. As this matrix is typically large, the function `get.cov()` can be used to extract the covariance between two scalar quantities
 
 ```{r cor.bf, results='show', message=FALSE, warning=FALSE, fig.width=4, fig.height=4, fig.show='hold'}
 cov2cor(get.cov(res, 'logBmsy', 'logFmsy'))
@@ -335,11 +349,27 @@ cov2cor(get.cov(res, 'logBmsy', 'logFmsy'))
 
 This reveals that for this data set the estimates of log Fmsy and log Bmsy are highly correlated. This is often the case and the reason why the model is reparameterised.
 
+## Comparison plots
+
+The function `plotspict.compare()` can be used to make comparison plots of one or more spict runs. The function is able to show biomass and fishing mortality (absolute and relative), catch, and production curve. You can use the `varname` argument to select which of those plots to produce, default is all of them (`c("B", "F", "C", "BBmsy", "FFmsy", "P")`).
+
+As an example we show below the comparison of two runs with and without logbkfrac prior. 
+
+```{r plotspict.compare, results='show', message=FALSE, warning=FALSE, fig.width=5.5, fig.height=7, fig.show='hold' }
+data(pol)
+inp <- pol$hake
+rep1 <- fit.spict(inp)
+inp$priors$logbkfrac <- c(log(0.3), 0.1, 1)
+rep2 <- fit.spict(inp)
+plotspict.compare(list(def = rep1, bkprior = rep2))
+```
+
+
 # Advanced functionality
 
 ## Retrospective plots
 
-Retrospecitive plots are sometimes used to evaluate the robustness of the model fit to the introduction of new data, i.e. to check whether the fit changes substantially when new data becomes available. Such calculations and plotting thereof can be performed using `retro()` as shown here
+Retrospective plots are sometimes used to evaluate the robustness of the model fit to the introduction of new data, i.e. to check whether the fit changes substantially when new data becomes available. Such calculations and plotting thereof can be performed using `retro()` as shown here
 
 ```{r plotspict.retro, results='show', message=FALSE, warning=FALSE, fig.width=7, fig.height=5, fig.show='hold'}
 ## res <- fit.spict(pol$albacore)

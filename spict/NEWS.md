@@ -1,18 +1,39 @@
-development version
+spict v1.3.8 (unreleased)
 ============
 
-Bug fixes:
+New features
 
-* Fixed `make.man.inp` check that all fractiles are between 0 and 0.5
-* Fixed `add.manlines` check of errflag for multiple management scenarios
-* Fixed `man.select` check of NA for multiple management scenarios
+* Added function `calc.process.resid()` that calculates the process residuals for
+  the biomass and fishing mortality processes. The residuals are added to the
+  fitted spict object in the data frame called `rep$process.resid`. The
+  residuals can be summarised with the function `sumspict.diagnostics()` and
+  visualised with the function `plotspict.diagnostic.process()`. Note, that the
+  process residuals have mainly been tested for scenarios without seasonal fishing patterns.
+
+
+* Added function `plotspict.compare` that shows estimates from multiple
+  fits, of B, F, catch, F/Fmsy, B/Bmsy and the production curve on the same plot. The
+  fits can be given separately, like `plotspict.compare(fit1, fit2)` or in a list, like
+  `plotspict.compare(list(fit1, fit2))`.
+
+Bug fixes
+
+* `make.man.inp` now checks all fractiles to be between 0 and 0.5 (closes #167)
+* `add.manlines` correctly reports shorter management periods than 1 year (closes #168)
+* `add.manlines` checks for errflag for multiple management scenarios
+* `annual` function was rewritten to accommodate cases where `intime` does not include full years. This happens when the first data point is not on a full year (closes #170, thanks to Paz Sampedro)
+* `man.select` checks for `NA`s for multiple management scenarios
+
+Minor changes
+
+* Retro runs have names: Baseline, -1, -2, -3, ... (closes #172)
 
 spict v1.3.7 (2022-09-06)
 ============
 
 New features
 
-* Added functionality for performing and plotting hindcast analysis 
+* Added functionality for performing and plotting hindcast analysis
   introducing the functions `hindcast()` and `plotspict.hindcast`.
 
 Bug fixes:
