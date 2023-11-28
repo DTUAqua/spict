@@ -17,7 +17,7 @@ data(pol)
 Fisheries data included in Polacheck et al. (1993).
 }
 \details{
-Fisheries data for south Atlantic albacore, northern Namibian hake, and New Zealand rock lobster.
+Fisheries data for South Atlantic albacore, northern Namibian hake, and New Zealand rock lobster.
 }
 \examples{
 data(pol)

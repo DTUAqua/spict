@@ -57,3 +57,9 @@ If it doesn't work the old, but tedious, procedure can be used:
 2. From R run: ```source("install_windows.R")```
 
 When running install_windows.R remember to set your working directory to the spict directory containing install_windows.R.
+
+
+Funding
+-------
+
+The development of `spict` was partially funded by the European Maritime and Fisheries Fund (EMFF) and the Danish Fisheries Agency via the RoMA project (Grant agreement number 33113-B-20-183).

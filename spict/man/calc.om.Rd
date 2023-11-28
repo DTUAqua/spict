@@ -10,8 +10,8 @@ calc.om(rep, CI = 0.95)
 \arguments{
 \item{rep}{Result of fit.spict().}
 
-\item{CI}{Confidence intervals to be used for CI range, e.g. 0.9 for the 90%
-confidence intervals. By default (CI = 0.95), the 95% confidence
+\item{CI}{Confidence intervals to be used for CI range, e.g. 0.9 for the 90\%
+confidence intervals. By default (CI = 0.95), the 95\% confidence
 intervals are used for the CI range.}
 }
 \value{
@@ -22,6 +22,6 @@ Calculates the order of magnitude for the relative reference levels
     B/Bmsy and F/Fmsy
 }
 \details{
-The lower, upper values and the CI range are based on the 95%
+The lower, upper values and the CI range are based on the 95\%
     confidence interval (CI; default).
 }

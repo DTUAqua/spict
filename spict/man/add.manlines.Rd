@@ -26,6 +26,8 @@ add.manlines(
 \item{plot.legend}{Logical; should the legend be plotted?}
 
 \item{verbose}{Should detailed outputs be provided (default: TRUE).}
+
+\item{\dots}{Passed to \code{lines}.}
 }
 \value{
 Nothing

@@ -30,6 +30,8 @@ mansummary(
 
 \item{include.unc}{Include uncertainty of management quantities.}
 
+\item{include.abs}{Include absolute B and F in management summary.}
+
 \item{timeline}{(default: FALSE)}
 
 \item{verbose}{Should detailed outputs be provided (default: TRUE).}

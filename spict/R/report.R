@@ -34,6 +34,7 @@ latex.figure <- function(figfile, reportfile, caption=''){
 #' @param reporttitle This character string will be printed as the first line of the report.
 #' @param reportfile A \link{connection}, or a character string naming the file ('.tex' file) to print
 #'    to. If not a connection, \code{make.report} prints to the working directory (default).
+#' @param summaryoutfile Summary output filename.
 #' @param keep.figurefiles If TRUE generated figure files will not be cleaned up.
 #' @param keep.txtfiles If TRUE generated txt files will not be cleaned up.
 #' @param keep.texfiles If TRUE generated tex file will not be cleaned up.

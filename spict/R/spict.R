@@ -61,12 +61,12 @@
 #' The above parameter values can be extracted from the fit.spict() results using get.par().
 #'
 #' Model assumptions
-#' \itemize{
-#'   \item{"1"}{The intrinsic growth rate (r) represents a combination of natural mortality, growth, and recruitment.}
-#'   \item{"2"}{The biomass B_t refers to the exploitable part of the stock. Estimates in absolute numbers (K, Bmsy, etc.) should be interpreted in light of this.}
-#'   \item{"3"}{The stock is closed to migration.}
-#'   \item{"4"}{Age and size-distribution are stable in time.}
-#'   \item{"5"}{Constant catchability of the gear used to gather information for the biomass index.}
+#' \enumerate{
+#'   \item The intrinsic growth rate (r) represents a combination of natural mortality, growth, and recruitment.
+#'   \item The biomass B_t refers to the exploitable part of the stock. Estimates in absolute numbers (K, Bmsy, etc.) should be interpreted in light of this.
+#'   \item The stock is closed to migration.
+#'   \item Age and size-distribution are stable in time.
+#'   \item Constant catchability of the gear used to gather information for the biomass index.
 #' }
 #' @param inp List of input variables as output by check.inp.
 #' @param verbose Should detailed outputs be provided (default: TRUE).

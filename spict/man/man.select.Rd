@@ -43,7 +43,7 @@ rep <- manage(rep, c(2,4,6))
 
 ## based on names
 names(rep$man)
-rep1 <- man.select(rep, c("curentF","noF"))
+rep1 <- man.select(rep, c("currentF","noF"))
 
 ## based on indices
 length(rep$man)

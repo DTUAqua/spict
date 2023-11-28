@@ -26,10 +26,10 @@ NULL.}
 
 \item{verbose}{Should detailed outputs be provided (default: TRUE).}
 
+\item{printTimeline}{logical; print the management time line (default: FALSE)}
+
 \item{mancheck}{Should the time-dependent objects in \code{inp} be checked
 against the management time and corrected if necessary? (Default: TRUE)}
-
-\item{printTimeLine}{logical; print the management time line (default: FALSE)}
 }
 \value{
 Updated input list or fitted spict object dependent on type of input.

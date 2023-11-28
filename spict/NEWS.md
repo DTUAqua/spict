@@ -1,4 +1,4 @@
-spict v1.3.8 (2023-01-09)
+spict v1.3.8 (unreleased)
 ============
 
 New features
@@ -20,12 +20,13 @@ Bug fixes
 
 * `make.man.inp` now checks all fractiles to be between 0 and 0.5 (closes #167)
 * `add.manlines` correctly reports shorter management periods than 1 year (closes #168)
+* `add.manlines` checks for errflag for multiple management scenarios
 * `annual` function was rewritten to accommodate cases where `intime` does not include full years. This happens when the first data point is not on a full year (closes #170, thanks to Paz Sampedro)
+* `man.select` checks for `NA`s for multiple management scenarios
 
 Minor changes
 
 * Retro runs have names: Baseline, -1, -2, -3, ... (closes #172)
-
 
 spict v1.3.7 (2022-09-06)
 ============
