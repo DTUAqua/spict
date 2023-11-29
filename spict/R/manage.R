@@ -227,7 +227,7 @@ manage <- function(rep, scenarios = 'all',
                                     maneval = maneval,
                                     intermediatePeriodCatch = intermediatePeriodCatch,
                                     intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
-                                    breakpointB = c(1/3, 1/2),
+                                    breakpointB = c(0.3, 0.5),
                                     fractiles = list(catch = 0.35),
                                     verbose = FALSE, mancheck = FALSE)
         }
@@ -834,7 +834,7 @@ check.catchList <- function(catchList, sdfac = 1){
 #' rep <- add.man.scenario(rep, fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35), breakpointB=0.5)
 #'
 #' ## Get the TAC for the ICES (2020) recommended HCR (as used in WKMSYSPICT)
-#' rep <- add.man.scenario(rep, fractiles = list(catch=0.35), breakpointB = c(1/3, 1/2))
+#' rep <- add.man.scenario(rep, fractiles = list(catch=0.35), breakpointB = c(0.3, 0.5))
 #'
 #' ## Now `rep` includes 3 management scenarios
 #'
@@ -845,13 +845,13 @@ check.catchList <- function(catchList, sdfac = 1){
 #' get.TAC(rep, breakpointB = 0.5)
 #'
 #' ## Get TAC for the MSY hockey-stick rule (with Btrigger and Blim)
-#' get.TAC(rep, breakpointB = c(1/3, 1/2))
+#' get.TAC(rep, breakpointB = c(0.3, 0.5))
 #'
 #' ## Get the TAC for the ICES (2019) recommended HCR
-#' get.TAC(rep, fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35), breakpointB=1/2)
+#' get.TAC(rep, fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35), breakpointB=0.5)
 #'
 #' ## Get the TAC for the ICES (2020) recommended HCR (as used in WKMSYSPICT)
-#' get.TAC(rep, fractiles = list(catch=0.35), breakpointB = c(1/3, 1/2))
+#' get.TAC(rep, fractiles = list(catch=0.35), breakpointB = c(0.3, 0.5))
 #' @export
 add.man.scenario <- function(rep, scenarioTitle = "",
                              maninterval = NULL,
