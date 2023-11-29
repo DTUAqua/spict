@@ -3719,6 +3719,9 @@ plotspict.compare.one <- function(rep, ...,
 #' @param col Colours for different spict fits.
 #' @param asp Positive number deining the target aspect ratio (columns / rows)
 #'     of the plot arrangement.
+#' @param plot.legend Logical; Indicating whether to include a legend. Default:
+#'     \code{TRUE}. Use \code{plot.legend = 2} to plot the legend inside the
+#'     last panel.
 #' @param stamp Stamp plot with this character string.
 #'
 #' @examples
@@ -3740,7 +3743,9 @@ plotspict.compare <- function(rep, ...,
                                       "forestgreen","goldenrod1", "purple2",
                                       "firebrick3","skyblue4", "darkgreen",
                                       "salmon3","brown2"),
-                              asp = 2, stamp = get.version()){
+                              asp = 2,
+                              plot.legend = TRUE,
+                              stamp = get.version()){
 
     if("spictcls" %in% class(rep)){
         replist <- list(rep, ...)
@@ -3751,19 +3756,50 @@ plotspict.compare <- function(rep, ...,
     varname <- match.arg(varname, several.ok = TRUE)
     nvar <- length(varname)
 
-    if(nvar > 1){
-        par(mfrow = n2mfrow(nvar, asp = asp), mar = c(5,5,4,2)+0.1)
+    mfrow <- n2mfrow(nvar, asp = asp)
+    par(mar = c(5,5,4,2)+0.1)
+    if(as.integer(plot.legend) == 1){
+        layout(rbind(matrix(1:nvar,
+                            nrow = mfrow[1],
+                            ncol = mfrow[2]),
+                     rep(nvar+1,mfrow[2])),
+               heights = c(rep(1,mfrow[1]),0.1))
     }else{
-        par(mfrow = c(1,1))
+        layout(matrix(1:nvar, nrow = mfrow[1], ncol = mfrow[2]))
     }
 
     for(var in 1:nvar){
         stamp <- ifelse(!is.null(stamp) && !is.na(stamp) && var == nvar, get.version(), NA)
         plotspict.compare.one(replist, varname = varname[var],
                               exp = exp, CI = CI, plot.unc = plot.unc,
-                              col = col, plot.legend = ifelse(var == nvar, TRUE, FALSE),
+                              col = col,
+                              plot.legend = ifelse(as.integer(plot.legend) == 2 &&
+                                                   var == nvar, TRUE, FALSE),
                               stamp = stamp)
     }
+
+    cols2 <- function(col){
+        c(col, adjustcolor(col[-1], 0.5), adjustcolor(col[-1], 0.2))
+    }
+
+    if(as.integer(plot.legend) == 1){
+        nrep <- length(replist)
+        if(is.null(names(replist))){
+            leg.text <- paste0("Fit ", seq(nrep))
+        }else{
+            leg.text <- names(replist)
+        }
+        par(mar = c(1,5,0,0))
+        plot.new()
+        legend("topleft", legend = leg.text,
+               lwd = 2,
+               horiz = TRUE,
+               bty = "s",
+               box.lwd = 1.5,
+               col = cols2(col)[1:nrep],
+               bg = "white")
+    }
+
 }
 
 
