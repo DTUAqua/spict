@@ -214,12 +214,12 @@ sumspict.parest <- function(rep, ndigits=8, CI = 0.95){
         # Derived variables
         if(!'sderr' %in% names(rep)){
             nalpha <- sum(names(rep$par.fixed) == 'logsdi')
-            derout <- rbind(get.par(parname='logbeta', rep, exp=TRUE)[, order],
-                            get.par(parname='logr', rep, exp=TRUE)[, order],
-                            get.par(parname='logrc', rep, exp=TRUE)[, order],
-                            get.par(parname='logrold', rep, exp=TRUE)[, order])
+            derout <- rbind(get.par(parname='logbeta', rep, exp=TRUE, CI = CI)[, order],
+                            get.par(parname='logr', rep, exp=TRUE, CI = CI)[, order],
+                            get.par(parname='logrc', rep, exp=TRUE, CI = CI)[, order],
+                            get.par(parname='logrold', rep, exp=TRUE, CI = CI)[, order])
             if (nalpha > 0){
-                derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE)[1:nalpha, order],
+                derout <- rbind(get.par(parname='logalpha', rep, exp=TRUE, CI = CI)[1:nalpha, order],
                                 derout)
             }
             derout[, 4] <- log(derout[, 4])
