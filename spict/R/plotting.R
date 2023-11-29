@@ -3585,7 +3585,7 @@ plotspict.compare.one <- function(rep, ...,
                 maxi <- max(maxi,pstlist[[x]][[i]]/pstscal[[x]])
             }
             return(maxi)
-        })),unlist(lapply(1:nrep, function(x){
+        })), unlist(lapply(1:nrep, function(x){
             rangi <- c(0,0)
             for(i in 1:length(yscallist[[x]])){
                 rangi <- range(rangi, c(ylist[[x]] / yscallist[[x]][[i]]))
@@ -3653,7 +3653,11 @@ plotspict.compare.one <- function(rep, ...,
                                                         exp = exp, CI = CI)[indi[[x]],1:3])
         }
         xlim <- range(xlist, na.rm = TRUE)
-        ylim <- range(unlist(ylist), na.rm = TRUE)
+        if(as.integer(plot.unc) > 0){
+            ylim <- range(unlist(ylist), na.rm = TRUE)
+        }else{
+            ylim <- range(unlist(lapply(ylist, function(x) x[,2])), na.rm = TRUE)
+        }
         ## plot
         plot(xlist[[1]], ylist[[1]][,2], ty = "n",
              xlim = xlim, ylim = ylim,
