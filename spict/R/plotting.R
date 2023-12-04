@@ -3761,11 +3761,12 @@ plotspict.compare <- function(rep, ...,
     if(as.integer(plot.legend) == 1){
         layout(rbind(matrix(1:nvar,
                             nrow = mfrow[1],
-                            ncol = mfrow[2]),
+                            ncol = mfrow[2], byrow = TRUE),
                      rep(nvar+1,mfrow[2])),
-               heights = c(rep(1,mfrow[1]),0.1))
+               heights = c(rep(1,mfrow[1]),0.12))
     }else{
-        layout(matrix(1:nvar, nrow = mfrow[1], ncol = mfrow[2]))
+        layout(matrix(1:nvar, nrow = mfrow[1], ncol = mfrow[2],
+                      byrow = TRUE))
     }
 
     for(var in 1:nvar){
