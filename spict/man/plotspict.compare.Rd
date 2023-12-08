@@ -14,6 +14,7 @@ plotspict.compare(
   col = c("dodgerblue2", "darkorange1", "forestgreen", "goldenrod1", "purple2",
     "firebrick3", "skyblue4", "darkgreen", "salmon3", "brown2"),
   asp = 2,
+  plot.legend = TRUE,
   stamp = get.version()
 )
 }
@@ -46,6 +47,10 @@ polygons. Default: \code{TRUE}.}
 
 \item{asp}{Positive number deining the target aspect ratio (columns / rows)
 of the plot arrangement.}
+
+\item{plot.legend}{Logical; Indicating whether to include a legend. Default:
+\code{TRUE}. Use \code{plot.legend = 2} to plot the legend inside the
+last panel.}
 
 \item{stamp}{Stamp plot with this character string.}
 }

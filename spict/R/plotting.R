@@ -3484,8 +3484,9 @@ plotspict.hindcast <- function(rep, add.mase = TRUE, CI = 0.95, verbose = TRUE,
 #' rep1 <- fit.spict(inp)
 #' inp$priors$logbkfrac <- c(log(0.3), 0.1, 1)
 #' rep2 <- fit.spict(inp)
+#' \dontrun{
 #' plotspict.compare.one(rep1, rep2, varname = "F")
-#'
+#' }
 plotspict.compare.one <- function(rep, ...,
                                   varname = c("B","F","C","BBmsy","FFmsy","P"),
                                   exp = TRUE, CI = 0.95, plot.unc = 1,
