@@ -10,7 +10,6 @@ New features
   visualised with the function `plotspict.diagnostic.process()`. Note, that the
   process residuals have mainly been tested for scenarios without seasonal fishing patterns.
 
-
 * Added function `plotspict.compare` that shows estimates from multiple
   fits, of B, F, catch, F/Fmsy, B/Bmsy and the production curve on the same plot. The
   fits can be given separately, like `plotspict.compare(fit1, fit2)` or in a list, like
@@ -23,6 +22,7 @@ Bug fixes
 * `add.manlines` checks for errflag for multiple management scenarios
 * `annual` function was rewritten to accommodate cases where `intime` does not include full years. This happens when the first data point is not on a full year (closes #170, thanks to Paz Sampedro)
 * `man.select` checks for `NA`s for multiple management scenarios
+* `summary` now respects the `CI` argument. Added CI argument for `sumspict.*` functions
 
 Minor changes
 
