@@ -75,6 +75,7 @@ inp$dteuler <- 1/8
 rep1 <- fit.spict(inp)
 inp$priors$logbkfrac <- c(log(0.3), 0.1, 1)
 rep2 <- fit.spict(inp)
+\dontrun{
 plotspict.compare.one(rep1, rep2, varname = "F")
-
+}
 }
