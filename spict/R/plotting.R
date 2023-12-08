@@ -3774,8 +3774,7 @@ plotspict.compare <- function(rep, ...,
         plotspict.compare.one(replist, varname = varname[var],
                               exp = exp, CI = CI, plot.unc = plot.unc,
                               col = col,
-                              plot.legend = ifelse(as.integer(plot.legend) == 2 &&
-                                                   var == nvar, TRUE, FALSE),
+                              plot.legend = as.integer(plot.legend) == 2 && var == nvar,
                               stamp = stamp)
     }
 
