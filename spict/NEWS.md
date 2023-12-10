@@ -1,4 +1,4 @@
-spict v1.3.8 (unreleased)
+spict v1.3.8 (2023-12-08)
 ============
 
 New features
