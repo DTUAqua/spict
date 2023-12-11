@@ -171,6 +171,7 @@ manage <- function(rep, scenarios = 'all',
                                     maneval = maneval,
                                     intermediatePeriodCatch = intermediatePeriodCatch,
                                     intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
+                                    intermediatePeriodCatchList = intermediatePeriodCatchList,
                                     ffac = 1.0, verbose = FALSE, mancheck = FALSE)
         }
         if (3 %in% indscenarios){
@@ -180,6 +181,7 @@ manage <- function(rep, scenarios = 'all',
                                     maneval = maneval,
                                     intermediatePeriodCatch = intermediatePeriodCatch,
                                     intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
+                                    intermediatePeriodCatchList = intermediatePeriodCatchList,
                                     verbose = FALSE, mancheck = FALSE)
         }
         if (4 %in% indscenarios){
@@ -189,6 +191,7 @@ manage <- function(rep, scenarios = 'all',
                                     maneval = maneval,
                                     intermediatePeriodCatch = intermediatePeriodCatch,
                                     intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
+                                    intermediatePeriodCatchList = intermediatePeriodCatchList,
                                     ffac = 0.001, verbose = FALSE, mancheck = FALSE)
         }
         if (5 %in% indscenarios){
@@ -198,6 +201,7 @@ manage <- function(rep, scenarios = 'all',
                                     maneval = maneval,
                                     intermediatePeriodCatch = intermediatePeriodCatch,
                                     intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
+                                    intermediatePeriodCatchList = intermediatePeriodCatchList,
                                     ffac = 0.75, verbose = FALSE, mancheck = FALSE)
         }
         if (6 %in% indscenarios){
@@ -207,6 +211,7 @@ manage <- function(rep, scenarios = 'all',
                                     maneval = maneval,
                                     intermediatePeriodCatch = intermediatePeriodCatch,
                                     intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
+                                    intermediatePeriodCatchList = intermediatePeriodCatchList,
                                     ffac = 1.25, verbose = FALSE, mancheck = FALSE)
         }
         if (7 %in% indscenarios){
@@ -217,6 +222,7 @@ manage <- function(rep, scenarios = 'all',
                                     maneval = maneval,
                                     intermediatePeriodCatch = intermediatePeriodCatch,
                                     intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
+                                    intermediatePeriodCatchList = intermediatePeriodCatchList,
                                     breakpointB = 0.5, verbose = FALSE, mancheck = FALSE)
         }
         if (8 %in% indscenarios){
@@ -227,6 +233,7 @@ manage <- function(rep, scenarios = 'all',
                                     maneval = maneval,
                                     intermediatePeriodCatch = intermediatePeriodCatch,
                                     intermediatePeriodCatchSDFac = intermediatePeriodCatchSDFac,
+				     intermediatePeriodCatchList = intermediatePeriodCatchList,
                                     breakpointB = c(0.3, 0.5),
                                     fractiles = list(catch = 0.35),
                                     verbose = FALSE, mancheck = FALSE)
@@ -488,7 +495,7 @@ mansummary <- function(repin, include.EBinf=FALSE, include.unc=FALSE, include.ab
 #' @param maneval Time at which to evaluate model states. Example: maneval =
 #'     2021.25. Default: NULL.
 #' @param verbose Should detailed outputs be provided (default: TRUE).
-#' @param printTimeline logical; print the management time line (default: FALSE)
+#' @param printTimeLine logical; print the management time line (default: FALSE)
 #' @param mancheck Should the time-dependent objects in \code{inp} be checked
 #'     against the management time and corrected if necessary? (Default: TRUE)
 #'
