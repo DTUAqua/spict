@@ -182,7 +182,8 @@ fit.spict <- function(inp, verbose=TRUE, dbg=0){
     }
     toc <- Sys.time()
     if (!is.null(rep)){
-        rep$computing.time <- as.numeric(toc - tic)
+        rep$spict.version <- spict::get.version()
+        rep$computing.time <- as.numeric(difftime(toc, tic, units = "sec"))
         class(rep) <- "spictcls"
     }
     return(rep)
