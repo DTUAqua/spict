@@ -1,3 +1,24 @@
+spict v1.3.9-pre
+============
+
+New features
+
+* A spin-up (burn-in) period can be specified using `inp$nspinup` in number
+  of time steps. It helps stabilise the fit in cases where only catches 
+  are available in the beginning of the time series.
+  
+  
+Minor changes
+
+* On load, `spict` checks if the currently available TMB version is the same
+  as the one that was used to install spict. Gives warning if there is a mismatch.
+
+
+Bug fixes
+
+* `intermediatePeriodCatchList` is now used by the manage function, previously was 
+   ignored
+
 spict v1.3.8 (2023-12-08)
 ============
 
