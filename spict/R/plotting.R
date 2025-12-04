@@ -3185,7 +3185,7 @@ plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
     lm <- length(rep$man)
     if (lm == 0) stop("rep does not contain management scenarios, please run `manage` or `add.man.scenario`")
     alltacs <- spict::man.tac(rep)
-    opar <- par(mfrow = get.mfrow(lm), mar = c(3.1, 3.1, 1.5, 3))
+    opar <- par(mfrow = get.mfrow(lm), mar = c(3.1, 3.1, 2, 1), oma = c(1,1,0.5,1))
     on.exit(par(opar))
     for (i in seq(rep$man)) {
         r <- rep$man[[i]]
@@ -3198,9 +3198,15 @@ plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
             Btrig <- max(bbp)
             Blim <- min(bbp)
         }
+        BlimF0 <- r$inp$manLimitB
         Fmsy <- get.par("logFmsy", r, exp = TRUE, CI = CI)[2]
         Fm <- get.par("logFm", r, exp = TRUE, CI = CI)[, 2]
         BBmsy <- if (r$inp$manEvalBreakpointB == 0) {
+            get.par("logBmBmsy", r, exp = TRUE, CI = CI)[, 2]
+        } else {
+            get.par("logBpBmsy", r, exp = TRUE, CI = CI)[, 2]
+        }
+        BBmsyLim <- if (r$inp$manEvalLimitB == 0) {
             get.par("logBmBmsy", r, exp = TRUE, CI = CI)[, 2]
         } else {
             get.par("logBpBmsy", r, exp = TRUE, CI = CI)[, 2]
@@ -3211,13 +3217,41 @@ plotspict.hcr <- function(rep, xlim = c(0, 3), CI = 0.95) {
         ylim <- range(0, max(Fmsy, Fm) * 1.1)
         plot(Bs, Fs, type = "n", xlab = "", ylab = "",
              xlim = xlim, ylim = ylim, main = nm)
-        xlab <- if (r$inp$manEvalBreakpointB == 0) "Bm/Bmsy" else "Bp/Bmsy"
+        if (Btrig > 0 || Blim > 0) {
+            xlab <- if (r$inp$manEvalBreakpointB == 0)                             expression(B[m]*"/"*B[MSY]) else expression(B[p]*"/"*B[MSY])
+        } else {
+            xlab <- if (r$inp$manEvalLimitB == 0) expression(B[m]*"/"*B[MSY]) else expression(B[p]*"/"*B[MSY])
+        }
         title(ylab = "Fishing mortality (F)", xlab = xlab, line = 2.1)
         points(BBmsy, Fm, pch = 20, cex = 2)
-        text(BBmsy, Fm, labels = paste("TAC=", round(alltacs[[i]])), adj = -0.2)
-        abline(h = Fmsy, v = c(Blim, Btrig), col = "darkgray", lty = 2)
-        lines(Bs, Fs, type = "l", lwd = 2)
-        text(c("Fmsy"), x = max(xlim), y = Fmsy, las = 2, cex = 0.8, adj = c(1, -0.1))
+        text(BBmsy, Fm,
+             labels = paste("TAC=", round(alltacs[[i]])),
+             las = 2,  adj = c(-0.1, ifelse((Fm - 1e-3) < 0, -0.8, 1.5)))
+        abline(h = Fmsy, col = "darkgray", lty = 1)
+        abline(v = Btrig, col = "darkgray", lty = 2)
+        if (Blim > 0) {
+            abline(v = Blim, col = "darkgray", lty = 2)
+        }
+        FsPlot <- Fs
+        if (BlimF0 > 0) {
+            abline(v = BlimF0, col = "darkgray", lty = 3)
+            FsPlot[Bs < BlimF0] <- 0
+            if(r$inp$manEvalLimitB != r$inp$manEvalBreakpointB &&
+               (Btrig > 0 || Blim > 0)) {
+                labi <- if (r$inp$manEvalLimitB == 0) {
+                            expression(B[MSY]*" based on "*B[m]*"/"*B[MSY])
+                        } else {
+                            expression(B[MSY]*" based on "*B[p]*"/"*B[MSY])
+                        }
+                text(xlim[2], ylim[1], labi,
+                     las = 2, cex = 0.8,
+                     adj = c(0.95, -0.05))
+            }
+        }
+        lines(Bs, FsPlot, type = "l", lwd = 2)
+        text(x = max(xlim), y = Fmsy, expression(F[MSY]),
+             las = 2, cex = 0.8, adj = c(1, -0.1))
+        box(lwd = 1.5)
     }
     invisible(NULL)
 }
