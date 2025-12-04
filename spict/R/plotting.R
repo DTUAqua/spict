@@ -585,8 +585,8 @@ plotspict.biomass <- function(rep, logax=FALSE, main='Absolute biomass', ylim=NU
             obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]
         }
         cvCheck <- ifelse(any(Best[,5] <= 5),5,min(Best[,5]))
-        fininds <- which(Best[, 5] <= cvCheck & !inp$isspinup) # Use CV to check for large uncertainties
-        BBfininds <- unname(which(is.finite(BB[, 1]) & is.finite(BB[, 3]) & !inp$isspinup)) # Use CV to check for large uncertainties
+        fininds <- which(Best[, 5] <= cvCheck) # Use CV to check for large uncertainties
+        BBfininds <- unname(which(is.finite(BB[, 1]) & is.finite(BB[, 3]))) # Use CV to check for large uncertainties
         if (!ylimflag){
             if (length(ylim)!=2){
                 ylim <- range(BB[BBfininds, 1:3]/scal*Bmsy[2], Best[fininds, 1:3], Bp[2],
@@ -754,8 +754,8 @@ plotspict.bbmsy <- function(rep, logax=FALSE, main='Relative biomass', ylim=NULL
                     obsI[[i]] <- inp$obsI[[i]]/qest[inp$mapq[i], 2]/Bmsy[1,2]
                 }
             }
-            fininds <- which(apply(BB, 1, function(x) all(is.finite(x))) & !inp$isspinup)
-            BBfininds <- which(is.finite(BB[, 1]) & is.finite(BB[, 3]) & !inp$isspinup)
+            fininds <- which(apply(BB, 1, function(x) all(is.finite(x))))
+            BBfininds <- which(is.finite(BB[, 1]) & is.finite(BB[, 3]))
             if (!ylimflag){
                 if (length(ylim) != 2){
                     ylim <- range(c(lineat, BB[fininds, 1:3], unlist(obsI), 1), na.rm=TRUE)
@@ -1150,6 +1150,7 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
             repmax <- rep
             indxmax <- which(inp$time ==  max(inp$time))
         }
+        indxmin <- which.min(!inp$isspinup)
 
         if (tvgflag){
             Fmsy <- get.par('logFmsyvec', repmax, exp=TRUE, CI = CI)
@@ -1179,29 +1180,29 @@ plotspict.f <- function(rep, logax=FALSE, main='Absolute fishing mortality', yli
         clp <- Fest[inp$indpred, 1]
         Fp <- Fest[inp$indpred, 2]
         cup <- Fest[inp$indpred, 3]
-        timef <- inp$time[1:indxmax]
-        Ff <- Fest[1:indxmax, 2]
-        clf <- FF[1:indxmax, 1] #*Fmsy[2]
-        cuf <- FF[1:indxmax, 3] #*Fmsy[2]
+        timef <- inp$time[indxmin:indxmax]
+        Ff <- Fest[indxmin:indxmax, 2]
+        clf <- FF[indxmin:indxmax, 1] #*Fmsy[2]
+        cuf <- FF[indxmin:indxmax, 3] #*Fmsy[2]
 
         #ylimflag <- !is.null(ylim)
         ylimflag <- !is.null(ylim) & length(ylim) == 2 # If FALSE ylim is manually specified
         # Check whether nan values are present in CI limits
         absflag <- length(cu)==0 | all(!is.finite(cu))
         if (absflag){ # if problems with NaN in absolute
-            fininds <- which(is.finite(Ff) & !inp$isspinup)
+            fininds <- which(is.finite(Ff))
             if (!ylimflag){
                 ylim <- range(c(Ff, Fmsy, tail(Fest[, 2],1)), na.rm=TRUE)
             }
         } else { # No problems
-            fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))) & !inp$isspinup[inp$indest])
+            fininds <- which(apply(cbind(cl, cu), 1, function(x) all(is.finite(x))))
             if (!ylimflag){
                 ylim <- range(c(cl[fininds], cu[fininds], tail(Fest[, 2],1)), na.rm=TRUE)
             }
         }
         relflag <-  length(cuf)==0 | all(!is.finite(cuf)) | nlevels(rep$inp$MSYregime)>1
         if (relflag){ # Problems
-            relfininds <- which(is.finite(cuf) & !inp$isspinup)
+            relfininds <- which(is.finite(cuf))
             if (!ylimflag){
                 ylim <- range(ylim, Ff, Fmsy, tail(Fest[, 2],1), na.rm=TRUE)
             }
@@ -1335,6 +1336,7 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
             indest <- indest[-length(indest)]
             indxmax <- which(inp$time ==  max(inp$time)) - 1
         }
+        indxmin <- which.min(!inp$isspinup)
 
         time <- inp$time[indest]
         cl <- FF[indest, 1]
@@ -1344,15 +1346,15 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         clp <- FF[indpred, 1]
         Fp <- FF[indpred, 2]
         cup <- FF[indpred, 3]
-        timef <- inp$time[1:indxmax]
-        clf <- FF[1:indxmax, 1]
-        Ff <- FF[1:indxmax, 2]
-        cuf <- FF[1:indxmax, 3]
+        timef <- inp$time[indxmin:indxmax]
+        clf <- FF[indxmin:indxmax, 1]
+        Ff <- FF[indxmin:indxmax, 2]
+        cuf <- FF[indxmin:indxmax, 3]
 
         flag <- length(cu) == 0 | all(!is.finite(cu))
         if (flag){
             # CIs don't exist or are not finite
-            fininds <- which(is.finite(Ff) & !inp$isspinup)
+            fininds <- which(is.finite(Ff))
             ys <- c(lineat, Ff[fininds])
         } else {
             fininds <- which(apply(cbind(clf, cuf), 1, function(x) all(is.finite(x))))
@@ -1367,7 +1369,8 @@ plotspict.ffmsy <- function(rep, logax=FALSE, main='Relative fishing mortality',
         }
         xlim <- range(c(inp$timens, tail(inp$time, 1) + 0.5))
         if(manflag) xlim <- get.manlimits(rep,"time")
-        plot(timef[!inp$isspinup], Ff[!inp$isspinup], typ='n', main=main, ylim=ylim, col='blue', ylab=expression(F[t]/F[MSY]),
+        plot(timef, Ff, typ='n', main=main, ylim=ylim,
+             col='blue', ylab=expression(F[t]/F[MSY]),
              xlab=xlab, xlim=xlim, log=log)
         cicol2 <- rgb(0, 0, 1, 0.1)
         if (!flag){
@@ -2290,6 +2293,7 @@ plotspict.btrend <- function(rep, CI = 0.95){
 #'
 #' @export
 plot.spictcls <- function(x, stamp=get.version(), verbose=TRUE, CI = 0.95, ...){
+
     check.rep(x)
     rep <- x
     logax <- FALSE # Take log of relevant axes? default: FALSE
