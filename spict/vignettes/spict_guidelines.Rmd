@@ -10,11 +10,18 @@ output:
     number_sections: false
     toc: false
     keep_tex: false
+    citation_package: natbib    # or "biblatex", or just omit for default pandoc cites
 bibliography: bibliography.bib
+# optional: choose a bibliography style for PDF if you use natbib
+# biblio-style: apalike
+
+header-includes:
+  - \usepackage[utf8]{inputenc}
+
 vignette: >
   %\VignetteIndexEntry{SPiCT Guidelines}
   %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
@@ -190,13 +197,13 @@ a linearly reduction in F if the biomass is below a certain reference level
 (e.g., $\text{MSY} B_{\text{trigger}}$) as the hockey-stick MSY rule recommended
 by @msycat34.
 
-[@mildenberger2022implementing] demonstrated the importance of the
+@mildenberger2022implementing demonstrated the importance of the
 quantification and consideration of assessment uncertainty into the calculation
 of the catch advice. The authors introduced a modification of the hockey-stick
 MSY rule that reduces catch advice as a function of uncertainty by using a
 percentile lower than 50 (i.e., median) for relative biomass
 $\frac{B}{B_{\text{MSY}}}$ and catch $C_{y+1}$ and higher than 50 for relative
-fishing mortality $\frac{F}{F_{\text{MSY}}}.
+fishing mortality $\frac{F}{F_{\text{MSY}}}$.
 
 Based on this work, ICES currently recommends calculating TAC based on an MSY
 hockey-stick rule with a biomass trigger reference point at
@@ -209,21 +216,21 @@ $\text{MSY}B_{\text{trigger}}$, $F^{\tau}$ is reduced linearly with $B$; and
 when $B$ falls below $B_{\text{lim}}$, $F^{\tau}$ is set to zero. This can be
 expressed as
 
-\[
+\begin{equation*}
 F^{\tau}_y =
 \begin{cases}
 F_{\text{MSY}} \min\!\left(1, \dfrac{B_y}{\text{MSY}B_{\text{trigger}}}\right),
 & \text{if } B_y \ge B_{\text{lim}},\\[6pt]
 0, & \text{if } B_y < B_{\text{lim}}.
 \end{cases}
-\]
+\end{equation*}
 
 Given the target fishing mortality, the advised catch $A_y$ for year $y$ is
 taken as the 35th percentile of the predicted catch distribution:
 
-\[
+\begin{equation*}
 A_y = \Phi^{-1}_{C_{\text{pred},y} \mid F^{\tau}_y}(0.35),
-\]
+\end{equation*}
 
 where $\Phi^{-1}$ denotes the inverse cumulative distribution function, so that
 $\Phi^{-1}_{C_{\text{pred},y} \mid F^{\tau}_y}(0.35)$ is the catch
@@ -232,19 +239,19 @@ corresponding to the 35th percentile of the predicted catch distribution.
 This HCR is one of the 8 default management scenarios of the `manage()` function
 in spict but can als be run exclusively with:
 
-`manage(fit, scenarios = "ices")`.
+`fit <- manage(fit, scenarios = "ices")`.
 
 This function is actually only a wrapper function and calls internally the
 `add.man.scenario()` function that makes the three key components of the ICES
 (2025) HCR explicit:
 
-`rep <- add.man.scenario(rep, "ICES (2025)", fractiles = list(catch = 0.35),
+`fit <- add.man.scenario(fit, "ICES (2025)", fractiles = list(catch = 0.35),
 breakpointB = 0.5, limitB = 0.3)`.
 
 Another way to calculate the TAC based on the ICES (2025) HCR directly is using
 the `get.TAC()` function:
 
-`get.TAC(rep, fractiles = list(catch = 0.35), breakpointB = 0.5, limitB = 0.3)`.
+`get.TAC(fit, fractiles = list(catch = 0.35), breakpointB = 0.5, limitB = 0.3)`.
 
 It is important to note that informative priors (i.e.\ priors with smaller
 standard deviations) can influence parameter estimates and credible intervals in
