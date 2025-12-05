@@ -1184,6 +1184,11 @@ check.inp <- function(inp, verbose = TRUE, mancheck = TRUE){
 
     ## biomass breakpoint used for management
     if(!"manBreakpointB" %in% names(inp)) inp$manBreakpointB <- 0
+    if(!"manEvalBreakpointB" %in% names(inp)) inp$manEvalBreakpointB <- 0
+
+    ## biomass limit reference point used for management
+    if(!"manLimitB" %in% names(inp)) inp$manLimitB <- 0
+    if(!"manEvalLimitB" %in% names(inp)) inp$manEvalLimitB <- 0
 
     ## biomass safeguard used for management
     checkandadd("manSafeguardB", list(limitB = 0, prob = 0.95), "list")

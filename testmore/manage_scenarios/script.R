@@ -57,6 +57,23 @@ test_this("1.1.8:", {
                                          fractiles = list(catch=0.2, ffmsy = 0.1)),3)
 })
 
+test_this("1.1.9: ICES rule (2025)", {
+    round(get.TAC(fit,
+                  breakpointB = 0.5,
+                  limitB = 0.3,
+                  fractiles = list(catch = 0.35)
+                  ),3)
+})
+
+
+test_this("1.1.10: trigger limitB (expectation TAC=0)", {
+    round(get.TAC(fit,
+                  breakpointB = 1,
+                  limitB = 0.5,
+                  fractiles = list(catch = 0.35)
+                  ),3)
+})
+
 
 header("1.2: intermediate year with constant F")
 #################################
@@ -394,4 +411,3 @@ test_this("4.2.4 Negative B factile gives error", {fit4.2 <- add.man.scenario(fi
 
 test_this("4.2.5 F factile > 0.5 gives error", {fit4.2 <- add.man.scenario(fit4.2, scenarioTitle = "Wrong F fractile", fractiles = list(ffmsy = 0.6))})
 test_this("4.2.6 Negative F factile gives error", {fit4.2 <- add.man.scenario(fit4.2, scenarioTitle = "Wrong F fractile, neg", fractiles = list(ffmsy = - 1))})
-
