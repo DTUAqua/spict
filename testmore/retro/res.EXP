@@ -7,8 +7,8 @@ Check retrospective analysis functionality
 ==================================================
 
 1.1. Convergence of last two retros is not achieved
-Baseline      - 1      - 2      - 3      - 4      - 5      - 6      - 7
-       0        0        0        0        0        0        1        1
+Baseline      - 1      - 2      - 3      - 4      - 5      - 6      - 7 
+       0        0        0        0        0        0        1        1 
 
 
 1.2. Mohn's rho is calculated correctly
@@ -37,3 +37,193 @@ Error:The argument 'rep' needs to be a fitted spict object. Use 'fit.spict()' to
 
 2.2. Not converged fitted object produces an error
 Error:The fitted object did not converge.
+
+3. Peels
+========
+
+
+3.1. Default albacore
+=====================
+
+3.1.1 Last observations (catch and index)
+[[1]]
+[1] 1988 1989
+
+[[2]]
+[1] 1988 1989
+
+
+
+3.1.2 First peel (catch and index)
+[[1]]
+[1] 1987 1988
+
+[[2]]
+[1] 1987 1988
+
+
+
+3.1.2 Second peel (catch and index)
+[[1]]
+[1] 1986 1987
+
+[[2]]
+[1] 1986 1987
+
+
+
+
+3.2. Albacore with midyear index
+================================
+
+3.2.1 Last observations (catch and index)
+[[1]]
+[1] 1988 1989
+
+[[2]]
+[1] 1988.5 1989.5
+
+
+
+3.2.2 First peel (catch and index)
+[[1]]
+[1] 1987 1988
+
+[[2]]
+[1] 1987.5 1988.5
+
+
+
+3.2.2 Second peel (catch and index)
+[[1]]
+[1] 1986 1987
+
+[[2]]
+[1] 1986.5 1987.5
+
+
+
+
+3.3. Albacore with midyear index plus last catch missing
+========================================================
+
+3.3.1 Last observations (catch and index)
+[[1]]
+[1] 1987 1988
+
+[[2]]
+[1] 1988.5 1989.5
+
+
+
+3.3.2 First peel (catch and index)
+[[1]]
+[1] 1986 1987
+
+[[2]]
+[1] 1987.5 1988.5
+
+
+
+3.3.2 Second peel (catch and index)
+[[1]]
+[1] 1985 1986
+
+[[2]]
+[1] 1986.5 1987.5
+
+
+
+
+3.4. Albacore with midyear index plus 2 last catch missing
+==========================================================
+
+3.4.1 Last observations (catch and index)
+[[1]]
+[1] 1986 1987
+
+[[2]]
+[1] 1988.5 1989.5
+
+
+
+3.4.2 First peel (catch and index)
+[[1]]
+[1] 1986 1987
+
+[[2]]
+[1] 1987.5 1988.5
+
+
+
+3.4.2 Second peel (catch and index)
+[[1]]
+[1] 1985 1986
+
+[[2]]
+[1] 1986.5 1987.5
+
+
+
+
+3.5. Albacore with midyear index plus last index missing
+========================================================
+
+3.5.1 Last observations (catch and index)
+[[1]]
+[1] 1988 1989
+
+[[2]]
+[1] 1987.5 1988.5
+
+
+
+3.5.2 First peel (catch and index)
+[[1]]
+[1] 1987 1988
+
+[[2]]
+[1] 1987.5 1988.5
+
+
+
+3.5.2 Second peel (catch and index)
+[[1]]
+[1] 1986 1987
+
+[[2]]
+[1] 1986.5 1987.5
+
+
+
+
+3.6. Albacore with midyear index plus 2 last index missing
+==========================================================
+
+3.6.1 Last observations (catch and index)
+[[1]]
+[1] 1988 1989
+
+[[2]]
+[1] 1986.5 1987.5
+
+
+
+3.6.2 First peel (catch and index)
+[[1]]
+[1] 1987 1988
+
+[[2]]
+[1] 1986.5 1987.5
+
+
+
+3.6.2 Second peel (catch and index)
+[[1]]
+[1] 1986 1987
+
+[[2]]
+[1] 1986.5 1987.5
+
+
+
