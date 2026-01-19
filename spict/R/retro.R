@@ -44,19 +44,19 @@ retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = 1){
     if(rep$opt$convergence != 0) stop("The fitted object did not converge.")
     inp1 <- rep$inp
 
-    lastyears <- max(inp1$timerangeObs) - 1:nretroyear
+    lastyears <- inp1$time[inp1$indlastobs] - 1:nretroyear
 
     inpall <- list()
     for (i in 1:nretroyear) {
         inpall[[i]] <- inp1
         ## catch
-        indsC <- which(inp1$timeC < lastyears[i]) ## which(inp1$timeC <= inp1$timeC[inp1$nobsC] - i)
+        indsC <- which((inp1$timeC + inp1$dtc - inp1$dteuler) <= lastyears[i])
         inpall[[i]]$obsC <- inp1$obsC[indsC]
         inpall[[i]]$timeC <- inp1$timeC[indsC]
         inpall[[i]]$stdevfacC <- inp1$stdevfacC[indsC]
         inpall[[i]]$dtc <- inp1$dtc[indsC]
         ## effort
-        indsE <- which(inp1$timeE < lastyears[i]) ## which(inp1$timeE <= inp1$timeE[inp1$nobsE] - i)
+        indsE <- which(inp1$timeE <= lastyears[i])
         inpall[[i]]$obsE <- inp1$obsE[indsE]
         inpall[[i]]$timeE <- inp1$timeE[indsE]
         inpall[[i]]$stdevfacE <- inp1$stdevfacE[indsE]
@@ -65,7 +65,7 @@ retro <- function(rep, nretroyear=5, reduce_output_size = TRUE, mc.cores = 1){
         inpall[[i]]$obsI <- list()
         inpall[[i]]$timeI <- list()
         for (j in seq_len(inp1$nindex)) {
-            indsI <- which(inp1$timeI[[j]] < lastyears[i] + 1) ## which(inp1$timeI[[j]] <= inp1$timeI[[j]][inp1$nobsI[j]] - i)
+            indsI <- which(inp1$timeI[[j]] <= lastyears[i])
             inpall[[i]]$obsI[[j]] <- inp1$obsI[[j]][indsI]
             inpall[[i]]$timeI[[j]] <- inp1$timeI[[j]][indsI]
             inpall[[i]]$stdevfacI[[j]] <- inp1$stdevfacI[[j]][indsI]

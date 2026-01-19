@@ -1,4 +1,11 @@
-library(spict)
+#########################################################
+### Check spict functionality based on seasonal ebcod ###
+#########################################################
+
+suppressMessages(library(spict))
+options(device = png)
+
+source("../funcs.R")
 
 
 inp<-list()
@@ -133,4 +140,40 @@ for(i in 1:length(retr9$retro)){
     ##lines(tt,mvec2[,2])
 }
 
-cat(round(retr9$retro[[i]]$opt$objective,3),"\n", file="res.out")
+
+## Likelihood value --------------------------------
+header("1. Likelihood value")
+
+## cat(round(retr9$retro[[i]]$opt$objective,3),"\n", file="res.out")
+
+test_this("Likelihood",
+          round(retr9$retro[[i]]$opt$objective,3)
+          )
+
+
+## Retro peels --------------------------------------
+header("2. Retro peels with seasonal data")
+
+test_this("Last two observations (catch and 3 indices)",
+          list(
+              tail(retr9$retro[[1]]$inp$timeC,2),
+              tail(retr9$retro[[1]]$inp$timeI[[1]],2),
+              tail(retr9$retro[[1]]$inp$timeI[[2]],2),
+              tail(retr9$retro[[1]]$inp$timeI[[3]],2)
+          ))
+
+test_this("First peel (catch and 3 indices)",
+          list(
+              tail(retr9$retro[[2]]$inp$timeC,2),
+              tail(retr9$retro[[2]]$inp$timeI[[1]],2),
+              tail(retr9$retro[[2]]$inp$timeI[[2]],2),
+              tail(retr9$retro[[2]]$inp$timeI[[3]],2)
+          ))
+
+test_this("Second peel (catch and 3 indices)",
+          list(
+              tail(retr9$retro[[3]]$inp$timeC,2),
+              tail(retr9$retro[[3]]$inp$timeI[[1]],2),
+              tail(retr9$retro[[3]]$inp$timeI[[2]],2),
+              tail(retr9$retro[[3]]$inp$timeI[[3]],2)
+          ))
