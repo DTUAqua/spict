@@ -60,7 +60,7 @@ The 8 default scenarios are:
   \item{"5"}{"reduceF25": Reduce F by X\%. Default X = 25.}
   \item{"6"}{"increaseF25": Increase F by X\%. Default X = 25.}
   \item{"7"}{"msyHockeyStick": Use ICES MSY hockey-stick advice rule (ICES, 2017).}
-  \item{"8"}{"ices": Use ICES MSY 35th hockey-stick advice rule (ICES, 2019).}}
+  \item{"8"}{"ices": Use ICES MSY hockey-stick advice rule with Blim and the 0.35 catch fractile (ICES, 2025).}}
 
 Scenario 7 implements the ICES MSY advice rule for stocks that are assessed
 using spict (ICES 2017). MSY B_{trigger} is set equal to B_{MSY} / 2. Then
@@ -69,9 +69,10 @@ fishing mortality in the short forecast is calculated as:
 F(y+1) = F(y) * min{ 1, median[B(y+1) / MSY B_{trigger}] } /
 median[F(y)/F_{MSY}
 
-Scenario 8 is similar to scenario 7, but includes assessment uncertainty in
-the predictions by using the 35th percentile of the distributions of the
-predicted catch, B/B_{MSY} and F/F_{MSY}.
+Scenario 8 is similar to scenario 7, but includes an additional biomass limit
+reference points B_{lim} = 0.3 B_{MSY} and accounts for assessment
+uncertainty by using the 35th percentile of the distribution of the predicted
+catch. If B(y) is below B_{lim}, F(y+1) is set to 0.
 
 Dependent on the start of the management period (e.g. advice year), there
 might be a time lag between the last observation and the start of the

@@ -2,6 +2,7 @@
 % Please edit documentation in R/Description.R
 \docType{package}
 \name{spict}
+\alias{spict-package}
 \alias{spict}
 \title{Stochastic surplus Production model in Continuous-Time (SPiCT)}
 \description{
