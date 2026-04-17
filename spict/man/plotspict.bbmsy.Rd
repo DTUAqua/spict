@@ -15,7 +15,8 @@ plotspict.bbmsy(
   xlab = "Time",
   stamp = get.version(),
   verbose = TRUE,
-  CI = 0.95
+  CI = 0.95,
+  plot.spinup = FALSE
 )
 }
 \arguments{
@@ -29,7 +30,8 @@ plotspict.bbmsy(
 
 \item{plot.obs}{If TRUE observations are plotted.}
 
-\item{qlegend}{If TRUE legend explaining colours of observation data is plotted.}
+\item{qlegend}{If TRUE legend explaining colours of observation data is
+plotted.}
 
 \item{lineat}{Draw horizontal line at this y-value.}
 
@@ -40,8 +42,11 @@ plotspict.bbmsy(
 \item{verbose}{Should detailed outputs be provided (default: TRUE).}
 
 \item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90\%
-confidence intervals. By default (CI = 0.95), the 95\% confidence
-intervals are estimated.}
+confidence intervals. By default (CI = 0.95), the 95\% confidence intervals
+are estimated.}
+
+\item{plot.spinup}{If TRUE spinup period is plotted, if spinup was used
+(inp$nspinup > 0). Default: FALSE.}
 }
 \value{
 Nothing.

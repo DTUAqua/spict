@@ -261,7 +261,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h1 class="title toc-ignore">Guidelines for the stochastic production
 model in continuous time (SPiCT)</h1>
 <h4 class="author">T.K. Mildenberger, A. Kokkalis, C.W. Berg</h4>
-<h4 class="date">04 December, 2025</h4>
+<h4 class="date">17 April, 2026</h4>
 
 
 
@@ -301,6 +301,11 @@ version and report problems at (<a href="https://github.com/DTUAqua/spict/releas
 <td align="left">v 1.2</td>
 <td align="center">v 1.3.4</td>
 <td align="right">Adjusted after WKMSYSPICT and WKLIFEX</td>
+</tr>
+<tr class="odd">
+<td align="left">v 1.3</td>
+<td align="center">v 1.3.8.1</td>
+<td align="right">Updated management section</td>
 </tr>
 </tbody>
 </table>
@@ -467,104 +472,56 @@ Total Allowable Catch (TAC). The TAC can be calculated based on fishing
 at <span class="math inline">\(F_{MSY}\)</span> or based more elaborate
 harvest control rules (HCR) which include additional components, e.g. a
 linearly reduction in F if the biomass is below a certain reference
-level (e.g. <span class="math inline">\(B_{trigger}\)</span>) as the
-hockey-stick MSY rule recommended by <span class="citation">ICES
-(2017)</span>. Three ICES workshops emphasise the importance of the
-quantification and consideration of assessment uncertainty in HCRs <span class="citation">(ICES 2018a, 2018b, 2019)</span>. They introduce two
-modifications of the hockey-stick MSY rule that account for assessment
-uncertainty by (i) using a percentile lower than 50 (i.e. median) for
-relative biomass <span class="math inline">\(\frac{B}{B_{MSY}}\)</span>
-and catch <span class="math inline">\(C_{y+1}\)</span> and higher than
-50 for relative fishing mortality <span class="math inline">\(\frac{F}{F_{MSY}}\)</span> <span class="citation">(ICES 2018a)</span>, (ii) adjusting F to meet the
-condition that the predicted biomass at the end of the advice year is
-equal or smaller than a specified risk level <span class="citation">(e.g. 5%, ICES 2018b)</span>. After comprehensive
-simulation testing, <span class="citation">ICES (2019)</span> recommends
-to use the MSY hockey-stick rule with 35th percentiles for all three
-quantities:</p>
-<p><span class="math display">\[ C_{y+1} = q_C(p) \]</span></p>
-<p><span class="math display">\[ F_{y+1} = F_y \frac{min(1, q_B(p))}{q_F
-(100 - p)} \]</span></p>
-<p>where the advised catch (C) for advice year <span class="math inline">\(y + 1\)</span> corresponds to the predicted catch
-given the fishing mortality trajectory in the advice year, and where
-<span class="math inline">\(F_{y}\)</span> and <span class="math inline">\(F_{y+1}\)</span> are the fishing mortalities at
-the beginning and the end of the advice year, respectively. Other
-components of the equations are defined as follows:</p>
-<table>
-<colgroup>
-<col width="14%" />
-<col width="85%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th align="left">Components</th>
-<th align="left">Definition and purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left"><span class="math inline">\(q_C\)</span></td>
-<td align="left">Function that takes a percentile and returns the
-corresponding predicted catch <span class="math inline">\(C_{y+1}\)</span> given the fishing mortality
-trajectory during the advice year y+1, i.e. <span class="math inline">\(q_C = \Phi_{C_{pred} | F = F_y ...
-F_{y+1}}^{-1}\)</span></td>
-</tr>
-<tr class="even">
-<td align="left"><span class="math inline">\(q_B\)</span></td>
-<td align="left">Function that takes a percentile and returns the
-corresponding predicted <span class="math inline">\(\frac{B_{y+1}}{MSY
-B_{trigger}}\)</span> at the beginning of the advice year and <span class="math inline">\(MSY B_{trigger} = \frac{B_{MSY}}{2}\)</span>,
-i.e. <span class="math inline">\(q_B =
-\Phi_{2\frac{B_{y+1}}{B_{MSY}}}^{-1}\)</span></td>
-</tr>
-<tr class="odd">
-<td align="left"><span class="math inline">\(q_F\)</span></td>
-<td align="left">Function that takes a percentile and returns the
-corresponding predicted <span class="math inline">\(\frac{F_y}{F_{MSY}}\)</span> at the beginning of
-the advice year y+1, i.e. <span class="math inline">\(q_F =
-\Phi_{\frac{F_y}{F_{MSY}}}^{-1}\)</span></td>
-</tr>
-<tr class="even">
-<td align="left"><span class="math inline">\(p\)</span></td>
-<td align="left">Specific percentile of the respective distributions,
-e.g. 35 <span class="citation">(WKLIFE IX, ICES 2019)</span>.</td>
-</tr>
-</tbody>
-</table>
-<p>Theoretically, any percentiles could be considered for the three
-quantities (<span class="math inline">\(C_{y+1}, \frac{B_{y+1}}{B_{MSY
-B_{trigger}}}, \frac{F_{y}}{F_{MSY}}\)</span>). In the simulation
-testing done during WKLIFE IX, the same percentile (p) was used for
-biomass and catch; for fishing mortality the percentile was equal to 100
-- p. The results show that across all tested scenarios and harvest
-control rules, management with the MSY-35 rule leads to high levels of
-relative yield while retaining the risks at low levels. Higher
-percentiles than 35th show higher levels of risk while achieving similar
-levels of relative yield, while lower percentiles show a decrease in
-yield with small change in risk <span class="citation">(ICES
-2019)</span>. It is important to mention that informative priors (lower
-standard deviations) potentially affect parameter estimates and credible
-intervals of SPiCT assessments, and therefore affecting the calculated
-TAC.</p>
-<p>TAC based on a SPiCT assessment can be calculated using the
-<code>get.TAC()</code> function within the spict package in R, where the
-function arguments allow to use any of the above described HCRs or
-combinations thereof. The hockey-stick MSY rule with the 35th percentile
-as recommended by <span class="citation">ICES (2019)</span> is included
-as scenario 8 (or ‘ices’) in the <code>manage</code> function, but can
-also be applied independently of the manage function by
-<code>get.TAC(rep, fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35), breakpointB=0.5)</code>.</p>
-</div>
-<div id="category-1-stocks" class="section level2">
-<h2>Category 1 stocks</h2>
-<p>During WKMSYSPICT (held online 15–19 February 2021), SPiCT was
-considered as the assessment model for several stocks. Stocks with
-accepted SPiCT assessments were raised to category 1. In accordance with
-basis for ICES adcvice <span class="citation">(<strong>ices?</strong>)</span> stocks and the
-recommendations from WKLIFEX <span class="citation">(ICES 2019)</span>,
-the recommended management HCR includes a hockey-stick with <span class="math inline">\(B_{trigger} = B_{MSY} / 2\)</span> and <span class="math inline">\(B_{lim} = B_{MSY} / 3\)</span>. The TAC advice is
-the 35th percentile of the short term forecast of the catch
-distribution. This is achieved in <code>spict</code> using:</p>
-<p><code>rep &lt;- add.man.scenario(rep, &quot;ICES MSY&quot;, fractiles = list(catch = 0.35), breakpointB = c(1/3, 1/2))</code></p>
+level (e.g., <span class="math inline">\(\text{MSY}
+B_{\text{trigger}}\)</span>) as the hockey-stick MSY rule recommended by
+<span class="citation">ICES (2017)</span>.</p>
+<p><span class="citation">Mildenberger et al. (2022)</span> demonstrated
+the importance of the quantification and consideration of assessment
+uncertainty into the calculation of the catch advice. The authors
+introduced a modification of the hockey-stick MSY rule that reduces
+catch advice as a function of uncertainty by using a percentile lower
+than 50 (i.e., median) for relative biomass <span class="math inline">\(\frac{B}{B_{\text{MSY}}}\)</span> and catch <span class="math inline">\(C_{y+1}\)</span> and higher than 50 for relative
+fishing mortality <span class="math inline">\(\frac{F}{F_{\text{MSY}}}\)</span>.</p>
+<p>Based on this work, ICES currently recommends calculating TAC based
+on an MSY hockey-stick rule with a biomass trigger reference point at
+<span class="math inline">\(\text{MSY} B_{\text{trigger}} = 0.5
+B_{\text{MSY}}\)</span>, a biomass limit reference point at <span class="math inline">\(B_{\text{lim}} = 0.3 B_{\text{MSY}}\)</span>, and
+the 35th percentile of the predicted catch distribution <span class="citation">(ICES 2025)</span>. Under this rule, the target fishing
+mortality <span class="math inline">\(F^{\tau}\)</span> equals <span class="math inline">\(F_{\text{MSY}}\)</span> when <span class="math inline">\(B\)</span> is above <span class="math inline">\(\text{MSY}B_{\text{trigger}}\)</span>; when <span class="math inline">\(B\)</span> is between 0 and <span class="math inline">\(\text{MSY}B_{\text{trigger}}\)</span>, <span class="math inline">\(F^{\tau}\)</span> is reduced linearly with <span class="math inline">\(B\)</span>; and when <span class="math inline">\(B\)</span> falls below <span class="math inline">\(B_{\text{lim}}\)</span>, <span class="math inline">\(F^{\tau}\)</span> is set to zero. This can be
+expressed as</p>
+<p><span class="math display">\[\begin{equation*}
+F^{\tau}_y =
+\begin{cases}
+F_{\text{MSY}} \min\!\left(1,
+\dfrac{B_y}{\text{MSY}B_{\text{trigger}}}\right),
+&amp; \text{if } B_y \ge B_{\text{lim}},\\[6pt]
+0, &amp; \text{if } B_y &lt; B_{\text{lim}}.
+\end{cases}
+\end{equation*}\]</span></p>
+<p>Given the target fishing mortality, the advised catch <span class="math inline">\(A_y\)</span> for year <span class="math inline">\(y\)</span> is taken as the 35th percentile of the
+predicted catch distribution:</p>
+<p><span class="math display">\[\begin{equation*}
+A_y = \Phi^{-1}_{C_{\text{pred},y} \mid F^{\tau}_y}(0.35),
+\end{equation*}\]</span></p>
+<p>where <span class="math inline">\(\Phi^{-1}\)</span> denotes the
+inverse cumulative distribution function, so that <span class="math inline">\(\Phi^{-1}_{C_{\text{pred},y} \mid
+F^{\tau}_y}(0.35)\)</span> is the catch corresponding to the 35th
+percentile of the predicted catch distribution.</p>
+<p>This HCR is one of the 8 default management scenarios of the
+<code>manage()</code> function in spict but can als be run exclusively
+with:</p>
+<p><code>fit &lt;- manage(fit, scenarios = &quot;ices&quot;)</code>.</p>
+<p>This function is actually only a wrapper function and calls
+internally the <code>add.man.scenario()</code> function that makes the
+three key components of the ICES (2025) HCR explicit:</p>
+<p><code>fit &lt;- add.man.scenario(fit, &quot;ICES (2025)&quot;, fractiles = list(catch = 0.35), breakpointB = 0.5, limitB = 0.3)</code>.</p>
+<p>Another way to calculate the TAC based on the ICES (2025) HCR
+directly is using the <code>get.TAC()</code> function:</p>
+<p><code>get.TAC(fit, fractiles = list(catch = 0.35), breakpointB = 0.5, limitB = 0.3)</code>.</p>
+<p>It is important to note that informative priors (i.e. priors with
+smaller standard deviations) can influence parameter estimates and
+credible intervals in SPiCT assessments, and thereby affect the
+resulting TAC.</p>
 </div>
 <div id="references" class="section level2 unnumbered">
 <h2 class="unnumbered">References</h2>
@@ -575,26 +532,25 @@ Development of the ICES approach to providing MSY advice for category 3
 and 4 stocks (WKMSYCat34), 6-10 March 2017, Copenhagen,
 Denmark</span>.”</span> <em>ICES CM 2017/ACOM:47</em>, 53 pp.
 </div>
-<div id="ref-wklifevii" class="csl-entry">
-———. 2018a. <span>“<span class="nocase">Report from the Workshop on the
-Development of Quantitative Assessment Methodologies based on
-Life-history traits, exploitation characteristics, and other relevant
-parameters for stocks in categories 3-6, 2-6 October 2017, Lisbon,
-Portugal</span>.”</span> <em>ICES CM 2017/ACOM:43</em>, 221 pp.
-</div>
-<div id="ref-wklifeviii" class="csl-entry">
-———. 2018b. <span>“<span class="nocase">Report of the Eighth Workshop on
-the Development of Quantitative Assessment Methodologies based on
-LIFE-history traits, exploitation characteristics, and other relevant
-parameters for data-limited stocks (WKLIFE VIII), 8-12 October 2018,
-Lisbon, Portugal</span>.”</span> <em>ICES CM 2018/ACOM:40</em>, 172 pp.
-</div>
 <div id="ref-wklifeix" class="csl-entry">
 ———. 2019. <span>“<span class="nocase">Ninth Workshop on the Development
 of Quantitative Assessment Methodologies based on LIFE-history traits,
 exploitation characteristics, and other relevant parameters for
 data-limited stocks (WKLIFE IX)</span>.”</span> <em>ICES Scientific
 Reports</em> 1 (77): 131 pp. <a href="https://doi.org/10.17895/ices.pub.5550">https://doi.org/10.17895/ices.pub.5550</a>.
+</div>
+<div id="ref-ices2025advice" class="csl-entry">
+———. 2025. <span>“<span class="nocase">ICES Guidelines - Advice rules
+for stocks in Category 2 and 3. Version 3.</span>”</span> <em>ICES
+Guidelines and Policies - Advice Technical Guidelines</em>, 31 pp. <a href="https://doi.org/10.17895/ices.pub.28506179 ">https://doi.org/10.17895/ices.pub.28506179
+</a>.
+</div>
+<div id="ref-mildenberger2022implementing" class="csl-entry">
+Mildenberger, Tobias K, Casper W Berg, Alexandros Kokkalis, Adrian R
+Hordyk, Chantel Wetzel, Nis S Jacobsen, André E Punt, and J Rasmus
+Nielsen. 2022. <span>“Implementing the Precautionary Approach into
+Fisheries Management: Biomass Reference Points and Uncertainty
+Buffers.”</span> <em>Fish and Fisheries</em> 23 (1): 73–92.
 </div>
 <div id="ref-tvp" class="csl-entry">
 Mildenberger, Tobias K, Casper W Berg, Martin W Pedersen, Alexandros
