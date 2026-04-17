@@ -145,8 +145,11 @@ add.manlines <- function(rep, par, par2=NULL, index.shift=0, plot.legend=TRUE,
 #'     intervals are estimated.
 #' @param with.spinup If TRUE returns the parameter limits considering the
 #'   spinup period? Default: FALSE.
+#' @details
+#' `with.spinup` argument only works with `par = "time"`.
 #' @return plotting limits for all reps in rep$man
 get.manlimits <- function(rep, par, CI = 0.95, with.spinup = FALSE){
+    if(is.null(rep$man)) stop("No rep$man found. Run manage.")
     scenarios <- 1:length(rep$man)
     nman <- length(scenarios)
     lims <- vector("list",nman)
@@ -158,16 +161,17 @@ get.manlimits <- function(rep, par, CI = 0.95, with.spinup = FALSE){
             time <- rp$inp$timens
           }
         if (par == 'time'){
-            lims[[i]] <- range(c(time, tail(rp$inp$time, 1) + 0.5))
+            lims[[i]] <- c(time, tail(rp$inp$time, 1) + 0.5)
         }else{
-            lims[[i]] <- get.par(par, rp, exp=TRUE)[, 2]  ## TODO: account for time / spinup
+            lims[[i]] <- get.par(par, rp, exp=TRUE)[, 2]
             if(par == "logCpred"){
                 lims[[i]] <- lims[[i]] / c(diff(rp$inp$timeCpred), rp$inp$dtpredc)
             }
 
         }
     }
-    return(range(unlist(lims)))
+    res <- range(unlist(lims))
+    return(res)
 }
 
 #' @name get.manmax
