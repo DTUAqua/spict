@@ -52,7 +52,7 @@ Calculate predictions under 8 default management scenarios
 \details{
 The 8 default scenarios are:
 
-\itemize{
+\describe{
   \item{"1"}{"currentCatch": Keep the catch of the current year (i.e. the last observed catch).}
   \item{"2"}{"currentF":  Keep the F of the current year.}
   \item{"3"}{"Fmsy": Fish at Fmsy i.e. F=Fmsy.}
@@ -66,8 +66,8 @@ Scenario 7 implements the ICES MSY advice rule for stocks that are assessed
 using spict (ICES 2017). MSY B_{trigger} is set equal to B_{MSY} / 2. Then
 fishing mortality in the short forecast is calculated as:
 
-F(y+1) = F(y) * min{ 1, median[B(y+1) / MSY B_{trigger}] } /
-median[F(y)/F_{MSY}
+F_{y+1} = F_y * min{ 1, median[B_{y+1} / MSY B_{trigger}] } /
+median[F_y/F_{MSY}]
 
 Scenario 8 is similar to scenario 7, but includes an additional biomass limit
 reference points B_{lim} = 0.3 B_{MSY} and accounts for assessment
@@ -80,11 +80,11 @@ management period, often referred to as the intermediate period. If this is
 the case, an assumption about the catch during intermediate time period (e.g.
 assessment year) has to be made. Two meaningful assumptions are:
 
-\itemize{
-\item{1:}{The catch in the intermediate period is based on the fishing
+\describe{
+\item{1}{The catch in the intermediate period is based on the fishing
 mortality which is extrapolated from the previous year. This is the default
 assumption;}
-\item{2:}{The catch in the intermediate period is directly specified. This
+\item{2}{The catch in the intermediate period is directly specified. This
 could for example be the TAC recommended in the previous year. The catch can
 be specified by means of the argument \code{intermediatePeriodCatch}. Be
 aware that this catch might correspond to several years or a fraction of a

@@ -24,3 +24,6 @@ plotting limits for all reps in rep$man
 \description{
 Get limts of any parameter considering all spict objects in rep$man
 }
+\details{
+`with.spinup` argument only works with `par = "time"`.
+}

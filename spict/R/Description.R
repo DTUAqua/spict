@@ -16,15 +16,13 @@
 
 
 #' @name spict
-#' @aliases spict
 #' @docType package
 #' @title Stochastic surplus Production model in Continuous-Time (SPiCT)
 #' @description Fits a continuous-time surplus production model to data.
-#' @author Martin W. Pedersen \email{mawp@@dtu.dk}
+#' @author Martin W. Pedersen \email{wpsgodd@gmail.com}
 #' @references
 #' \url{https://github.com/DTUAqua/spict}
-#' @keywords production model, fisheries, assessment
 #' @seealso \code{\link{test.spict}}
 #' @examples
 #' rep <- test.spict()
-NULL
+"_PACKAGE"
