@@ -1009,8 +1009,8 @@ osar.acf.plot <- function(res, lag.max, pval, ylab){
 #' @return Nothing.
 osar.qq.plot <- function(res, pval){
     colmain <- ifelse(pval < 0.05, 'red', 'forestgreen')
-    qqnorm(res, main=paste0('Shapiro p-val: ', pval), col.main=colmain)
-    qqline(res)
+    stats::qqnorm(res, main=paste0('Shapiro p-val: ', pval), col.main=colmain)
+    stats::qqline(res)
     box(lwd=1.5)
 }
 
