@@ -90,8 +90,7 @@ in \code{rep$man} plus 1, e.g. \code{'customScenario_3'}).}
 management period. Example: \code{maninterval = c(2020.25,2021.25)}.
 Default: NULL.}
 
-\item{maneval}{Time at which to evaluate model states. Example: \code{maneval
-= 2021.25}. Default: NULL.}
+\item{maneval}{Time at which to evaluate model states. Example: \code{maneval= 2021.25}. Default: NULL.}
 
 \item{ffac}{Factor to multiply current fishing mortality by (default: NULL).}
 
@@ -170,7 +169,35 @@ specified scenario.
 Define management scenario
 }
 \details{
+\subsection{Default management scenario}{The default management scenario is fish at \eqn{F_{MSY}}. This is when \code{ffac}, \code{cfac}, \code{fabs}, \code{cabs} are all \code{NULL}, and \code{breakpointB} and \code{safeguardB$limitB} are 0. In practice \code{ffac} is set equal to \eqn{F_{MSY}/F_m}. }
 
+\subsection{Catch scenarios}{Management scenarios can be defined based on a desired catch during the management period. Common examples include scenarios like "increase catch by 25\%", "keep current catch", or "zero catch". The catch can be relative to the predicted "previous catch", using the multiplier \code{cfac}, or in absolute terms using \code{cabs} catch in the same units as the input data. By default, the respective previous catch corresponds to that part of the previous year which corresponds to the management interval. For example, if the management period is [1991, 1992), the whole catch from the year [1990, 1991) is being used. If the management period is [1991.5, 1991.75), the same interval from the previous year [1990.5, 1990.75) is being used. If the management period spans several years, e.g. [1991, 1993), the whole catch from the previous year [1990, 1991) is being used two times.}
+
+\subsection{Harvest Control Rules (HCRs)}{
+
+The combination of the arguments "fractiles", "breakpointB", and "safeguardB" allow the specification of a number of different harvest control rules:
+
+\itemize{
+
+\item{MSY hockey-stick rule: Fishing at F_{MSY} above a certain biomass reference level (here defined as a fraction of B_{MSY} with \code{breakpointB}). Below the reference level, fishing is reduced linearly to 0 as suggested in ICES (2017).}
+
+\item{MSY (hockey-stick) rule with additional precautionary buffer: As long as the probability of the predicted biomass relative to a reference biomass level (e.g. 0.3 B_{MSY}, defined by \code{safeguardB$limitB}) is smaller or equal to a specified risk aversion probability (e.g. 95\%, defined by \code{safeguardB$prob}), fishing at F_{MSY} or following the hockey-stick rule (if \code{breakpointB != 0}), otherwise reduce fishing mortality to meet specified risk aversion probability (\code{safeguardB$prob}) as introduced in ICES (2018).}
+
+\item{A MSY hockey-stick rule that accounts of uncertainty of estimated quantities: Fishing at 35th percentile of F_{MSY} above the 35th percentile of 0.5 \eqn{B/B_{MSY}} (\code{breakpointB = 0.5}) and 35th percentile of linearly reduced F_{MSY} below the 35th percentile of 0.5 \eqn{B/B_{MSY}}. TAC corresponds to 35th percentile of predicted catch. Rule is applied with \code{fractiles = list(catch=0.35, bbmsy=0.35, ffmsy=0.35)}, \code{breakpointB = 0.5} as introduced in ICES (2019).}
+
+}}
+
+\subsection{Fractiles}{ By default, the median (fractile of 0.5) is used for the stock status (\eqn{B/B_{MSY}}, \eqn{F/F_{MSY}}) and predicted catch distribution. A more precautionary approach is to used fractiles lower than the median (0.5) to account for the estimated uncertainty. The arguments of the `fractiles` are:
+
+\itemize{ \item{catch - Fractile of the predicted catch distribution} \item{bbmsy - Fractile of the \eqn{B/B_{MSY}} distribution} \item{ffmsy - Fractile of the \eqn{F/F_{MSY}} distribution}}
+
+Note that the fractile for the \eqn{F/F_{MSY}} distribution is 1 minus the fractile specified. As the current fishing mortality is divided by the value of this distribution \eqn{F_{y+1} = \frac{F_y}{F_y/F_{MSY}}}, a lower percentile of the \eqn{F/F_{MSY}} distribution is more conservative than a larger one. This allows a consistent setting of fractiles among the different quantities. }
+
+\subsection{Biomass safeguard}{ The argument list "safeguardB" includes: \itemize{ \item{limitB - Reference level for the evaluation of the predicted biomass defined as fraction of \eqn{B/B_{MSY}}. By default (\code{safeguardB$limitB == 0}) the PA buffer is not used. Theoretically, any value smaller than 1 is meaningful, but an ICES recommended value would be 30\% \code{safeguardB$limitB = 0.3} (ICES, 2018).} \item{prob - Risk aversion probability of the predicted biomass relative to specified reference level (\code{safeguardB$limitB}) for all rules with PA buffer (\code{safeguardB$limitB != 0}). Default: 0.95 as recommended by ICES (2018).}} } \subsection{Intermediate period assumptions}{ Dependent on the start of the management period (e.g. advice year), there might be a time lag between the last observation and the start of the management period, often referred to as the intermediate period. If this is the case, an assumption about the catch during intermediate time period (e.g. assessment year) has to be made. Two meaningful assumptions are:
+
+\describe{ \item{1: }{The catch in the intermediate period is based on the fishing mortality which is extrapolated from the previous year. This is the default assumption;} \item{2: }{The catch in the intermediate period is directly specified. This could for example be the TAC recommended in the previous year. The catch can be specified by means of the argument \code{intermediatePeriodCatch}. Be aware that this catch might correspond to several years or a fraction of a year depending on the time between the last observation and the start of the management period. The function \code{\link{man.timeline}} can help visualising the default or specified intermediate period in your data. The argument \code{intermediatePeriodCatchSDFac} allows to specify the factor with which to multiply the standard deviation of the catch (\eqn{\sigma_C}) with. It is thus a measure of the certainty around the catch in the intermediate period. The argument \code{intermediatePeriodCatchList} allows to define a list with catches and their intervals. It is a list with the elements 'obsC', 'timeC', 'dtc' and the optional element 'stdevfacC' (which is equal to 1 if not provided).}} }
+
+\subsection{\code{make.man.inp}}{Internal function that creates the required input list for the specific HCR. }
 }
 \examples{
 data(pol)
