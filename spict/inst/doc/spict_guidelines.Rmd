@@ -10,11 +10,18 @@ output:
     number_sections: false
     toc: false
     keep_tex: false
+    citation_package: natbib    # or "biblatex", or just omit for default pandoc cites
 bibliography: bibliography.bib
+# optional: choose a bibliography style for PDF if you use natbib
+# biblio-style: apalike
+
+header-includes:
+  - \usepackage[utf8]{inputenc}
+
 vignette: >
   %\VignetteIndexEntry{SPiCT Guidelines}
   %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
@@ -32,6 +39,7 @@ report problems at ([link](https://github.com/DTUAqua/spict/releases)).
 |  v 1.1           | v 1.2.8       | Management section added              |
 |  v 1.2           | v 1.3.0       | Adjusted to package update            |
 |  v 1.2           | v 1.3.4       | Adjusted after WKMSYSPICT and WKLIFEX |
+|  v 1.3           | v 1.3.8.1     | Updated management section            |
 
 This document provides specific guidelines for the use of the stochastic
 production model in continuous time [SPiCT, @spict] and is divided into three
@@ -186,69 +194,67 @@ quantities relevant for fisheries management, such as the Total Allowable Catch
 (TAC). The TAC can be calculated based on fishing at $F_{MSY}$ or based more
 elaborate harvest control rules (HCR) which include additional components, e.g.
 a linearly reduction in F if the biomass is below a certain reference level
-(e.g. $B_{trigger}$) as the hockey-stick MSY rule recommended by @msycat34.
-Three ICES workshops emphasise the importance of the quantification and
-consideration of assessment uncertainty in HCRs [@wklifevii; @wklifeviii;
-@wklifeix]. They introduce two modifications of the hockey-stick MSY rule that
-account for assessment uncertainty by (i) using a percentile lower than 50 (i.e.
-median) for relative biomass $\frac{B}{B_{MSY}}$ and catch $C_{y+1}$ and higher
-than 50 for relative fishing mortality $\frac{F}{F_{MSY}}$ [@wklifevii], (ii)
-adjusting F to meet the condition that the predicted biomass at the end of the
-advice year is equal or smaller than a specified risk level [e.g. 5%, @wklifeviii]. 
-After comprehensive simulation testing, @wklifeix recommends to
-use the MSY hockey-stick rule with 35th percentiles for all three quantities:
+(e.g., $\text{MSY} B_{\text{trigger}}$) as the hockey-stick MSY rule recommended
+by @msycat34.
 
-$$ C_{y+1} = q_C(p) $$
+@mildenberger2022implementing demonstrated the importance of the
+quantification and consideration of assessment uncertainty into the calculation
+of the catch advice. The authors introduced a modification of the hockey-stick
+MSY rule that reduces catch advice as a function of uncertainty by using a
+percentile lower than 50 (i.e., median) for relative biomass
+$\frac{B}{B_{\text{MSY}}}$ and catch $C_{y+1}$ and higher than 50 for relative
+fishing mortality $\frac{F}{F_{\text{MSY}}}$.
 
-$$ F_{y+1} = F_y \frac{min(1, q_B(p))}{q_F (100 - p)} $$
+Based on this work, ICES currently recommends calculating TAC based on an MSY
+hockey-stick rule with a biomass trigger reference point at
+$\text{MSY} B_{\text{trigger}} = 0.5 B_{\text{MSY}}$, a biomass limit reference
+point at $B_{\text{lim}} = 0.3 B_{\text{MSY}}$, and the 35th percentile of the
+predicted catch distribution [@ices2025advice]. Under this rule, the target
+fishing mortality $F^{\tau}$ equals $F_{\text{MSY}}$ when $B$ is above
+$\text{MSY}B_{\text{trigger}}$; when $B$ is between 0 and
+$\text{MSY}B_{\text{trigger}}$, $F^{\tau}$ is reduced linearly with $B$; and
+when $B$ falls below $B_{\text{lim}}$, $F^{\tau}$ is set to zero. This can be
+expressed as
 
-where the advised catch (C) for advice year $y + 1$ corresponds to the
-predicted catch given the fishing mortality trajectory in the advice year, and
-where $F_{y}$ and $F_{y+1}$ are the fishing mortalities at the beginning and the
-end of the advice year, respectively. Other components of the equations are
-defined as follows:
+\begin{equation*}
+F^{\tau}_y =
+\begin{cases}
+F_{\text{MSY}} \min\!\left(1, \dfrac{B_y}{\text{MSY}B_{\text{trigger}}}\right),
+& \text{if } B_y \ge B_{\text{lim}},\\[6pt]
+0, & \text{if } B_y < B_{\text{lim}}.
+\end{cases}
+\end{equation*}
 
-| Components |            Definition and purpose                         |
-| :--------- | :-------------------------------------------------------- |
-|  $q_C$     | Function that takes a percentile and returns the corresponding predicted catch $C_{y+1}$ given the fishing mortality trajectory during the advice year y+1, i.e. $q_C = \Phi_{C_{pred} | F = F_y ... F_{y+1}}^{-1}$|
-|  $q_B$     |  Function that takes a percentile and returns the corresponding predicted $\frac{B_{y+1}}{MSY B_{trigger}}$ at the beginning of the advice year and $MSY B_{trigger} = \frac{B_{MSY}}{2}$, i.e. $q_B = \Phi_{2\frac{B_{y+1}}{B_{MSY}}}^{-1}$|
-|  $q_F$     | Function that takes a percentile and returns the corresponding predicted $\frac{F_y}{F_{MSY}}$ at the beginning of the advice year y+1, i.e. $q_F = \Phi_{\frac{F_y}{F_{MSY}}}^{-1}$|
-|  $p$       |  Specific percentile of the respective distributions, e.g. 35 [WKLIFE IX, @wklifeix].|
+Given the target fishing mortality, the advised catch $A_y$ for year $y$ is
+taken as the 35th percentile of the predicted catch distribution:
 
+\begin{equation*}
+A_y = \Phi^{-1}_{C_{\text{pred},y} \mid F^{\tau}_y}(0.35),
+\end{equation*}
 
-Theoretically, any percentiles could be considered for the three quantities
-($C_{y+1}, \frac{B_{y+1}}{B_{MSY B_{trigger}}}, \frac{F_{y}}{F_{MSY}}$). In the
-simulation testing done during WKLIFE IX, the same percentile (p) was used for
-biomass and catch; for fishing mortality the percentile was equal to 100 - p.
-The results show that across all tested scenarios and harvest control rules,
-management with the MSY-35 rule leads to high levels of relative yield while
-retaining the risks at low levels. Higher percentiles than 35th show higher
-levels of risk while achieving similar levels of relative yield, while lower
-percentiles show a decrease in yield with small change in risk [@wklifeix]. It is
-important to mention that informative priors (lower standard deviations)
-potentially affect parameter estimates and credible intervals of SPiCT
-assessments, and therefore affecting the calculated TAC.
+where $\Phi^{-1}$ denotes the inverse cumulative distribution function, so that
+$\Phi^{-1}_{C_{\text{pred},y} \mid F^{\tau}_y}(0.35)$ is the catch
+corresponding to the 35th percentile of the predicted catch distribution.
 
-TAC based on a SPiCT assessment can be calculated using the `get.TAC()` function
-within the spict package in R, where the function arguments allow to use any of
-the above described HCRs or combinations thereof. The hockey-stick MSY rule with
-the 35th percentile as recommended by @wklifeix is included as scenario 8 (or
-'ices') in the `manage` function, but can also be applied independently of the
-manage function by `get.TAC(rep, fractiles = list(catch=0.35, bbmsy=0.35,
-ffmsy=0.35), breakpointB=0.5)`.
+This HCR is one of the 8 default management scenarios of the `manage()` function
+in spict but can als be run exclusively with:
 
+`fit <- manage(fit, scenarios = "ices")`.
 
-## Category 1 stocks
+This function is actually only a wrapper function and calls internally the
+`add.man.scenario()` function that makes the three key components of the ICES
+(2025) HCR explicit:
 
-During WKMSYSPICT (held online 15--19 February 2021), SPiCT was considered as the 
-assessment model for several stocks. Stocks with accepted SPiCT assessments were 
-raised to category 1. In accordance with basis for ICES adcvice [@ices] stocks 
-and the recommendations from WKLIFEX [@wklifeix], the recommended management HCR 
-includes a hockey-stick with $B_{trigger} = B_{MSY} / 2$ and $B_{lim} = B_{MSY} / 3$. 
-The TAC advice is the 35th percentile of the short term forecast of the catch 
-distribution. This is achieved in `spict` using: 
+`fit <- add.man.scenario(fit, "ICES (2025)", fractiles = list(catch = 0.35),
+breakpointB = 0.5, limitB = 0.3)`.
 
-`rep <- add.man.scenario(rep, "ICES MSY", fractiles = list(catch = 0.35), breakpointB = c(1/3, 1/2))`
+Another way to calculate the TAC based on the ICES (2025) HCR directly is using
+the `get.TAC()` function:
 
+`get.TAC(fit, fractiles = list(catch = 0.35), breakpointB = 0.5, limitB = 0.3)`.
+
+It is important to note that informative priors (i.e.\ priors with smaller
+standard deviations) can influence parameter estimates and credible intervals in
+SPiCT assessments, and thereby affect the resulting TAC.
 
 ## References
