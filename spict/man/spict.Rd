@@ -2,6 +2,7 @@
 % Please edit documentation in R/Description.R
 \docType{package}
 \name{spict}
+\alias{spict-package}
 \alias{spict}
 \title{Stochastic surplus Production model in Continuous-Time (SPiCT)}
 \description{
@@ -17,9 +18,5 @@ rep <- test.spict()
 \code{\link{test.spict}}
 }
 \author{
-Martin W. Pedersen \email{mawp@dtu.dk}
+Martin W. Pedersen \email{wpsgodd@gmail.com}
 }
-\keyword{assessment}
-\keyword{fisheries,}
-\keyword{model,}
-\keyword{production}

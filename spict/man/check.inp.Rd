@@ -84,6 +84,7 @@ Example: Biomass prior of 200 in 1985
 - Settings/Options/Preferences
 
 \itemize{
+\item{"inp$nspinup"}{Number of time steps used for spin-up (burn-in) period. Default: 0. }
 \item{"inp$maninterval"}{ Start and end time of management period. Default: One year interval starting at the beginning of the new year after the last observation. Example: inp$maninterval <- c(2020.25,2021.25)}
 \item{"inp$maneval"}{ Time for the estimation of predicted model states (biomass and fishing mortality), which can be used to evaluate the implications of management scenarios. Default: At the end of the management interval \code{inp$maninterval[2]}. Example: inp$maneval <- 2021.25}
  \item{"inp$timepredc"}{ Deprecated: Predict accummulated catch in the interval starting at $timepredc and $dtpredc into the future. Default depends on \code{inp$maninterval}.}

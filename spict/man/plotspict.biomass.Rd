@@ -17,7 +17,8 @@ plotspict.biomass(
   rel.ci = TRUE,
   stamp = get.version(),
   verbose = TRUE,
-  CI = 0.95
+  CI = 0.95,
+  plot.spinup = FALSE
 )
 }
 \arguments{
@@ -48,6 +49,9 @@ plotspict.biomass(
 \item{CI}{Confidence intervals to be calculated, e.g. 0.9 for the 90\%
 confidence intervals. By default (CI = 0.95), the 95\% confidence
 intervals are estimated.}
+
+\item{plot.spinup}{If TRUE spinup period is plotted, if spinup was used
+(inp$nspinup > 0). Default: FALSE.}
 }
 \value{
 Nothing.

@@ -146,6 +146,8 @@ fit.spict <- function(inp, verbose=TRUE, dbg=0){
                 if (sdfailflag){
                     warning('Could not calculate sdreport.\n')
                     rep <- NULL
+                } else {
+                    rep$plsd <- as.list(rep, "Std")
                 }
             }
             if (is.null(rep)){ # If sdreport failed or was not calculated
@@ -180,7 +182,8 @@ fit.spict <- function(inp, verbose=TRUE, dbg=0){
     }
     toc <- Sys.time()
     if (!is.null(rep)){
-        rep$computing.time <- as.numeric(toc - tic)
+        rep$spict.version <- spict::get.version()
+        rep$computing.time <- as.numeric(difftime(toc, tic, units = "sec"))
         class(rep) <- "spictcls"
     }
     return(rep)
@@ -225,6 +228,7 @@ make.datin <- function(inp, dbg=0){
                   dtpredeinds=inp$dtpredeinds,
                   dtpredensteps=inp$dtpredensteps,
                   indlastobs=inp$indlastobs,
+                  indfirstobs=inp$indfirstobs,
                   obssrt=inp$obssrt,
                   stdevfacc=inp$stdevfacC,
                   stdevfaci=inp$stdevfacIin,
@@ -254,6 +258,7 @@ make.datin <- function(inp, dbg=0){
                   omega=inp$omega,
                   seasontype=inp$seasontype,
                   efforttype=inp$efforttype,
+                  effortmodel=ifelse(inp$effortmodel=="RW",1,2),
                   timevaryinggrowth=as.numeric(inp$timevaryinggrowth),
                   logmcovflag=as.numeric(inp$logmcovflag),
                   ffacvec=inp$ffacvec,

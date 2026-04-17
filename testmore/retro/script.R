@@ -42,3 +42,198 @@ out("\n")
 
 suppressWarnings(fitnc <- fit.spict(inp))
 test_this("2.2. Not converged fitted object produces an error", retro(fitnc))
+
+
+
+## Testing peels --------------------------------------
+header("3. Peels")
+
+
+
+## Case 1: Baseline
+header("3.1. Default albacore")
+
+data(pol)
+inp <- check.inp(pol$albacore)
+
+res <- fit.spict(pol$albacore)
+res <- retro(res, 2)
+
+test_this("3.1.1 Last observations (catch and index)",
+          list(
+              tail(res$retro[[1]]$inp$timeC,2),
+              tail(res$retro[[1]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.1.2 First peel (catch and index)",
+          list(
+              tail(res$retro[[2]]$inp$timeC,2),
+              tail(res$retro[[2]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.1.2 Second peel (catch and index)",
+          list(
+              tail(res$retro[[3]]$inp$timeC,2),
+              tail(res$retro[[3]]$inp$timeI[[1]],2)
+          ))
+
+
+
+## Case 2: Midyear index
+header("3.2. Albacore with midyear index")
+
+data(pol)
+pol$albacore$timeI = pol$albacore$timeI + 0.5
+inp <- check.inp(pol$albacore)
+
+res <- fit.spict(pol$albacore)
+res <- retro(res, 2)
+
+test_this("3.2.1 Last observations (catch and index)",
+          list(
+              tail(res$retro[[1]]$inp$timeC,2),
+              tail(res$retro[[1]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.2.2 First peel (catch and index)",
+          list(
+              tail(res$retro[[2]]$inp$timeC,2),
+              tail(res$retro[[2]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.2.2 Second peel (catch and index)",
+          list(
+              tail(res$retro[[3]]$inp$timeC,2),
+              tail(res$retro[[3]]$inp$timeI[[1]],2)
+          ))
+
+
+
+## Case 3: Midyear index + last catch missing
+header("3.3. Albacore with midyear index plus last catch missing")
+
+data(pol)
+pol$albacore$timeI <- pol$albacore$timeI + 0.5
+pol$albacore$timeC <- pol$albacore$timeC[-23]
+pol$albacore$obsC <- pol$albacore$obsC[-23]
+inp <- check.inp(pol$albacore)
+
+res <- fit.spict(pol$albacore)
+res <- retro(res, 2)
+
+test_this("3.3.1 Last observations (catch and index)",
+          list(
+              tail(res$retro[[1]]$inp$timeC,2),
+              tail(res$retro[[1]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.3.2 First peel (catch and index)",
+          list(
+              tail(res$retro[[2]]$inp$timeC,2),
+              tail(res$retro[[2]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.3.2 Second peel (catch and index)",
+          list(
+              tail(res$retro[[3]]$inp$timeC,2),
+              tail(res$retro[[3]]$inp$timeI[[1]],2)
+          ))
+
+
+
+## Case 4: Midyear index + last 2 catch missing
+header("3.4. Albacore with midyear index plus 2 last catch missing")
+
+data(pol)
+pol$albacore$timeI <- pol$albacore$timeI + 0.5
+pol$albacore$timeC <- pol$albacore$timeC[-c(23,22)]
+pol$albacore$obsC <- pol$albacore$obsC[-c(23,22)]
+inp <- check.inp(pol$albacore)
+
+res <- fit.spict(pol$albacore)
+res <- retro(res, 2)
+
+test_this("3.4.1 Last observations (catch and index)",
+          list(
+              tail(res$retro[[1]]$inp$timeC,2),
+              tail(res$retro[[1]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.4.2 First peel (catch and index)",
+          list(
+              tail(res$retro[[2]]$inp$timeC,2),
+              tail(res$retro[[2]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.4.2 Second peel (catch and index)",
+          list(
+              tail(res$retro[[3]]$inp$timeC,2),
+              tail(res$retro[[3]]$inp$timeI[[1]],2)
+          ))
+
+
+
+
+## Case 5: Midyear index + last index missing
+header("3.5. Albacore with midyear index plus last index missing")
+
+data(pol)
+pol$albacore$timeI <- pol$albacore$timeI + 0.5
+pol$albacore$timeI <- pol$albacore$timeI[-23]
+pol$albacore$obsI <- pol$albacore$obsI[-23]
+inp <- check.inp(pol$albacore)
+
+
+res <- fit.spict(pol$albacore)
+res <- retro(res, 2)
+
+
+test_this("3.5.1 Last observations (catch and index)",
+          list(
+              tail(res$retro[[1]]$inp$timeC,2),
+              tail(res$retro[[1]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.5.2 First peel (catch and index)",
+          list(
+              tail(res$retro[[2]]$inp$timeC,2),
+              tail(res$retro[[2]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.5.2 Second peel (catch and index)",
+          list(
+              tail(res$retro[[3]]$inp$timeC,2),
+              tail(res$retro[[3]]$inp$timeI[[1]],2)
+          ))
+
+
+
+## Case 6: Midyear index + last 2 index missing
+header("3.6. Albacore with midyear index plus 2 last index missing")
+
+data(pol)
+pol$albacore$timeI <- pol$albacore$timeI + 0.5
+pol$albacore$timeI <- pol$albacore$timeI[-c(23,22)]
+pol$albacore$obsI <- pol$albacore$obsI[-c(23,22)]
+inp <- check.inp(pol$albacore)
+
+res <- fit.spict(pol$albacore)
+res <- retro(res, 2)
+
+test_this("3.6.1 Last observations (catch and index)",
+          list(
+              tail(res$retro[[1]]$inp$timeC,2),
+              tail(res$retro[[1]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.6.2 First peel (catch and index)",
+          list(
+              tail(res$retro[[2]]$inp$timeC,2),
+              tail(res$retro[[2]]$inp$timeI[[1]],2)
+          ))
+
+test_this("3.6.2 Second peel (catch and index)",
+          list(
+              tail(res$retro[[3]]$inp$timeC,2),
+              tail(res$retro[[3]]$inp$timeI[[1]],2)
+          ))
