@@ -286,6 +286,9 @@ read.aspic.res <- function(filename){
 #' @return List containing aspic results.
 #' @export
 fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FALSE, filebase='tmp', savefile=NULL){
+    # Get operating system - are we using windows?
+    is.windows <- .Platform$OS.type == "windows"
+    
     # Write aspic input file
     fn <- paste0(filebase, '.a7inp')
     write.aspic(input, filename=fn, verbose=verbose)
@@ -294,7 +297,8 @@ fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FAL
     if (file.exists(paste0(filebase, '.fit'))){
         file.remove(paste0(filebase, '.fit')) # Remove old fit
     }
-    system(paste0('wine aspic7 ', fn), intern=!verbose)
+    if(is.windows) system(paste0('aspic7 ', fn), intern=!verbose)
+    else system(paste0('wine aspic7 ', fn), intern=!verbose)
     #system(paste0('aspic7.exe ', fn)) # Alternative system call
 
     # Read aspic results
@@ -320,7 +324,8 @@ fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FAL
         if (file.exists(paste0(filebase, '.bot'))){
             file.remove(paste0(filebase, '.bot'))
         }
-        system(paste0('wine aspic7 ', filebase, '.a7inp'), intern=!verbose)
+        if(is.windows) system(paste0('aspic7 ', filebase, '.a7inp'), intern=!verbose)
+        else system(paste0('wine aspic7 ', filebase, '.a7inp'), intern=!verbose)
         filename <- paste0(filebase, '.bot')
         aspicres <- readLines(filename)
         string <- strsplit(aspicres[length(aspicres)], ' ')
@@ -335,7 +340,8 @@ fit.aspic <- function(input, do.boot=FALSE, nboot=NULL, ciperc=NULL, verbose=FAL
                 file.remove(paste0(filebase, '.bot'))
             }
             #system(paste0('aspic7.exe ', filebase, '.a7inp'), intern=!verbose)
-            system(paste0('wine aspic7 ', filebase, '.a7inp'), intern=!verbose)
+            if(is.windows) system(paste0('aspic7 ', filebase, '.a7inp'), intern=!verbose)
+            else system(paste0('wine aspic7 ', filebase, '.a7inp'), intern=!verbose)
             
             # Read aspic bootstrap results
             filename <- paste0(filebase, '.bot')
