@@ -29,6 +29,7 @@
 #' @param mminp Input list similar to the input to fit.spict()
 #' @return List containing results
 #' @examples
+#' \dontrun{
 #' priors <- list()
 #' priors$K <- c(5.042905, 3.76)
 #' priors$r <- c(-1.38, 3.845)
@@ -45,6 +46,7 @@
 #' inp$meyermillar$priors <- priors
 #' res <- fit.meyermillar(inp)
 #' summary(res$jags)
+#' }
 #' @export
 fit.meyermillar <- function(mminp){
     mminp <- check.inp(mminp)
